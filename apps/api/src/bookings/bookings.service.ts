@@ -232,17 +232,12 @@ export class BookingsService {
   // ---------------------------
   async cancelBooking(args: {
     bookingId: string;
-    actorUser: { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
+    actorUser: { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' | 'SYSTEM' };
     dto: CancelBookingDto;
   }) {
     const { bookingId, actorUser, dto } = args;
 
-    const actor: CancellationActor =
-      actorUser.role === 'ADMIN'
-        ? CancellationActor.ADMIN
-        : actorUser.role === 'VENDOR'
-          ? CancellationActor.VENDOR
-          : CancellationActor.CUSTOMER;
+    const actor = this.resolveCancellationActor(actorUser.role);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
@@ -312,6 +307,10 @@ export class BookingsService {
         );
       }
 
+      const isSystemAutoExpiredCancellation =
+        actor === CancellationActor.SYSTEM &&
+        dto.reason === CancellationReason.AUTO_EXPIRED_UNPAID;
+
       // ✅ Load policy: property override -> global active
       const policy =
         (await tx.cancellationPolicyConfig.findFirst({
@@ -323,35 +322,63 @@ export class BookingsService {
           orderBy: { updatedAt: 'desc' },
         }));
 
-      if (!policy) {
-        throw new BadRequestException(
-          'Cancellation policy is not configured. Create a global CancellationPolicyConfig first.',
+      let decision:
+        | {
+            tier: 'FREE' | 'PARTIAL' | 'NO_REFUND';
+            mode: CancellationMode;
+            policyVersion: string;
+            releasesInventory: boolean;
+            penaltyAmount: number;
+            refundableAmount: number;
+            hoursToCheckIn: number;
+          }
+        | undefined;
+
+      if (isSystemAutoExpiredCancellation) {
+        const hoursToCheckIn = Math.floor(
+          (booking.checkIn.getTime() - Date.now()) / (1000 * 60 * 60),
         );
+
+        decision = {
+          tier: 'NO_REFUND',
+          mode: dto.mode ?? CancellationMode.SOFT,
+          policyVersion: policy?.version ?? 'SYSTEM_AUTO_EXPIRED_UNPAID',
+          releasesInventory: true,
+          penaltyAmount: 0,
+          refundableAmount: 0,
+          hoursToCheckIn,
+        };
+      } else {
+        if (!policy) {
+          throw new BadRequestException(
+            'Cancellation policy is not configured. Create a global CancellationPolicyConfig first.',
+          );
+        }
+
+        // ✅ Force HARD cancellation for certain reasons
+        const forcedHardReasons = new Set<CancellationReason>([
+          CancellationReason.FRAUD,
+          CancellationReason.ADMIN_OVERRIDE,
+        ]);
+
+        const requestedMode = forcedHardReasons.has(dto.reason)
+          ? CancellationMode.HARD
+          : dto.mode;
+
+        // ✅ Policy decision
+        decision = this.cancellationPolicy.decide({
+          now: new Date(),
+          actor,
+          booking: {
+            checkIn: booking.checkIn,
+            checkOut: booking.checkOut,
+            totalAmount: booking.totalAmount,
+            currency: booking.currency,
+          },
+          policy,
+          requestedMode,
+        });
       }
-
-      // ✅ Force HARD cancellation for certain reasons
-      const forcedHardReasons = new Set<CancellationReason>([
-        CancellationReason.FRAUD,
-        CancellationReason.ADMIN_OVERRIDE,
-      ]);
-
-      const requestedMode = forcedHardReasons.has(dto.reason)
-        ? CancellationMode.HARD
-        : dto.mode;
-
-      // ✅ Policy decision
-      const decision = this.cancellationPolicy.decide({
-        now: new Date(),
-        actor,
-        booking: {
-          checkIn: booking.checkIn,
-          checkOut: booking.checkOut,
-          totalAmount: booking.totalAmount,
-          currency: booking.currency,
-        },
-        policy,
-        requestedMode,
-      });
 
       // ✅ Refund staging (only if payment exists and is refundable)
       let refundId: string | null = null;
@@ -527,6 +554,22 @@ export class BookingsService {
       refundId: result.refundId ?? null,
       decision: result.decision,
     };
+  }
+
+  private resolveCancellationActor(
+    role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' | 'SYSTEM',
+  ): CancellationActor {
+    switch (role) {
+      case 'SYSTEM':
+        return CancellationActor.SYSTEM;
+      case 'ADMIN':
+        return CancellationActor.ADMIN;
+      case 'VENDOR':
+        return CancellationActor.VENDOR;
+      case 'CUSTOMER':
+      default:
+        return CancellationActor.CUSTOMER;
+    }
   }
 
   /**

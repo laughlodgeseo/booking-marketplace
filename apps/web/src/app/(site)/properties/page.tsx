@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import FloatingSearchBar from "@/components/search/FloatingSearchBar";
 import FiltersBar from "@/components/search/FiltersBar";
-import TourmPropertyCard from "@/components/tourm/property/TourmPropertyCard";
+import PropertiesSearchShell from "@/components/search/properties/PropertiesSearchShell";
+import NetworkErrorState from "@/components/ui/NetworkErrorState";
 import { searchProperties } from "@/lib/api/search";
+import { parsePropertiesQuery } from "@/lib/search/params";
 
 export const metadata: Metadata = {
   title: "Stays | Laugh & Lodge",
@@ -13,58 +15,30 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function pickString(v: string | string[] | undefined): string | undefined {
-  if (!v) return undefined;
-  return Array.isArray(v) ? v[0] : v;
-}
-
-function pickNumber(v: string | string[] | undefined): number | undefined {
-  const s = pickString(v);
-  if (!s) return undefined;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
-}
-
 export default async function PropertiesPage(props: PageProps) {
-  const sp = await props.searchParams;
-
-  const q = pickString(sp.q);
-  const city = pickString(sp.city);
-  const area = pickString(sp.area);
-
-  const guests = pickNumber(sp.guests);
-  const bedrooms = pickNumber(sp.bedrooms);
-  const bathrooms = pickNumber(sp.bathrooms);
-
-  const minPrice = pickNumber(sp.minPrice);
-  const maxPrice = pickNumber(sp.maxPrice);
-
-  const amenities = pickString(sp.amenities); // comma list
-
-  const checkIn = pickString(sp.checkIn);
-  const checkOut = pickString(sp.checkOut);
-  const page = pickNumber(sp.page) ?? 1;
+  const searchParams = await props.searchParams;
+  const query = parsePropertiesQuery(searchParams);
 
   const res = await searchProperties({
-    q,
-    city,
-    area,
-    guests,
-    bedrooms,
-    bathrooms,
-    minPrice,
-    maxPrice,
-    amenities,
-    checkIn,
-    checkOut,
-    page,
-    pageSize: 12,
-    sort: "relevance",
+    q: query.q,
+    city: query.city,
+    area: query.area,
+    guests: query.guests,
+    bedrooms: query.bedrooms,
+    bathrooms: query.bathrooms,
+    minPrice: query.minPrice,
+    maxPrice: query.maxPrice,
+    amenities: query.amenities,
+    checkIn: query.checkIn,
+    checkOut: query.checkOut,
+    page: query.page,
+    pageSize: query.pageSize,
+    sort: query.sort ?? "relevance",
   });
 
   const items = res.ok ? res.data.items : [];
   const meta = res.ok ? res.data.meta : null;
-  const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://rentpropertyuae.com";
   const listJsonLd = {
     "@context": "https://schema.org",
@@ -97,12 +71,12 @@ export default async function PropertiesPage(props: PageProps) {
               Stays in Dubai &amp; UAE
             </h1>
             <p className="mt-2 text-sm text-secondary sm:text-base">
-              Date-aware availability search powered by our booking engine — no stale inventory, no surprises.
+              Date-aware availability search powered by our booking engine - no stale inventory, no surprises.
             </p>
           </div>
 
           <div className="mt-6">
-            <FloatingSearchBar defaultQ={q} />
+            <FloatingSearchBar defaultQ={query.q} />
           </div>
 
           <FiltersBar />
@@ -111,74 +85,20 @@ export default async function PropertiesPage(props: PageProps) {
 
       <section className="bg-warm-alt/86 py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {!res.ok ? (
-          <div className="premium-card premium-card-tinted rounded-2xl p-6 text-sm text-secondary">
-            Could not load properties:{" "}
-            <span className="font-semibold text-primary">{res.message}</span>
-          </div>
-        ) : null}
-
-        <div className="flex items-end justify-between gap-3">
-          <div className="text-sm text-secondary/75">
-            {meta ? (
-              <>
-                Showing <span className="font-extrabold text-primary">{items.length}</span> of{" "}
-                <span className="font-extrabold text-primary">{meta.total}</span>
-              </>
-            ) : (
-              "Browse stays"
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((it) => (
-            <TourmPropertyCard key={it.id} item={it} />
-          ))}
-        </div>
-
-        {meta && totalPages > 1 ? (
-          <div className="mt-10 flex items-center justify-center gap-2">
-            {Array.from({ length: totalPages }).slice(0, 8).map((_, i) => {
-              const p = i + 1;
-              const qs = new URLSearchParams();
-
-              if (q) qs.set("q", q);
-              if (city) qs.set("city", city);
-              if (area) qs.set("area", area);
-
-              if (guests) qs.set("guests", String(guests));
-              if (bedrooms !== undefined) qs.set("bedrooms", String(bedrooms));
-              if (bathrooms !== undefined) qs.set("bathrooms", String(bathrooms));
-
-              if (minPrice !== undefined) qs.set("minPrice", String(minPrice));
-              if (maxPrice !== undefined) qs.set("maxPrice", String(maxPrice));
-              if (amenities) qs.set("amenities", amenities);
-
-              if (checkIn) qs.set("checkIn", checkIn);
-              if (checkOut) qs.set("checkOut", checkOut);
-
-              qs.set("page", String(p));
-
-              const active = p === meta.page;
-
-              return (
-                <a
-                  key={p}
-                  href={`/properties?${qs.toString()}`}
-                  className={[
-                    "rounded-xl border px-4 py-2 text-sm font-semibold transition",
-                    active
-                      ? "border-transparent bg-brand text-accent-text shadow-brand-soft"
-                      : "border-line bg-surface text-primary hover:bg-accent-soft/55",
-                  ].join(" ")}
-                >
-                  {p}
-                </a>
-              );
-            })}
-          </div>
-        ) : null}
+          {!res.ok ? (
+            <NetworkErrorState
+              title="We're having trouble loading this"
+              message={res.message || "Could not load properties right now."}
+              retryLabel="Retry listings"
+            />
+          ) : (
+            <PropertiesSearchShell
+              query={query}
+              items={items}
+              meta={meta}
+              showFiltersPanel={false}
+            />
+          )}
         </div>
       </section>
 

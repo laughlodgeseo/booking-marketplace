@@ -15,6 +15,7 @@ type Props = {
   query: PropertiesQuery;
   items: SearchResponse["items"];
   meta: SearchResponse["meta"] | null;
+  showFiltersPanel?: boolean;
 };
 
 type Bounds = { north: number; south: number; east: number; west: number };
@@ -39,9 +40,11 @@ function defaultZoom(items: SearchResponse["items"]) {
 
 export default function PropertiesSearchShell(props: Props) {
   const router = useRouter();
+  const showFiltersPanel = props.showFiltersPanel ?? true;
 
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "map">("list");
 
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
@@ -49,6 +52,7 @@ export default function PropertiesSearchShell(props: Props) {
 
   // keep a ref to current query to avoid stale closures in viewport fetch
   const queryRef = useRef<PropertiesQuery>(props.query);
+  const lastBoundsRef = useRef<Bounds | null>(null);
   useEffect(() => {
     queryRef.current = props.query;
   }, [props.query]);
@@ -100,6 +104,7 @@ export default function PropertiesSearchShell(props: Props) {
       const south = clamp(b.south, -85, 85);
       const east = clamp(b.east, -180, 180);
       const west = clamp(b.west, -180, 180);
+      lastBoundsRef.current = { north, south, east, west };
 
       setMapLoading(true);
       setMapError(null);
@@ -131,6 +136,11 @@ export default function PropertiesSearchShell(props: Props) {
     [],
   );
 
+  const retryMapPins = useCallback(() => {
+    if (!lastBoundsRef.current) return;
+    void fetchViewport(lastBoundsRef.current);
+  }, [fetchViewport]);
+
   const onMarkerClick = useCallback((slug: string) => {
     setActiveSlug(slug);
     // if the pin exists in current list, scroll to it
@@ -149,15 +159,45 @@ export default function PropertiesSearchShell(props: Props) {
   const page = props.meta?.page ?? props.query.page;
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="mt-6">
+      <div className="mb-3 flex items-center gap-2 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileView("list")}
+          className={[
+            "rounded-xl border px-3 py-2 text-xs font-semibold transition",
+            mobileView === "list"
+              ? "border-line/80 bg-brand text-accent-text"
+              : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+          ].join(" ")}
+        >
+          List
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView("map")}
+          className={[
+            "rounded-xl border px-3 py-2 text-xs font-semibold transition",
+            mobileView === "map"
+              ? "border-line/80 bg-brand text-accent-text"
+              : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+          ].join(" ")}
+        >
+          Map
+        </button>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
       {/* LEFT: Filters + Results */}
-      <div className="space-y-5">
-        <FiltersPanel
-          query={props.query}
-          resultsCount={props.meta?.total ?? null}
-          onChange={onChangeFilters}
-          busyKey={qKey}
-        />
+      <div className={["space-y-5", mobileView === "map" ? "hidden lg:block" : ""].join(" ")}>
+        {showFiltersPanel ? (
+          <FiltersPanel
+            query={props.query}
+            resultsCount={props.meta?.total ?? null}
+            onChange={onChangeFilters}
+            busyKey={qKey}
+          />
+        ) : null}
 
         {/* Results header */}
         <div className="flex items-end justify-between gap-3">
@@ -215,7 +255,7 @@ export default function PropertiesSearchShell(props: Props) {
       </div>
 
       {/* RIGHT: Map */}
-      <div className="lg:sticky lg:top-24">
+      <div className={["lg:sticky lg:top-24", mobileView === "list" ? "hidden lg:block" : ""].join(" ")}>
         <div className="relative overflow-hidden rounded-2xl border border-line bg-surface">
           <div className="flex items-center justify-between gap-3 border-b border-line/70 bg-bg-2/70 px-4 py-3">
             <div className="text-sm font-semibold text-primary">Map</div>
@@ -234,12 +274,25 @@ export default function PropertiesSearchShell(props: Props) {
               onMarkerClick={onMarkerClick}
               onViewportChanged={fetchViewport}
               viewportDebounceMs={520}
-              className="h-[540px] w-full"
+              className={mobileView === "map" ? "h-[72vh] w-full lg:h-[540px]" : "h-[540px] w-full"}
             />
 
             {mapError ? (
+              <div className="absolute inset-x-3 top-3 rounded-xl border border-line/30 bg-ink/72 px-3 py-2 text-xs text-inverted backdrop-blur">
+                <div>{mapError}</div>
+                <button
+                  type="button"
+                  onClick={retryMapPins}
+                  className="mt-2 rounded-lg border border-line/30 bg-surface/15 px-2 py-1 font-semibold text-inverted hover:bg-surface/25"
+                >
+                  Retry pins
+                </button>
+              </div>
+            ) : null}
+
+            {!mapError && !mapLoading && mapPoints.length === 0 ? (
               <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl border border-line/30 bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
-                {mapError}
+                No pins in this viewport. Pan or zoom out to discover nearby stays.
               </div>
             ) : null}
 
@@ -256,10 +309,11 @@ export default function PropertiesSearchShell(props: Props) {
           </div>
         </div>
 
-        <p className="mt-3 text-xs text-muted">
-          Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth.
-        </p>
+      <p className="mt-3 text-xs text-muted">
+        Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth.
+      </p>
       </div>
+    </div>
     </div>
   );
 }

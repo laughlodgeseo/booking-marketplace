@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { AuthUser, UserRole } from "@/lib/auth/auth.types";
 import { me as apiMe, logout as apiLogout } from "@/lib/auth/authApi";
+import { getAccessToken } from "@/lib/auth/tokenStore";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous" | "error";
 
@@ -50,6 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const refresh = useCallback(async () => {
+    if (!getAccessToken()) {
+      setState({ status: "anonymous", user: null, errorMessage: null });
+      return;
+    }
+
     setState((s) => ({ ...s, status: "loading", errorMessage: null }));
 
     try {
@@ -74,6 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!getAccessToken()) {
+      setState({ status: "anonymous", user: null, errorMessage: null });
+      return;
+    }
     void refresh();
   }, [refresh]);
 

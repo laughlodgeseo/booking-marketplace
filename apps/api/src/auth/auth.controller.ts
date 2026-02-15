@@ -184,6 +184,13 @@ export class AuthController {
     return this.auth.requestPasswordReset(dto.email);
   }
 
+  @Post('request-otp')
+  @UseGuards(JwtAccessGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async requestOtp(@Req() req: AccessRequest) {
+    return this.emailVerification.requestOtp({ userId: req.user.id });
+  }
+
   @Post('reset-password')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async resetPassword(@Body() dto: ResetPasswordDto) {

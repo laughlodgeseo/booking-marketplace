@@ -1,13 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BookingStatus } from '@prisma/client';
+import {
+  BookingStatus,
+  CancellationMode,
+  CancellationReason,
+} from '@prisma/client';
 import { PrismaService } from '../modules/prisma/prisma.service';
+import { BookingsService } from '../bookings/bookings.service';
 
 @Injectable()
 export class BookingExpiryWorker {
   private readonly logger = new Logger(BookingExpiryWorker.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly bookings: BookingsService,
+  ) {}
 
   /**
    * Runs every minute
@@ -27,16 +35,41 @@ export class BookingExpiryWorker {
 
     if (expiredBookings.length === 0) return;
 
-    const ids = expiredBookings.map((b) => b.id);
+    let cancelledCount = 0;
+    let alreadyCancelledCount = 0;
+    let failedCount = 0;
 
-    await this.prisma.booking.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        status: BookingStatus.CANCELLED,
-        cancelledAt: now,
-      },
-    });
+    for (const booking of expiredBookings) {
+      try {
+        const result = await this.bookings.cancelBooking({
+          bookingId: booking.id,
+          actorUser: {
+            id: 'system-booking-expiry-worker',
+            role: 'SYSTEM',
+          },
+          dto: {
+            reason: CancellationReason.AUTO_EXPIRED_UNPAID,
+            mode: CancellationMode.SOFT,
+            notes: 'Auto-expired unpaid booking by scheduler.',
+          },
+        });
 
-    this.logger.warn(`Auto-cancelled ${ids.length} expired unpaid booking(s).`);
+        if (result.alreadyCancelled) alreadyCancelledCount += 1;
+        else cancelledCount += 1;
+      } catch (error) {
+        failedCount += 1;
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Unknown worker cancellation error';
+        this.logger.error(
+          `Failed to auto-expire booking ${booking.id}: ${message}`,
+        );
+      }
+    }
+
+    this.logger.warn(
+      `Expiry worker processed ${expiredBookings.length} booking(s): cancelled=${cancelledCount}, alreadyCancelled=${alreadyCancelledCount}, failed=${failedCount}.`,
+    );
   }
 }

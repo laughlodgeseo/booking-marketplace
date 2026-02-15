@@ -69,6 +69,7 @@ async function bootstrap() {
   const staticAllowedOrigins = new Set<string>([
     'https://rentpropertyuae.vercel.app',
     'http://localhost:3000',
+    'http://localhost:3100',
   ]);
 
   const extraCorsOriginsRaw =
@@ -108,7 +109,9 @@ async function bootstrap() {
         return;
       }
 
-      callback(new Error(`CORS blocked for origin: ${normalizedOrigin}`));
+      // For disallowed origins, return cleanly without throwing.
+      // Browser will block due missing CORS headers.
+      callback(null, false);
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

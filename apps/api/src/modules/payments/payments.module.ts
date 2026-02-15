@@ -7,6 +7,7 @@ import { PaymentsController } from './payments.controller';
 import { PaymentsWebhooksController } from './payments.webhooks.controller';
 import { PaymentsReturnsController } from './payments-returns.controller';
 import { PaymentsService } from './payments.service';
+import { TelrWebhookGuard } from './guards/telr-webhook.guard';
 
 import { ManualPaymentsProvider } from './providers/manual.provider';
 import { TelrPaymentsProvider } from './providers/telr.provider';
@@ -18,7 +19,12 @@ import { TelrPaymentsProvider } from './providers/telr.provider';
     PaymentsWebhooksController,
     PaymentsReturnsController,
   ],
-  providers: [PaymentsService, ManualPaymentsProvider, TelrPaymentsProvider],
+  providers: [
+    PaymentsService,
+    ManualPaymentsProvider,
+    TelrPaymentsProvider,
+    TelrWebhookGuard,
+  ],
   exports: [PaymentsService],
 })
 export class PaymentsModule {}

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { APP_GUARD } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { HealthModule } from './modules/health/health.module';
@@ -23,6 +24,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { FxModule } from './modules/fx/fx.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
 
 @Module({
   imports: [
@@ -58,6 +60,12 @@ import { ContactModule } from './modules/contact/contact.module';
     SearchModule,
   ],
   controllers: [AppController],
-  providers: [BookingExpiryWorker],
+  providers: [
+    BookingExpiryWorker,
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

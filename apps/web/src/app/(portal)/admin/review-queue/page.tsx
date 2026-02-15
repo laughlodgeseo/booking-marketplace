@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonTable } from "@/components/portal/ui/Skeleton";
 import { Toolbar } from "@/components/portal/ui/Toolbar";
 import { EmptyState } from "@/components/portal/ui/EmptyState";
+import NetworkErrorState from "@/components/ui/NetworkErrorState";
 import {
   approveAdminProperty,
   getAdminReviewQueue,
@@ -200,7 +201,14 @@ export default function AdminReviewQueuePage() {
           {state.kind === "loading" ? (
             <SkeletonTable rows={8} />
           ) : state.kind === "error" ? (
-            <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">{state.message}</div>
+            <NetworkErrorState
+              title="We're having trouble loading this"
+              message={state.message}
+              retryLabel="Retry review queue"
+              onRetry={() => {
+                void load();
+              }}
+            />
           ) : filteredItems.length === 0 ? (
             <EmptyState title="No listings in this queue" description="There are no properties matching the selected status or search." />
           ) : (

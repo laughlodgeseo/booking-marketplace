@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import NetworkErrorState from "@/components/ui/NetworkErrorState";
 
 import { getVendorProperties, type VendorPropertyListItem } from "@/lib/api/portal/vendor";
 
@@ -31,6 +32,7 @@ export default function VendorPropertiesPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -60,7 +62,7 @@ export default function VendorPropertiesPage() {
     return () => {
       alive = false;
     };
-  }, [page]);
+  }, [page, reloadNonce]);
 
   const derived = useMemo(() => {
     if (state.kind !== "ready") return null;
@@ -88,9 +90,14 @@ export default function VendorPropertiesPage() {
           <SkeletonBlock className="h-24" />
         </div>
       ) : state.kind === "error" ? (
-        <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">
-          {state.message}
-        </div>
+        <NetworkErrorState
+          title="We're having trouble loading this"
+          message={state.message}
+          retryLabel="Retry properties"
+          onRetry={() => {
+            setReloadNonce((value) => value + 1);
+          }}
+        />
       ) : (
         <div className="space-y-5">
           <div className="rounded-3xl border border-line/50 bg-surface p-4 shadow-sm">

@@ -1,8 +1,10 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   BookingStatus,
@@ -24,7 +26,11 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ManualPaymentsProvider } from './providers/manual.provider';
-import { TelrPaymentsProvider } from './providers/telr.provider';
+import {
+  type TelrCreateSessionResult,
+  TelrPaymentsProvider,
+  type TelrVerifiedPayment,
+} from './providers/telr.provider';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type Actor = { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
@@ -201,7 +207,7 @@ export class PaymentsService {
         );
       }
 
-      const session = await this.telrProvider.createHostedPaymentSession({
+      const session = await this.createTelrHostedSessionOrThrow({
         bookingId: booking.id,
         amountMinor: payment.amount,
         currency: payment.currency,
@@ -592,7 +598,7 @@ export class PaymentsService {
     bookingId: string;
     providerRef: string;
     webhookEventId: string;
-  }): Promise<{ ok: true }> {
+  }): Promise<{ ok: true; reused: boolean }> {
     const verified = await this.telrProvider.verifyCapturedPayment({
       providerRef: args.providerRef,
     });
@@ -603,7 +609,65 @@ export class PaymentsService {
       );
     }
 
-    const txResult = await this.prisma.$transaction(
+    const txResult = await this.applyVerifiedTelrWebhookCapture({
+      bookingId: args.bookingId,
+      providerRef: args.providerRef,
+      webhookEventId: args.webhookEventId,
+      verified,
+    });
+
+    await this.emitConfirmedNotifications(
+      txResult.booking,
+      txResult.vendorId ?? null,
+      txResult.ops,
+    );
+
+    return { ok: true, reused: txResult.reused };
+  }
+
+  async handleTelrWebhookCapturedVerified(args: {
+    bookingId: string;
+    providerRef: string;
+    webhookEventId: string;
+    currency: string;
+    amountMinor: number;
+    statusCode?: string;
+    statusText?: string;
+  }): Promise<{ ok: true; reused: boolean }> {
+    const verified: TelrVerifiedPayment = {
+      ok: true,
+      providerRef: args.providerRef,
+      bookingId: args.bookingId,
+      statusCode: (args.statusCode ?? 'DEV_SIM').trim() || 'DEV_SIM',
+      statusText:
+        (args.statusText ?? 'DEV_SIMULATED').trim() || 'DEV_SIMULATED',
+      amountMinor: args.amountMinor,
+      currency: args.currency,
+    };
+
+    const txResult = await this.applyVerifiedTelrWebhookCapture({
+      bookingId: args.bookingId,
+      providerRef: args.providerRef,
+      webhookEventId: args.webhookEventId,
+      verified,
+    });
+
+    await this.emitConfirmedNotifications(
+      txResult.booking,
+      txResult.vendorId ?? null,
+      txResult.ops,
+    );
+
+    return { ok: true, reused: txResult.reused };
+  }
+
+  private async applyVerifiedTelrWebhookCapture(args: {
+    bookingId: string;
+    providerRef: string;
+    webhookEventId: string;
+    verified: TelrVerifiedPayment;
+  }) {
+    return this.prisma.$transaction(
       async (tx) => {
         const booking = await tx.booking.findUnique({
           where: { id: args.bookingId },
@@ -630,14 +694,14 @@ export class PaymentsService {
           );
         }
 
-        if ((payment.currency ?? '').trim() !== verified.currency) {
+        if ((payment.currency ?? '').trim() !== args.verified.currency) {
           throw new BadRequestException(
             'Currency mismatch between payment and Telr verification.',
           );
         }
 
         // ✅ Compare minor units exactly (DB uses Int minor units)
-        if (Number(payment.amount) !== Number(verified.amountMinor)) {
+        if (Number(payment.amount) !== Number(args.verified.amountMinor)) {
           throw new BadRequestException(
             'Amount mismatch between payment and Telr verification.',
           );
@@ -669,6 +733,7 @@ export class PaymentsService {
             booking: refreshedBooking ?? booking,
             vendorId: booking.property.vendorId,
             ops,
+            reused: true,
           };
         }
 
@@ -702,8 +767,8 @@ export class PaymentsService {
               kind: 'TELR_VERIFIED',
               bookingId: booking.id,
               telr: {
-                statusCode: verified.statusCode,
-                statusText: verified.statusText,
+                statusCode: args.verified.statusCode,
+                statusText: args.verified.statusText,
               },
             }),
           },
@@ -725,18 +790,11 @@ export class PaymentsService {
           booking: refreshedBooking ?? booking,
           vendorId: booking.property.vendorId,
           ops,
+          reused: false,
         };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
-
-    await this.emitConfirmedNotifications(
-      txResult.booking,
-      txResult.vendorId ?? null,
-      txResult.ops,
-    );
-
-    return { ok: true };
   }
 
   async handleWebhookPaymentFailed(args: {
@@ -801,6 +859,44 @@ export class PaymentsService {
     });
 
     return { ok: true };
+  }
+
+  private async createTelrHostedSessionOrThrow(args: {
+    bookingId: string;
+    amountMinor: number;
+    currency: string;
+    description: string;
+    returnUrl: string;
+    cancelUrl: string;
+    customerEmail?: string | null;
+    customerName?: string | null;
+  }): Promise<TelrCreateSessionResult> {
+    try {
+      return await this.telrProvider.createHostedPaymentSession(args);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'TELR authorize failed.';
+      const lowered = message.toLowerCase();
+
+      const isConfigError =
+        lowered.includes('telr_store_id is not configured') ||
+        lowered.includes('telr_auth_key is not configured');
+
+      if (isConfigError) {
+        throw new ServiceUnavailableException({
+          ok: false,
+          code: 'TELR_NOT_CONFIGURED',
+          message:
+            'TELR is not configured. Please try another method or contact support.',
+        });
+      }
+
+      throw new BadGatewayException({
+        ok: false,
+        code: 'TELR_PROVIDER_ERROR',
+        message: 'TELR authorize request failed. Please try again shortly.',
+      });
+    }
   }
 
   private async emitConfirmedNotifications(

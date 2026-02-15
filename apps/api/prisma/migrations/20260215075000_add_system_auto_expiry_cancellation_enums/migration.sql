@@ -1,0 +1,13 @@
+DO $$
+BEGIN
+  ALTER TYPE "CancellationActor" ADD VALUE IF NOT EXISTS 'SYSTEM';
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER TYPE "CancellationReason" ADD VALUE IF NOT EXISTS 'AUTO_EXPIRED_UNPAID';
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;

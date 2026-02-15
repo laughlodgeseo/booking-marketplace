@@ -14,5 +14,6 @@ import { PrismaService } from 'src/modules/prisma/prisma.service';
   ],
   controllers: [BookingsController],
   providers: [BookingsService, PrismaService, CancellationPolicyService],
+  exports: [BookingsService],
 })
 export class BookingsModule {}

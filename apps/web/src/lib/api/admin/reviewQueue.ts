@@ -46,9 +46,8 @@ function parseReviewQueueItem(raw: unknown): ReviewQueueItem {
 }
 
 export async function getReviewQueue(): Promise<ReviewQueueResponse> {
-  // Backend contract: "admin review queue" endpoint (portal-shaped).
-  // If your backend uses a different route, change ONLY this path.
-  const res = await apiFetch<unknown>("/portal/admin/review-queue", { method: "GET" });
+  // Backend route: /admin/properties/review-queue
+  const res = await apiFetch<unknown>("/admin/properties/review-queue", { method: "GET" });
   if (!res.ok) {
     throw new Error(res.message);
   }
@@ -73,7 +72,7 @@ export async function approveProperty(propertyId: string): Promise<void> {
 export async function requestChangesProperty(propertyId: string, body: { message: string }): Promise<void> {
   const res = await apiFetch(`/admin/properties/${propertyId}/request-changes`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body,
   });
   if (!res.ok) throw new Error(res.message);
 }
@@ -81,7 +80,7 @@ export async function requestChangesProperty(propertyId: string, body: { message
 export async function rejectProperty(propertyId: string, body: { reason: string }): Promise<void> {
   const res = await apiFetch(`/admin/properties/${propertyId}/reject`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body,
   });
   if (!res.ok) throw new Error(res.message);
 }
