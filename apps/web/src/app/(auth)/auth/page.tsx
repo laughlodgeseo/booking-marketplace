@@ -78,7 +78,7 @@ function AuthGatewayContent() {
             type="button"
             onClick={() => setMode("login")}
             className={[
-              "relative flex-1 px-4 py-2.5 text-sm font-semibold transition",
+              "relative flex h-11 flex-1 items-center justify-center px-4 text-sm font-semibold transition",
               mode === "login"
                 ? "text-[#4F46E5] after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:rounded-full after:bg-[#4F46E5]"
                 : "text-secondary hover:text-primary",
@@ -90,7 +90,7 @@ function AuthGatewayContent() {
             type="button"
             onClick={() => setMode("signup")}
             className={[
-              "relative flex-1 px-4 py-2.5 text-sm font-semibold transition",
+              "relative flex h-11 flex-1 items-center justify-center px-4 text-sm font-semibold transition",
               mode === "signup"
                 ? "text-[#4F46E5] after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:rounded-full after:bg-[#4F46E5]"
                 : "text-secondary hover:text-primary",
@@ -122,7 +122,7 @@ function AuthGatewayContent() {
           type="button"
           onClick={go}
           whileTap={{ scale: 0.98 }}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F46E5] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.32)] hover:bg-[#4338CA] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#4F46E5] px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.32)] hover:bg-[#4338CA] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30"
         >
           {mode === "login" ? "Continue to login" : "Continue to sign up"}
           <ArrowRight className="h-4 w-4" />

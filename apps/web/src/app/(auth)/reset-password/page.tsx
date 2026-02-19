@@ -56,7 +56,7 @@ function ResetPasswordContent() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="w-full rounded-xl bg-brand py-3 text-sm font-medium text-text-invert shadow-brand-soft hover:bg-brand-hover"
+            className="h-11 w-full rounded-xl bg-brand text-sm font-medium text-text-invert shadow-brand-soft hover:bg-brand-hover"
           >
             Continue to login
           </button>
@@ -69,7 +69,7 @@ function ResetPasswordContent() {
             placeholder="Reset token"
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            className="premium-input w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
+            className="premium-input h-12 w-full rounded-xl px-4 text-[16px] focus:outline-none"
           />
 
           <input
@@ -79,7 +79,7 @@ function ResetPasswordContent() {
             placeholder="New password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="premium-input w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
+            className="premium-input h-12 w-full rounded-xl px-4 text-[16px] focus:outline-none"
           />
 
           {error ? <p className="text-sm text-danger">{error}</p> : null}
@@ -87,7 +87,7 @@ function ResetPasswordContent() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-brand py-3 text-sm font-medium text-text-invert shadow-brand-soft hover:bg-brand-hover disabled:opacity-60"
+            className="h-11 w-full rounded-xl bg-brand text-sm font-medium text-text-invert shadow-brand-soft hover:bg-brand-hover disabled:opacity-60"
           >
             {submitting ? "Updating…" : "Update password"}
           </button>

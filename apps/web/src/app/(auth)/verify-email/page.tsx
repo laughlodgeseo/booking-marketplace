@@ -153,7 +153,7 @@ function VerifyEmailContent() {
             pattern="[0-9]*"
             autoComplete="one-time-code"
             placeholder="000000"
-            className="premium-input w-full rounded-2xl px-4 py-3 text-center text-lg font-semibold tracking-[0.3em] text-primary shadow-sm outline-none placeholder:text-muted"
+            className="premium-input h-12 w-full rounded-2xl px-4 text-center text-[16px] font-semibold tracking-[0.3em] text-primary shadow-sm outline-none placeholder:text-muted"
           />
         </label>
 
@@ -172,7 +172,7 @@ function VerifyEmailContent() {
         <button
           type="submit"
           disabled={busy !== null || otp.length !== 6}
-          className="inline-flex w-full items-center justify-center rounded-2xl bg-brand px-5 py-3.5 text-sm font-semibold text-text-invert shadow-brand-soft hover:bg-brand-hover disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-text-invert shadow-brand-soft hover:bg-brand-hover disabled:opacity-60"
         >
           {busy === "Verifying code..." ? "Verifying..." : "Verify email"}
         </button>
@@ -181,7 +181,7 @@ function VerifyEmailContent() {
           type="button"
           onClick={() => void resend()}
           disabled={busy !== null || cooldown > 0}
-          className="inline-flex w-full items-center justify-center rounded-2xl border border-line/80 bg-surface px-5 py-3 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-line/80 bg-surface px-5 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
         >
           {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
         </button>
