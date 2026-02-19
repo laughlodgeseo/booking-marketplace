@@ -53,7 +53,7 @@ export default async function PropertiesPage(props: PageProps) {
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-transparent">
+    <main className="relative min-h-screen overflow-x-hidden bg-transparent">
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(listJsonLd)}
       </script>
