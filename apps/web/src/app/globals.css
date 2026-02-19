@@ -2,6 +2,7 @@
 
 /* Premium portal tokens (Warm Ivory + Indigo + Gold) */
 :root {
+  --site-bg: #f7f4ee;
   /* Canonical palette */
   --brand: #4f46e5; /* Indigo */
   --brand-hover: #4338ca;
@@ -13,8 +14,8 @@
   --ink-3: #1f2937;
 
   /* ✅ Option 2: warm ivory backgrounds (less “white on white”) */
-  --bg: #fbf8f2; /* warm ivory */
-  --bg-2: #f3eee5; /* warm ivory 2 */
+  --bg: var(--site-bg);
+  --bg-2: var(--site-bg);
   --surface: #ffffff;
 
   /* ✅ Softer lines (no dead skeleton borders) */
@@ -30,10 +31,10 @@
   --gold-soft: rgb(198 169 109 / 0.20);
 
   /* Semantic aliases used across app classes */
-  --color-bg: var(--bg);
-  --color-bg-2: var(--bg-2);
-  --color-bg-warm: var(--bg);
-  --color-bg-alt: var(--bg-2);
+  --color-bg: var(--site-bg);
+  --color-bg-2: var(--site-bg);
+  --color-bg-warm: var(--site-bg);
+  --color-bg-alt: var(--site-bg);
   --color-surface: var(--surface);
 
   --color-ink: var(--ink);
@@ -71,10 +72,10 @@
   --shadow-soft: 0 14px 34px rgba(11, 15, 25, 0.10);
 
   /* RGB triplets for Tailwind alpha utilities */
-  --color-bg-rgb: 251 248 242;
-  --color-bg-2-rgb: 243 238 229;
-  --color-bg-warm-rgb: 251 248 242;
-  --color-bg-alt-rgb: 243 238 229;
+  --color-bg-rgb: 247 244 238;
+  --color-bg-2-rgb: 247 244 238;
+  --color-bg-warm-rgb: 247 244 238;
+  --color-bg-alt-rgb: 247 244 238;
   --color-surface-rgb: 255 255 255;
 
   --color-ink-rgb: 11 15 25;
@@ -119,14 +120,45 @@ body {
 
 html {
   scroll-behavior: smooth;
+  background: var(--site-bg);
 }
 
 body {
-  background: var(--bg);
+  background: var(--site-bg);
   color: var(--text-primary);
   font-size: 16px;
   line-height: 1.55;
   overflow-x: hidden;
+}
+
+/* DayPicker hardening: prevent caption/nav overlap and accidental vertical stacking */
+.rdp-root {
+  width: 100%;
+}
+
+.rdp-months {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.rdp-month {
+  width: 100%;
+}
+
+.rdp-month_caption {
+  min-height: 2.5rem;
+  align-items: center;
+}
+
+.rdp-nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rdp-caption_label {
+  white-space: nowrap;
 }
 
 ::selection {
@@ -160,46 +192,41 @@ textarea {
 @layer utilities {
   /* ====== HERO / SITE ====== */
   .hero-dark-shell {
-    background:
-      radial-gradient(120% 140% at 14% -10%, rgb(var(--color-accent-rgb) / 0.26) 0%, transparent 52%),
-      radial-gradient(88% 120% at 86% 8%, rgb(var(--color-gold-rgb) / 0.12) 0%, transparent 58%),
-      linear-gradient(
-        138deg,
-        rgb(var(--color-ink-rgb)) 0%,
-        rgb(var(--color-ink-2-rgb)) 56%,
-        rgb(var(--color-ink-3-rgb)) 100%
-      );
+    background: transparent;
+    color: var(--text-primary);
   }
 
   .hero-dark-overlay {
-    background:
-      radial-gradient(circle at 58% -10%, rgb(var(--color-accent-rgb) / 0.16), transparent 54%),
-      linear-gradient(to bottom, rgb(var(--color-ink-rgb) / 0.08), rgb(var(--color-ink-2-rgb) / 0.30));
+    background: none;
   }
 
   .hero-light-shell {
-    background:
-      radial-gradient(92% 120% at 12% -20%, rgb(var(--color-accent-rgb) / 0.12) 0%, transparent 58%),
-      radial-gradient(74% 120% at 100% 10%, rgb(var(--color-accent-rgb) / 0.08) 0%, transparent 60%),
-      linear-gradient(180deg, rgb(var(--color-bg-rgb)) 0%, rgb(var(--color-bg-2-rgb)) 100%);
+    background: transparent;
   }
 
   .hero-light-overlay {
-    background:
-      linear-gradient(to bottom, rgb(var(--color-surface-rgb) / 0.56), rgb(var(--color-bg-rgb) / 0.82)),
-      linear-gradient(to right, rgb(var(--color-accent-rgb) / 0.04), transparent 58%);
+    background: none;
   }
 
   .section-dark-band {
-    background:
-      radial-gradient(84% 116% at 85% 12%, rgb(var(--color-accent-rgb) / 0.20) 0%, transparent 56%),
-      linear-gradient(
-        134deg,
-        rgb(var(--color-ink-rgb)) 0%,
-        rgb(var(--color-ink-2-rgb)) 54%,
-        rgb(var(--color-ink-3-rgb)) 100%
-      );
-    color: var(--text-inverted);
+    background: transparent;
+    color: var(--text-primary);
+  }
+
+  .section-dark-band .text-inverted,
+  .hero-dark-shell .text-inverted {
+    color: var(--text-primary) !important;
+  }
+
+  .section-dark-band .text-inverted\/60,
+  .section-dark-band .text-inverted\/70,
+  .section-dark-band .text-inverted\/74,
+  .section-dark-band .text-inverted\/78,
+  .hero-dark-shell .text-inverted\/60,
+  .hero-dark-shell .text-inverted\/70,
+  .hero-dark-shell .text-inverted\/74,
+  .hero-dark-shell .text-inverted\/78 {
+    color: rgb(var(--text-secondary-rgb) / 0.78) !important;
   }
 
   .container-page {
@@ -240,7 +267,7 @@ textarea {
   .premium-card {
     position: relative;
     background: rgb(var(--color-surface-rgb) / 0.98);
-    border: 1px solid rgb(var(--line-rgb) / 0.10);
+    border: 1px solid transparent;
     box-shadow: 0 18px 44px rgba(11, 15, 25, 0.10);
     backdrop-filter: blur(12px);
     transition:
@@ -266,7 +293,7 @@ textarea {
 
   .premium-card-hover:hover {
     transform: translateY(-2px);
-    border-color: rgb(var(--line-strong-rgb) / 0.20);
+    border-color: transparent;
     box-shadow: 0 22px 54px rgba(11, 15, 25, 0.14);
     background: color-mix(in srgb, rgb(var(--color-surface-rgb)) 95%, rgb(var(--color-accent-soft-2-rgb) / 0.22) 5%);
   }
@@ -278,7 +305,7 @@ textarea {
   .premium-card-tinted {
     position: relative;
     background: color-mix(in srgb, rgb(var(--color-bg-2-rgb)) 86%, rgb(var(--color-surface-rgb)) 14%);
-    border: 1px solid rgb(var(--line-rgb) / 0.10);
+    border: 1px solid transparent;
     box-shadow: 0 16px 42px rgba(11, 15, 25, 0.10);
   }
 
@@ -389,6 +416,86 @@ textarea {
         rgb(var(--color-bg-rgb)) 100%
       ),
       linear-gradient(180deg, rgb(var(--color-ink-rgb) / 0.08) 0%, transparent 42%);
+  }
+
+  .mobile-page-gutter {
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .mobile-page-gutter {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-page-gutter {
+      padding-inline: 2rem;
+    }
+  }
+
+  .mobile-section-home {
+    padding-block: 2.5rem;
+  }
+
+  .mobile-section-inner {
+    padding-block: 2rem;
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-section-home {
+      padding-block: 4rem;
+    }
+
+    .mobile-section-inner {
+      padding-block: 2.5rem;
+    }
+  }
+
+  .mobile-h1 {
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .mobile-h2 {
+    font-size: 22px;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .mobile-body {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .mobile-copy-max {
+    max-width: 38ch;
+  }
+
+  .balance-wrap {
+    text-wrap: balance;
+  }
+
+  /* Indigo-focused variant for selected marketing pages */
+  .indigo-no-gold .premium-card::before {
+    background: linear-gradient(90deg, rgb(var(--color-accent-rgb) / 0.68), transparent 88%);
+  }
+
+  .indigo-no-gold .premium-card-tinted::before {
+    background: linear-gradient(180deg, rgb(var(--color-accent-rgb) / 0.12), transparent 68%);
+  }
+
+  .indigo-no-gold .card-accent-left::after {
+    background: rgb(var(--color-accent-rgb) / 0.55);
+  }
+
+  .indigo-no-gold .card-icon-plate {
+    border-color: rgb(var(--color-accent-rgb) / 0.30);
+    background: rgb(var(--color-accent-rgb) / 0.10);
+    color: rgb(var(--color-accent-rgb) / 0.92);
   }
 }
 
