@@ -42,8 +42,8 @@ export default async function BlogPostPage(props: PageProps) {
   if (!post) notFound();
 
   return (
-    <main className="min-h-screen bg-warm-base">
-      <article className="mx-auto max-w-4xl px-4 py-14 sm:px-6 sm:py-16">
+    <main className="min-h-screen bg-transparent">
+      <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
         <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary">{post.tag}</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">{post.title}</h1>
         <p className="mt-3 text-sm leading-relaxed text-secondary/80 sm:text-base">{post.excerpt}</p>
@@ -64,7 +64,7 @@ export default async function BlogPostPage(props: PageProps) {
         <div className="mt-8">
           <Link
             href="/blog"
-            className="inline-flex items-center justify-center rounded-2xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-accent-soft/55"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-line bg-surface px-4 text-sm font-semibold text-primary transition hover:bg-accent-soft/55"
           >
             Back to blog
           </Link>

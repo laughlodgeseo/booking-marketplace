@@ -22,13 +22,13 @@ export default function BlogHero() {
           <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/properties"
-                className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#0B0F19] shadow-[0_12px_28px_rgba(11,15,25,0.24)] transition hover:bg-indigo-50"
+                className="inline-flex h-11 items-center rounded-xl bg-white px-5 text-sm font-semibold text-[#0B0F19] shadow-[0_12px_28px_rgba(11,15,25,0.24)] transition hover:bg-indigo-50"
               >
                 Browse stays
               </Link>
               <Link
                 href="/contact"
-                className="rounded-xl border border-white/60 bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex h-11 items-center rounded-xl border border-white/60 bg-transparent px-5 text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 Contact us
               </Link>

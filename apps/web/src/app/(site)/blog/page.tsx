@@ -10,24 +10,24 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   return (
-    <main className="min-h-screen bg-warm-base">
+    <main className="min-h-screen bg-transparent">
       <BlogHero />
-      <div className="bg-warm-alt/90">
+      <div className="bg-transparent">
         <BlogGrid />
       </div>
-      <section className="section-dark-band py-14 sm:py-16">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-4 px-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-inverted/70">
+      <section className="py-8 sm:py-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center sm:flex-row sm:items-center sm:px-6 sm:text-left lg:px-8">
+          <div className="max-w-[38ch]">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">
               More
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-inverted">
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary">
               Ready to browse available stays?
             </h2>
           </div>
           <Link
             href="/properties"
-            className="inline-flex items-center justify-center rounded-2xl bg-brand px-5 py-3 text-sm font-semibold text-accent-text shadow-brand-soft transition hover:bg-brand-hover"
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-accent-text shadow-brand-soft transition hover:bg-brand-hover"
           >
             Explore stays
           </Link>

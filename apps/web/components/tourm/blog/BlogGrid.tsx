@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BLOG_POSTS, type BlogPost } from "@/lib/content/blog-posts";
+import Clamp from "@/components/ui/Clamp";
 
 function PostCard({ p }: { p: BlogPost }) {
   return (
@@ -21,12 +22,16 @@ function PostCard({ p }: { p: BlogPost }) {
         </div>
       </div>
 
-      <div className="space-y-2 p-5">
+      <div className="space-y-2 p-4 sm:p-5">
         <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/60">
           {p.dateLabel}
         </p>
-        <h3 className="text-base font-semibold text-primary">{p.title}</h3>
-        <p className="text-sm text-secondary/75">{p.excerpt}</p>
+        <Clamp as="h3" lines={2} className="text-base font-semibold leading-snug text-primary">
+          {p.title}
+        </Clamp>
+        <Clamp as="p" lines={3} className="text-sm text-secondary/75">
+          {p.excerpt}
+        </Clamp>
         <div className="pt-2 text-sm font-extrabold text-primary">
           Read more <span aria-hidden className="ml-1 text-secondary/60">→</span>
         </div>
@@ -38,7 +43,7 @@ function PostCard({ p }: { p: BlogPost }) {
 
 export default function BlogGrid() {
   return (
-    <section className="relative w-full py-14 sm:py-18">
+    <section className="relative w-full py-8 sm:py-10">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/70 shadow-sm backdrop-blur">
@@ -53,7 +58,7 @@ export default function BlogGrid() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {BLOG_POSTS.map((p) => (
             <PostCard key={p.slug} p={p} />
           ))}
