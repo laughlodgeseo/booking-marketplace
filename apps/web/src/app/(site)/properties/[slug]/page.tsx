@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { CircleHelp, ExternalLink, FileText, MapPin, MessageSquare, Star } from "lucide-react";
 
 import { getPropertyBySlug } from "@/lib/api/properties";
-import PropertyGallery from "@/components/property/PropertyGallery";
+import PropertyGalleryHero from "@/components/property/PropertyGalleryHero";
+import type { PropertyGalleryImage } from "@/components/property/property-gallery.types";
 import PropertyFacts from "@/components/property/PropertyFacts";
 import GoogleMap from "@/components/maps/GoogleMap";
 
@@ -108,6 +109,27 @@ function googleMapsLink(lat: number, lng: number, label?: string | null) {
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
+function stableGalleryImageId(
+  id: string | null | undefined,
+  url: string,
+  sortOrder: number,
+  index: number,
+) {
+  const value = (id ?? "").trim();
+  if (value) return value;
+  return `${url}#${sortOrder}-${index}`;
+}
+
+function reviewerInitials(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "G";
+  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+  return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
+}
+
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
   const res = await getPropertyBySlug(slug);
@@ -154,9 +176,9 @@ export default async function PropertyDetailPage(props: PageProps) {
   const res = await getPropertyBySlug(slug);
   if (!res.ok) {
     return (
-      <main className="min-h-screen bg-warm-base">
+      <main className="min-h-screen bg-transparent">
         <div className="mx-auto max-w-4xl px-4 pb-16 pt-12 sm:px-6 sm:pt-14 lg:px-8">
-          <div className="rounded-2xl border border-line bg-surface/70 p-6 text-sm text-secondary shadow-sm backdrop-blur">
+          <div className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-6 text-sm text-secondary shadow-[0_18px_44px_rgba(11,15,25,0.1)]">
             Could not load property:{" "}
             <span className="font-semibold text-primary">{res.message}</span>
           </div>
@@ -221,33 +243,26 @@ export default async function PropertyDetailPage(props: PageProps) {
       title: "Check-in & check-out",
       icon: "CHECKIN",
       lines: [
-        "Check-in details are shared after booking is confirmed.",
-        "Please keep your ID ready if verification is required for the building.",
-        "Late check-out is subject to availability and may incur a fee.",
+        "Check-in details are shared once your reservation is confirmed.",
+        "Please keep a valid government ID ready if building verification is required.",
+        "Late check-out can be requested, subject to availability.",
       ],
     },
     {
-      title: "Fees & transparency",
-      icon: "FEES",
-      lines: [
-        "Your quote shows a full breakdown (nightly price, taxes, and applicable fees).",
-        "Cleaning and operational fees (if any) are included in the breakdown before you reserve.",
-      ],
-    },
-    {
-      title: "Security & support",
-      icon: "SUPPORT",
-      lines: [
-        "Operator-grade cleaning and inspection standards.",
-        "Guest support is available for stay-related issues and access questions.",
-      ],
-    },
-    {
-      title: "Policies",
+      title: "Cancellation",
       icon: "POLICIES",
       lines: [
-        "Cancellation rules depend on the property’s cancellation policy and timing.",
-        "Availability is verified via our calendar engine before holds and bookings are created.",
+        "Final cancellation terms are shown before payment in checkout.",
+        "Any applicable fees are included in the quote breakdown before you reserve.",
+      ],
+    },
+    {
+      title: "Safety & property",
+      icon: "SECURITY",
+      lines: [
+        "Availability is validated in real time before holds and bookings are created.",
+        "Operator support is available for stay-related access and issue resolution.",
+        "Cleaning and turnover standards follow operator-managed workflows.",
       ],
     },
   ];
@@ -255,6 +270,43 @@ export default async function PropertyDetailPage(props: PageProps) {
   const hasCoords = p.lat !== null && p.lng !== null;
   const mapsHref = hasCoords ? googleMapsLink(p.lat as number, p.lng as number, p.title) : null;
   const metaLocation = [p.area ?? null, p.city ?? null].filter(Boolean).join(" • ");
+  const galleryImages: PropertyGalleryImage[] = p.media
+    .reduce<PropertyGalleryImage[]>((acc, media, index) => {
+      const url = (media.url ?? "").trim();
+      if (!url) return acc;
+
+      const sortOrder = Number.isFinite(media.sortOrder) ? media.sortOrder : index;
+      const alt = (media.alt ?? p.title).trim() || p.title;
+
+      acc.push({
+        id: stableGalleryImageId(media.id, url, sortOrder, index),
+        url,
+        alt,
+        sortOrder,
+      });
+
+      return acc;
+    }, [])
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const reviewCount = guestReviews.length;
+  const averageRating =
+    reviewCount > 0
+      ? guestReviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
+      : null;
+  const aboutText =
+    p.description ??
+    "Operator-managed vacation home with hotel-grade cleaning, verified availability, and responsive guest support.";
+  const aboutPreview =
+    aboutText.length > 320 ? `${aboutText.slice(0, 320).trimEnd()}...` : aboutText;
+  const hasLongAbout = aboutText.length > 320;
+  const areaHighlights = [
+    metaLocation ? `Located in ${metaLocation}.` : "Located in a connected urban neighborhood.",
+    hasCoords
+      ? "Map pin shows neighborhood-level context before booking confirmation."
+      : "Exact map pin is shared once location details are published for this stay.",
+    "Nearby access to dining, essentials, and transport varies by time and season.",
+  ];
   const detailJsonLd = {
     "@context": "https://schema.org",
     "@type": "LodgingBusiness",
@@ -297,163 +349,220 @@ export default async function PropertyDetailPage(props: PageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-warm-base">
+    <main className="min-h-screen bg-[rgb(var(--color-bg-rgb)/0.7)]">
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(detailJsonLd)}
       </script>
-      <section className="hero-light-shell relative overflow-hidden border-b border-line">
-        <div className="hero-light-overlay pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 opacity-24 [background-image:linear-gradient(rgba(11,15,25,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(11,15,25,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <section className="relative overflow-hidden border-b border-white/24 bg-gradient-to-br from-[#4F46E5] to-[#4338CA] text-white">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(248,250,252,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(248,250,252,0.12)_1px,transparent_1px)] [background-size:34px_34px]" />
         </div>
+
         <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-14 lg:px-8">
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary">Stay</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">Stay</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               {p.title}
             </h1>
-            <p className="mt-2 text-sm text-secondary sm:text-base">
+            <p className="mt-2 text-sm leading-relaxed text-white/84 sm:text-base">
               {p.subtitle ?? "Premium serviced stay with operator support and verified availability."}
             </p>
 
-            {metaLocation ? <p className="mt-2 text-sm text-secondary">{metaLocation}</p> : null}
+            <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
+              {averageRating !== null ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                  <Star className="h-3.5 w-3.5 fill-current text-amber-300" />
+                  <span>
+                    {averageRating.toFixed(1)} · {reviewCount} verified reviews
+                  </span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                  New listing
+                </div>
+              )}
+
+              {metaLocation ? (
+                <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                  {metaLocation}
+                </div>
+              ) : null}
+
+              <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                Verified availability
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-warm-alt/86 py-10">
+      <section className="bg-transparent pb-2 pt-6 sm:pt-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-          <div className="space-y-6">
-            <div className="premium-card premium-card-tinted rounded-2xl p-4 sm:p-5">
-              <PropertyGallery media={p.media} title={p.title} />
-            </div>
+          <PropertyGalleryHero images={galleryImages} propertyName={p.title} />
+        </div>
+      </section>
 
-            <div className="premium-card premium-card-tinted rounded-2xl p-4 sm:p-5">
+      <section className="bg-transparent pb-24 pt-6 sm:pt-8 lg:pb-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-10">
+            <div className="space-y-6 sm:space-y-8 lg:col-span-7 xl:col-span-8">
               <PropertyFacts property={p} />
-            </div>
 
-            <div className="premium-card premium-card-tinted rounded-2xl p-4 sm:p-5">
               <AmenitiesSection title="Amenities" items={amenities} previewCount={12} />
-            </div>
 
-            <div className="premium-card premium-card-tinted rounded-2xl p-4 sm:p-5">
               <HouseRulesSection items={houseRules} />
-            </div>
 
-            <div className="premium-card premium-card-tinted rounded-2xl p-4 sm:p-5">
               <ThingsToKnowSection blocks={blocks} />
-            </div>
 
-            <PublicPropertyCalendar slug={p.slug} />
+              <PublicPropertyCalendar slug={p.slug} />
 
-            <div className="premium-card premium-card-tinted rounded-2xl p-5">
-              <div className="text-sm font-semibold text-primary">About this stay</div>
-              <p className="mt-3 text-sm leading-relaxed text-secondary/80">
-                {p.description ?? "Operator-managed vacation home with hotel-grade cleaning and guest support."}
-              </p>
-            </div>
-
-            <div className="premium-card premium-card-tinted rounded-2xl p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-primary">Guest reviews</div>
-                {guestReviews.length > 0 ? (
-                  <div className="text-xs text-secondary/70">{guestReviews.length} verified reviews</div>
-                ) : null}
-              </div>
-
-              {guestReviews.length === 0 ? (
-                <p className="mt-3 text-sm text-secondary/70">
-                  No approved reviews yet. Reviews appear after completed stays and moderation.
-                </p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {guestReviews.slice(0, 8).map((review) => (
-                    <article key={review.id} className="premium-card premium-card-hover rounded-2xl p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-semibold text-primary">{review.reviewer}</div>
-                        <div className="rounded-full bg-accent-soft/45 px-2.5 py-1 text-xs font-semibold text-primary">
-                          {review.rating.toFixed(1)} / 5
-                        </div>
-                      </div>
-                      {review.title ? (
-                        <div className="mt-2 text-sm font-semibold text-primary">{review.title}</div>
-                      ) : null}
-                      {review.comment ? (
-                        <p className="mt-1 text-sm leading-relaxed text-secondary/80">{review.comment}</p>
-                      ) : null}
-                      <div className="mt-2 text-xs text-secondary/60">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="premium-card premium-card-tinted rounded-2xl p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-primary">Location</div>
-                  <div className="mt-1 text-xs text-secondary/70">
-                    {metaLocation || "Area context will expand over time (nearby points, walkability)."}
+              <section className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-5 shadow-[0_18px_44px_rgba(11,15,25,0.1)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(11,15,25,0.14)] sm:p-6">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
+                    <FileText className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                   </div>
+                  <div className="text-lg font-semibold tracking-tight text-primary">About this stay</div>
                 </div>
 
-                {mapsHref ? (
-                  <Link
-                    href={mapsHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-extrabold text-primary transition hover:bg-accent-soft/55"
-                  >
-                    Open in Maps <ExternalLink className="h-4 w-4" />
-                  </Link>
-                ) : null}
-              </div>
+                <div className="prose prose-sm mt-3 max-w-none text-secondary">
+                  <p>{aboutPreview}</p>
+                </div>
 
-              <div className="mt-4">
-                {hasCoords ? (
-                  <GoogleMap
-                    className="h-[320px] w-full overflow-hidden rounded-2xl sm:h-[420px]"
-                    center={{ lat: p.lat as number, lng: p.lng as number }}
-                    zoom={13}
-                    points={[
-                      {
-                        propertyId: p.id,
-                        lat: p.lat as number,
-                        lng: p.lng as number,
-                        priceFrom: p.priceFrom,
-                        currency: p.currency,
-                        slug: p.slug,
-                        title: p.title,
-                      },
-                    ]}
-                  />
+                {hasLongAbout ? (
+                  <details className="mt-2 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-3 ring-1 ring-white/72">
+                    <summary className="cursor-pointer text-sm font-semibold text-primary">Read more</summary>
+                    <div className="prose prose-sm mt-3 max-w-none text-secondary">
+                      <p>{aboutText}</p>
+                    </div>
+                  </details>
+                ) : null}
+              </section>
+
+              <section className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-5 shadow-[0_18px_44px_rgba(11,15,25,0.1)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(11,15,25,0.14)] sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
+                      <MessageSquare className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
+                    </div>
+                    <div className="text-lg font-semibold tracking-tight text-primary">Guest reviews</div>
+                  </div>
+
+                  {reviewCount > 0 ? (
+                    <div className="rounded-full bg-[rgb(var(--color-bg-rgb)/0.78)] px-3 py-1 text-xs font-semibold text-secondary ring-1 ring-white/72">
+                      {averageRating?.toFixed(1)} · {reviewCount} reviews
+                    </div>
+                  ) : null}
+                </div>
+
+                {guestReviews.length === 0 ? (
+                  <p className="mt-3 text-sm text-secondary/70">
+                    No approved reviews yet. Reviews appear after completed stays and moderation.
+                  </p>
                 ) : (
-                  <div className="grid h-[240px] place-items-center rounded-2xl border border-line bg-surface/60 text-sm text-secondary/75">
-                    Map location not set for this property.
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {guestReviews.slice(0, 8).map((review) => (
+                      <article key={review.id} className="rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-4 shadow-[0_8px_18px_rgba(11,15,25,0.08)] ring-1 ring-white/72">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 place-items-center rounded-full bg-white/82 text-xs font-bold text-primary ring-1 ring-white/72">
+                              {reviewerInitials(review.reviewer)}
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-primary">{review.reviewer}</div>
+                              <div className="text-xs text-secondary/70">
+                                {new Date(review.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-white/72">
+                            {review.rating.toFixed(1)} / 5
+                          </div>
+                        </div>
+                        {review.title ? (
+                          <div className="mt-3 text-sm font-semibold text-primary">{review.title}</div>
+                        ) : null}
+                        {review.comment ? (
+                          <p className="mt-1 text-sm leading-relaxed text-secondary/80">{review.comment}</p>
+                        ) : null}
+                      </article>
+                    ))}
                   </div>
                 )}
-              </div>
+              </section>
 
-              <p className="mt-3 text-xs text-secondary/65">
-                Exact address is shared as per property policy and booking status. Map uses only public coordinates.
-              </p>
+              <section className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-5 shadow-[0_18px_44px_rgba(11,15,25,0.1)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(11,15,25,0.14)] sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
+                      <MapPin className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold tracking-tight text-primary">Location</div>
+                      <div className="text-xs text-secondary/70">
+                        {metaLocation || "Area context will expand over time (nearby points, walkability)."}
+                      </div>
+                    </div>
+                  </div>
+
+                  {mapsHref ? (
+                    <Link
+                      href={mapsHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.86)] px-3 py-2 text-xs font-extrabold text-indigo-700 ring-1 ring-white/72 transition hover:bg-[rgb(var(--color-bg-rgb)/0.94)]"
+                    >
+                      Open in Maps <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 overflow-hidden rounded-2xl shadow-sm ring-1 ring-white/72">
+                  {hasCoords ? (
+                    <GoogleMap
+                      className="h-[320px] w-full overflow-hidden rounded-2xl sm:h-[420px]"
+                      center={{ lat: p.lat as number, lng: p.lng as number }}
+                      zoom={13}
+                      points={[
+                        {
+                          propertyId: p.id,
+                          lat: p.lat as number,
+                          lng: p.lng as number,
+                          priceFrom: p.priceFrom,
+                          currency: p.currency,
+                          slug: p.slug,
+                          title: p.title,
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <div className="grid h-[240px] place-items-center bg-[rgb(var(--color-bg-rgb)/0.78)] text-sm text-secondary/75">
+                      Map location not set for this property.
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-3 ring-1 ring-white/72">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    <CircleHelp className="h-3.5 w-3.5 text-indigo-600/90" /> Area highlights
+                  </div>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-secondary">
+                    {areaHighlights.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
             </div>
-          </div>
 
-          <div>
-            {/* Quote panel already drives the flow; keep it clean & light around it */}
-            <div className="premium-card rounded-2xl p-4 sm:p-5">
+            <aside className="lg:sticky lg:top-24 lg:col-span-5 lg:self-start xl:col-span-4">
               <QuotePanelBatchA
                 propertyId={p.id}
                 slug={p.slug}
                 currency={p.currency}
                 priceFrom={p.priceFrom}
               />
-            </div>
+            </aside>
           </div>
-        </div>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
-import { Clock, ShieldCheck, Receipt, Info, BadgeCheck } from "lucide-react";
+import { Clock, ShieldCheck, Receipt, Info, BadgeCheck, CircleHelp } from "lucide-react";
+import PropertySectionCard from "@/components/property/PropertySectionCard";
 
 export type ThingsToKnowBlock = {
   title: string;
@@ -12,7 +13,7 @@ export type ThingsToKnowSectionProps = {
 };
 
 function IconFor(kind: ThingsToKnowBlock["icon"]) {
-  const cls = "h-5 w-5 text-secondary";
+  const cls = "h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90";
   if (kind === "CHECKIN") return <Clock className={cls} />;
   if (kind === "SECURITY") return <ShieldCheck className={cls} />;
   if (kind === "FEES") return <Receipt className={cls} />;
@@ -27,20 +28,46 @@ export default function ThingsToKnowSection({
   if (!blocks.length) return null;
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5">
-      <div className="text-sm font-semibold text-primary">{title}</div>
-      <p className="mt-1 text-xs text-secondary">
-        The details that prevent surprises — transparent and guest-friendly.
-      </p>
+    <PropertySectionCard>
+      <div className="flex items-center gap-3">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
+          <CircleHelp className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
+        </div>
+        <div>
+          <div className="text-lg font-semibold tracking-tight text-primary">{title}</div>
+          <p className="text-xs text-secondary">Check-in details, cancellation notes, and safety context.</p>
+        </div>
+      </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+      <div className="mt-4 space-y-2.5 md:hidden">
+        {blocks.map((b, idx) => (
+          <details
+            key={`${b.title}-${idx}`}
+            className="overflow-hidden rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-4 shadow-[0_8px_18px_rgba(11,15,25,0.08)] ring-1 ring-white/72"
+          >
+            <summary className="flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-primary">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/82 ring-1 ring-white/72">
+                {IconFor(b.icon)}
+              </span>
+              <span>{b.title}</span>
+            </summary>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs leading-relaxed text-secondary">
+              {b.lines.map((line, i) => (
+                <li key={`${line}-${i}`}>{line}</li>
+              ))}
+            </ul>
+          </details>
+        ))}
+      </div>
+
+      <div className="mt-4 hidden gap-3 md:grid md:grid-cols-3">
         {blocks.map((b, idx) => (
           <div
             key={`${b.title}-${idx}`}
-            className="rounded-xl border border-line bg-surface p-4"
+            className="rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-4 shadow-[0_8px_18px_rgba(11,15,25,0.08)] ring-1 ring-white/72"
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-warm-alt">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/82 ring-1 ring-white/72">
                 {IconFor(b.icon)}
               </div>
               <div className="min-w-0">
@@ -55,6 +82,6 @@ export default function ThingsToKnowSection({
           </div>
         ))}
       </div>
-    </section>
+    </PropertySectionCard>
   );
 }
