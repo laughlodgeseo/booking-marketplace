@@ -7,6 +7,7 @@ import type { SearchResponse } from "@/lib/types/search";
 import { useCurrency } from "@/lib/currency/CurrencyProvider";
 
 type Item = SearchResponse["items"][number];
+type CardOrientation = "vertical" | "horizontal";
 
 type Slide = {
   key: string;
@@ -26,16 +27,34 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-export default function TourmPropertyCard({ item }: { item: Item }) {
+export default function TourmPropertyCard({
+  item,
+  orientation = "vertical",
+}: {
+  item: Item;
+  orientation?: CardOrientation;
+}) {
+  const isHorizontal = orientation === "horizontal";
   const router = useRouter();
-  const title = item.title ?? "Stay";
+  const rawTitle = (item.title ?? "Stay").trim();
+  const titleParts = rawTitle
+    .split("•")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const title = titleParts[0] || "Stay";
+  const titleLocationSuffix = titleParts.length > 1 ? titleParts.slice(1).join(" • ") : null;
   const area = item.location?.area ?? null;
   const city = item.location?.city ?? null;
-  const meta = [area, city].filter(Boolean).join(" • ");
+  const meta = [area, city].filter(Boolean).join(" • ") || titleLocationSuffix;
 
   const guests = item.capacity?.maxGuests ?? null;
   const beds = item.capacity?.bedrooms ?? null;
   const baths = item.capacity?.bathrooms ?? null;
+  const amenityPills = [
+    guests ? `${guests} guests` : null,
+    beds ? `${beds} beds` : null,
+    baths ? `${baths} baths` : null,
+  ].filter((value): value is string => Boolean(value));
 
   const { currency, formatFromAed, formatBaseAed } = useCurrency();
   const baseNightly = item.pricing?.nightly ?? null;
@@ -204,14 +223,23 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
 
   return (
     <article
-      className="premium-card premium-card-hover group relative cursor-pointer overflow-hidden rounded-2xl border-line-strong shadow-card"
+      className={[
+        "premium-card premium-card-tinted premium-card-hover group relative flex h-full cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 ease-out hover:-translate-y-3 hover:shadow-[0_34px_80px_rgba(11,15,25,0.24)] hover:ring-1 hover:ring-indigo-300/45 before:!bg-[linear-gradient(180deg,rgb(99_102_241_/_0.12),transparent_68%)]",
+        isHorizontal ? "flex-col md:h-[22rem] md:flex-row" : "flex-col",
+      ].join(" ")}
       onClick={(event) => {
         const target = event.target as HTMLElement;
         if (target.closest("a,button,input,textarea,select,label,summary,details")) return;
         router.push(`/properties/${item.slug}`);
       }}
     >
-      <div className="relative aspect-[5/4] w-full overflow-hidden">
+      <div
+        className={
+          isHorizontal
+            ? "relative h-[17rem] w-full overflow-hidden md:h-full md:w-[54%] lg:w-[56%] xl:w-[58%]"
+            : "relative h-[19rem] w-full overflow-hidden md:h-[20rem] lg:h-[22rem] xl:h-[24rem]"
+        }
+      >
         {slideCount > 0 ? (
           <div
             ref={railRef}
@@ -243,7 +271,7 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
                 <img
                   src={slide.url}
                   alt={slide.alt}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                  className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.1]"
                   loading="lazy"
                   draggable={false}
                 />
@@ -254,20 +282,16 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
           <div className="h-full w-full bg-gradient-to-br from-warm-alt to-warm-base" />
         )}
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/42 via-ink/10 to-transparent opacity-90" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/28 via-ink/5 to-transparent transition-colors duration-300 group-hover:from-ink/14 group-hover:via-transparent" />
 
         {price ? (
-          <div className="absolute left-3 top-3 rounded-xl border border-line bg-brand-soft px-3 py-2 text-xs font-semibold text-primary backdrop-blur">
-            {price} <span className="font-normal text-secondary">/ night</span>
-            {basePriceHint ? (
-              <div className="mt-1 text-[10px] font-medium text-secondary">{basePriceHint}</div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {item.flags?.instantBook ? (
-          <div className="absolute right-3 top-3 rounded-xl border border-line bg-surface/95 px-3 py-2 text-xs font-semibold text-primary shadow-sm">
-            Instant book
+          <div
+            className={[
+              "absolute left-3 top-3 rounded-full bg-surface/95 px-3 py-1.5 text-sm font-semibold tracking-tight text-primary shadow-md md:left-4 md:top-4",
+              isHorizontal ? "hidden md:block" : "hidden lg:block",
+            ].join(" ")}
+          >
+            {price} <span className="text-xs font-medium text-secondary">/ night</span>
           </div>
         ) : null}
 
@@ -292,49 +316,76 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
         ) : null}
       </div>
 
-      <div className="space-y-2.5 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 text-lg font-semibold tracking-tight text-primary">
+      <div className={isHorizontal ? "flex flex-1 flex-col gap-3 p-4 md:p-5 lg:p-6" : "flex flex-1 flex-col gap-3 p-4 md:p-5"}>
+        <div className="flex-1 flex flex-col gap-2.5">
+          <h3 className="line-clamp-2 text-base font-semibold leading-snug tracking-tight text-primary md:text-xl">
             <Link href={`/properties/${item.slug}`} className="transition hover:text-secondary">
               {title}
             </Link>
           </h3>
+
+          {meta ? <p className="line-clamp-1 text-sm text-neutral-500">{meta}</p> : null}
         </div>
 
-        {meta ? <p className="text-sm text-secondary">{meta}</p> : <div className="h-5" />}
+        {isHorizontal ? (
+          <div className="mt-auto space-y-3 pt-3">
+            <div className="flex flex-wrap gap-2">
+              {amenityPills.map((pill) => (
+                <span key={pill} className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
+                  {pill}
+                </span>
+              ))}
+            </div>
 
-        <div className="flex flex-wrap gap-2 pt-1">
-          {guests ? (
-            <span className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-primary transition group-hover:bg-brand-soft-2">
-              {guests} guests
-            </span>
-          ) : null}
-          {beds ? (
-            <span className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-primary transition group-hover:bg-brand-soft-2">
-              {beds} beds
-            </span>
-          ) : null}
-          {baths ? (
-            <span className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-primary transition group-hover:bg-brand-soft-2">
-              {baths} baths
-            </span>
-          ) : null}
-        </div>
+            <div className="flex items-center justify-between gap-3 border-t border-neutral-200/70 pt-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary">{price ? `${price} / night` : "Price on request"}</p>
+                {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
+              </div>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Link
-            href={`/properties/${item.slug}`}
-            className="inline-flex items-center justify-center rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-primary transition hover:bg-accent-soft/55"
-          >
-            View details
-          </Link>
-          <Link
-            href={`/properties/${item.slug}#book`}
-            className="inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-accent-text shadow-sm transition hover:bg-brand-hover"
-          >
-            Instant book
-          </Link>
-        </div>
+              <Link
+                href={`/properties/${item.slug}#book`}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+              >
+                View
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-auto space-y-3 pt-3">
+            <div className="flex flex-wrap gap-2">
+              {guests ? (
+                <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
+                  {guests} guests
+                </span>
+              ) : null}
+              {beds ? (
+                <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
+                  {beds} beds
+                </span>
+              ) : null}
+              {baths ? (
+                <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
+                  {baths} baths
+                </span>
+                ) : null}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-neutral-200/70 pt-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-primary">{price ? `${price} / night` : "Price on request"}</p>
+                {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
+              </div>
+
+              <Link
+                href={`/properties/${item.slug}#book`}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+              >
+                View
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );

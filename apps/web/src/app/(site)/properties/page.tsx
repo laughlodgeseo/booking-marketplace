@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import FloatingSearchBar from "@/components/search/FloatingSearchBar";
+import UnifiedSearchBar from "@/components/search/UnifiedSearchBar";
 import FiltersBar from "@/components/search/FiltersBar";
 import PropertiesSearchShell from "@/components/search/properties/PropertiesSearchShell";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
@@ -53,37 +53,43 @@ export default async function PropertiesPage(props: PageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-warm-base">
+    <main className="min-h-screen overflow-x-hidden bg-transparent">
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(listJsonLd)}
       </script>
-      <section className="hero-light-shell relative overflow-hidden border-b border-line">
-        <div className="hero-light-overlay pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 opacity-24 [background-image:linear-gradient(rgba(11,15,25,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(11,15,25,0.05)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <section className="relative overflow-hidden bg-indigo-600 text-white">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:34px_34px]" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-14 lg:px-8">
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary">
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-indigo-100/90">
               Stays
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Stays in Dubai &amp; UAE
             </h1>
-            <p className="mt-2 text-sm text-secondary sm:text-base">
+            <p className="mt-2 text-sm text-indigo-100 sm:text-base">
               Date-aware availability search powered by our booking engine - no stale inventory, no surprises.
             </p>
           </div>
 
           <div className="mt-6">
-            <FloatingSearchBar defaultQ={query.q} />
+            <UnifiedSearchBar
+              variant="properties"
+              defaultQ={query.q}
+              defaultGuests={query.guests}
+              defaultCheckIn={query.checkIn}
+              defaultCheckOut={query.checkOut}
+            />
           </div>
 
           <FiltersBar />
         </div>
       </section>
 
-      <section className="bg-warm-alt/86 py-10">
+      <section className="bg-transparent py-8 lg:py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {!res.ok ? (
             <NetworkErrorState

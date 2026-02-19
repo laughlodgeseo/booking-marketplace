@@ -202,12 +202,12 @@ export default function FiltersBar() {
 
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line/80 bg-surface/70 p-3 text-primary backdrop-blur">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3 text-neutral-900 shadow-md">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm font-semibold text-primary transition hover:bg-warm-alt"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
@@ -222,15 +222,15 @@ export default function FiltersBar() {
             {DUBAI_PRESETS.map((p) => {
               const active = draft.area.trim().toLowerCase() === p.toLowerCase();
               return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => applyPresetArea(p)}
-                  className={[
-                    "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition",
+              <button
+                key={p}
+                type="button"
+                onClick={() => applyPresetArea(p)}
+                className={[
+                    "inline-flex h-10 items-center gap-2 rounded-xl px-3 text-xs font-semibold transition",
                     active
-                      ? "border-line/80 bg-brand text-accent-text"
-                      : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+                      ? "bg-indigo-600 text-white"
+                      : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200",
                   ].join(" ")}
                 >
                   <MapPin className="h-3.5 w-3.5 opacity-80" />
@@ -246,13 +246,13 @@ export default function FiltersBar() {
             <button
               type="button"
               onClick={clearAll}
-              className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary transition hover:bg-warm-alt"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3 text-sm text-neutral-900 transition hover:bg-neutral-200"
             >
               <X className="h-4 w-4" />
               Clear
             </button>
           ) : (
-            <div className="text-xs text-muted">Tip: filters persist on refresh</div>
+            <div className="text-xs text-neutral-500">Tip: filters persist on refresh</div>
           )}
         </div>
       </div>
@@ -273,7 +273,7 @@ export default function FiltersBar() {
             />
 
             <motion.div
-              className="absolute left-1/2 top-1/2 max-h-[88vh] w-[min(920px,calc(100vw-1.75rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-line/80 bg-surface p-5 text-primary shadow-[0_28px_80px_rgba(11,15,25,0.30)] sm:p-6"
+              className="absolute inset-x-0 bottom-0 max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 pb-28 text-neutral-900 shadow-lg sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[88vh] sm:w-[min(920px,calc(100vw-1.75rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:p-6 sm:pb-6"
               initial={{ y: 18, opacity: 0, scale: 0.98 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 14, opacity: 0, scale: 0.98 }}
@@ -282,7 +282,7 @@ export default function FiltersBar() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-lg font-semibold tracking-tight">Filters</div>
-                  <div className="mt-1 text-sm text-secondary">
+                  <div className="mt-1 text-sm text-neutral-600">
                     Server-driven results — refresh-safe and backend-truth.
                   </div>
                 </div>
@@ -290,23 +290,23 @@ export default function FiltersBar() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-xl border border-line/80 bg-surface p-2 transition hover:bg-warm-alt"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 transition hover:bg-neutral-200"
                   aria-label="Close"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-line/80 bg-surface p-4">
+              <div className="mt-6 rounded-2xl bg-neutral-50 p-4">
                 <div className="text-sm font-semibold">Location</div>
 
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="block">
-                    <div className="mb-1 text-xs font-semibold text-secondary">City</div>
+                    <div className="mb-1 text-xs font-semibold text-neutral-600">City</div>
                     <select
                       value={draft.city}
                       onChange={(e) => setDraft((s) => ({ ...s, city: e.target.value }))}
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 md:text-sm"
                     >
                       {CITY_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -317,18 +317,18 @@ export default function FiltersBar() {
                   </label>
 
                   <label className="block">
-                    <div className="mb-1 text-xs font-semibold text-secondary">Area</div>
+                    <div className="mb-1 text-xs font-semibold text-neutral-600">Area</div>
                     <input
                       value={draft.area}
                       onChange={(e) => setDraft((s) => ({ ...s, area: e.target.value }))}
                       placeholder="e.g. Dubai Marina"
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none placeholder:text-muted focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 placeholder:text-neutral-400 md:text-sm"
                     />
                   </label>
                 </div>
 
                 <div className="mt-4">
-                  <div className="mb-2 text-xs font-semibold text-secondary">Dubai presets</div>
+                  <div className="mb-2 text-xs font-semibold text-neutral-600">Dubai presets</div>
                   <div className="flex flex-wrap gap-2">
                     {DUBAI_PRESETS.map((p) => {
                       const active = draft.area.trim().toLowerCase() === p.toLowerCase();
@@ -338,10 +338,10 @@ export default function FiltersBar() {
                           type="button"
                           onClick={() => setDraft((s) => ({ ...s, city: s.city || "Dubai", area: p }))}
                           className={[
-                            "rounded-xl border px-3 py-2 text-xs font-semibold transition",
+                            "rounded-xl px-3 py-2 text-xs font-semibold transition",
                             active
-                              ? "border-line/80 bg-brand text-accent-text"
-                              : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+                              ? "bg-indigo-600 text-white"
+                              : "bg-white text-neutral-900 hover:bg-neutral-200",
                           ].join(" ")}
                         >
                           {p}
@@ -352,22 +352,22 @@ export default function FiltersBar() {
                 </div>
 
                 <div className="mt-4">
-                  <div className="mb-1 text-xs font-semibold text-secondary">Keyword</div>
+                  <div className="mb-1 text-xs font-semibold text-neutral-600">Keyword</div>
                   <input
                     value={draft.q}
                     onChange={(e) => setDraft((s) => ({ ...s, q: e.target.value }))}
                     placeholder="Community, landmark, building…"
-                    className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none placeholder:text-muted focus:border-line/80"
+                    className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 placeholder:text-neutral-400 md:text-sm"
                   />
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-line/80 bg-surface p-4">
+              <div className="mt-4 rounded-2xl bg-neutral-50 p-4">
                 <div className="text-sm font-semibold">Guests & rooms</div>
 
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   <label className="block">
-                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary">
+                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-neutral-600">
                       <Users className="h-4 w-4" /> Guests
                     </div>
                     <input
@@ -379,12 +379,12 @@ export default function FiltersBar() {
                         const v = e.target.value.trim();
                         setDraft((s) => ({ ...s, guests: v === "" ? "" : clampInt(Number(v), 1, 16) }));
                       }}
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 md:text-sm"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary">
+                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-neutral-600">
                       <BedDouble className="h-4 w-4" /> Bedrooms
                     </div>
                     <input
@@ -396,12 +396,12 @@ export default function FiltersBar() {
                         const v = e.target.value.trim();
                         setDraft((s) => ({ ...s, bedrooms: v === "" ? "" : clampInt(Number(v), 0, 20) }));
                       }}
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 md:text-sm"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary">
+                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-neutral-600">
                       <Bath className="h-4 w-4" /> Bathrooms
                     </div>
                     <input
@@ -413,17 +413,17 @@ export default function FiltersBar() {
                         const v = e.target.value.trim();
                         setDraft((s) => ({ ...s, bathrooms: v === "" ? "" : clampInt(Number(v), 0, 20) }));
                       }}
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 md:text-sm"
                     />
                   </label>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-line/80 bg-surface p-4">
+              <div className="mt-4 rounded-2xl bg-neutral-50 p-4">
                 <div className="text-sm font-semibold">Price range</div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="block">
-                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary">
+                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-neutral-600">
                       <BadgeDollarSign className="h-4 w-4" /> Min
                     </div>
                     <input
@@ -434,12 +434,12 @@ export default function FiltersBar() {
                         const v = e.target.value.trim();
                         setDraft((s) => ({ ...s, minPrice: v === "" ? "" : Math.max(0, Number(v)) }));
                       }}
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 md:text-sm"
                     />
                   </label>
 
                   <label className="block">
-                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-secondary">
+                    <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-neutral-600">
                       <BadgeDollarSign className="h-4 w-4" /> Max
                     </div>
                     <input
@@ -450,28 +450,28 @@ export default function FiltersBar() {
                         const v = e.target.value.trim();
                         setDraft((s) => ({ ...s, maxPrice: v === "" ? "" : Math.max(0, Number(v)) }));
                       }}
-                      className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                      className="h-12 w-full rounded-xl bg-white px-3 text-[16px] text-neutral-900 md:text-sm"
                     />
                   </label>
                 </div>
 
-                <div className="mt-2 text-xs text-muted">
+                <div className="mt-2 text-xs text-neutral-500">
                   If backend supports it, results will filter. If not, backend will safely ignore it.
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-line/80 bg-surface p-4">
+              <div className="mt-4 rounded-2xl bg-neutral-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">Amenities</div>
-                    <div className="mt-1 text-xs text-secondary">Multi-select. Uses the shared catalog.</div>
+                    <div className="mt-1 text-xs text-neutral-600">Multi-select. Uses the shared catalog.</div>
                   </div>
 
                   {draft.amenities.length ? (
                     <button
                       type="button"
                       onClick={() => setDraft((s) => ({ ...s, amenities: [] }))}
-                      className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-secondary transition hover:bg-warm-alt"
+                      className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-200"
                     >
                       Clear
                     </button>
@@ -488,10 +488,10 @@ export default function FiltersBar() {
                         type="button"
                         onClick={() => toggleAmenity(k)}
                         className={[
-                          "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition",
+                          "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition",
                           active
-                            ? "border-line/80 bg-brand text-accent-text"
-                            : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+                            ? "bg-indigo-600 text-white"
+                            : "bg-white text-neutral-900 hover:bg-neutral-200",
                         ].join(" ")}
                       >
                         <meta.Icon className="h-4 w-4 opacity-80" />
@@ -501,17 +501,17 @@ export default function FiltersBar() {
                   })}
                 </div>
 
-                <div className="mt-3 text-xs text-muted">
-                  This writes URL param <code className="rounded bg-warm-alt px-1">amenities</code> so refresh/back keeps it.
+                <div className="mt-3 text-xs text-neutral-500">
+                  This writes URL param <code className="rounded bg-white px-1">amenities</code> so refresh/back keeps it.
                 </div>
               </div>
 
-              <div className="sticky bottom-0 mt-6 border-t border-line/80 bg-surface pb-2 pt-4">
-                <div className="flex items-center justify-between gap-3">
+              <div className="sticky bottom-0 mt-6 bg-white pb-2 pt-4">
+                <div className="mx-[-1rem] flex items-center justify-between gap-3 border-t border-neutral-200 bg-white px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:mx-0 sm:border-0 sm:px-0 sm:pb-2 sm:pt-4">
                   <button
                     type="button"
                     onClick={clearAll}
-                    className="w-full rounded-xl border border-line/80 bg-surface px-4 py-3 text-sm font-semibold text-primary transition hover:bg-warm-alt"
+                    className="h-11 w-full rounded-xl bg-neutral-100 px-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
                   >
                     Clear all
                   </button>
@@ -522,13 +522,13 @@ export default function FiltersBar() {
                       apply(draft);
                       setOpen(false);
                     }}
-                    className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-accent-text transition hover:brightness-95"
+                    className="h-11 w-full rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
                   >
                     Apply filters
                   </button>
                 </div>
 
-                <div className="mt-2 text-center text-xs text-muted">
+                <div className="mt-2 text-center text-xs text-neutral-500">
                   Filters are server-driven. No fake UI.
                 </div>
               </div>

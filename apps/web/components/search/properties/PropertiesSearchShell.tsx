@@ -19,6 +19,7 @@ type Props = {
 };
 
 type Bounds = { north: number; south: number; east: number; west: number };
+type CardOrientation = "vertical" | "horizontal";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -44,7 +45,7 @@ export default function PropertiesSearchShell(props: Props) {
 
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<"list" | "map">("list");
+  const [viewMode, setViewMode] = useState<"cards" | "map">("cards");
 
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
@@ -95,46 +96,43 @@ export default function PropertiesSearchShell(props: Props) {
     [props.query, pushQuery],
   );
 
-  const fetchViewport = useCallback(
-    async (b: Bounds) => {
-      const q = queryRef.current;
+  const fetchViewport = useCallback(async (b: Bounds) => {
+    const q = queryRef.current;
 
-      // backend has viewport safety limits; we also clamp absurd values
-      const north = clamp(b.north, -85, 85);
-      const south = clamp(b.south, -85, 85);
-      const east = clamp(b.east, -180, 180);
-      const west = clamp(b.west, -180, 180);
-      lastBoundsRef.current = { north, south, east, west };
+    // backend has viewport safety limits; we also clamp absurd values
+    const north = clamp(b.north, -85, 85);
+    const south = clamp(b.south, -85, 85);
+    const east = clamp(b.east, -180, 180);
+    const west = clamp(b.west, -180, 180);
+    lastBoundsRef.current = { north, south, east, west };
 
-      setMapLoading(true);
-      setMapError(null);
+    setMapLoading(true);
+    setMapError(null);
 
-      const res = await searchMapViewport({
-        north,
-        south,
-        east,
-        west,
-        checkIn: q.checkIn,
-        checkOut: q.checkOut,
-        guests: q.guests,
-        city: q.city,
-        area: q.area,
-        minPrice: q.minPrice,
-        maxPrice: q.maxPrice,
-      });
+    const res = await searchMapViewport({
+      north,
+      south,
+      east,
+      west,
+      checkIn: q.checkIn,
+      checkOut: q.checkOut,
+      guests: q.guests,
+      city: q.city,
+      area: q.area,
+      minPrice: q.minPrice,
+      maxPrice: q.maxPrice,
+    });
 
-      if (!res.ok) {
-        setMapError(res.message || "Failed to load map pins");
-        setMapPoints([]);
-        setMapLoading(false);
-        return;
-      }
-
-      setMapPoints(res.data.points);
+    if (!res.ok) {
+      setMapError(res.message || "Failed to load map pins");
+      setMapPoints([]);
       setMapLoading(false);
-    },
-    [],
-  );
+      return;
+    }
+
+    setMapPoints(res.data.points);
+    setMapLoading(false);
+  }, []);
 
   const retryMapPins = useCallback(() => {
     if (!lastBoundsRef.current) return;
@@ -158,79 +156,42 @@ export default function PropertiesSearchShell(props: Props) {
   const totalPages = props.meta ? Math.max(1, Math.ceil(props.meta.total / props.meta.limit)) : 1;
   const page = props.meta?.page ?? props.query.page;
 
-  return (
-    <div className="mt-6">
-      <div className="mb-3 flex items-center gap-2 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileView("list")}
-          className={[
-            "rounded-xl border px-3 py-2 text-xs font-semibold transition",
-            mobileView === "list"
-              ? "border-line/80 bg-brand text-accent-text"
-              : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
-          ].join(" ")}
-        >
-          List
-        </button>
-        <button
-          type="button"
-          onClick={() => setMobileView("map")}
-          className={[
-            "rounded-xl border px-3 py-2 text-xs font-semibold transition",
-            mobileView === "map"
-              ? "border-line/80 bg-brand text-accent-text"
-              : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
-          ].join(" ")}
-        >
-          Map
-        </button>
+  const renderResultsSection = (gridClassName: string, cardOrientation: CardOrientation = "vertical") => (
+    <div className="space-y-5">
+      {showFiltersPanel ? (
+        <FiltersPanel query={props.query} resultsCount={props.meta?.total ?? null} onChange={onChangeFilters} busyKey={qKey} />
+      ) : null}
+
+      <div className={gridClassName}>
+        {props.items.map((it) => (
+          <div
+            key={it.id}
+            data-slug={it.slug}
+            onMouseEnter={() => setHoveredSlug(it.slug)}
+            onMouseLeave={() => setHoveredSlug((s) => (s === it.slug ? null : s))}
+          >
+            <TourmPropertyCard item={it} orientation={cardOrientation} />
+          </div>
+        ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-      {/* LEFT: Filters + Results */}
-      <div className={["space-y-5", mobileView === "map" ? "hidden lg:block" : ""].join(" ")}>
-        {showFiltersPanel ? (
-          <FiltersPanel
-            query={props.query}
-            resultsCount={props.meta?.total ?? null}
-            onChange={onChangeFilters}
-            busyKey={qKey}
-          />
-        ) : null}
-
-        {/* Results header */}
-        <div className="flex items-end justify-between gap-3">
-          <div className="text-sm text-secondary">
-            {props.meta ? (
-              <>
-                Showing{" "}
-                <span className="font-semibold text-primary">{props.items.length}</span> of{" "}
-                <span className="font-semibold text-primary">{props.meta.total}</span>
-              </>
+      {props.meta && totalPages > 1 ? (
+        <>
+          <div className="mt-2 sm:hidden">
+            {page < totalPages ? (
+              <button
+                type="button"
+                onClick={() => onGoToPage(page + 1)}
+                className="h-11 w-full rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              >
+                Load more stays
+              </button>
             ) : (
-              "Browse stays"
+              <p className="text-center text-xs text-secondary/75">You have reached the end of the results.</p>
             )}
           </div>
-        </div>
 
-        {/* Results grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          {props.items.map((it) => (
-            <div
-              key={it.id}
-              data-slug={it.slug}
-              onMouseEnter={() => setHoveredSlug(it.slug)}
-              onMouseLeave={() => setHoveredSlug((s) => (s === it.slug ? null : s))}
-            >
-              <TourmPropertyCard item={it} />
-            </div>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        {props.meta && totalPages > 1 ? (
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-2 hidden flex-wrap items-center justify-center gap-2 sm:flex">
             {Array.from({ length: totalPages }).slice(0, 10).map((_, i) => {
               const p = i + 1;
               const active = p === page;
@@ -240,10 +201,10 @@ export default function PropertiesSearchShell(props: Props) {
                   type="button"
                   onClick={() => onGoToPage(p)}
                   className={[
-                    "rounded-xl border px-4 py-2 text-sm transition",
+                    "h-11 rounded-xl px-4 text-sm transition",
                     active
-                      ? "border-line bg-brand text-text-invert"
-                      : "border-line bg-surface text-secondary hover:bg-brand-soft-2",
+                      ? "bg-brand text-text-invert shadow-sm"
+                      : "bg-surface text-secondary shadow-sm hover:bg-brand-soft-2",
                   ].join(" ")}
                 >
                   {p}
@@ -251,69 +212,115 @@ export default function PropertiesSearchShell(props: Props) {
               );
             })}
           </div>
-        ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="mt-6 w-full max-w-full overflow-x-hidden space-y-5">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-secondary">
+          {props.meta ? (
+            <>
+              Showing <span className="font-semibold text-primary">{props.items.length}</span> of{" "}
+              <span className="font-semibold text-primary">{props.meta.total}</span>
+            </>
+          ) : (
+            "Browse stays"
+          )}
+        </div>
+        <div className="inline-flex w-full items-center rounded-full bg-warm-alt p-1 shadow-sm sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode("cards")}
+            className={[
+              "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
+              viewMode === "cards" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
+            ].join(" ")}
+          >
+            Card View
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("map")}
+            className={[
+              "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
+              viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
+            ].join(" ")}
+          >
+            Map + Cards View
+          </button>
+        </div>
       </div>
 
-      {/* RIGHT: Map */}
-      <div className={["lg:sticky lg:top-24", mobileView === "list" ? "hidden lg:block" : ""].join(" ")}>
-        <div className="relative overflow-hidden rounded-2xl border border-line bg-surface">
-          <div className="flex items-center justify-between gap-3 border-b border-line/70 bg-bg-2/70 px-4 py-3">
-            <div className="text-sm font-semibold text-primary">Map</div>
-            <div className="text-xs text-secondary">
-              {mapLoading ? "Updating pins…" : mapError ? "Pins unavailable" : `${mapPoints.length} pins`}
-            </div>
+      {viewMode === "cards" ? (
+        renderResultsSection("grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-7")
+      ) : (
+        <div className="grid w-full max-w-full gap-4 lg:grid-cols-[0.85fr_1.15fr] lg:gap-6">
+          <div className="min-w-0">
+            {renderResultsSection("grid w-full max-w-full grid-cols-1 gap-5 sm:gap-6", "horizontal")}
           </div>
 
-          <div className="relative">
-            <GoogleMap
-              center={center}
-              zoom={zoom}
-              points={mapPoints}
-              hoveredSlug={hoveredSlug}
-              activeSlug={activeSlug}
-              onMarkerClick={onMarkerClick}
-              onViewportChanged={fetchViewport}
-              viewportDebounceMs={520}
-              className={mobileView === "map" ? "h-[72vh] w-full lg:h-[540px]" : "h-[540px] w-full"}
-            />
-
-            {mapError ? (
-              <div className="absolute inset-x-3 top-3 rounded-xl border border-line/30 bg-ink/72 px-3 py-2 text-xs text-inverted backdrop-blur">
-                <div>{mapError}</div>
-                <button
-                  type="button"
-                  onClick={retryMapPins}
-                  className="mt-2 rounded-lg border border-line/30 bg-surface/15 px-2 py-1 font-semibold text-inverted hover:bg-surface/25"
-                >
-                  Retry pins
-                </button>
+          <div className="min-w-0 lg:sticky lg:top-24">
+            <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm">
+              <div className="flex items-center justify-between gap-3 bg-bg-2/70 px-4 py-3">
+                <div className="text-sm font-semibold text-primary">Map</div>
+                <div className="text-xs text-secondary">
+                  {mapLoading ? "Updating pins…" : mapError ? "Pins unavailable" : `${mapPoints.length} pins`}
+                </div>
               </div>
-            ) : null}
 
-            {!mapError && !mapLoading && mapPoints.length === 0 ? (
-              <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl border border-line/30 bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
-                No pins in this viewport. Pan or zoom out to discover nearby stays.
-              </div>
-            ) : null}
-
-            {/* Pin preview card (click pin => show property preview) */}
-            {activeItem ? (
-              <div className="absolute bottom-3 left-3 right-3">
-                <PinPreviewCard
-                  item={activeItem}
-                  onClose={() => setActiveSlug(null)}
-                  onOpen={() => router.push(`/properties/${activeItem.slug}`)}
+              <div className="relative">
+                <GoogleMap
+                  center={center}
+                  zoom={zoom}
+                  points={mapPoints}
+                  hoveredSlug={hoveredSlug}
+                  activeSlug={activeSlug}
+                  onMarkerClick={onMarkerClick}
+                  onViewportChanged={fetchViewport}
+                  viewportDebounceMs={520}
+                  className="h-[78vh] w-full lg:h-[640px] xl:h-[700px]"
                 />
+
+                {mapError ? (
+                  <div className="absolute inset-x-3 top-3 rounded-xl bg-ink/72 px-3 py-2 text-xs text-inverted backdrop-blur">
+                    <div>{mapError}</div>
+                    <button
+                      type="button"
+                      onClick={retryMapPins}
+                      className="mt-2 rounded-lg bg-surface/15 px-2 py-1 font-semibold text-inverted hover:bg-surface/25"
+                    >
+                      Retry pins
+                    </button>
+                  </div>
+                ) : null}
+
+                {!mapError && !mapLoading && mapPoints.length === 0 ? (
+                  <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
+                    No pins in this viewport. Pan or zoom out to discover nearby stays.
+                  </div>
+                ) : null}
+
+                {activeItem ? (
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <PinPreviewCard
+                      item={activeItem}
+                      onClose={() => setActiveSlug(null)}
+                      onOpen={() => router.push(`/properties/${activeItem.slug}`)}
+                    />
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            </div>
+
+            <p className="mt-3 text-xs text-muted">
+              Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth.
+            </p>
           </div>
         </div>
-
-      <p className="mt-3 text-xs text-muted">
-        Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth.
-      </p>
-      </div>
-    </div>
+      )}
     </div>
   );
 }
