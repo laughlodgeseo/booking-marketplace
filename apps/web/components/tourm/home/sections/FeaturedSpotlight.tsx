@@ -12,8 +12,9 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Bath, BedDouble, ChevronLeft, ChevronRight, MapPin, Users } from "lucide-react";
 import type { SearchPropertyCard } from "@/lib/api/publicTypes";
+import Clamp from "@/components/ui/Clamp";
 
 type FeaturedSpotlightProps = {
   title: string;
@@ -59,6 +60,8 @@ function safeText(v: string | null | undefined): string {
   return (v ?? "").trim();
 }
 
+const TITLE_SEPARATORS = [" - ", " | ", " • ", ",", "·", "—", "(", " at "] as const;
+
 function formatMoney(amount: number | null | undefined, currency: string | null | undefined): string {
   if (amount === null || amount === undefined) return "";
   const c = safeText(currency);
@@ -69,6 +72,22 @@ function formatMoney(amount: number | null | undefined, currency: string | null 
   } catch {
     return c ? `${amount} ${c}` : String(amount);
   }
+}
+
+function getDisplayTitle(raw: string | null | undefined): string {
+  const title = safeText(raw);
+  if (!title) return "Stay";
+
+  let cutAt = title.length;
+  TITLE_SEPARATORS.forEach((separator) => {
+    const idx = title.indexOf(separator);
+    if (idx !== -1 && idx < cutAt) {
+      cutAt = idx;
+    }
+  });
+
+  const cleaned = title.slice(0, cutAt).trim() || title;
+  return cleaned.slice(0, 32).trim();
 }
 
 function ensureRotationSize(items: ReadonlyArray<SearchPropertyCard>, minCount: number): SearchPropertyCard[] {
@@ -117,7 +136,7 @@ function profileForDistance(distanceRaw: number): SlotProfile {
   const nearT = clamp01(d);
   const farT = clamp01(d - 1);
 
-  const scale = d <= 1 ? lerp(1.1, 0.94, nearT) : lerp(0.94, 0.89, farT);
+  const scale = d <= 1 ? lerp(1.08, 0.94, nearT) : lerp(0.94, 0.89, farT);
   const blur = d <= 1 ? lerp(0, 2.8, nearT) : lerp(2.8, 4.6, farT);
   const brightness = d <= 1 ? lerp(1, 0.9, nearT) : lerp(0.9, 0.84, farT);
   const dim = d <= 1 ? lerp(0, 0.18, nearT) : lerp(0.18, 0.26, farT);
@@ -143,6 +162,10 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
   const router = useRouter();
   const vw = useViewportWidth();
   const list = useMemo(() => ensureRotationSize(props.items, 9), [props.items]);
+  const mobileItems = useMemo(() => {
+    const clean = props.items.filter((it) => Boolean(safeText(it?.slug)));
+    return clean.length > 0 ? clean : list;
+  }, [list, props.items]);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState>({
@@ -174,34 +197,32 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
   const dims = useMemo(() => {
     if (vw < 640) {
       return {
-        cardW: 173,
-        slotStep: 97,
-        stageH: 286,
+        cardW: 194,
+        slotStep: 110,
       };
     }
 
     if (vw < 1024) {
       return {
-        cardW: 258,
-        slotStep: 140,
-        stageH: 422,
+        cardW: 286,
+        slotStep: 162,
       };
     }
 
     if (vw < 1440) {
       return {
-        cardW: 364,
-        slotStep: 198,
-        stageH: 580,
+        cardW: 412,
+        slotStep: 226,
       };
     }
 
     return {
-      cardW: 389,
-      slotStep: 212,
-      stageH: 620,
+      cardW: 438,
+      slotStep: 242,
     };
   }, [vw]);
+
+  const stageH = useMemo(() => Math.round(dims.cardW * 1.25), [dims.cardW]);
 
   const dragThreshold = Math.max(52, dims.slotStep * 0.26);
 
@@ -483,57 +504,124 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
   }
 
   return (
-    <section className="relative w-full py-[3.7rem] sm:py-[4.625rem]">
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+    <section className="relative h-auto w-full py-10 lg:py-12">
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-14">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
           <div className="max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/60">Featured</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
+            <h2 className="mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.01em] text-primary sm:text-3xl">
               {props.title}
             </h2>
             <p className="mt-2 text-sm text-secondary/75 sm:text-base">{props.subtitle}</p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
+        <div className="mt-8 lg:hidden">
+          <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+            {mobileItems.map((item, idx) => {
+              const title = getDisplayTitle(item.title);
+              const cover = safeText(item.coverImageUrl);
+              const city = safeText(item.city);
+              const area = safeText(item.area);
+              const location = area ? `${area}${city ? `, ${city}` : ""}` : city || "Dubai";
+              const price = formatMoney(item.priceFrom, item.currency);
+              const guests = item.guests && item.guests > 0 ? item.guests : 6;
+              const beds = item.bedrooms && item.bedrooms > 0 ? item.bedrooms : null;
+              const baths = item.bathrooms && item.bathrooms > 0 ? item.bathrooms : null;
+
+              return (
+                <article
+                  key={`${item.slug}-${idx}`}
+                  className="w-[84%] shrink-0 snap-center overflow-hidden rounded-2xl border border-black/6 bg-white shadow-[0_14px_30px_rgba(11,15,25,0.12)] sm:w-[60%]"
+                >
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() => router.push(`/properties/${item.slug}`)}
+                    aria-label={`Open ${title}`}
+                  >
+                    <div className="relative aspect-[16/10] w-full overflow-hidden">
+                      {cover ? (
+                        <Image
+                          src={cover}
+                          alt={title}
+                          fill
+                          sizes="(max-width: 639px) 84vw, (max-width: 1023px) 60vw, 1px"
+                          className="object-cover"
+                          priority={idx === 0}
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-warm-alt to-surface" />
+                      )}
+                    </div>
+
+                    <div className="flex min-h-[206px] flex-col gap-3 p-4">
+                      <div>
+                        <Clamp as="h3" lines={2} className="text-base font-semibold leading-snug tracking-[-0.01em] text-primary">
+                          {title}
+                        </Clamp>
+                        <p className="mt-1 flex items-center gap-1.5 text-sm text-secondary">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-secondary/80" />
+                          <Clamp as="span" lines={1} className="min-w-0">
+                            {location}
+                          </Clamp>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary/88">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5 text-secondary/75" />
+                          {guests} guests
+                        </span>
+                        {beds ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <BedDouble className="h-3.5 w-3.5 text-secondary/75" />
+                            {beds} beds
+                          </span>
+                        ) : null}
+                        {baths ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Bath className="h-3.5 w-3.5 text-secondary/75" />
+                            {baths} baths
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-auto flex items-center justify-between gap-3 border-t border-neutral-200/80 pt-3">
+                        <span className="text-sm font-semibold text-primary">{price ? `From ${price}` : "From AED --"}</span>
+                        <span className="inline-flex h-11 items-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">
+                          View
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 flex items-center justify-center">
             <Link
               href="/properties"
-              className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-5 py-3 text-sm font-extrabold text-primary shadow-sm transition hover:bg-accent-soft/55"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
             >
               View all stays
-              <span aria-hidden className="text-secondary/70">→</span>
+              <span aria-hidden className="text-white/85">→</span>
             </Link>
-
-            <div className="hidden items-center gap-2 sm:flex">
-              <button
-                type="button"
-                onClick={() => moveByOne(-1)}
-                className="grid h-11 w-11 place-items-center rounded-full border border-line bg-surface shadow-sm transition hover:bg-accent-soft/55"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="h-5 w-5 text-primary" />
-              </button>
-              <button
-                type="button"
-                onClick={() => moveByOne(1)}
-                className="grid h-11 w-11 place-items-center rounded-full border border-line bg-surface shadow-sm transition hover:bg-accent-soft/55"
-                aria-label="Next"
-              >
-                <ChevronRight className="h-5 w-5 text-primary" />
-              </button>
-            </div>
           </div>
         </div>
 
-        <div className="mt-14 w-full sm:mt-16">
-          <div className="mx-auto w-[95%] max-w-[1140px]">
+        <div className="hidden lg:block">
+          <div className="mt-10 w-full pb-4 md:mt-12">
+          <div className="mx-auto w-full max-w-[1260px]">
             <div
               ref={scrollerRef}
               className={[
-                "relative select-none touch-none",
+                "relative select-none touch-none overflow-visible",
                 dragging ? "cursor-grabbing" : "cursor-grab",
               ].join(" ")}
               style={{
-                height: dims.stageH,
+                height: stageH,
                 width: "100%",
                 touchAction: "pan-y",
                 willChange: "transform",
@@ -585,9 +673,10 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
           />
 
           {slots.map((slot) => {
-            const title = safeText(slot.item.title) || "Stay";
+            const title = getDisplayTitle(slot.item.title);
             const cover = safeText(slot.item.coverImageUrl);
             const price = formatMoney(slot.item.priceFrom, slot.item.currency);
+            const guestCount = slot.item.guests && slot.item.guests > 0 ? slot.item.guests : 6;
             const city = safeText(slot.item.city);
             const area = safeText(slot.item.area);
             const loc = area ? `${area}${city ? `, ${city}` : ""}` : city;
@@ -608,7 +697,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                 }}
               >
                 <div
-                  className="group relative w-full overflow-hidden rounded-[2rem] border border-white/35 bg-white/10"
+                  className="group relative w-full overflow-hidden rounded-[2rem] border border-black/5 bg-white/16"
                   style={{
                     boxShadow: slot.profile.shadow,
                     transform: `scale(${slot.profile.scale})`,
@@ -625,7 +714,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                         src={cover}
                         alt={title}
                         fill
-                        sizes="(max-width: 639px) 173px, (max-width: 1023px) 258px, (max-width: 1439px) 364px, 389px"
+                        sizes="(max-width: 639px) 194px, (max-width: 1023px) 286px, (max-width: 1439px) 412px, 438px"
                         className="object-cover"
                         priority={slot.off === 0}
                       />
@@ -633,26 +722,20 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                       <div className="h-full w-full bg-gradient-to-br from-warm-alt to-surface" />
                     )}
 
-                    <div className="absolute inset-0" style={{ backgroundColor: `rgba(11,15,25,${slot.profile.dim})` }} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/24 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-ink/62 to-transparent" />
+                    <span className="absolute bottom-3 left-3 z-20 rounded-full bg-black/35 px-3 py-1.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm sm:bottom-4 sm:left-4">
+                      {price ? `From ${price}` : "From AED --"}
+                    </span>
+                    <span className="absolute bottom-3 right-3 z-20 rounded-full bg-black/30 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm sm:bottom-4 sm:right-4">
+                      Up to {guestCount} guests
+                    </span>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-                      <p className="truncate text-base font-extrabold text-white drop-shadow-[0_2px_10px_rgba(11,15,25,0.66)] sm:text-lg">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 pb-16 sm:p-5 sm:pb-[4.5rem]">
+                      <p className="line-clamp-1 text-lg font-semibold leading-snug tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.35)] md:text-xl">
                         {title}
                       </p>
-                      <p className="mt-1 truncate text-xs text-white/90 drop-shadow-[0_2px_10px_rgba(11,15,25,0.66)] sm:text-sm">
+                      <p className="mt-1 truncate text-sm text-white/85 drop-shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
                         {loc || "Dubai"}
                       </p>
-
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <span className="rounded-full border border-white/35 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white drop-shadow-[0_2px_10px_rgba(11,15,25,0.66)] sm:text-xs">
-                          {slot.item.guests ? `Up to ${slot.item.guests} guests` : "Verified listing"}
-                        </span>
-                        <span className="shrink-0 rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] font-extrabold text-white shadow-[0_8px_20px_rgba(11,15,25,0.24)] backdrop-blur-sm sm:text-xs">
-                          {price ? `from ${price}` : "View stay"}
-                        </span>
-                      </div>
                     </div>
 
                     <button
@@ -675,26 +758,34 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
             </div>
           </div>
         </div>
+        </div>
 
-        <div className="mt-5 flex items-center justify-center gap-2">
-          {list.slice(0, 9).map((it, idx) => {
-            const isActive = idx === wrapIndex(activeIdx);
-            return (
-              <button
-                key={`${it.id}-${idx}`}
-                type="button"
-                onClick={() => {
-                  if (snappingRef.current || dragRef.current.down) return;
-                  const current = wrapIndex(activeIdx);
-                  const diff = idx - current;
-                  if (diff === 0) return;
-                  moveByOne(diff > 0 ? 1 : -1);
-                }}
-                className={["h-2.5 rounded-full transition", isActive ? "w-8 bg-brand" : "w-2.5 bg-accent-soft/70"].join(" ")}
-                aria-label={`Go to featured ${idx + 1}`}
-              />
-            );
-          })}
+        <div className="mb-6 mt-7 hidden items-center justify-center lg:flex">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
+            <button
+              type="button"
+              onClick={() => moveByOne(-1)}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-surface px-0 shadow-sm transition hover:bg-accent-soft/60 hover:text-brand"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="h-5 w-5 text-primary transition hover:text-brand" />
+            </button>
+            <Link
+              href="/properties"
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
+            >
+              View all stays
+              <span aria-hidden className="text-white/85">→</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => moveByOne(1)}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-surface px-0 shadow-sm transition hover:bg-accent-soft/60 hover:text-brand"
+              aria-label="Next"
+            >
+              <ChevronRight className="h-5 w-5 text-primary transition hover:text-brand" />
+            </button>
+          </div>
         </div>
       </div>
     </section>

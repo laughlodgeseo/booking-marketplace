@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X, ArrowRight, LogOut, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { UserRole } from "@/lib/auth/auth.types";
@@ -21,10 +21,6 @@ const NAV: NavItem[] = [
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact" },
 ];
-
-function clamp01(v: number) {
-  return Math.max(0, Math.min(1, v));
-}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -47,17 +43,37 @@ export default function FloatingHeader() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
 
-  const [progress, setProgress] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isAtTop, setIsAtTop] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const lastScrollYRef = useRef(0);
 
   const dashboardHref = user ? dashboardPathForRole(user.role) : "/account";
 
   useEffect(() => {
+    const threshold = 10;
+    const topThreshold = 8;
+
     function onScroll() {
       const y = window.scrollY || 0;
-      setProgress(clamp01(y / 220));
+      const last = lastScrollYRef.current;
+      const atTop = y <= topThreshold;
+
+      setIsAtTop(atTop);
+
+      if (atTop) {
+        setIsVisible(true);
+      } else if (y > last + threshold) {
+        setIsVisible(false);
+        setMobileOpen(false);
+      } else if (y < last - threshold) {
+        setIsVisible(true);
+      }
+
+      lastScrollYRef.current = y;
     }
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -71,22 +87,20 @@ export default function FloatingHeader() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const isSolid = progress > 0.12;
-  const topGlassClass = isSolid
-    ? "border-line bg-surface text-primary hover:bg-bg-2"
-    : "border-line/85 bg-surface/92 text-primary hover:bg-bg-2";
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
-  const shellStyle = useMemo(() => {
-    const bgAlpha = 0.88 + progress * 0.10;
-    const bg = `rgba(255,255,255,${Math.min(bgAlpha, 0.98)})`;
-    const border = `rgba(11,15,25,${0.10 + progress * 0.06})`;
-    const blur = 14 + progress * 4;
-    return {
-      backgroundColor: bg,
-      borderColor: border,
-      backdropFilter: `blur(${blur}px)`,
-    } as const;
-  }, [progress]);
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -100,24 +114,29 @@ export default function FloatingHeader() {
   }
 
   const showAuthSkeleton = status === "loading";
+  const headerSurfaceClass = isAtTop
+    ? "bg-white/95 shadow-sm"
+    : "bg-white/98 shadow-md";
+  const headerVisibilityClass = isVisible ? "translate-y-0" : "-translate-y-full";
+
+  const secondaryActionClass =
+    "inline-flex h-11 items-center justify-center rounded-full bg-warm-alt/75 px-4 text-sm font-semibold text-primary transition hover:bg-brand-soft-2";
+  const softActionClass =
+    "inline-flex h-11 items-center justify-center rounded-full bg-warm-alt px-4 text-sm font-semibold text-primary shadow-sm transition hover:bg-brand-soft-2";
+  const primaryActionClass =
+    "inline-flex h-11 items-center justify-center rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:bg-indigo-800";
 
   return (
     <>
-      <div className="pointer-events-none fixed left-0 top-0 z-[60] w-full">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.header
-            className={[
-              "pointer-events-auto mt-4 rounded-2xl border px-4 py-3 transition-[transform,box-shadow,border-color] duration-300",
-              isSolid
-                ? "shadow-[0_14px_38px_rgba(11,15,25,0.16)]"
-                : "shadow-[0_10px_28px_rgba(11,15,25,0.10)]",
-            ].join(" ")}
-            style={shellStyle}
-            initial={{ y: -16, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="hidden w-full items-center lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-5">
+      <header
+        className={[
+          "fixed left-0 right-0 top-0 z-[90] w-full transform transition-transform duration-200 ease-out",
+          headerVisibilityClass,
+        ].join(" ")}
+      >
+        <div className={["w-full backdrop-blur-sm transition-shadow duration-200 ease-out", headerSurfaceClass].join(" ")}>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="hidden h-[76px] w-full items-center lg:grid lg:h-[80px] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4">
               <nav className="flex items-center gap-5">
                 {NAV.map((item) => (
                   <Link
@@ -139,34 +158,27 @@ export default function FloatingHeader() {
                 <Image
                   src="/brand/logo.svg"
                   alt="Laugh & Lodge"
-                  width={180}
-                  height={64}
+                  width={220}
+                  height={80}
                   priority
-                  className="h-10 w-auto"
+                  className="h-[3.25rem] w-auto"
                 />
               </Link>
 
               <div className="flex items-center justify-end gap-2">
                 <CurrencySwitcher compact />
 
-                <Link
-                  href="/properties"
-                  className="rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-text-invert shadow-brand-soft transition hover:bg-brand-hover"
-                >
+                <Link href="/properties" className={softActionClass}>
                   Explore
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
 
                 {showAuthSkeleton ? (
-                  <div className="h-10 w-[180px] animate-pulse rounded-2xl bg-warm-alt/70" />
+                  <div className="h-11 w-[180px] animate-pulse rounded-full bg-warm-alt/80" />
                 ) : user ? (
                   <>
-                    <Link
-                      href={dashboardHref}
-                      className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${topGlassClass}`}
-                      title="Open your dashboard"
-                    >
-                      <UserRound className="h-4 w-4" />
+                    <Link href={dashboardHref} className={primaryActionClass} title="Open your dashboard">
+                      <UserRound className="mr-2 h-4 w-4" />
                       Dashboard
                     </Link>
 
@@ -174,50 +186,47 @@ export default function FloatingHeader() {
                       type="button"
                       onClick={handleLogout}
                       disabled={loggingOut}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-text-invert shadow-sm transition hover:bg-brand-hover disabled:opacity-60"
+                      className={`${softActionClass} disabled:opacity-60`}
                       title="Logout"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="mr-2 h-4 w-4" />
                       {loggingOut ? "Logging out…" : "Logout"}
                     </button>
                   </>
                 ) : (
                   <>
-                    <Link
-                      href="/login"
-                      className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-semibold transition ${topGlassClass}`}
-                    >
+                    <Link href="/login" className={secondaryActionClass}>
                       Login
                     </Link>
-                    <Link
-                      href="/signup"
-                      className="inline-flex items-center justify-center rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-text-invert shadow-sm transition hover:bg-brand-hover"
-                    >
+                    <Link href="/signup" className={primaryActionClass}>
                       Sign up
                     </Link>
                   </>
                 )}
               </div>
-            </div>
+          </div>
 
-            <div className="flex items-center justify-between lg:hidden">
-              <Link href="/" className="flex items-center gap-3">
+            <div className="relative flex h-14 items-center justify-between lg:hidden">
+              <div className="flex items-center gap-2">
+                <CurrencySwitcher compact />
+              </div>
+
+              <Link href="/" className="absolute left-1/2 -translate-x-1/2">
                 <Image
                   src="/brand/logo.svg"
                   alt="Laugh & Lodge"
-                  width={180}
-                  height={64}
+                  width={220}
+                  height={80}
                   priority
-                  className="h-10 w-auto"
+                  className="h-9 w-auto"
                 />
               </Link>
 
               <div className="flex items-center gap-2">
-                <CurrencySwitcher compact />
                 <button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-line/80 bg-surface text-primary"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-warm-alt text-primary shadow-sm"
                   aria-label="Toggle menu"
                   aria-expanded={mobileOpen}
                 >
@@ -225,86 +234,79 @@ export default function FloatingHeader() {
                 </button>
               </div>
             </div>
-          </motion.header>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile overlay */}
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div
-            className="fixed inset-0 z-[70] bg-ink/25 backdrop-blur-sm"
+            className="fixed inset-0 z-[85] bg-ink/25 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setMobileOpen(false)}
           >
             <motion.div
-              className="absolute left-4 right-4 top-[88px] rounded-3xl border border-line bg-surface p-4 shadow-xl"
-              initial={{ y: -10, opacity: 0, scale: 0.98 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -10, opacity: 0, scale: 0.98 }}
+              className="absolute inset-y-0 right-0 w-[min(24rem,92vw)] overflow-y-auto border-l border-line bg-surface px-4 pb-6 pt-16 shadow-2xl"
+              initial={{ x: 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 40, opacity: 0 }}
               transition={{ duration: 0.22 }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Auth area */}
-              <div className="mb-3 rounded-3xl border border-line bg-warm-alt p-3">
+              <div className="mb-3 rounded-2xl bg-warm-alt/90 p-3">
                 {showAuthSkeleton ? (
-                  <div className="h-10 w-full animate-pulse rounded-2xl bg-warm-alt/80" />
+                  <div className="h-11 w-full animate-pulse rounded-full bg-warm-alt/80" />
                 ) : user ? (
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-primary">
-                        {user.email}
-                      </div>
+                      <div className="truncate text-sm font-semibold text-primary">{user.email}</div>
                       <div className="text-xs text-secondary">
                         Role: {user.role}
                         {!user.isEmailVerified ? " • Email not verified" : ""}
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      disabled={loggingOut}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-brand px-3 py-2 text-sm font-semibold text-text-invert disabled:opacity-60"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      {loggingOut ? "…" : "Logout"}
-                    </button>
+                    <div className="grid gap-2">
+                      <Link
+                        href={dashboardHref}
+                        onClick={() => setMobileOpen(false)}
+                        className={`${primaryActionClass} w-full`}
+                      >
+                        Dashboard
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        className={`${softActionClass} w-full disabled:opacity-60`}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        {loggingOut ? "Logging out…" : "Logout"}
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="grid gap-2">
                     <Link
                       href="/login"
                       onClick={() => setMobileOpen(false)}
-                      className="inline-flex w-full items-center justify-center rounded-2xl border border-line bg-surface px-4 py-2 text-sm font-semibold text-primary"
+                      className={`${secondaryActionClass} w-full bg-surface/90`}
                     >
                       Login
                     </Link>
                     <Link
                       href="/signup"
                       onClick={() => setMobileOpen(false)}
-                      className="inline-flex w-full items-center justify-center rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-text-invert"
+                      className={`${primaryActionClass} w-full`}
                     >
                       Sign up
                     </Link>
                   </div>
                 )}
-
-                {user ? (
-                  <Link
-                    href={dashboardHref}
-                    onClick={() => setMobileOpen(false)}
-                    className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-line bg-surface px-4 py-2 text-sm font-semibold text-primary"
-                  >
-                    Open dashboard
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                ) : null}
               </div>
 
-              {/* Nav */}
               <div className="grid gap-2">
                 {NAV.map((item) => (
                   <Link
@@ -313,24 +315,13 @@ export default function FloatingHeader() {
                     onClick={() => setMobileOpen(false)}
                     className={[
                       "rounded-2xl px-3 py-3 text-sm font-semibold transition",
-                      isActive(pathname, item.href)
-                        ? "bg-brand-soft text-brand"
-                        : "text-primary hover:bg-warm-alt",
+                      isActive(pathname, item.href) ? "bg-brand-soft text-brand" : "text-primary hover:bg-warm-alt",
                     ].join(" ")}
                   >
                     {item.label}
                   </Link>
                 ))}
               </div>
-
-              <Link
-                href="/properties"
-                onClick={() => setMobileOpen(false)}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-text-invert shadow-brand-soft"
-              >
-                Explore stays
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </motion.div>
           </motion.div>
         ) : null}

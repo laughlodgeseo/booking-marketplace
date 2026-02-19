@@ -1,18 +1,16 @@
 import type { ReactNode } from "react";
-import Preloader from "@/components/tourm/Preloader";
 import FloatingHeader from "@/components/site/FloatingHeader";
 import Footer from "@/components/site/Footer";
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="min-h-screen bg-[var(--site-bg)]">
       {/* anchor for footer "Back to top" */}
       <div id="top" />
-      <Preloader />
       <FloatingHeader />
       {/* kill ANY accidental horizontal overflow */}
-      <main className="pt-[84px] sm:pt-[88px] overflow-x-hidden">{children}</main>
+      <main className="min-h-screen overflow-x-hidden bg-transparent pt-14 lg:pt-[80px]">{children}</main>
       <Footer />
-    </>
+    </div>
   );
 }

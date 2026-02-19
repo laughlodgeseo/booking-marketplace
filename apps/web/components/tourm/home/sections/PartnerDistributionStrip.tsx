@@ -1,57 +1,58 @@
 import Image from "next/image";
+import DistributionCollage from "./DistributionCollage";
 
 const PARTNER_LOGOS = [
-  { src: "/partner_logo/airbnb.svg", alt: "Airbnb" },
-  { src: "/partner_logo/booking.svg", alt: "Booking.com" },
-  { src: "/partner_logo/vrbo.svg", alt: "Vrbo" },
-  { src: "/partner_logo/expedia.svg", alt: "Expedia" },
-  { src: "/partner_logo/agoda.svg", alt: "Agoda" },
-  { src: "/partner_logo/tripadvisor.svg", alt: "Tripadvisor" },
-  { src: "/partner_logo/home_away.svg", alt: "HomeAway" },
+  { src: "/partner_logo/airbnb.svg", label: "Airbnb" },
+  { src: "/partner_logo/booking.svg", label: "Booking.com" },
+  { src: "/partner_logo/vrbo.svg", label: "Vrbo" },
+  { src: "/partner_logo/expedia.svg", label: "Expedia" },
+  { src: "/partner_logo/agoda.svg", label: "Agoda" },
+  { src: "/partner_logo/tripadvisor.svg", label: "Tripadvisor" },
+  { src: "/partner_logo/home_away.svg", label: "HomeAway" },
+  { src: "/brand/logo.svg", label: "Laugh & Lodge" },
 ];
 
 export default function PartnerDistributionStrip() {
   return (
-    <section className="relative w-full py-8 sm:py-10">
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="grid min-h-[33vh] overflow-hidden rounded-[2rem] border border-line-strong bg-surface shadow-card md:grid-cols-[1.05fr_1.25fr]">
-          <div className="relative min-h-[190px] md:min-h-full">
-            <Image
-              src="https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&w=1600&q=82"
-              alt="Property listing operations"
-              fill
-              className="object-cover"
-              sizes="(max-width: 767px) 100vw, 45vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-ink/70 via-ink/18 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/26 bg-white/12 p-4 backdrop-blur-sm">
-              <p className="text-sm font-semibold text-white">One onboarding, multi-channel reach.</p>
-              <p className="mt-1 text-xs text-white/84">We syndicate listings to high-intent travel marketplaces.</p>
-            </div>
+    <section className="relative overflow-hidden py-10 lg:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
+          <div className="order-2 lg:order-1 lg:col-span-6">
+            <DistributionCollage />
           </div>
 
-          <div className="p-5 sm:p-6 md:p-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">Distribution</p>
-            <h3 className="mt-2 text-xl font-semibold tracking-tight text-primary sm:text-2xl">
+          <div className="order-1 lg:order-2 lg:col-span-6">
+            <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-600/80">Distribution</p>
+            <h3 className="mt-3 max-w-[26ch] text-[30px] font-semibold leading-[1.08] tracking-[-0.01em] text-neutral-900 md:text-[38px]">
               We&apos;ll list your property on these sites
             </h3>
-            <p className="mt-2 text-sm text-secondary/78">
-              Premium channel distribution designed to increase occupancy while keeping availability and pricing in sync.
+            <p className="mt-4 max-w-[52ch] text-[15px] leading-6 text-neutral-600">
+              Premium channel distribution designed to increase occupancy while keeping availability and pricing in
+              sync.
             </p>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-6 h-px w-16 bg-gradient-to-r from-indigo-500/30 via-cyan-500/20 to-transparent" />
+
+            <div
+              data-testid="distribution-logo-wall"
+              className="mt-10 grid grid-cols-2 items-center gap-x-10 gap-y-8 sm:grid-cols-4"
+            >
               {PARTNER_LOGOS.map((logo) => (
                 <div
-                  key={logo.alt}
-                  className="group flex h-16 items-center justify-center rounded-2xl border border-line bg-bg px-3 shadow-sm transition hover:border-brand/35 hover:bg-brand-soft-2"
+                  data-testid="distribution-logo-cell"
+                  key={logo.label}
+                  className="group flex h-12 items-center justify-center transition duration-200 ease-out hover:-translate-y-0.5"
                 >
-                  <Image
-                    src={logo.src}
-                    alt={logo.alt}
-                    width={118}
-                    height={36}
-                    className="h-8 w-auto object-contain opacity-90 transition group-hover:opacity-100"
-                  />
+                  <div className="relative h-10 w-[140px]">
+                    <Image
+                      src={logo.src}
+                      alt={logo.label}
+                      fill
+                      quality={100}
+                      data-testid="distribution-logo-image"
+                      className="object-contain opacity-80 grayscale transition group-hover:opacity-100 group-hover:grayscale-0"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
