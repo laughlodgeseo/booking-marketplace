@@ -139,7 +139,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   }
 
   const surfaceClass =
-    "mx-auto w-full max-w-5xl rounded-2xl bg-white px-3 py-3 shadow-md md:h-[72px] md:px-4 md:py-2";
+    props.variant === "home"
+      ? "mx-auto w-full max-w-5xl rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.76))] px-3 py-3 shadow-[0_16px_34px_rgba(33,39,53,0.12)] backdrop-blur-sm md:h-[72px] md:px-4 md:py-2"
+      : "mx-auto w-full max-w-5xl rounded-2xl bg-white px-3 py-3 shadow-md md:h-[72px] md:px-4 md:py-2";
 
   return (
     <motion.div

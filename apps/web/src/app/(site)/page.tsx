@@ -490,25 +490,38 @@ export default async function HomePage() {
   }));
 
   return (
-    <main className="overflow-x-hidden bg-transparent">
-      <HeroSplit
-        titleTop={copy.hero.titleTop}
-        titleEmphasis={copy.hero.titleEmphasis}
-        subtitle={copy.hero.subtitle}
-        heroImageUrl="https://images.pexels.com/photos/3787839/pexels-photo-3787839.jpeg"
-        primaryCtaHref="/properties"
-        primaryCtaLabel={copy.hero.primaryCtaLabel}
-        secondaryCtaHref="/owners"
-        secondaryCtaLabel={copy.hero.secondaryCtaLabel}
-      />
+    <main className="relative overflow-x-hidden bg-transparent">
+      <section className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[980px] bg-[radial-gradient(110%_80%_at_10%_0%,rgba(99,102,241,0.16),transparent_58%),radial-gradient(100%_70%_at_92%_14%,rgba(56,189,248,0.10),transparent_58%),linear-gradient(180deg,rgba(244,238,227,0.96)_0%,rgba(244,238,227,0.78)_100%)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-[430px] h-[580px] bg-[linear-gradient(180deg,rgba(244,238,227,0)_0%,rgba(244,238,227,0.78)_26%,rgba(244,238,227,0.92)_100%)]"
+        />
 
-      <div className="bg-transparent">
-        <div className="relative z-50 -mt-5 pb-1 md:-mt-7 md:pb-2">
-          <UnifiedSearchBar variant="home" />
+        <div className="relative z-10">
+          <HeroSplit
+            titleTop={copy.hero.titleTop}
+            titleEmphasis={copy.hero.titleEmphasis}
+            subtitle={copy.hero.subtitle}
+            heroImageUrl="https://images.pexels.com/photos/3787839/pexels-photo-3787839.jpeg"
+            primaryCtaHref="/properties"
+            primaryCtaLabel={copy.hero.primaryCtaLabel}
+            secondaryCtaHref="/owners"
+            secondaryCtaLabel={copy.hero.secondaryCtaLabel}
+          />
+
+          <div className="relative bg-transparent">
+            <div className="relative z-50 -mt-5 pb-1 md:-mt-7 md:pb-2">
+              <UnifiedSearchBar variant="home" />
+            </div>
+
+            <TrustOperationsSection />
+          </div>
         </div>
-
-        <TrustOperationsSection />
-      </div>
+      </section>
 
       <div className="bg-transparent">
         <Suspense fallback={<FeaturedSpotlightFallback />}>
