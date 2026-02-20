@@ -68,7 +68,14 @@ export default {
         midnight: "rgb(var(--text-primary-rgb) / <alpha-value>)",
       },
       fontFamily: {
-        heading: ['"Playfair Display"', "ui-serif", "Georgia", "serif"],
+        heading: [
+          "var(--font-display)",
+          "var(--font-latin)",
+          '"Manrope"',
+          '"Avenir Next"',
+          '"Segoe UI"',
+          "sans-serif",
+        ],
         sans: ['"Manrope"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       borderRadius: {
