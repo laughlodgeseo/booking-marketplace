@@ -1,5 +1,0 @@
-Generated: 2026-02-20T09:50:21.744Z
-/	chunks=9	rawKB=713.6	gzipKB=159.1	portalModules=0	portalRawKB=0.0	portalGzipKB=0.0
-/properties	chunks=8	rawKB=361.3	gzipKB=111.4	portalModules=0	portalRawKB=0.0	portalGzipKB=0.0
-/properties/[slug]	chunks=8	rawKB=355.3	gzipKB=110.6	portalModules=0	portalRawKB=0.0	portalGzipKB=0.0
-/login	chunks=6	rawKB=213.1	gzipKB=67.6	portalModules=0	portalRawKB=0.0	portalGzipKB=0.0
