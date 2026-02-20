@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Bell, LogOut, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { PortalRole } from "@/components/portal/layout/portal-navigation";
 import { roleLabel } from "@/components/portal/layout/portal-navigation";
-import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 export function initials(email: string): string {
   const value = email.trim();
@@ -29,19 +30,20 @@ export function PortalHeader(props: {
   unreadCount?: number;
   onLogout: () => void;
 }) {
+  const tPortal = useTranslations("portal");
   const email = props.userEmail ?? "";
   const name = props.userName?.trim() || "";
-  const identityLabel = name || email || "Signed in";
-  const firstName = identityLabel.split(/\s+/g)[0] || "there";
+  const identityLabel = name || email || tPortal("signedIn");
+  const firstName = identityLabel.split(/\s+/g)[0] || tPortal("defaultWelcome");
   const badge = initials(identityLabel);
   const unreadCount = Math.max(0, props.unreadCount ?? 0);
   const notificationsHref = props.notificationsHref ?? "#";
 
   return (
-    <header className="sticky top-0 z-40 bg-[rgba(255,255,255,0.78)] text-primary shadow-[0_14px_40px_rgba(11,15,25,0.08)] backdrop-blur-xl">
+    <header className="sticky top-0 z-40 bg-[rgb(var(--color-surface-rgb)/0.88)] text-primary shadow-[0_14px_40px_rgba(33,39,53,0.10)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="group inline-flex items-center gap-2">
-          <span className="rounded-xl bg-white px-2 py-1 shadow-[0_10px_26px_rgba(11,15,25,0.10)]">
+          <span className="rounded-xl bg-surface/90 px-2 py-1 ring-1 ring-line/24">
             <Image
               src="/brand/logo.svg"
               alt="Laugh & Lodge"
@@ -54,36 +56,38 @@ export function PortalHeader(props: {
 
           <div className="hidden sm:block">
             <div className="inline-flex items-center gap-2">
-              <div className="text-xs font-semibold text-secondary">{roleLabel(props.role)}</div>
-              <span className="h-1.5 w-1.5 rounded-full bg-[#C6A96D]/90" />
-              <div className="text-xs font-semibold text-[#C6A96D]">Operations</div>
+              <div className="text-xs font-semibold text-secondary">
+                {roleLabel(props.role, (key) => tPortal(key))}
+              </div>
+              <span className="h-1.5 w-1.5 rounded-full bg-brand/88" />
+              <div className="text-xs font-semibold text-brand">{tPortal("operations")}</div>
             </div>
             <div className="text-sm font-semibold text-primary">{props.title}</div>
           </div>
         </Link>
 
-        <div className="hidden flex-1 items-center gap-3 lg:flex">
-          <div className="relative w-full max-w-[560px]">
+        <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex xl:gap-3">
+          <div className="relative min-w-0 flex-1 max-w-[360px] xl:max-w-[520px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary" />
             <input
               type="search"
-              placeholder="Search inside portal..."
-              className="h-11 w-full rounded-2xl bg-white pl-10 pr-3 text-sm text-primary shadow-[0_10px_28px_rgba(11,15,25,0.08)] outline-none placeholder:text-muted focus:ring-4 focus:ring-[rgba(198,169,109,0.18)]"
+              placeholder={tPortal("searchPlaceholder")}
+              className="h-11 w-full rounded-2xl bg-surface/88 pl-10 pr-3 text-sm text-primary ring-1 ring-line/24 outline-none placeholder:text-muted focus-visible:ring-4 focus-visible:ring-brand/16"
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            {props.right ? <div className="shrink-0">{props.right}</div> : null}
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            {props.right ? <div className="hidden shrink-0 xl:block">{props.right}</div> : null}
 
-            <CurrencySwitcher compact />
+            <LanguageSwitcher compact />
 
             <Link
               href={notificationsHref}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-primary shadow-[0_10px_28px_rgba(11,15,25,0.08)] hover:translate-y-[-1px] hover:shadow-[0_14px_34px_rgba(11,15,25,0.12)] active:translate-y-0 active:shadow-[0_10px_28px_rgba(11,15,25,0.08)]"
-              aria-label="Notifications"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-surface/88 px-4 text-sm font-semibold text-primary ring-1 ring-line/24 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
+              aria-label={tPortal("alerts")}
             >
               <Bell className="h-4 w-4 text-secondary" />
-              <span className="hidden xl:inline">Alerts</span>
+              <span className="hidden xl:inline">{tPortal("alerts")}</span>
               {unreadCount > 0 ? (
                 <span className="rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-inverted">
                   {unreadCount > 99 ? "99+" : unreadCount}
@@ -94,19 +98,21 @@ export function PortalHeader(props: {
             <button
               type="button"
               onClick={props.onLogout}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#0B0F19] px-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(11,15,25,0.18)] hover:bg-[#111827] hover:translate-y-[-1px] hover:shadow-[0_16px_36px_rgba(11,15,25,0.22)] active:translate-y-0"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-4 text-sm font-semibold text-accent-text shadow-[0_12px_30px_rgba(79,70,229,0.30)] hover:bg-brand-hover hover:translate-y-[-1px] active:translate-y-0"
             >
               <LogOut className="h-4 w-4" />
-              Logout
+              <span className="hidden xl:inline">{tPortal("logout")}</span>
             </button>
 
-            <div className="ml-1 flex items-center gap-3 rounded-2xl bg-white px-3 py-2 shadow-[0_10px_28px_rgba(11,15,25,0.08)]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#0B0F19] text-xs font-bold text-white">
+            <div className="ml-1 flex items-center gap-3 rounded-2xl bg-surface/88 px-3 py-2 ring-1 ring-line/24">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand text-xs font-bold text-white">
                 {badge}
               </div>
               <div className="hidden xl:block">
-                <div className="text-xs font-semibold text-primary">{`Welcome back, ${firstName}`}</div>
-                <div className="text-[11px] text-muted">{email || props.role || "user"}</div>
+                <div className="text-xs font-semibold text-primary">
+                  {tPortal("welcomeBack", { name: firstName })}
+                </div>
+                <div className="text-[11px] text-muted">{email || props.role || tPortal("shell.userFallback")}</div>
               </div>
             </div>
           </div>
@@ -115,12 +121,12 @@ export function PortalHeader(props: {
         <div className="ml-auto flex items-center gap-2 lg:hidden">
           {props.right ? <div className="shrink-0">{props.right}</div> : null}
 
-          <CurrencySwitcher compact />
+          <LanguageSwitcher compact />
 
           <Link
             href={notificationsHref}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-[0_10px_28px_rgba(11,15,25,0.08)] hover:translate-y-[-1px] hover:shadow-[0_14px_34px_rgba(11,15,25,0.12)] active:translate-y-0"
-            aria-label="Notifications"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-surface/88 ring-1 ring-line/24 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
+            aria-label={tPortal("alerts")}
           >
             <Bell className="h-4 w-4 text-secondary" />
           </Link>
@@ -128,10 +134,10 @@ export function PortalHeader(props: {
           <button
             type="button"
             onClick={props.onLogout}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#0B0F19] px-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(11,15,25,0.18)] hover:bg-[#111827] hover:translate-y-[-1px] hover:shadow-[0_16px_36px_rgba(11,15,25,0.22)] active:translate-y-0"
+            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.28)] hover:bg-brand-hover hover:translate-y-[-1px] active:translate-y-0"
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            {tPortal("logout")}
           </button>
         </div>
       </div>

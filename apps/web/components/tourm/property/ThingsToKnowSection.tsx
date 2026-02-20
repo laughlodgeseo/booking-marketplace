@@ -1,5 +1,7 @@
 import { Clock, ShieldCheck, Receipt, Info, BadgeCheck, CircleHelp } from "lucide-react";
+import { useLocale } from "next-intl";
 import PropertySectionCard from "@/components/property/PropertySectionCard";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 export type ThingsToKnowBlock = {
   title: string;
@@ -25,6 +27,9 @@ export default function ThingsToKnowSection({
   title = "Things to know",
   blocks,
 }: ThingsToKnowSectionProps) {
+  const locale = normalizeLocale(useLocale());
+  const isAr = locale === "ar";
+  const resolvedTitle = title === "Things to know" && isAr ? "معلومات مهمة" : title;
   if (!blocks.length) return null;
 
   return (
@@ -34,8 +39,12 @@ export default function ThingsToKnowSection({
           <CircleHelp className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
         </div>
         <div>
-          <div className="text-lg font-semibold tracking-tight text-primary">{title}</div>
-          <p className="text-xs text-secondary">Check-in details, cancellation notes, and safety context.</p>
+          <div className="text-lg font-semibold tracking-tight text-primary">{resolvedTitle}</div>
+          <p className="text-xs text-secondary">
+            {isAr
+              ? "تفاصيل الوصول وملاحظات الإلغاء وسياق السلامة."
+              : "Check-in details, cancellation notes, and safety context."}
+          </p>
         </div>
       </div>
 

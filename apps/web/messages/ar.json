@@ -1,0 +1,465 @@
+{
+  "common": {
+    "language": "اللغة",
+    "currency": "العملة",
+    "english": "الإنجليزية",
+    "arabic": "العربية",
+    "close": "إغلاق",
+    "loading": "جارٍ التحميل..."
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "stays": "الإقامات",
+    "services": "الخدمات",
+    "owners": "للملاك",
+    "gallery": "المعرض",
+    "pricing": "الأسعار",
+    "contact": "تواصل معنا",
+    "explore": "استكشف",
+    "dashboard": "لوحة التحكم",
+    "logout": "تسجيل الخروج",
+    "loggingOut": "جارٍ تسجيل الخروج...",
+    "login": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "role": "الدور",
+    "emailNotVerified": "البريد الإلكتروني غير موثّق",
+    "toggleMenu": "فتح أو إغلاق القائمة"
+  },
+  "portal": {
+    "operations": "العمليات",
+    "searchPlaceholder": "ابحث داخل البوابة...",
+    "alerts": "التنبيهات",
+    "logout": "تسجيل الخروج",
+    "navigation": "التنقّل",
+    "signedIn": "تم تسجيل الدخول",
+    "welcomeBack": "مرحباً بعودتك، {name}",
+    "defaultWelcome": "مرحباً بعودتك",
+    "footerHint": "استخدم شريط البحث للوصول السريع.",
+    "premiumConsole": "لوحة عمليات احترافية",
+    "roles": {
+      "admin": "بوابة الإدارة",
+      "vendor": "بوابة المورّد",
+      "customer": "بوابة العميل",
+      "default": "البوابة"
+    },
+    "groups": {
+      "workspace": "مساحة العمل",
+      "operations": "العمليات",
+      "finance": "المالية",
+      "account": "الحساب",
+      "general": "عام"
+    },
+    "nav": {
+      "dashboard": "لوحة التحكم",
+      "properties": "العقارات",
+      "bookings": "الحجوزات",
+      "calendar": "التقويم",
+      "blockRequests": "طلبات الحظر",
+      "messages": "الرسائل",
+      "notifications": "الإشعارات",
+      "opsTasks": "مهام العمليات",
+      "maintenance": "الصيانة",
+      "workOrders": "أوامر العمل",
+      "statements": "الكشوفات",
+      "reviewQueue": "قائمة المراجعة",
+      "guestReviews": "تقييمات الضيوف",
+      "vendors": "المورّدون",
+      "createProperty": "إضافة عقار",
+      "contactSubmissions": "طلبات التواصل",
+      "deletionRequests": "طلبات الحذف",
+      "unpublishRequests": "طلبات إلغاء النشر",
+      "payments": "المدفوعات",
+      "refunds": "الاستردادات",
+      "guestDocuments": "مستندات الضيوف",
+      "payouts": "التحويلات",
+      "documents": "المستندات"
+    },
+    "loading": {
+      "messages": "جارٍ تحميل الرسائل...",
+      "notifications": "جارٍ تحميل الإشعارات...",
+      "calendar": "جارٍ تحميل التقويم...",
+      "dashboard": "جارٍ تحميل لوحة التحكم...",
+      "overview": "جارٍ تحميل الملخص...",
+      "vendorLogin": "جارٍ تحميل دخول المورّد...",
+      "mapPicker": "جارٍ تحميل محدد الموقع..."
+    },
+    "shell": {
+      "openNavigation": "فتح تنقّل البوابة",
+      "closeNavigation": "إغلاق تنقّل البوابة",
+      "userFallback": "مستخدم"
+    },
+    "table": {
+      "open": "فتح",
+      "actions": "الإجراءات",
+      "moreDetails": "تفاصيل أكثر",
+      "emptyTitle": "لا توجد بيانات للعرض",
+      "emptyDescription": "لا توجد صفوف حالياً.",
+      "detailsTitle": "تفاصيل {title}"
+    },
+    "toolbar": {
+      "searchPlaceholder": "بحث…",
+      "filters": "الفلاتر",
+      "closeFilters": "إغلاق الفلاتر"
+    },
+    "chart": {
+      "max": "الحد الأقصى",
+      "noData": "لا توجد بيانات للمخطط حالياً."
+    },
+    "messages": {
+      "pageTitle": "الرسائل",
+      "customerSubtitle": "تواصل مع فريق الإدارة بخصوص الحجوزات والإقامة",
+      "adminSubtitle": "صندوق الإدارة لمحادثات العملاء والمورّدين",
+      "vendorSubtitle": "تواصل مع الإدارة بخصوص العقارات والحجوزات والعمليات",
+      "threadSubtitle": "الرئيسية / الرسائل / المحادثة",
+      "startNew": "بدء رسالة جديدة",
+      "subjectOptional": "الموضوع (اختياري)",
+      "writeMessage": "اكتب رسالتك...",
+      "privateHint": "المحادثات خاصة وتظهر لك ولفريق الإدارة فقط.",
+      "startThread": "بدء المحادثة",
+      "inbox": "صندوق الرسائل",
+      "allTopics": "كل المواضيع",
+      "unreadOnly": "غير المقروء فقط",
+      "noThreads": "لا توجد محادثات.",
+      "generalSupport": "دعم عام",
+      "noMessages": "لا توجد رسائل بعد",
+      "noActivity": "لا يوجد نشاط",
+      "selectThread": "اختر محادثة لعرض الرسائل.",
+      "threadWith": "محادثة مع",
+      "writeReply": "اكتب الرد...",
+      "sendReply": "إرسال الرد",
+      "busy": {
+        "sending": "جارٍ إرسال الرسالة...",
+        "creatingThread": "جارٍ إنشاء المحادثة..."
+      },
+      "errors": {
+        "loadInbox": "تعذر تحميل صندوق الرسائل",
+        "loadThread": "تعذر تحميل المحادثة",
+        "sendMessage": "تعذر إرسال الرسالة",
+        "createThread": "تعذر إنشاء المحادثة"
+      },
+      "topics": {
+        "bookingIssue": "مشكلة في الحجز",
+        "checkinAccess": "تسجيل الدخول / الوصول",
+        "cleaning": "التنظيف",
+        "maintenance": "الصيانة",
+        "paymentRefund": "الدفع / الاسترداد",
+        "other": "أخرى"
+      }
+    },
+    "notifications": {
+      "titleAdmin": "إشعارات الإدارة",
+      "titleVendor": "إشعارات المورّد",
+      "titleCustomer": "الإشعارات",
+      "subtitle": "تحديثات مهمة وإجراءات مطلوبة",
+      "backToPortal": "العودة إلى البوابة",
+      "portalHome": "الرئيسية",
+      "breadcrumbCurrent": "الإشعارات",
+      "inbox": "صندوق الإشعارات",
+      "unreadOnly": "غير المقروء فقط",
+      "markAllRead": "تحديد الكل كمقروء",
+      "markRead": "تحديد كمقروء",
+      "open": "فتح",
+      "noneFound": "لا توجد إشعارات.",
+      "prev": "السابق",
+      "next": "التالي",
+      "pageLabel": "الصفحة {page}",
+      "totalLabel": "الإجمالي {total}",
+      "status": {
+        "unread": "غير مقروء",
+        "read": "مقروء"
+      },
+      "busy": {
+        "markingRead": "جارٍ التحديد كمقروء...",
+        "markingAllRead": "جارٍ تحديد الكل كمقروء..."
+      },
+      "errors": {
+        "load": "تعذر تحميل الإشعارات"
+      },
+      "messages": {
+        "propertyApprovedActivationRequired": "تمت الموافقة على العقار. يلزم دفع رسوم التفعيل قبل النشر.",
+        "documentUploadRequest": "إجراء مطلوب: يرجى رفع مستندات الضيف المطلوبة.",
+        "bookingConfirmed": "تم تأكيد الحجز.",
+        "bookingCancelled": "تم إلغاء الحجز.",
+        "paymentPending": "عملية الدفع قيد الانتظار.",
+        "paymentFailed": "فشلت عملية الدفع.",
+        "refundProcessed": "تمت معالجة الاسترداد.",
+        "opsTasksCreated": "تم إنشاء مهام التشغيل.",
+        "entityUpdate": "تحديث على {entityType}"
+      }
+    },
+    "calendar": {
+      "pageTitle": "التقويم",
+      "customerSubtitle": "عرض شهري للتوافر للمتابعة واتخاذ قرار الحجز",
+      "adminSubtitle": "مراجعة حالات الحجز والحظر والتشغيل لكل عقار",
+      "vendorSubtitle": "رؤية شهرية لحجوزات عقاراتك",
+      "monthlyAvailability": "التوافر الشهري",
+      "propertyLabel": "العقار",
+      "introVendor": "عرض موحّد للأيام المتاحة والمحجوزة والمعلّقة والمُغلقة.",
+      "introAdmin": "توافر المنصة مع إشارات الحجز والتعليق والحظر من الإدارة أو المورّد.",
+      "introCustomer": "عرض توافر للقراءة فقط لدعم قرارات الحجز بثقة.",
+      "blockRequestTitle": "طلب حظر تواريخ",
+      "ownerControlsTitle": "التحكم في تواريخ استخدام المالك",
+      "blockRequestDescription": "أرسل طلب حظر لاعتماد الإدارة. تاريخ النهاية يُعامل كتاريخ مغادرة (غير شامل).",
+      "ownerControlsDescription": "قم بحظر أو إلغاء حظر التواريخ لاستخدام المالك. تاريخ النهاية يُعامل كتاريخ مغادرة (غير شامل).",
+      "noteOptional": "ملاحظة (اختيارية)",
+      "submitRequest": "إرسال الطلب",
+      "block": "حظر",
+      "unblock": "إلغاء الحظر",
+      "noDateSelected": "لم يتم اختيار تاريخ",
+      "selectedProperty": "العقار المحدد",
+      "available": "متاح",
+      "availableDescription": "لا يوجد حجز أو تعليق أو حظر ضمن نطاق التاريخ المحدد.",
+      "checkIn": "تسجيل الدخول",
+      "checkOut": "تسجيل الخروج",
+      "guest": "الضيف",
+      "bookingRef": "مرجع الحجز",
+      "status": "الحالة",
+      "value": "القيمة",
+      "note": "ملاحظة",
+      "busy": {
+        "blocking": "جارٍ تنفيذ الحظر...",
+        "unblocking": "جارٍ إلغاء الحظر..."
+      },
+      "success": {
+        "blockRequestSubmitted": "تم إرسال طلب الحظر بنجاح.",
+        "blocked": "تم حظر التواريخ بنجاح.",
+        "unblocked": "تم إلغاء حظر التواريخ بنجاح."
+      },
+      "errors": {
+        "load": "تعذر تحميل التقويم",
+        "submitBlockRequest": "تعذر إرسال طلب الحظر",
+        "blockDates": "تعذر حظر التواريخ",
+        "unblockDates": "تعذر إلغاء حظر التواريخ"
+      }
+    },
+    "accountOverview": {
+      "title": "حسابي",
+      "subtitle": "الحجوزات والاستردادات ونشاط الحساب",
+      "welcome": "مرحباً",
+      "accountLabel": "الحساب",
+      "emailVerification": "توثيق البريد الإلكتروني",
+      "verified": "موثّق",
+      "notVerified": "غير موثّق",
+      "documentsRequired": "مستندات الضيف مطلوبة",
+      "missing": "النواقص",
+      "urgent48h": "عاجل: تسجيل الدخول خلال 48 ساعة",
+      "uploadNow": "الرفع الآن",
+      "becomeHostTitle": "كن مضيفاً",
+      "becomeHostDescription": "اعرض عقارك وابدأ تحقيق الدخل عبر الإيجارات القصيرة المُدارة.",
+      "learnHosting": "تعرف على الاستضافة",
+      "listProperty": "أدرج عقارك",
+      "kpi": {
+        "bookingsUpcoming": "الحجوزات القادمة",
+        "bookingsTotal": "إجمالي الحجوزات",
+        "refundsTotal": "إجمالي الاستردادات"
+      },
+      "errors": {
+        "load": "تعذر تحميل الملخص",
+        "title": "تعذر تحميل الحساب"
+      }
+    },
+    "adminDashboard": {
+      "title": "لوحة الإدارة",
+      "subtitle": "نظرة عامة وتحليلات في مساحة عمل واحدة متجاوبة",
+      "noData": "لا توجد بيانات متاحة.",
+      "kpi": {
+        "propertiesUnderReview": "العقارات قيد المراجعة",
+        "publishedProperties": "العقارات المنشورة",
+        "confirmedBookings": "الحجوزات المؤكدة",
+        "revenueCaptured": "الإيراد المحصل",
+        "users": "المستخدمون",
+        "pendingVendors": "المورّدون بانتظار الاعتماد",
+        "opsTasksOpen": "مهام التشغيل المفتوحة",
+        "refundsPending": "الاستردادات المعلقة"
+      },
+      "kpiHelpers": {
+        "awaitingApproval": "بانتظار الاعتماد",
+        "liveInventory": "مخزون منشور",
+        "platformTotal": "إجمالي المنصة الحالي",
+        "capturedPayments": "مدفوعات محصّلة",
+        "allRoles": "كل الأدوار",
+        "needReview": "تحتاج مراجعة",
+        "opsTaskStates": "معلقة، مسندة، قيد التنفيذ",
+        "needsAction": "تحتاج إجراء"
+      },
+      "charts": {
+        "bookingsPerPeriod": {
+          "title": "الحجوزات حسب الفترة",
+          "subtitle": "إجمالي حجم الحجوزات"
+        },
+        "revenuePerPeriod": {
+          "title": "الإيرادات حسب الفترة",
+          "subtitle": "قيمة المدفوعات المحصّلة"
+        },
+        "paymentCapturesTrend": {
+          "title": "اتجاه تحصيل المدفوعات",
+          "subtitle": "عدد العمليات المحصّلة"
+        },
+        "refundsTrend": {
+          "title": "اتجاه الاستردادات",
+          "subtitle": "عدد الاستردادات الناجحة"
+        },
+        "confirmedBookingsTrend": {
+          "title": "اتجاه الحجوزات المؤكدة",
+          "subtitle": "الحجوزات المؤكدة عبر الزمن"
+        },
+        "cancelledBookingsTrend": {
+          "title": "اتجاه الحجوزات الملغاة",
+          "subtitle": "الحجوزات الملغاة عبر الزمن"
+        }
+      },
+      "breakdowns": {
+        "bookingStatus": "توزيع حالات الحجوزات",
+        "opsTaskStatus": "توزيع حالات مهام التشغيل",
+        "paymentStatus": "توزيع حالات المدفوعات",
+        "refundStatus": "توزيع حالات الاسترداد"
+      },
+      "errors": {
+        "load": "تعذر تحميل لوحة الإدارة",
+        "title": "اللوحة غير متاحة"
+      }
+    },
+    "vendorDashboard": {
+      "title": "لوحة المورّد",
+      "subtitle": "نظرة عامة وتحليلات في مساحة عمل واحدة متجاوبة",
+      "statusBreakdowns": "توزيعات الحالات",
+      "bookingStatuses": "حالات الحجوزات",
+      "opsTaskStatuses": "حالات مهام التشغيل",
+      "kpi": {
+        "publishedProperties": "العقارات المنشورة",
+        "underReview": "قيد المراجعة",
+        "revenueCaptured": "الإيراد المحصل",
+        "bookingsTotal": "إجمالي الحجوزات",
+        "upcomingStays": "الإقامات القادمة",
+        "opsTasksOpen": "مهام التشغيل المفتوحة"
+      },
+      "kpiHelpers": {
+        "liveInMarketplace": "منشور في المنصة",
+        "pendingApproval": "بانتظار الاعتماد",
+        "capturedPayments": "مدفوعات محصّلة",
+        "allStatuses": "كل الحالات",
+        "confirmedCheckIns": "عمليات دخول مؤكدة قادمة",
+        "pendingOperationalWorkload": "عبء تشغيلي معلق"
+      },
+      "charts": {
+        "revenueTrend": {
+          "title": "اتجاه الإيرادات",
+          "subtitle": "قيمة المدفوعات المحصّلة"
+        },
+        "bookingsTrend": {
+          "title": "اتجاه الحجوزات",
+          "subtitle": "حجم الحجوزات لكل فترة"
+        },
+        "upcomingStaysTrend": {
+          "title": "اتجاه الإقامات القادمة",
+          "subtitle": "عمليات دخول مؤكدة"
+        },
+        "opsTaskTrend": {
+          "title": "اتجاه مهام التشغيل",
+          "subtitle": "العبء التشغيلي"
+        },
+        "occupancyNightsTrend": {
+          "title": "اتجاه ليالي الإشغال",
+          "subtitle": "ليالي الإشغال المؤكدة"
+        }
+      },
+      "errors": {
+        "load": "تعذر تحميل لوحة المورّد",
+        "title": "اللوحة غير متاحة"
+      }
+    },
+    "vendorLogin": {
+      "title": "دخول المورّد",
+      "subtitle": "سجّل الدخول لإدارة العقارات والوسائط والمستندات وطلبات المراجعة والنشر.",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "emailPlaceholder": "vendor@demo.com",
+      "passwordPlaceholder": "••••••••",
+      "signIn": "تسجيل الدخول",
+      "signingIn": "جارٍ تسجيل الدخول…",
+      "authNote": "يعتمد تسجيل الدخول حالياً على رمز محفوظ في sessionStorage. الخطوة التالية: ترقية النظام إلى مصادقة عبر ملفات تعريف الارتباط المتوافقة مع SSR حتى تتمكن مكونات الخادم من الجلب مع المصادقة.",
+      "errors": {
+        "missingToken": "فشل تسجيل الدخول: رمز الوصول غير متوفر.",
+        "roleMismatch": "هذا الحساب بدور \"{role}\". بوابة المورّد تتطلب دور \"VENDOR\".",
+        "loginFailed": "فشل تسجيل الدخول"
+      }
+    }
+  },
+  "propertiesPage": {
+    "eyebrow": "الإقامات",
+    "title": "إقامات في دبي والإمارات",
+    "subtitle": "بحث فوري مرتبط بالتواريخ عبر محرك الحجوزات لدينا بدون مخزون قديم أو مفاجآت.",
+    "listErrorTitle": "حدثت مشكلة أثناء التحميل",
+    "listErrorMessage": "تعذر تحميل العقارات حالياً.",
+    "listErrorRetry": "إعادة المحاولة"
+  },
+  "propertiesShell": {
+    "showing": "عرض",
+    "of": "من",
+    "browse": "تصفّح الإقامات",
+    "cardView": "عرض البطاقات",
+    "mapCardsView": "الخريطة + البطاقات",
+    "loadMore": "عرض المزيد",
+    "endResults": "وصلت إلى نهاية النتائج.",
+    "mapTitle": "الخريطة",
+    "mapUpdating": "جارٍ تحديث العلامات...",
+    "mapUnavailable": "العلامات غير متاحة",
+    "mapPins": "{count} علامة",
+    "retryPins": "إعادة التحميل",
+    "noPins": "لا توجد علامات ضمن هذا النطاق. حرّك الخريطة أو صغّر التكبير.",
+    "pinsFootnote": "تتحدث العلامات عند التحريك أو التكبير. الأسعار والتوافر من الخادم مباشرة."
+  },
+  "quotePanel": {
+    "dates": "التواريخ",
+    "guests": "عدد الضيوف",
+    "fromNight": "ابتداءً من {price} / ليلة",
+    "base": "الأساس: {amount}",
+    "quote": "عرض السعر",
+    "nights": "{nights} ليالٍ",
+    "dateRange": "{checkIn} -> {checkOut}",
+    "getQuote": "احصل على السعر",
+    "gettingQuote": "جارٍ احتساب السعر...",
+    "reserve": "حجز مؤقت (تجميد التوافر)",
+    "creatingHold": "جارٍ إنشاء الحجز المؤقت...",
+    "availabilityTitle": "التحقق من التوافر",
+    "availabilitySubtitle": "اختر التواريخ وعدد الضيوف للحصول على السعر النهائي.",
+    "errorPrefix": "خطأ:"
+  },
+  "checkout": {
+    "title": "إتمام الحجز",
+    "subtitle": "حوّل الحجز المؤقت إلى حجز فعلي. يصبح الحجز مؤكداً فقط بعد التحقق من الدفع.",
+    "backProperty": "العودة إلى العقار",
+    "browseStays": "تصفّح الإقامات",
+    "flowTitle": "مسار الحجز",
+    "flowSubtitle": "الحجز المؤقت يمنع التداخل، والحجز النهائي يعتمد على تأكيد الدفع عبر الويب هوك.",
+    "step1": "تم إنشاء حجز مؤقت",
+    "step1Detail": "تم حجز التوافر مؤقتاً.",
+    "step2": "إنشاء الحجز",
+    "step2Detail": "الحالة: بانتظار الدفع",
+    "step3": "الدفع المستضاف",
+    "step3Detail": "يتم التأكيد عبر الويب هوك.",
+    "importantLabel": "مهم:",
+    "importantBody": "في حال فشل الدفع أو انتهاء المهلة، قد يتم إلغاء الحجز تلقائياً وإعادة فتح التوافر.",
+    "noHoldTitle": "لا يوجد حجز مؤقت",
+    "noHoldBody": "تتطلب هذه الصفحة holdId. ارجع للعقار واختر التواريخ ثم اضغط حجز مؤقت."
+  },
+  "propertyCard": {
+    "defaultTitle": "إقامة",
+    "guests": "{count} ضيوف",
+    "beds": "{count} أسرّة",
+    "baths": "{count} حمّامات",
+    "basePrice": "السعر الأساسي: {amount}",
+    "perNight": "{price} / ليلة",
+    "priceOnRequest": "السعر عند الطلب",
+    "view": "عرض",
+    "photoAria": "صورة {index} لـ {title}",
+    "showImageAria": "عرض الصورة {index}"
+  },
+  "pinPreview": {
+    "defaultTitle": "إقامة",
+    "defaultLocation": "دبي",
+    "perNight": "/ ليلة",
+    "closePreview": "إغلاق المعاينة",
+    "openListing": "فتح صفحة العقار"
+  }
+}

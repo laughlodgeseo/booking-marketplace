@@ -66,7 +66,7 @@ export function ConfirmDialog(props: {
           <button
             type="button"
             onClick={props.onCancel}
-            className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt"
+            className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22 lg:bg-surface"
           >
             {props.cancelText ?? "Cancel"}
           </button>
@@ -75,7 +75,7 @@ export function ConfirmDialog(props: {
             disabled={props.confirmDisabled || props.busy}
             onClick={() => void props.onConfirm()}
             className={[
-              "rounded-2xl px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60",
+              "h-11 rounded-2xl px-4 text-sm font-semibold shadow-sm disabled:opacity-60",
               ui.primaryBtn,
             ].join(" ")}
           >

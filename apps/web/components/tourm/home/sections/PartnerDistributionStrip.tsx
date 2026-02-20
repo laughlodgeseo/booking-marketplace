@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
+import { useLocale } from "next-intl";
 import DistributionCollage from "./DistributionCollage";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 const PARTNER_LOGOS = [
   { src: "/partner_logo/airbnb.svg", label: "Airbnb" },
@@ -13,6 +17,8 @@ const PARTNER_LOGOS = [
 ];
 
 export default function PartnerDistributionStrip() {
+  const locale = normalizeLocale(useLocale());
+
   return (
     <section className="relative overflow-hidden py-10 lg:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -22,13 +28,18 @@ export default function PartnerDistributionStrip() {
           </div>
 
           <div className="order-1 lg:order-2 lg:col-span-6">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-600/80">Distribution</p>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-600/80">
+              {locale === "ar" ? "قنوات التوزيع" : "Distribution"}
+            </p>
             <h3 className="mt-3 max-w-[26ch] text-[30px] font-semibold leading-[1.08] tracking-[-0.01em] text-neutral-900 md:text-[38px]">
-              We&apos;ll list your property on these sites
+              {locale === "ar"
+                ? "سنعرض عقارك على هذه المنصات"
+                : "We'll list your property on these sites"}
             </h3>
             <p className="mt-4 max-w-[52ch] text-[15px] leading-6 text-neutral-600">
-              Premium channel distribution designed to increase occupancy while keeping availability and pricing in
-              sync.
+              {locale === "ar"
+                ? "توزيع احترافي عبر القنوات لرفع الإشغال مع إبقاء التوافر والتسعير متزامنين."
+                : "Premium channel distribution designed to increase occupancy while keeping availability and pricing in sync."}
             </p>
 
             <div className="mt-6 h-px w-16 bg-gradient-to-r from-indigo-500/30 via-cyan-500/20 to-transparent" />
@@ -49,6 +60,7 @@ export default function PartnerDistributionStrip() {
                       alt={logo.label}
                       fill
                       quality={100}
+                      sizes="(max-width: 640px) 44vw, (max-width: 1024px) 22vw, 140px"
                       data-testid="distribution-logo-image"
                       className="object-contain opacity-80 grayscale transition group-hover:opacity-100 group-hover:grayscale-0"
                     />

@@ -6,24 +6,24 @@ import {
   BedDouble,
   MapPin,
   Users,
-  ShieldCheck,
-  Sparkles,
   Clock,
+  CalendarCheck2,
+  ShieldCheck,
+  LayoutGrid,
 } from "lucide-react";
+import { useLocale } from "next-intl";
+import PropertySectionCard from "@/components/property/PropertySectionCard";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type Props = {
   property: PropertyDetail;
 };
 
-function StatCard(props: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function StatCard(props: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.76)] p-3.5 shadow-[0_8px_18px_rgba(11,15,25,0.08)] ring-1 ring-white/72">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-warm-alt">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
           {props.icon}
         </div>
         <div className="min-w-0">
@@ -35,95 +35,74 @@ function StatCard(props: {
   );
 }
 
-function Chip(props: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-primary">
-      <span className="text-secondary">{props.icon}</span>
-      <span className="whitespace-nowrap">{props.text}</span>
-    </div>
-  );
-}
-
 export default function PropertyFacts({ property: p }: Props) {
-  const guests = `Up to ${p.maxGuests} guests`;
-  const bedrooms = p.bedrooms !== null ? `${p.bedrooms} bedrooms` : null;
-  const bathrooms = p.bathrooms !== null ? `${p.bathrooms} bathrooms` : null;
+  const locale = normalizeLocale(useLocale());
+  const isAr = locale === "ar";
+  const guests = isAr ? `حتى ${p.maxGuests} ضيف` : `Up to ${p.maxGuests} guests`;
+  const bedrooms = p.bedrooms !== null ? `${p.bedrooms}` : isAr ? "استوديو" : "Studio";
+  const bathrooms = p.bathrooms !== null ? `${p.bathrooms}` : isAr ? "مشترك/خاص" : "Shared/Private";
 
-  const locationPrimary = (p.area ?? p.city ?? "UAE").trim();
-  const locationSecondary = (p.addressLine1 ?? "").trim();
-
-  const locationLine = locationSecondary
-    ? `${locationPrimary} • ${locationSecondary}`
-    : locationPrimary;
-
-  // Safe, honest “highlights” (not claiming amenities we don’t know yet).
-  // Later we’ll drive these from structured backend fields (amenities/ops config).
-  const highlights = [
-    { icon: <Sparkles className="h-4 w-4" />, text: "Hotel-grade cleaning" },
-    { icon: <ShieldCheck className="h-4 w-4" />, text: "Verified availability" },
-    { icon: <Clock className="h-4 w-4" />, text: "Operator support" },
-  ];
+  const locationLine = [p.area ?? null, p.city ?? null].filter(Boolean).join(", ") || (isAr ? "الإمارات" : "UAE");
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-primary">At a glance</div>
-          <p className="mt-1 text-xs text-secondary">
-            The key details guests look for first.
-          </p>
+    <PropertySectionCard>
+      <div className="flex items-center gap-3">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
+          <LayoutGrid className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          {highlights.map((h) => (
-            <Chip key={h.text} icon={h.icon} text={h.text} />
-          ))}
+        <div>
+          <div className="text-lg font-semibold tracking-tight text-primary">
+            {isAr ? "نظرة سريعة" : "At a glance"}
+          </div>
+          <p className="text-xs text-secondary">
+            {isAr ? "تفاصيل الإقامة الأساسية في مكان واحد." : "Essential stay details in one view."}
+          </p>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          icon={<Users className="h-5 w-5 text-secondary" />}
-          label="Guests"
+          icon={<Users className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "الضيوف" : "Guests"}
           value={guests}
         />
 
-        {bedrooms ? (
-          <StatCard
-            icon={<BedDouble className="h-5 w-5 text-secondary" />}
-            label="Bedrooms"
-            value={bedrooms}
-          />
-        ) : null}
+        <StatCard
+          icon={<BedDouble className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "غرف النوم" : "Bedrooms"}
+          value={bedrooms}
+        />
 
-        {bathrooms ? (
-          <StatCard
-            icon={<Bath className="h-5 w-5 text-secondary" />}
-            label="Bathrooms"
-            value={bathrooms}
-          />
-        ) : null}
+        <StatCard
+          icon={<Bath className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "الحمّامات" : "Bathrooms"}
+          value={bathrooms}
+        />
 
-        <div className="sm:col-span-2 lg:col-span-3">
-          <div className="rounded-2xl border border-line bg-warm-alt p-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface">
-                <MapPin className="h-5 w-5 text-secondary" />
-              </div>
+        <StatCard
+          icon={<MapPin className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "المنطقة" : "Area"}
+          value={locationLine}
+        />
 
-              <div className="min-w-0">
-                <div className="text-xs font-medium text-secondary">Location</div>
-                <div className="mt-0.5 truncate text-sm font-semibold text-primary">
-                  {locationLine}
-                </div>
-                <div className="mt-1 text-xs text-secondary">
-                  Exact address details are shared after booking confirmation where required.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          icon={<CalendarCheck2 className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "تسجيل الوصول" : "Check-in"}
+          value={isAr ? "بعد 3:00 مساءً" : "After 3:00 PM"}
+        />
+
+        <StatCard
+          icon={<Clock className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "تسجيل المغادرة" : "Check-out"}
+          value={isAr ? "قبل 11:00 صباحاً" : "Before 11:00 AM"}
+        />
+
+        <StatCard
+          icon={<ShieldCheck className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />}
+          label={isAr ? "الإلغاء" : "Cancellation"}
+          value={isAr ? "تظهر السياسة قبل الدفع" : "Policy shown before checkout"}
+        />
       </div>
-    </section>
+    </PropertySectionCard>
   );
 }

@@ -48,10 +48,18 @@ type DeliveryErrorContext = {
   latencyMs?: number;
   smtpResponse?: string;
 };
+type ResolvedBrandLogo = {
+  logoUrl: string;
+  attachment: NonNullable<SendMailOptions['attachments']>[number] | null;
+};
 
 @Injectable()
 export class NotificationsWorker implements OnModuleInit {
   private readonly logger = new Logger(NotificationsWorker.name);
+  private readonly inlineBrandLogoCid = 'brand-logo';
+  private readonly defaultRemoteBrandLogoUrl =
+    'https://rentpropertyuae.com/brand/logo.svg';
+  private readonly localBrandLogoPath = this.resolveLocalBrandLogoPath();
 
   // Outbox knobs
   private readonly batchSize = 10;
@@ -240,6 +248,18 @@ export class NotificationsWorker implements OnModuleInit {
     }
 
     const transporter = this.getTransporter(smtp);
+    const payloadBrand = this.getNested(input.payload, 'brand');
+    const brandOverrides = this.isObject(payloadBrand) ? payloadBrand : {};
+    const resolvedBrandLogo = this.resolveBrandLogo();
+    const overrideLogoUrl = this.readLogoUrlFromOverrides(brandOverrides);
+    const effectiveLogoUrl = overrideLogoUrl ?? resolvedBrandLogo.logoUrl;
+    const attachments =
+      resolvedBrandLogo.attachment &&
+      effectiveLogoUrl === resolvedBrandLogo.logoUrl &&
+      effectiveLogoUrl.startsWith('cid:')
+        ? [resolvedBrandLogo.attachment]
+        : undefined;
+
     const message: SendMailOptions = {
       from: smtp.from,
       to,
@@ -247,6 +267,7 @@ export class NotificationsWorker implements OnModuleInit {
       subject,
       html,
       text,
+      attachments,
     };
 
     const startedAt = Date.now();
@@ -375,16 +396,25 @@ export class NotificationsWorker implements OnModuleInit {
 
   private warnOnInsecureLogoUrl() {
     const rawLogoUrl = (process.env.BRAND_LOGO_URL || '').trim();
-    if (!rawLogoUrl) {
-      this.logger.warn(
-        'BRAND_LOGO_URL is not set. Set an HTTPS logo URL to improve email client rendering.',
+    const resolvedBrandLogo = this.resolveBrandLogo();
+    if (resolvedBrandLogo.attachment && this.localBrandLogoPath) {
+      this.logger.log(
+        `Using local inline brand logo from ${this.localBrandLogoPath}.`,
       );
       return;
     }
 
-    if (!rawLogoUrl.toLowerCase().startsWith('https://')) {
+    if (!rawLogoUrl) {
       this.logger.warn(
-        'BRAND_LOGO_URL is not HTTPS. Use an HTTPS URL to avoid blocked mixed-content images in email clients.',
+        'BRAND_LOGO_URL is not set and local logo was not found. Set BRAND_LOGO_URL to an HTTPS logo URL.',
+      );
+      return;
+    }
+
+    const lower = rawLogoUrl.toLowerCase();
+    if (!lower.startsWith('https://') && !lower.startsWith('cid:')) {
+      this.logger.warn(
+        'BRAND_LOGO_URL should use HTTPS (or cid: for inline assets) to avoid blocked images in email clients.',
       );
     }
   }
@@ -664,6 +694,7 @@ export class NotificationsWorker implements OnModuleInit {
   }
 
   private defaultBrand() {
+    const resolvedBrandLogo = this.resolveBrandLogo();
     return {
       name: 'RentPropertyUAE',
       legalName: 'RentPropertyUAE',
@@ -672,10 +703,86 @@ export class NotificationsWorker implements OnModuleInit {
       bookingEmail: 'booking@rentpropertyuae.com',
       phone: '+971 50 234 8756',
       country: 'United Arab Emirates',
-      logoUrl:
-        (process.env.BRAND_LOGO_URL || '').trim() ||
-        'https://rentpropertyuae.com/brand/logo.svg',
+      logoUrl: resolvedBrandLogo.logoUrl,
     };
+  }
+
+  private resolveBrandLogo(): ResolvedBrandLogo {
+    const configuredLogoUrl = (process.env.BRAND_LOGO_URL || '').trim();
+    const inlineLogoUrl = `cid:${this.inlineBrandLogoCid}`;
+    const shouldPreferLocalInlineLogo =
+      !configuredLogoUrl ||
+      configuredLogoUrl.toLowerCase() ===
+        this.defaultRemoteBrandLogoUrl.toLowerCase() ||
+      configuredLogoUrl.toLowerCase() === inlineLogoUrl.toLowerCase();
+
+    if (this.localBrandLogoPath && shouldPreferLocalInlineLogo) {
+      return {
+        logoUrl: inlineLogoUrl,
+        attachment: {
+          filename: path.basename(this.localBrandLogoPath),
+          path: this.localBrandLogoPath,
+          cid: this.inlineBrandLogoCid,
+          contentType: 'image/svg+xml',
+        },
+      };
+    }
+
+    if (configuredLogoUrl) {
+      return {
+        logoUrl: configuredLogoUrl,
+        attachment: null,
+      };
+    }
+
+    return {
+      logoUrl: this.defaultRemoteBrandLogoUrl,
+      attachment: null,
+    };
+  }
+
+  private resolveLocalBrandLogoPath(): string | null {
+    const candidates = [
+      path.join(process.cwd(), 'apps', 'web', 'public', 'brand', 'logo.svg'),
+      path.join(process.cwd(), '..', 'web', 'public', 'brand', 'logo.svg'),
+      path.join(process.cwd(), 'web', 'public', 'brand', 'logo.svg'),
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'web',
+        'public',
+        'brand',
+        'logo.svg',
+      ),
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        '..',
+        'web',
+        'public',
+        'brand',
+        'logo.svg',
+      ),
+    ];
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) return candidate;
+    }
+
+    return null;
+  }
+
+  private readLogoUrlFromOverrides(brandOverrides: JsonObject): string | null {
+    const rawLogoUrl = brandOverrides.logoUrl;
+    if (typeof rawLogoUrl !== 'string') return null;
+    const value = rawLogoUrl.trim();
+    return value ? value : null;
   }
 
   private resolveTemplatePath(fileName: string): string | null {

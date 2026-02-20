@@ -17,6 +17,7 @@ import {
   HoldStatus,
   LedgerDirection,
   LedgerEntryType,
+  LocaleCode,
   MessageCounterpartyRole,
   NotificationType,
   OpsTaskStatus,
@@ -94,6 +95,24 @@ const DUBAI_AREAS = [
   { city: 'Dubai', area: 'Al Wasl', lat: 25.2068, lng: 55.2527 },
 ] as const;
 
+const AREA_TRANSLATIONS_AR: Record<string, string> = {
+  'Downtown Dubai': 'وسط مدينة دبي',
+  'Dubai Marina': 'دبي مارينا',
+  'Palm Jumeirah': 'نخلة جميرا',
+  JBR: 'جميرا بيتش ريزيدنس',
+  'Business Bay': 'الخليج التجاري',
+  DIFC: 'مركز دبي المالي العالمي',
+  JLT: 'أبراج بحيرات الجميرا',
+  'Al Barsha': 'البرشاء',
+  'City Walk': 'سيتي ووك',
+  'Creek Harbour': 'خور دبي هاربر',
+  'Jumeirah Village Circle': 'قرية جميرا الدائرية',
+  'Dubai Hills': 'دبي هيلز',
+  'Bluewaters Island': 'جزيرة بلوواترز',
+  Meydan: 'ميدان',
+  'Al Wasl': 'الوصل',
+};
+
 const DUBAI_PROPERTY_IMAGE_IDS = [
   'photo-1512453979798-5ea266f8880c',
   'photo-1518684079-3c830dcef090',
@@ -131,6 +150,21 @@ const PROPERTY_TITLE_STEMS = [
   'City Walk Urban Penthouse',
   'Meydan Golf View Residence',
 ] as const;
+
+const PROPERTY_TITLE_STEMS_AR: Record<string, string> = {
+  'Burj View Signature Suite': 'جناح فاخر بإطلالة برج خليفة',
+  'Marina Horizon Residence': 'إقامة أفق المارينا',
+  'Palm Waterfront Escape': 'ملاذ فاخر على الواجهة البحرية في النخلة',
+  'Canal Luxe Apartment': 'شقة فاخرة بإطلالة القناة',
+  'Downtown Executive Loft': 'لوفت تنفيذي في وسط دبي',
+  'Skyline Family Residence': 'إقامة عائلية بإطلالة الأفق',
+  'Bluewaters Premium Stay': 'إقامة بريميوم في بلوواترز',
+  'Dubai Hills Designer Home': 'منزل تصميمي في دبي هيلز',
+  'JBR Sea Breeze Apartment': 'شقة نسيم البحر في جميرا بيتش ريزيدنس',
+  'Business Bay Modern Retreat': 'ملاذ عصري في الخليج التجاري',
+  'City Walk Urban Penthouse': 'بنتهاوس حضري في سيتي ووك',
+  'Meydan Golf View Residence': 'إقامة بإطلالة ملعب الجولف في ميدان',
+};
 
 const REVIEW_TITLES = [
   'Excellent managed stay',
@@ -190,6 +224,19 @@ const AMENITY_GROUPS: readonly SeedAmenityGroup[] = [
   { key: 'SAFETY', name: 'Safety', sortOrder: 100 },
 ] as const;
 
+const AMENITY_GROUPS_AR: Record<string, string> = {
+  ESSENTIALS: 'الأساسيات',
+  KITCHEN: 'المطبخ',
+  BATHROOM: 'الحمّام',
+  BEDROOM_LAUNDRY: 'غرفة النوم والغسيل',
+  HEATING_COOLING: 'التدفئة والتكييف',
+  ENTERTAINMENT: 'الترفيه',
+  FAMILY: 'مناسب للعائلات',
+  BUILDING: 'مرافق المبنى',
+  OUTDOOR: 'المساحات الخارجية',
+  SAFETY: 'السلامة',
+};
+
 const AMENITIES: readonly SeedAmenity[] = [
   { key: 'WIFI', name: 'Wi-Fi', groupKey: 'ESSENTIALS', sortOrder: 10 },
   { key: 'TOWELS', name: 'Towels', groupKey: 'ESSENTIALS', sortOrder: 20 },
@@ -225,6 +272,42 @@ const AMENITIES: readonly SeedAmenity[] = [
   { key: 'FIRE_EXTINGUISHER', name: 'Fire extinguisher', groupKey: 'SAFETY', sortOrder: 20 },
   { key: 'FIRST_AID_KIT', name: 'First aid kit', groupKey: 'SAFETY', sortOrder: 30 },
 ] as const;
+
+const AMENITIES_AR: Record<string, string> = {
+  WIFI: 'واي فاي',
+  TOWELS: 'مناشف',
+  BED_LINENS: 'بياضات سرير',
+  SHAMPOO: 'شامبو',
+  BASIC_TOILETRIES: 'مستلزمات استحمام أساسية',
+  KITCHEN: 'مطبخ',
+  REFRIGERATOR: 'ثلاجة',
+  MICROWAVE: 'مايكروويف',
+  OVEN: 'فرن',
+  STOVE: 'موقد',
+  KETTLE: 'غلاية',
+  COFFEE_MAKER: 'آلة قهوة',
+  DISHES_CUTLERY: 'أوانٍ وأدوات مائدة',
+  HOT_WATER: 'ماء ساخن',
+  HAIR_DRYER: 'مجفف شعر',
+  HANGERS: 'علاّقات',
+  IRON: 'مكواة',
+  WASHING_MACHINE: 'غسالة',
+  AIR_CONDITIONING: 'تكييف',
+  HEATING: 'تدفئة',
+  TV: 'تلفاز',
+  NETFLIX: 'نتفليكس',
+  BABY_COT: 'سرير أطفال',
+  HIGH_CHAIR: 'كرسي أطفال مرتفع',
+  ELEVATOR: 'مصعد',
+  GYM: 'صالة رياضية',
+  POOL: 'مسبح',
+  PARKING: 'موقف سيارات مجاني',
+  DOORMAN: 'بواب',
+  BALCONY: 'شرفة',
+  SMOKE_ALARM: 'جهاز إنذار دخان',
+  FIRE_EXTINGUISHER: 'طفاية حريق',
+  FIRST_AID_KIT: 'حقيبة إسعافات أولية',
+};
 
 type SeedVendor = {
   userId: string;
@@ -264,6 +347,14 @@ function slugify(input: string): string {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
+}
+
+function translateAreaToArabic(area: string): string {
+  return AREA_TRANSLATIONS_AR[area] ?? area;
+}
+
+function translateTitleStemToArabic(titleStem: string): string {
+  return PROPERTY_TITLE_STEMS_AR[titleStem] ?? titleStem;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -428,6 +519,11 @@ async function cleanAll() {
   await prisma.propertyAmenity.deleteMany().catch(() => undefined);
   await prisma.propertyServiceConfig.deleteMany().catch(() => undefined);
 
+  await prisma.propertyTranslation.deleteMany().catch(() => undefined);
+  await prisma.amenityTranslation.deleteMany().catch(() => undefined);
+  await prisma.amenityGroupTranslation.deleteMany().catch(() => undefined);
+
+  await prisma.fxSnapshot.deleteMany().catch(() => undefined);
   await prisma.fxRate.deleteMany().catch(() => undefined);
   await prisma.notificationEvent.deleteMany().catch(() => undefined);
 
@@ -508,6 +604,43 @@ async function seedAmenityCatalog() {
     select: { id: true, key: true },
   });
   const groupByKey = new Map(groups.map((x) => [x.key, x.id]));
+  const groupSourceByKey = new Map(AMENITY_GROUPS.map((g) => [g.key, g]));
+
+  for (const group of groups) {
+    const source = groupSourceByKey.get(group.key);
+    if (!source) continue;
+    const arName = AMENITY_GROUPS_AR[group.key] ?? source.name;
+
+    await prisma.amenityGroupTranslation.upsert({
+      where: {
+        amenityGroupId_locale: {
+          amenityGroupId: group.id,
+          locale: LocaleCode.en,
+        },
+      },
+      update: { name: source.name },
+      create: {
+        amenityGroupId: group.id,
+        locale: LocaleCode.en,
+        name: source.name,
+      },
+    });
+
+    await prisma.amenityGroupTranslation.upsert({
+      where: {
+        amenityGroupId_locale: {
+          amenityGroupId: group.id,
+          locale: LocaleCode.ar,
+        },
+      },
+      update: { name: arName },
+      create: {
+        amenityGroupId: group.id,
+        locale: LocaleCode.ar,
+        name: arName,
+      },
+    });
+  }
 
   function groupId(key: string) {
     const id = groupByKey.get(key);
@@ -538,6 +671,43 @@ async function seedAmenityCatalog() {
   const all = await prisma.amenity.findMany({
     select: { id: true, key: true },
   });
+  const amenitySourceByKey = new Map(AMENITIES.map((a) => [a.key, a]));
+
+  for (const amenity of all) {
+    const source = amenitySourceByKey.get(amenity.key);
+    if (!source) continue;
+    const arName = AMENITIES_AR[amenity.key] ?? source.name;
+
+    await prisma.amenityTranslation.upsert({
+      where: {
+        amenityId_locale: {
+          amenityId: amenity.id,
+          locale: LocaleCode.en,
+        },
+      },
+      update: { name: source.name },
+      create: {
+        amenityId: amenity.id,
+        locale: LocaleCode.en,
+        name: source.name,
+      },
+    });
+
+    await prisma.amenityTranslation.upsert({
+      where: {
+        amenityId_locale: {
+          amenityId: amenity.id,
+          locale: LocaleCode.ar,
+        },
+      },
+      update: { name: arName },
+      create: {
+        amenityId: amenity.id,
+        locale: LocaleCode.ar,
+        name: arName,
+      },
+    });
+  }
 
   return {
     amenityByKey: new Map(all.map((x) => [x.key, x.id])),
@@ -780,6 +950,13 @@ async function main() {
 
     const status = statusPool[i] as PropertyStatus;
     const slug = `${slugify(`${titleStem} ${area.area}`)}-${String(i + 1).padStart(2, '0')}`;
+    const titleEn = `${titleStem} • ${area.area}`;
+    const areaAr = translateAreaToArabic(area.area);
+    const titleAr = `${translateTitleStemToArabic(titleStem)} • ${areaAr}`;
+    const descriptionEn =
+      'Professionally managed Dubai stay with backend-verified availability, audited pricing, and premium guest support.';
+    const descriptionAr =
+      `إقامة مُدارة باحتراف في ${areaAr} بدبي، مع توافر مُتحقق منه، تسعير واضح، ودعم ضيافة متميّز.`;
 
     const lat = area.lat + (rand() - 0.5) * 0.018;
     const lng = area.lng + (rand() - 0.5) * 0.018;
@@ -845,10 +1022,9 @@ async function main() {
       data: {
         vendorId: isAdminOwned ? admin.id : vendor.userId,
         createdByAdminId: isAdminOwned ? admin.id : null,
-        title: `${titleStem} • ${area.area}`,
+        title: titleEn,
         slug,
-        description:
-          'Professionally managed Dubai stay with backend-verified availability, audited pricing, and premium guest support.',
+        description: descriptionEn,
         city: area.city,
         area: area.area,
         address: `${Math.floor(10 + rand() * 80)} ${area.area}, Dubai`,
@@ -885,6 +1061,48 @@ async function main() {
         cleaningFee: true,
         city: true,
         area: true,
+      },
+    });
+
+    await prisma.propertyTranslation.upsert({
+      where: {
+        propertyId_locale: {
+          propertyId: created.id,
+          locale: LocaleCode.en,
+        },
+      },
+      update: {
+        title: titleEn,
+        description: descriptionEn,
+        areaLabel: area.area,
+      },
+      create: {
+        propertyId: created.id,
+        locale: LocaleCode.en,
+        title: titleEn,
+        description: descriptionEn,
+        areaLabel: area.area,
+      },
+    });
+
+    await prisma.propertyTranslation.upsert({
+      where: {
+        propertyId_locale: {
+          propertyId: created.id,
+          locale: LocaleCode.ar,
+        },
+      },
+      update: {
+        title: titleAr,
+        description: descriptionAr,
+        areaLabel: areaAr,
+      },
+      create: {
+        propertyId: created.id,
+        locale: LocaleCode.ar,
+        title: titleAr,
+        description: descriptionAr,
+        areaLabel: areaAr,
       },
     });
 
@@ -1818,12 +2036,14 @@ async function main() {
   const fxSnapshots = [
     {
       asOfDate: yesterday,
+      sar: new Prisma.Decimal('1.0209'),
       usd: new Prisma.Decimal('0.2721'),
       eur: new Prisma.Decimal('0.2512'),
       gbp: new Prisma.Decimal('0.2147'),
     },
     {
       asOfDate: today,
+      sar: new Prisma.Decimal('1.0221'),
       usd: new Prisma.Decimal('0.2726'),
       eur: new Prisma.Decimal('0.2520'),
       gbp: new Prisma.Decimal('0.2151'),
@@ -1831,6 +2051,26 @@ async function main() {
   ];
 
   for (const snapshot of fxSnapshots) {
+    const provider = 'seed:manual';
+
+    await prisma.fxRate.upsert({
+      where: {
+        baseCurrency_quoteCurrency_asOfDate: {
+          baseCurrency: 'AED',
+          quoteCurrency: FxQuoteCurrency.SAR,
+          asOfDate: snapshot.asOfDate,
+        },
+      },
+      update: { rate: snapshot.sar, provider },
+      create: {
+        baseCurrency: 'AED',
+        quoteCurrency: FxQuoteCurrency.SAR,
+        rate: snapshot.sar,
+        asOfDate: snapshot.asOfDate,
+        provider,
+      },
+    });
+
     await prisma.fxRate.upsert({
       where: {
         baseCurrency_quoteCurrency_asOfDate: {
@@ -1839,12 +2079,13 @@ async function main() {
           asOfDate: snapshot.asOfDate,
         },
       },
-      update: { rate: snapshot.usd },
+      update: { rate: snapshot.usd, provider },
       create: {
         baseCurrency: 'AED',
         quoteCurrency: FxQuoteCurrency.USD,
         rate: snapshot.usd,
         asOfDate: snapshot.asOfDate,
+        provider,
       },
     });
 
@@ -1856,12 +2097,13 @@ async function main() {
           asOfDate: snapshot.asOfDate,
         },
       },
-      update: { rate: snapshot.eur },
+      update: { rate: snapshot.eur, provider },
       create: {
         baseCurrency: 'AED',
         quoteCurrency: FxQuoteCurrency.EUR,
         rate: snapshot.eur,
         asOfDate: snapshot.asOfDate,
+        provider,
       },
     });
 
@@ -1873,13 +2115,47 @@ async function main() {
           asOfDate: snapshot.asOfDate,
         },
       },
-      update: { rate: snapshot.gbp },
+      update: { rate: snapshot.gbp, provider },
       create: {
         baseCurrency: 'AED',
         quoteCurrency: FxQuoteCurrency.GBP,
         rate: snapshot.gbp,
         asOfDate: snapshot.asOfDate,
+        provider,
       },
+    });
+
+    await prisma.fxSnapshot.createMany({
+      data: [
+        {
+          baseCurrency: 'AED',
+          quoteCurrency: FxQuoteCurrency.SAR,
+          rate: snapshot.sar,
+          asOfDate: snapshot.asOfDate,
+          provider,
+        },
+        {
+          baseCurrency: 'AED',
+          quoteCurrency: FxQuoteCurrency.USD,
+          rate: snapshot.usd,
+          asOfDate: snapshot.asOfDate,
+          provider,
+        },
+        {
+          baseCurrency: 'AED',
+          quoteCurrency: FxQuoteCurrency.EUR,
+          rate: snapshot.eur,
+          asOfDate: snapshot.asOfDate,
+          provider,
+        },
+        {
+          baseCurrency: 'AED',
+          quoteCurrency: FxQuoteCurrency.GBP,
+          rate: snapshot.gbp,
+          asOfDate: snapshot.asOfDate,
+          provider,
+        },
+      ],
     });
   }
 

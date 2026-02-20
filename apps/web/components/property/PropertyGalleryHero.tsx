@@ -3,9 +3,11 @@
 import Image from "next/image";
 import { Images } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 
 import PropertyGalleryViewer from "./PropertyGalleryViewer";
 import type { PropertyGalleryImage } from "./property-gallery.types";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type Props = {
   images: PropertyGalleryImage[];
@@ -47,6 +49,8 @@ function clamp(index: number, total: number) {
 }
 
 export default function PropertyGalleryHero({ images, propertyName }: Props) {
+  const locale = normalizeLocale(useLocale());
+  const isAr = locale === "ar";
   const gallery = useMemo(() => cleanImages(images, propertyName), [images, propertyName]);
   const [open, setOpen] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
@@ -77,7 +81,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                 type="button"
                 onClick={() => openViewer(0)}
                 className="group relative h-full overflow-hidden rounded-3xl text-left shadow-[0_12px_28px_rgba(11,15,25,0.12)] sm:col-span-7"
-                aria-label="Open all photos"
+                aria-label={isAr ? "عرض جميع الصور" : "Open all photos"}
               >
                 <Image
                   src={heroImage.url}
@@ -104,7 +108,11 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                         type="button"
                         onClick={() => openViewer(absoluteIndex)}
                         className="group relative h-full overflow-hidden rounded-3xl bg-transparent text-left shadow-[0_10px_24px_rgba(11,15,25,0.1)]"
-                        aria-label={`Open photo ${absoluteIndex + 1}`}
+                        aria-label={
+                          isAr
+                            ? `عرض الصورة ${absoluteIndex + 1}`
+                            : `Open photo ${absoluteIndex + 1}`
+                        }
                       >
                         <Image
                           src={image.url}
@@ -118,7 +126,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                         {shouldShowRemaining ? (
                           <div className="absolute inset-0 grid place-items-center bg-dark-1/34">
                             <span className="rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-primary shadow-sm backdrop-blur">
-                              +{remainingCount} photos
+                              +{remainingCount} {isAr ? "صور" : "photos"}
                             </span>
                           </div>
                         ) : null}
@@ -137,7 +145,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                     type="button"
                     onClick={() => openViewer(index + 1)}
                     className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl border border-white/75 bg-surface text-left"
-                    aria-label={`Open photo ${index + 2}`}
+                    aria-label={isAr ? `عرض الصورة ${index + 2}` : `Open photo ${index + 2}`}
                   >
                     <Image
                       src={image.url}
@@ -159,7 +167,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white">
                 <Images className="h-3.5 w-3.5" />
               </span>
-              View all {gallery.length} photos
+              {isAr ? `عرض كل الصور (${gallery.length})` : `View all ${gallery.length} photos`}
             </button>
           </div>
         )}

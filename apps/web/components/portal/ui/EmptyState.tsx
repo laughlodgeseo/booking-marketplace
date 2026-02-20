@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Inbox } from "lucide-react";
+import { PortalCard } from "@/components/portal/ui/PortalCard";
 
 export function EmptyState(props: {
   title: string;
@@ -8,8 +9,8 @@ export function EmptyState(props: {
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-line/50 bg-warm-base p-10 text-center shadow-sm">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-surface shadow-sm ring-1 ring-line/55">
+    <PortalCard className="p-10 text-center" tone="muted">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-surface/90 text-brand ring-1 ring-brand/18">
         {props.icon ?? <Inbox className="h-6 w-6 text-secondary" />}
       </div>
 
@@ -28,6 +29,6 @@ export function EmptyState(props: {
           {props.action}
         </div>
       ) : null}
-    </div>
+    </PortalCard>
   );
 }

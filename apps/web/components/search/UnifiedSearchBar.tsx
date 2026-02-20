@@ -4,10 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { CalendarDays, MapPin, Search, Users } from "lucide-react";
+import { useLocale } from "next-intl";
 import DateRangePicker, { type DateRangeValue, type DateSelectionPhase } from "@/components/booking/DateRangePicker";
 import DateRangePopover from "@/components/search/DateRangePopover";
 import SearchSquareButton from "@/components/search/SearchSquareButton";
 import { isValidIsoRange } from "@/lib/date-range";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type Variant = "home" | "properties";
 
@@ -37,6 +39,27 @@ const DUBAI_PRESETS = [
   "Al Barsha",
 ] as const;
 
+const UI_COPY = {
+  en: {
+    whereTo: "Where to?",
+    locationLabel: "Location",
+    checkInLabel: "Check-in",
+    checkOutLabel: "Check-out",
+    guests: "Guests",
+    searchStays: "Search stays",
+    clearDates: "Clear dates",
+  },
+  ar: {
+    whereTo: "إلى أين؟",
+    locationLabel: "الموقع",
+    checkInLabel: "تاريخ الوصول",
+    checkOutLabel: "تاريخ المغادرة",
+    guests: "الضيوف",
+    searchStays: "ابحث عن إقامة",
+    clearDates: "مسح التواريخ",
+  },
+} as const;
+
 function normalize(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -61,6 +84,8 @@ function clampInt(n: number, min: number, max: number) {
 
 export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   const router = useRouter();
+  const locale = normalizeLocale(useLocale());
+  const copy = UI_COPY[locale];
   const [draft, setDraft] = useState<SearchDraft>({
     location: props.defaultQ ?? "",
     guests: clampInt(props.defaultGuests ?? 2, 1, 16),
@@ -133,9 +158,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") pushSearch();
               }}
-              placeholder="Where to?"
+              placeholder={copy.whereTo}
               className="w-full bg-transparent text-[16px] font-medium text-neutral-900 outline-none placeholder:text-neutral-400 md:text-sm"
-              aria-label="Location"
+              aria-label={copy.locationLabel}
             />
           </div>
 
@@ -150,10 +175,10 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                 setCalendarOpen(true);
               }}
               className="inline-flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium text-neutral-800"
-              aria-label="Check-in"
+              aria-label={copy.checkInLabel}
             >
               <CalendarDays className="h-4 w-4 shrink-0 text-neutral-500" />
-              <span className="truncate">{draft.checkIn || "Check-in"}</span>
+              <span className="truncate">{draft.checkIn || copy.checkInLabel}</span>
             </button>
           </div>
 
@@ -165,10 +190,10 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                 setCalendarOpen(true);
               }}
               className="inline-flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium text-neutral-800"
-              aria-label="Check-out"
+              aria-label={copy.checkOutLabel}
             >
               <CalendarDays className="h-4 w-4 shrink-0 text-neutral-500" />
-              <span className="truncate">{draft.checkOut || "Check-out"}</span>
+              <span className="truncate">{draft.checkOut || copy.checkOutLabel}</span>
             </button>
           </div>
 
@@ -183,9 +208,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") pushSearch();
               }}
-              placeholder="Guests"
+              placeholder={copy.guests}
               className="w-full bg-transparent text-[16px] font-medium text-neutral-900 outline-none placeholder:text-neutral-400 md:text-sm"
-              aria-label="Guests"
+              aria-label={copy.guests}
             />
           </div>
 
@@ -196,7 +221,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 md:hidden"
             >
               <Search className="h-4 w-4" />
-              Search stays
+              {copy.searchStays}
             </button>
             <SearchSquareButton
               ref={searchButtonRef}
@@ -250,7 +275,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
             onClick={clearDates}
             className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
           >
-            Clear dates
+            {copy.clearDates}
           </button>
         </div>
       ) : null}

@@ -1,13 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCurrency } from "@/lib/currency/CurrencyProvider";
-import type { SupportedCurrency } from "@/lib/currency/currency";
+import { SUPPORTED_CURRENCIES, type SupportedCurrency } from "@/lib/currency/currency";
 
 type Props = {
   compact?: boolean;
 };
 
 export default function CurrencySwitcher({ compact = false }: Props) {
+  const router = useRouter();
+  const t = useTranslations("common");
   const { currency, setCurrency, asOfDate, isLoadingRates } = useCurrency();
 
   return (
@@ -17,21 +21,25 @@ export default function CurrencySwitcher({ compact = false }: Props) {
         compact ? "text-xs" : "text-sm",
       ].join(" ")}
     >
-      <span className="font-semibold text-muted">Currency</span>
+      <span className="font-semibold text-muted">{t("currency")}</span>
       <select
         value={currency}
-        onChange={(event) => setCurrency(event.target.value as SupportedCurrency)}
+        onChange={(event) => {
+          setCurrency(event.target.value as SupportedCurrency);
+          router.refresh();
+        }}
         className="bg-transparent font-semibold text-primary outline-none"
         aria-label="Select display currency"
       >
-        <option value="AED">AED</option>
-        <option value="USD">USD</option>
-        <option value="EUR">EUR</option>
-        <option value="GBP">GBP</option>
+        {SUPPORTED_CURRENCIES.map((value) => (
+          <option key={value} value={value}>
+            {value}
+          </option>
+        ))}
       </select>
       {!compact ? (
         <span className="hidden text-[11px] text-muted xl:inline">
-          {isLoadingRates ? "FX loading..." : asOfDate ? `FX ${asOfDate}` : "FX unavailable"}
+          {isLoadingRates ? t("loading") : asOfDate ? `FX ${asOfDate}` : "FX unavailable"}
         </span>
       ) : null}
     </label>

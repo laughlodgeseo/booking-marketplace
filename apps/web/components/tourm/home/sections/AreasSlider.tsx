@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 import {
   useCallback,
   useEffect,
@@ -143,10 +143,10 @@ export default function AreasSlider({ title, subtitle, areas }: Props) {
       return {
         xStep: 170,
         centerW: 246,
-        centerH: 300,
+        centerH: 268,
         sideW: 212,
-        sideH: 262,
-        stageH: 322,
+        sideH: 236,
+        stageH: 288,
       };
     }
 
@@ -154,20 +154,20 @@ export default function AreasSlider({ title, subtitle, areas }: Props) {
       return {
         xStep: 262,
         centerW: 360,
-        centerH: 420,
+        centerH: 372,
         sideW: 302,
-        sideH: 356,
-        stageH: 422,
+        sideH: 316,
+        stageH: 376,
       };
     }
 
     return {
       xStep: 372,
       centerW: 472,
-      centerH: 510,
+      centerH: 452,
       sideW: 386,
-      sideH: 438,
-      stageH: 500,
+      sideH: 390,
+      stageH: 447,
     };
   }, [vw]);
 
@@ -440,34 +440,13 @@ export default function AreasSlider({ title, subtitle, areas }: Props) {
   return (
     <section className="relative w-full py-[0.75rem] sm:py-[1.45rem]">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="flex items-start justify-between gap-6">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Areas</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{title}</h2>
-            <p className="mt-2 text-sm text-secondary sm:text-base">{subtitle}</p>
-          </div>
-
-          <div className="hidden items-center gap-2 sm:flex">
-            <button
-              type="button"
-              onClick={() => moveByOne(-1)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface shadow-soft transition hover:bg-accent-soft/55"
-              aria-label="Previous"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => moveByOne(1)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface shadow-soft transition hover:bg-accent-soft/55"
-              aria-label="Next"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
+        <div className="mb-8 max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">Areas</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{title}</h2>
+          <p className="mt-2 text-sm text-secondary sm:text-base">{subtitle}</p>
         </div>
 
-        <div className="mt-2 w-full">
+        <div className="w-full">
           <div className="mx-auto w-[94%] max-w-[1120px]">
             <div
               ref={stageRef}
@@ -503,7 +482,7 @@ export default function AreasSlider({ title, subtitle, areas }: Props) {
                 >
                   <Link
                     href={href}
-                    className="group block cursor-pointer"
+                    className="group block cursor-pointer rounded-[2.25rem] transition-[transform,filter] duration-300 ease-out hover:scale-[1.03] hover:[filter:drop-shadow(0_16px_28px_rgba(2,10,20,0.24))]"
                     aria-label={`Explore ${s.area.title}`}
                     onClick={(e) => {
                       if (!suppressClickRef.current && !dragRef.current.moved) return;
@@ -558,23 +537,47 @@ export default function AreasSlider({ title, subtitle, areas }: Props) {
           </div>
         </div>
 
-        <div className="mt-1 flex items-center justify-center gap-2 sm:hidden">
-          <button
-            type="button"
-            onClick={() => moveByOne(-1)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface shadow-soft"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => moveByOne(1)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-surface shadow-soft"
-            aria-label="Next"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+        <div className="mt-8 flex items-center justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
+            <button
+              type="button"
+              onClick={() => moveByOne(-1)}
+              disabled={count < 2}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-surface px-0 shadow-sm transition-colors hover:bg-accent-soft/60 hover:text-brand disabled:cursor-not-allowed disabled:opacity-45"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="h-5 w-5 text-primary transition-colors hover:text-brand" />
+            </button>
+
+            <div className="flex items-center justify-center gap-2">
+              {list.map((area, dotIndex) => (
+                <button
+                  key={`${area.q}-${dotIndex}`}
+                  type="button"
+                  onClick={() => setIndex(dotIndex)}
+                  disabled={count < 2}
+                  aria-label={`Go to ${area.title}`}
+                  className={[
+                    "rounded-full bg-current cursor-pointer transition-all duration-200",
+                    dotIndex === index
+                      ? "h-3 w-3 text-indigo-600"
+                      : "h-2.5 w-2.5 text-secondary/40 hover:scale-110 hover:text-indigo-600",
+                    count < 2 ? "cursor-not-allowed opacity-45" : "",
+                  ].join(" ")}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => moveByOne(1)}
+              disabled={count < 2}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-surface px-0 shadow-sm transition-colors hover:bg-accent-soft/60 hover:text-brand disabled:cursor-not-allowed disabled:opacity-45"
+              aria-label="Next"
+            >
+              <ChevronRight className="h-5 w-5 text-primary transition-colors hover:text-brand" />
+            </button>
+          </div>
         </div>
       </div>
     </section>

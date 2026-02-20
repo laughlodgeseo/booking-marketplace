@@ -1,6 +1,15 @@
-import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const SUPPORTED_CURRENCIES = ['AED', 'USD', 'SAR', 'EUR', 'GBP'] as const;
 
 export class QuoteRequestDto {
   @Matches(ISO_DAY, { message: 'checkIn must be YYYY-MM-DD' })
@@ -14,4 +23,9 @@ export class QuoteRequestDto {
   @Min(1)
   @Max(50)
   guests?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(SUPPORTED_CURRENCIES)
+  currency?: string;
 }

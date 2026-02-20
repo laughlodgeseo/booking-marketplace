@@ -10,7 +10,6 @@ import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getUserBookings } from "@/lib/api/portal/user";
-import { useCurrency } from "@/lib/currency/CurrencyProvider";
 
 type ViewState =
   | { kind: "loading" }
@@ -30,6 +29,19 @@ function formatDate(value: string): string {
     month: "short",
     day: "2-digit",
   });
+}
+
+function formatMoney(amount: number, currency: string | null | undefined): string {
+  const normalizedCurrency = (currency ?? "").trim().toUpperCase() || "AED";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: normalizedCurrency,
+      maximumFractionDigits: normalizedCurrency === "AED" ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${normalizedCurrency} ${amount.toLocaleString()}`;
+  }
 }
 
 function cn(...xs: Array<string | false | null | undefined>) {
@@ -58,7 +70,6 @@ function AccountBookingsContent() {
   const router = useRouter();
   const { status: authStatus } = useAuth();
   const searchParams = useSearchParams();
-  const { formatFromAed } = useCurrency();
 
   const page = toInt(searchParams.get("page"), 1);
   const pageSize = toInt(searchParams.get("pageSize"), 10);
@@ -105,14 +116,14 @@ function AccountBookingsContent() {
             Ref: {booking.id.slice(0, 8)}
           </span>
           <span className="rounded-full bg-warm-alt px-3 py-1 font-semibold text-secondary">
-            Total: {formatFromAed(booking.totalAmount, { maximumFractionDigits: 0 })}
+            Total: {formatMoney(booking.totalAmount, booking.currency)}
           </span>
         </div>
       ),
       actions: (
         <Link
           href={`/account/bookings/${booking.id}`}
-          className="rounded-xl border border-line/80 bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-warm-alt"
+          className="inline-flex h-11 items-center justify-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22 lg:bg-surface"
         >
           Open page
         </Link>
@@ -121,7 +132,7 @@ function AccountBookingsContent() {
         router.push(`/account/bookings/${booking.id}`);
       },
     }));
-  }, [formatFromAed, router, state]);
+  }, [router, state]);
 
   const pageMeta = useMemo(() => {
     if (state.kind !== "ready") return null;
@@ -154,17 +165,17 @@ function AccountBookingsContent() {
           />
 
           {pageMeta ? (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-secondary">
                 Page {pageMeta.currentPage} of {pageMeta.totalPages}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <Link
                   href={`/account/bookings?page=${Math.max(1, pageMeta.currentPage - 1)}&pageSize=${pageMeta.pageSize}`}
                   aria-disabled={pageMeta.currentPage <= 1}
                   className={cn(
-                    "rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm",
+                    "inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm sm:flex-none lg:bg-surface",
                     pageMeta.currentPage <= 1 && "pointer-events-none opacity-50",
                   )}
                 >
@@ -175,7 +186,7 @@ function AccountBookingsContent() {
                   href={`/account/bookings?page=${Math.min(pageMeta.totalPages, pageMeta.currentPage + 1)}&pageSize=${pageMeta.pageSize}`}
                   aria-disabled={pageMeta.currentPage >= pageMeta.totalPages}
                   className={cn(
-                    "rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm",
+                    "inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm sm:flex-none lg:bg-surface",
                     pageMeta.currentPage >= pageMeta.totalPages && "pointer-events-none opacity-50",
                   )}
                 >

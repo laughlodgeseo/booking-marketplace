@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search, Users, CalendarDays, MapPin } from "lucide-react";
-import DateRangePicker, { type DateRangeValue } from "@/components/booking/DateRangePicker";
+import DateRangePicker, { type DateRangeValue, type DateSelectionPhase } from "@/components/booking/DateRangePicker";
+import { createPortal } from "react-dom";
+import { isValidIsoRange } from "@/lib/date-range";
 
 type SearchDraft = {
-  location: string; // user-facing "location"
+  location: string;
   guests: number;
   checkIn: string;
   checkOut: string;
@@ -24,14 +26,6 @@ const DUBAI_PRESETS = [
   "Al Barsha",
 ] as const;
 
-function todayISO(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
-}
-
 function normalize(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -46,21 +40,30 @@ function matchPreset(input: string): string | null {
   return null;
 }
 
+function clampInt(n: number, min: number, max: number) {
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, Math.trunc(n)));
+}
+
 export default function FloatingSearchBar(props: { defaultQ?: string }) {
   const router = useRouter();
+  const canUsePortal = typeof document !== "undefined";
 
   const [draft, setDraft] = useState<SearchDraft>({
-    // If old code passed defaultQ, treat it as a starting location text
     location: props.defaultQ ?? "",
     guests: 2,
-    checkIn: todayISO(),
+    checkIn: "",
     checkOut: "",
   });
-
-  const canSearch = useMemo(() => {
-    if (!draft.checkIn) return false;
-    return draft.guests >= 1 && draft.guests <= 16;
-  }, [draft.checkIn, draft.guests]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectionPhase, setSelectionPhase] = useState<DateSelectionPhase>("checkin");
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number; width: number }>({
+    top: 0,
+    left: 0,
+    width: 340,
+  });
+  const calendarWrapRef = useRef<HTMLDivElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   const dateRangeValue = useMemo<DateRangeValue>(
     () => ({
@@ -70,11 +73,62 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
     [draft.checkIn, draft.checkOut],
   );
 
-  const dateLabel = useMemo(() => {
-    if (!draft.checkIn && !draft.checkOut) return "Select dates";
-    if (draft.checkIn && draft.checkOut) return `${draft.checkIn} → ${draft.checkOut}`;
-    return `${draft.checkIn || draft.checkOut} → Add checkout`;
-  }, [draft.checkIn, draft.checkOut]);
+  const updatePopoverPosition = useCallback(() => {
+    if (!calendarWrapRef.current) return;
+
+    const rect = calendarWrapRef.current.getBoundingClientRect();
+    const targetWidth = window.innerWidth >= 640 ? 380 : 340;
+    const maxWidth = Math.min(targetWidth, Math.floor(window.innerWidth * 0.92));
+    const margin = 12;
+
+    const left = Math.min(Math.max(rect.left, margin), window.innerWidth - maxWidth - margin);
+    const top = rect.bottom + 8;
+
+    setPopoverPosition({ top, left, width: maxWidth });
+  }, []);
+
+  useEffect(() => {
+    if (!calendarOpen) return;
+
+    updatePopoverPosition();
+
+    function onViewportChange() {
+      updatePopoverPosition();
+    }
+
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+
+    return () => {
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [calendarOpen, updatePopoverPosition]);
+
+  useEffect(() => {
+    if (!calendarOpen) return;
+
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      const insideTrigger = Boolean(calendarWrapRef.current?.contains(target));
+      const insidePopover = Boolean(popoverRef.current?.contains(target));
+      if (!insideTrigger && !insidePopover) {
+        setCalendarOpen(false);
+      }
+    }
+
+    function onEsc(event: KeyboardEvent) {
+      if (event.key === "Escape") setCalendarOpen(false);
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onEsc);
+
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [calendarOpen]);
 
   function pushSearch() {
     const p = new URLSearchParams();
@@ -82,18 +136,20 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
     const loc = draft.location.trim();
     const preset = matchPreset(loc);
 
-    // If location matches a known preset, use backend-truth location params
     if (preset) {
       p.set("city", "Dubai");
       p.set("area", preset);
     } else if (loc.length > 0) {
-      // Otherwise fall back to backend keyword search `q`
       p.set("q", loc);
     }
 
-    p.set("guests", String(draft.guests));
-    if (draft.checkIn) p.set("checkIn", draft.checkIn);
-    if (draft.checkOut) p.set("checkOut", draft.checkOut);
+    p.set("guests", String(clampInt(draft.guests, 1, 16)));
+    if (isValidIsoRange(draft.checkIn, draft.checkOut)) {
+      p.set("checkIn", draft.checkIn);
+      p.set("checkOut", draft.checkOut);
+    } else if (draft.checkIn) {
+      p.set("checkIn", draft.checkIn);
+    }
 
     router.push(`/properties?${p.toString()}`);
   }
@@ -109,46 +165,53 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
     >
-      <div className="premium-card premium-card-tinted rounded-2xl p-3">
-        <div className="grid gap-2 md:grid-cols-[1.4fr_1.2fr_0.7fr_0.6fr] md:items-center">
-          <div className="premium-input flex items-center gap-2 rounded-xl px-3 py-2">
-            <MapPin className="h-4 w-4 text-muted" />
+      <div className="rounded-2xl bg-white p-3 shadow-md">
+        <div className="grid gap-3 md:grid-cols-[1.15fr_1.7fr_0.65fr_auto] md:items-center md:gap-4">
+          <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-neutral-800 shadow-sm">
+            <MapPin className="h-4 w-4 text-neutral-500" />
             <input
               value={draft.location}
               onChange={(e) => setDraft((s) => ({ ...s, location: e.target.value }))}
               onKeyDown={(e) => {
                 if (e.key === "Enter") pushSearch();
               }}
-              placeholder="Dubai Marina, Downtown, JBR, Al Barsha…"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
+              placeholder="Where to?"
+              className="w-full bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
               aria-label="Location"
             />
           </div>
 
-          <div className="relative">
-            <details className="group">
-              <summary className="premium-input flex h-[42px] cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-2 text-sm text-primary">
-                <CalendarDays className="h-4 w-4 text-muted" />
-                <span className="truncate">{dateLabel}</span>
-              </summary>
-              <div className="absolute left-0 z-20 mt-2 w-[min(680px,94vw)] rounded-2xl border border-line/80 bg-surface p-2 shadow-[0_20px_48px_rgba(11,15,25,0.18)]">
-                <DateRangePicker
-                  value={dateRangeValue}
-                  onChange={(next) =>
-                    setDraft((s) => ({
-                      ...s,
-                      checkIn: next.from ?? "",
-                      checkOut: next.to ?? "",
-                    }))
-                  }
-                  minDate={new Date()}
-                />
-              </div>
-            </details>
+          <div ref={calendarWrapRef} className="relative grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectionPhase("checkin");
+                setCalendarOpen(true);
+              }}
+              className="flex h-[42px] items-center gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-left text-sm text-neutral-800 shadow-sm"
+              aria-label="Check-in"
+            >
+              <CalendarDays className="h-4 w-4 text-neutral-500" />
+              <span className="truncate">{draft.checkIn || "Check-in"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectionPhase("checkout");
+                setCalendarOpen(true);
+              }}
+              className="flex h-[42px] items-center gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-left text-sm text-neutral-800 shadow-sm"
+              aria-label="Check-out"
+            >
+              <CalendarDays className="h-4 w-4 text-neutral-500" />
+              <span className="truncate">{draft.checkOut || "Check-out"}</span>
+            </button>
+
           </div>
 
-          <div className="premium-input flex items-center gap-2 rounded-xl px-3 py-2">
-            <Users className="h-4 w-4 text-muted" />
+          <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-neutral-800 shadow-sm">
+            <Users className="h-4 w-4 text-neutral-500" />
             <input
               type="number"
               min={1}
@@ -158,7 +221,8 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") pushSearch();
               }}
-              className="w-full bg-transparent text-sm outline-none"
+              placeholder="Guests"
+              className="w-full bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
               aria-label="Guests"
             />
           </div>
@@ -166,15 +230,13 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
           <button
             type="button"
             onClick={pushSearch}
-            disabled={!canSearch}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-accent-text shadow-sm transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 md:w-[140px]"
           >
             <Search className="mr-2 h-4 w-4" />
             Search
           </button>
         </div>
 
-        {/* Tourm-ish: quick location chips */}
         <div className="mt-3 flex flex-wrap gap-2">
           {DUBAI_PRESETS.map((p) => {
             const active = normalize(draft.location) === normalize(p);
@@ -184,10 +246,10 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
                 type="button"
                 onClick={() => setPreset(p)}
                 className={[
-                  "rounded-xl border px-3 py-1.5 text-xs font-semibold transition",
+                  "rounded-xl px-3 py-1.5 text-xs font-semibold transition",
                   active
-                    ? "border-brand bg-brand text-accent-text"
-                    : "border-line bg-surface text-secondary hover:bg-accent-soft/55",
+                    ? "bg-indigo-600 text-white"
+                    : "bg-neutral-50 text-neutral-800 hover:bg-neutral-100",
                 ].join(" ")}
               >
                 {p}
@@ -196,6 +258,40 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
           })}
         </div>
       </div>
+
+      {canUsePortal && calendarOpen
+        ? createPortal(
+            <div className="pointer-events-none fixed inset-0 z-[9999]">
+              <div
+                ref={popoverRef}
+                className="pointer-events-auto fixed inline-block w-[340px] max-w-[92vw] sm:w-[380px]"
+                style={{ top: popoverPosition.top, left: popoverPosition.left, width: popoverPosition.width }}
+              >
+                <DateRangePicker
+                  value={dateRangeValue}
+                  mode="sequential"
+                  numberOfMonths={1}
+                  selectionPhase={selectionPhase}
+                  onSelectionPhaseChange={setSelectionPhase}
+                  onComplete={() => {
+                    setCalendarOpen(false);
+                    setSelectionPhase("checkin");
+                  }}
+                  onChange={(next) =>
+                    setDraft((s) => ({
+                      ...s,
+                      checkIn: next.from ?? "",
+                      checkOut: next.to ?? "",
+                    }))
+                  }
+                  minDate={new Date()}
+                  className="rounded-2xl bg-white p-3 shadow-2xl"
+                />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </motion.div>
   );
 }

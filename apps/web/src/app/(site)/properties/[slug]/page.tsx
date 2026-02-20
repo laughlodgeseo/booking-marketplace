@@ -1,19 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { cookies } from "next/headers";
 import { CircleHelp, ExternalLink, FileText, MapPin, MessageSquare, Star } from "lucide-react";
 
 import { getPropertyBySlug } from "@/lib/api/properties";
 import PropertyGalleryHero from "@/components/property/PropertyGalleryHero";
 import type { PropertyGalleryImage } from "@/components/property/property-gallery.types";
 import PropertyFacts from "@/components/property/PropertyFacts";
-import GoogleMap from "@/components/maps/GoogleMap";
 
 import AmenitiesSection from "@/components/tourm/property/AmenitiesSection";
 import HouseRulesSection, { type HouseRuleItem } from "@/components/tourm/property/HouseRulesSection";
 import ThingsToKnowSection, { type ThingsToKnowBlock } from "@/components/tourm/property/ThingsToKnowSection";
 
 import QuotePanelBatchA from "@/components/booking/QuotePanelBatchA";
-import PublicPropertyCalendar from "@/components/property/PublicPropertyCalendar";
+import { parseSupportedCurrency } from "@/lib/currency/currency";
+import { getRequestLocale } from "@/lib/i18n/server";
+
+const PublicPropertyCalendar = dynamic(
+  () => import("@/components/property/PublicPropertyCalendar"),
+  {
+    loading: () => (
+      <section className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-5 shadow-[0_18px_44px_rgba(11,15,25,0.1)] sm:p-6">
+        <div className="h-[420px] w-full animate-pulse rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.82)]" />
+      </section>
+    ),
+  },
+);
+
+const GoogleMap = dynamic(() => import("@/components/maps/GoogleMap"), {
+  loading: () => (
+    <div className="grid h-[320px] w-full place-items-center rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] sm:h-[420px]" />
+  ),
+});
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -28,6 +47,109 @@ type GuestReviewView = {
   createdAt: string;
   reviewer: string;
 };
+
+const PROPERTY_PAGE_COPY = {
+  en: {
+    loadError: "Could not load property:",
+    guestFallback: "Guest",
+    aboutFallback:
+      "Operator-managed vacation home with hotel-grade cleaning, verified availability, and responsive guest support.",
+    areaFallback: "Located in a connected urban neighborhood.",
+    areaMapKnown: "Map pin shows neighborhood-level context before booking confirmation.",
+    areaMapUnknown: "Exact map pin is shared once location details are published for this stay.",
+    areaAccess:
+      "Nearby access to dining, essentials, and transport varies by time and season.",
+    schemaFallback: "Operator-managed vacation stay with verified availability.",
+    heroTag: "Stay",
+    subtitleFallback: "Premium serviced stay with operator support and verified availability.",
+    verifiedReviewsSuffix: "verified reviews",
+    newListing: "New listing",
+    verifiedAvailability: "Verified availability",
+    amenitiesTitle: "Amenities",
+    aboutTitle: "About this stay",
+    readMore: "Read more",
+    guestReviewsTitle: "Guest reviews",
+    reviewsSuffix: "reviews",
+    noReviews:
+      "No approved reviews yet. Reviews appear after completed stays and moderation.",
+    locationTitle: "Location",
+    locationSubtitle: "Area context will expand over time (nearby points, walkability).",
+    openMaps: "Open in Maps",
+    mapMissing: "Map location not set for this property.",
+    areaHighlights: "Area highlights",
+    thingsCheckIn: "Check-in & check-out",
+    thingsCancel: "Cancellation",
+    thingsSafety: "Safety & property",
+    thingsCheckInLines: [
+      "Check-in details are shared once your reservation is confirmed.",
+      "Please keep a valid government ID ready if building verification is required.",
+      "Late check-out can be requested, subject to availability.",
+    ],
+    thingsCancelLines: [
+      "Final cancellation terms are shown before payment in checkout.",
+      "Any applicable fees are included in the quote breakdown before you reserve.",
+    ],
+    thingsSafetyLines: [
+      "Availability is validated in real time before holds and bookings are created.",
+      "Operator support is available for stay-related access and issue resolution.",
+      "Cleaning and turnover standards follow operator-managed workflows.",
+    ],
+    fallbackRules: {
+      quietHours: "Please respect quiet hours in the building/community.",
+      idRequired: "Government ID may be required for check-in verification.",
+    },
+  },
+  ar: {
+    loadError: "تعذر تحميل العقار:",
+    guestFallback: "ضيف",
+    aboutFallback:
+      "إقامة مُدارة تشغيلياً مع تنظيف بمعايير فندقية وتوافر موثّق ودعم سريع للضيوف.",
+    areaFallback: "يقع ضمن منطقة حضرية متصلة بالخدمات.",
+    areaMapKnown: "تعرض الخريطة سياق المنطقة قبل تأكيد الحجز.",
+    areaMapUnknown: "يتم عرض موقع الخريطة الدقيق عند نشر تفاصيل الموقع لهذا السكن.",
+    areaAccess:
+      "تتوفر خيارات المطاعم والاحتياجات الأساسية ووسائل النقل حسب الوقت والموسم.",
+    schemaFallback: "إقامة مُدارة تشغيلياً مع توافر موثّق.",
+    heroTag: "إقامة",
+    subtitleFallback: "إقامة مخدومة متميزة مع دعم تشغيلي وتوافر موثّق.",
+    verifiedReviewsSuffix: "تقييمات موثقة",
+    newListing: "إدراج جديد",
+    verifiedAvailability: "توافر موثّق",
+    amenitiesTitle: "المرافق",
+    aboutTitle: "نبذة عن هذه الإقامة",
+    readMore: "اقرأ المزيد",
+    guestReviewsTitle: "تقييمات الضيوف",
+    reviewsSuffix: "تقييمات",
+    noReviews:
+      "لا توجد تقييمات معتمدة حتى الآن. تظهر التقييمات بعد اكتمال الإقامة واعتماد المراجعة.",
+    locationTitle: "الموقع",
+    locationSubtitle: "سيتم توسيع معلومات المنطقة تدريجياً (المعالم القريبة وإمكانية المشي).",
+    openMaps: "فتح في الخرائط",
+    mapMissing: "لم يتم تحديد موقع الخريطة لهذا العقار.",
+    areaHighlights: "مميزات المنطقة",
+    thingsCheckIn: "تسجيل الوصول والمغادرة",
+    thingsCancel: "الإلغاء",
+    thingsSafety: "السلامة والعقار",
+    thingsCheckInLines: [
+      "تُرسل تفاصيل تسجيل الوصول بعد تأكيد الحجز.",
+      "يرجى تجهيز هوية حكومية سارية إذا كانت مطلوبة للتحقق في المبنى.",
+      "يمكن طلب مغادرة متأخرة حسب التوافر.",
+    ],
+    thingsCancelLines: [
+      "تظهر شروط الإلغاء النهائية قبل الدفع أثناء إتمام الحجز.",
+      "أي رسوم مطبقة تظهر ضمن تفصيل السعر قبل الحجز المؤقت.",
+    ],
+    thingsSafetyLines: [
+      "يتم التحقق من التوافر مباشرة قبل إنشاء الحجز المؤقت أو الحجز النهائي.",
+      "يتوفر دعم تشغيلي لمشاكل الوصول والمسائل المرتبطة بالإقامة.",
+      "يتم تنفيذ معايير التنظيف وتجهيز الوحدة ضمن سير عمل تشغيلي مُدار.",
+    ],
+    fallbackRules: {
+      quietHours: "يرجى الالتزام بساعات الهدوء في المبنى أو المجتمع السكني.",
+      idRequired: "قد تُطلب هوية حكومية للتحقق عند تسجيل الوصول.",
+    },
+  },
+} as const;
 
 function normalizeAmenities(input: unknown): { key: string; label?: string }[] {
   if (!input) return [];
@@ -67,7 +189,10 @@ function normalizeAmenities(input: unknown): { key: string; label?: string }[] {
   return [];
 }
 
-function normalizeGuestReviews(input: unknown): GuestReviewView[] {
+function normalizeGuestReviews(
+  input: unknown,
+  guestFallback: string,
+): GuestReviewView[] {
   if (!Array.isArray(input)) return [];
   const out: GuestReviewView[] = [];
 
@@ -97,7 +222,7 @@ function normalizeGuestReviews(input: unknown): GuestReviewView[] {
       reviewer:
         obj.customer && typeof obj.customer.fullName === "string" && obj.customer.fullName.trim()
           ? obj.customer.fullName.trim()
-          : "Guest",
+          : guestFallback,
     });
   }
 
@@ -132,13 +257,19 @@ function reviewerInitials(name: string): string {
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
-  const res = await getPropertyBySlug(slug);
+  const locale = await getRequestLocale();
+  const copy = PROPERTY_PAGE_COPY[locale];
+  const cookieStore = await cookies();
+  const currency = parseSupportedCurrency(cookieStore.get("currency")?.value);
+  const res = await getPropertyBySlug(slug, { locale, currency });
   if (res.ok) {
     const p = res.data;
     const description =
       p.subtitle ??
       p.description ??
-      `Operator-managed stay in ${p.area ?? p.city ?? "Dubai"} with verified availability.`;
+      (locale === "ar"
+        ? `إقامة مُدارة في ${p.area ?? p.city ?? "دبي"} مع توافر موثّق.`
+        : `Operator-managed stay in ${p.area ?? p.city ?? "Dubai"} with verified availability.`);
     const coverImageUrl = (p as unknown as { coverImage?: { url?: string | null } }).coverImage?.url;
     const image =
       coverImageUrl ??
@@ -167,19 +298,24 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   }
   return {
     title: `${decodeURIComponent(slug)} | Laugh & Lodge`,
+    description: copy.schemaFallback,
   };
 }
 
 export default async function PropertyDetailPage(props: PageProps) {
   const { slug } = await props.params;
+  const locale = await getRequestLocale();
+  const copy = PROPERTY_PAGE_COPY[locale];
+  const cookieStore = await cookies();
+  const currency = parseSupportedCurrency(cookieStore.get("currency")?.value);
 
-  const res = await getPropertyBySlug(slug);
+  const res = await getPropertyBySlug(slug, { locale, currency });
   if (!res.ok) {
     return (
       <main className="min-h-screen bg-transparent">
         <div className="mx-auto max-w-4xl px-4 pb-16 pt-12 sm:px-6 sm:pt-14 lg:px-8">
           <div className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-6 text-sm text-secondary shadow-[0_18px_44px_rgba(11,15,25,0.1)]">
-            Could not load property:{" "}
+            {copy.loadError}{" "}
             <span className="font-semibold text-primary">{res.message}</span>
           </div>
         </div>
@@ -209,6 +345,7 @@ export default async function PropertyDetailPage(props: PageProps) {
   const amenities = apiAmenities.length > 0 ? apiAmenities : fallbackAmenities;
   const guestReviews = normalizeGuestReviews(
     (p as unknown as { guestReviews?: unknown }).guestReviews,
+    copy.guestFallback,
   );
 
   const apiHouseRules = (p as unknown as { houseRules?: unknown }).houseRules;
@@ -232,38 +369,27 @@ export default async function PropertyDetailPage(props: PageProps) {
   const fallbackRules: HouseRuleItem[] = [
     { key: "NO_SMOKING" },
     { key: "NO_PARTIES" },
-    { key: "QUIET_HOURS", detail: "Please respect quiet hours in the building/community." },
-    { key: "ID_REQUIRED", detail: "Government ID may be required for check-in verification." },
+    { key: "QUIET_HOURS", detail: copy.fallbackRules.quietHours },
+    { key: "ID_REQUIRED", detail: copy.fallbackRules.idRequired },
   ];
 
   const houseRules = rulesFromApi.length ? rulesFromApi : fallbackRules;
 
   const blocks: ThingsToKnowBlock[] = [
     {
-      title: "Check-in & check-out",
+      title: copy.thingsCheckIn,
       icon: "CHECKIN",
-      lines: [
-        "Check-in details are shared once your reservation is confirmed.",
-        "Please keep a valid government ID ready if building verification is required.",
-        "Late check-out can be requested, subject to availability.",
-      ],
+      lines: [...copy.thingsCheckInLines],
     },
     {
-      title: "Cancellation",
+      title: copy.thingsCancel,
       icon: "POLICIES",
-      lines: [
-        "Final cancellation terms are shown before payment in checkout.",
-        "Any applicable fees are included in the quote breakdown before you reserve.",
-      ],
+      lines: [...copy.thingsCancelLines],
     },
     {
-      title: "Safety & property",
+      title: copy.thingsSafety,
       icon: "SECURITY",
-      lines: [
-        "Availability is validated in real time before holds and bookings are created.",
-        "Operator support is available for stay-related access and issue resolution.",
-        "Cleaning and turnover standards follow operator-managed workflows.",
-      ],
+      lines: [...copy.thingsSafetyLines],
     },
   ];
 
@@ -295,24 +421,27 @@ export default async function PropertyDetailPage(props: PageProps) {
       ? guestReviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
       : null;
   const aboutText =
-    p.description ??
-    "Operator-managed vacation home with hotel-grade cleaning, verified availability, and responsive guest support.";
+    p.description ?? copy.aboutFallback;
   const aboutPreview =
     aboutText.length > 320 ? `${aboutText.slice(0, 320).trimEnd()}...` : aboutText;
   const hasLongAbout = aboutText.length > 320;
   const areaHighlights = [
-    metaLocation ? `Located in ${metaLocation}.` : "Located in a connected urban neighborhood.",
+    metaLocation
+      ? locale === "ar"
+        ? `يقع في ${metaLocation}.`
+        : `Located in ${metaLocation}.`
+      : copy.areaFallback,
     hasCoords
-      ? "Map pin shows neighborhood-level context before booking confirmation."
-      : "Exact map pin is shared once location details are published for this stay.",
-    "Nearby access to dining, essentials, and transport varies by time and season.",
+      ? copy.areaMapKnown
+      : copy.areaMapUnknown,
+    copy.areaAccess,
   ];
   const detailJsonLd = {
     "@context": "https://schema.org",
     "@type": "LodgingBusiness",
     name: p.title,
     description:
-      p.subtitle ?? p.description ?? "Operator-managed vacation stay with verified availability.",
+      p.subtitle ?? p.description ?? copy.schemaFallback,
     image: [
       (p as unknown as { coverImage?: { url?: string | null } }).coverImage?.url,
       ...p.media.map((m) => m.url).filter((url) => Boolean(url && url.trim())),
@@ -349,7 +478,7 @@ export default async function PropertyDetailPage(props: PageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--color-bg-rgb)/0.7)]">
+    <main className="relative min-h-screen overflow-x-hidden bg-[rgb(var(--color-bg-rgb)/0.7)]">
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(detailJsonLd)}
       </script>
@@ -360,12 +489,12 @@ export default async function PropertyDetailPage(props: PageProps) {
 
         <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-14 lg:px-8">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">Stay</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.heroTag}</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               {p.title}
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-white/84 sm:text-base">
-              {p.subtitle ?? "Premium serviced stay with operator support and verified availability."}
+              {p.subtitle ?? copy.subtitleFallback}
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
@@ -373,12 +502,12 @@ export default async function PropertyDetailPage(props: PageProps) {
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
                   <Star className="h-3.5 w-3.5 fill-current text-amber-300" />
                   <span>
-                    {averageRating.toFixed(1)} · {reviewCount} verified reviews
+                    {averageRating.toFixed(1)} · {reviewCount} {copy.verifiedReviewsSuffix}
                   </span>
                 </div>
               ) : (
                 <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                  New listing
+                  {copy.newListing}
                 </div>
               )}
 
@@ -389,7 +518,7 @@ export default async function PropertyDetailPage(props: PageProps) {
               ) : null}
 
               <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                Verified availability
+                {copy.verifiedAvailability}
               </div>
             </div>
           </div>
@@ -408,7 +537,7 @@ export default async function PropertyDetailPage(props: PageProps) {
             <div className="space-y-6 sm:space-y-8 lg:col-span-7 xl:col-span-8">
               <PropertyFacts property={p} />
 
-              <AmenitiesSection title="Amenities" items={amenities} previewCount={12} />
+              <AmenitiesSection title={copy.amenitiesTitle} items={amenities} previewCount={12} />
 
               <HouseRulesSection items={houseRules} />
 
@@ -421,7 +550,7 @@ export default async function PropertyDetailPage(props: PageProps) {
                   <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
                     <FileText className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                   </div>
-                  <div className="text-lg font-semibold tracking-tight text-primary">About this stay</div>
+                  <div className="text-lg font-semibold tracking-tight text-primary">{copy.aboutTitle}</div>
                 </div>
 
                 <div className="prose prose-sm mt-3 max-w-none text-secondary">
@@ -430,7 +559,7 @@ export default async function PropertyDetailPage(props: PageProps) {
 
                 {hasLongAbout ? (
                   <details className="mt-2 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-3 ring-1 ring-white/72">
-                    <summary className="cursor-pointer text-sm font-semibold text-primary">Read more</summary>
+                    <summary className="cursor-pointer text-sm font-semibold text-primary">{copy.readMore}</summary>
                     <div className="prose prose-sm mt-3 max-w-none text-secondary">
                       <p>{aboutText}</p>
                     </div>
@@ -444,19 +573,19 @@ export default async function PropertyDetailPage(props: PageProps) {
                     <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
                       <MessageSquare className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                     </div>
-                    <div className="text-lg font-semibold tracking-tight text-primary">Guest reviews</div>
+                    <div className="text-lg font-semibold tracking-tight text-primary">{copy.guestReviewsTitle}</div>
                   </div>
 
                   {reviewCount > 0 ? (
                     <div className="rounded-full bg-[rgb(var(--color-bg-rgb)/0.78)] px-3 py-1 text-xs font-semibold text-secondary ring-1 ring-white/72">
-                      {averageRating?.toFixed(1)} · {reviewCount} reviews
+                      {averageRating?.toFixed(1)} · {reviewCount} {copy.reviewsSuffix}
                     </div>
                   ) : null}
                 </div>
 
                 {guestReviews.length === 0 ? (
                   <p className="mt-3 text-sm text-secondary/70">
-                    No approved reviews yet. Reviews appear after completed stays and moderation.
+                    {copy.noReviews}
                   </p>
                 ) : (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -497,9 +626,9 @@ export default async function PropertyDetailPage(props: PageProps) {
                       <MapPin className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                     </div>
                     <div>
-                      <div className="text-lg font-semibold tracking-tight text-primary">Location</div>
+                      <div className="text-lg font-semibold tracking-tight text-primary">{copy.locationTitle}</div>
                       <div className="text-xs text-secondary/70">
-                        {metaLocation || "Area context will expand over time (nearby points, walkability)."}
+                        {metaLocation || copy.locationSubtitle}
                       </div>
                     </div>
                   </div>
@@ -511,7 +640,7 @@ export default async function PropertyDetailPage(props: PageProps) {
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.86)] px-3 py-2 text-xs font-extrabold text-indigo-700 ring-1 ring-white/72 transition hover:bg-[rgb(var(--color-bg-rgb)/0.94)]"
                     >
-                      Open in Maps <ExternalLink className="h-4 w-4" />
+                      {copy.openMaps} <ExternalLink className="h-4 w-4" />
                     </Link>
                   ) : null}
                 </div>
@@ -536,14 +665,14 @@ export default async function PropertyDetailPage(props: PageProps) {
                     />
                   ) : (
                     <div className="grid h-[240px] place-items-center bg-[rgb(var(--color-bg-rgb)/0.78)] text-sm text-secondary/75">
-                      Map location not set for this property.
+                      {copy.mapMissing}
                     </div>
                   )}
                 </div>
 
                 <div className="mt-3 rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-3 ring-1 ring-white/72">
                   <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    <CircleHelp className="h-3.5 w-3.5 text-indigo-600/90" /> Area highlights
+                    <CircleHelp className="h-3.5 w-3.5 text-indigo-600/90" /> {copy.areaHighlights}
                   </div>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-secondary">
                     {areaHighlights.map((line) => (
@@ -560,6 +689,7 @@ export default async function PropertyDetailPage(props: PageProps) {
                 slug={p.slug}
                 currency={p.currency}
                 priceFrom={p.priceFrom}
+                priceFromAed={p.priceFromAed}
               />
             </aside>
           </div>

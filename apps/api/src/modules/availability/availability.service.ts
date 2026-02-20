@@ -5,21 +5,53 @@ import {
 } from '@nestjs/common';
 import { BookingStatus, CalendarDayStatus, HoldStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { FxRatesService } from '../fx/fx-rates.service';
 import {
+  assertValidRange,
+  buildOverlapFilter,
+  calculateNights,
   enumerateNights,
   isoDayToUtcDate,
+  normalizeCheckIn,
+  normalizeCheckOut,
   utcDateToIsoDay,
 } from './availability.utils';
 import { AvailabilityRangeResult } from './types/availability.types';
 import { UpdateAvailabilitySettingsDto } from './dto/settings.dto';
 import { UpsertCalendarDaysDto, BlockRangeDto } from './dto/calendar.dto';
 import { CreateHoldDto } from './dto/holds.dto';
+import {
+  DEFAULT_DISPLAY_CURRENCY,
+  normalizeDisplayCurrency,
+  type DisplayCurrency,
+} from '../../common/i18n/locale';
 
-type QuoteDto = { checkIn: string; checkOut: string; guests?: number | null };
+type QuoteDto = {
+  checkIn: string;
+  checkOut: string;
+  guests?: number | null;
+  currency?: string;
+};
+
+type QuoteContext = {
+  displayCurrency?: DisplayCurrency;
+};
+
+type HoldPricingSnapshot = {
+  quotedTotalAed: number;
+  quotedTotalDisplay: number;
+  displayCurrency: DisplayCurrency;
+  fxRate: number;
+  fxAsOfDate: string | null;
+  fxProvider: string | null;
+};
 
 @Injectable()
 export class AvailabilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fxRates: FxRatesService,
+  ) {}
 
   // -----------------------------
   // Helpers
@@ -38,16 +70,6 @@ export class AvailabilityService {
       throw new ForbiddenException('You do not own this property.');
   }
 
-  /**
-   * Nights between [checkIn, checkOut) for UTC-midnight dates.
-   * We intentionally avoid any "pop" edge case by computing diff days.
-   */
-  private nightsCount(checkIn: Date, checkOut: Date): number {
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const diff = Math.floor((checkOut.getTime() - checkIn.getTime()) / DAY_MS);
-    return Math.max(0, diff);
-  }
-
   private hasStringId(value: unknown): value is { id: string } {
     if (typeof value !== 'object' || value === null) return false;
     return (
@@ -60,6 +82,19 @@ export class AvailabilityService {
     if (typeof maybeUserOrId === 'string') return maybeUserOrId;
     if (this.hasStringId(maybeUserOrId)) return maybeUserOrId.id;
     return null;
+  }
+
+  private resolveDisplayCurrency(
+    dtoCurrency: string | undefined,
+    context?: QuoteContext,
+  ): DisplayCurrency {
+    if (dtoCurrency) return normalizeDisplayCurrency(dtoCurrency);
+    if (context?.displayCurrency) return context.displayCurrency;
+    return DEFAULT_DISPLAY_CURRENCY;
+  }
+
+  private toDisplayAmount(amountAed: number, fxRate: number): number {
+    return Math.round(amountAed * fxRate);
   }
 
   // -----------------------------
@@ -142,6 +177,8 @@ export class AvailabilityService {
 
     const settings = await this.getOrCreateSettings(propertyId);
 
+    const overlapRange = buildOverlapFilter('checkIn', 'checkOut', from, to);
+
     const [overrides, activeHolds] = await Promise.all([
       this.prisma.propertyCalendarDay.findMany({
         where: { propertyId, date: { gte: from, lt: to } },
@@ -157,8 +194,7 @@ export class AvailabilityService {
           propertyId,
           status: HoldStatus.ACTIVE,
           expiresAt: { gt: new Date() },
-          checkIn: { lt: to },
-          checkOut: { gt: from },
+          AND: overlapRange,
         },
         select: { checkIn: true, checkOut: true },
       }),
@@ -321,13 +357,15 @@ export class AvailabilityService {
   // Holds (anti double-booking)
   // -----------------------------
 
-  async createHold(userId: unknown, propertyId: string, dto: CreateHoldDto) {
-    const checkIn = isoDayToUtcDate(dto.checkIn);
-    const checkOut = isoDayToUtcDate(dto.checkOut);
-
-    if (checkIn.getTime() >= checkOut.getTime()) {
-      throw new BadRequestException('checkIn must be earlier than checkOut.');
-    }
+  async createHold(
+    userId: unknown,
+    propertyId: string,
+    dto: CreateHoldDto,
+    pricingSnapshot?: HoldPricingSnapshot,
+  ) {
+    const checkIn = normalizeCheckIn(dto.checkIn);
+    const checkOut = normalizeCheckOut(dto.checkOut);
+    assertValidRange(checkIn, checkOut);
 
     const ttl = dto.ttlMinutes ?? 15;
     if (ttl < 5 || ttl > 60)
@@ -371,8 +409,7 @@ export class AvailabilityService {
           status: {
             in: [BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED],
           },
-          checkIn: { lt: checkOut },
-          checkOut: { gt: checkIn },
+          AND: buildOverlapFilter('checkIn', 'checkOut', checkIn, checkOut),
         },
         select: { id: true },
       });
@@ -386,8 +423,7 @@ export class AvailabilityService {
           propertyId,
           status: HoldStatus.ACTIVE,
           expiresAt: { gt: new Date() },
-          checkIn: { lt: checkOut },
-          checkOut: { gt: checkIn },
+          AND: buildOverlapFilter('checkIn', 'checkOut', checkIn, checkOut),
         },
         select: { id: true },
       });
@@ -411,6 +447,14 @@ export class AvailabilityService {
           checkOut,
           expiresAt,
           createdById,
+          quotedTotalAed: pricingSnapshot?.quotedTotalAed ?? null,
+          quotedTotalDisplay: pricingSnapshot?.quotedTotalDisplay ?? null,
+          displayCurrency: pricingSnapshot?.displayCurrency ?? 'AED',
+          fxRate: pricingSnapshot?.fxRate ?? 1,
+          fxAsOfDate: pricingSnapshot?.fxAsOfDate
+            ? isoDayToUtcDate(pricingSnapshot.fxAsOfDate)
+            : null,
+          fxProvider: pricingSnapshot?.fxProvider ?? null,
         },
         select: {
           id: true,
@@ -419,6 +463,12 @@ export class AvailabilityService {
           checkOut: true,
           expiresAt: true,
           status: true,
+          quotedTotalAed: true,
+          quotedTotalDisplay: true,
+          displayCurrency: true,
+          fxRate: true,
+          fxAsOfDate: true,
+          fxProvider: true,
         },
       });
 
@@ -427,6 +477,8 @@ export class AvailabilityService {
         checkIn: utcDateToIsoDay(hold.checkIn),
         checkOut: utcDateToIsoDay(hold.checkOut),
         expiresAt: hold.expiresAt.toISOString(),
+        fxRate: Number(hold.fxRate),
+        fxAsOfDate: hold.fxAsOfDate ? utcDateToIsoDay(hold.fxAsOfDate) : null,
       };
     });
   }
@@ -435,15 +487,15 @@ export class AvailabilityService {
   // Quote (read-only source of truth)
   // -----------------------------
 
-  async quote(propertyId: string, dto: QuoteDto) {
-    const checkIn = isoDayToUtcDate(dto.checkIn);
-    const checkOut = isoDayToUtcDate(dto.checkOut);
+  async quote(propertyId: string, dto: QuoteDto, context?: QuoteContext) {
+    const checkIn = normalizeCheckIn(dto.checkIn);
+    const checkOut = normalizeCheckOut(dto.checkOut);
+    assertValidRange(checkIn, checkOut);
 
-    if (checkIn.getTime() >= checkOut.getTime()) {
-      throw new BadRequestException('checkIn must be earlier than checkOut.');
-    }
+    const displayCurrency = this.resolveDisplayCurrency(dto.currency, context);
+    const fx = await this.fxRates.resolveRate(displayCurrency);
 
-    const nightsCount = this.nightsCount(checkIn, checkOut);
+    const nightsCount = calculateNights(checkIn, checkOut);
     if (nightsCount <= 0) throw new BadRequestException('Invalid date range.');
 
     const property = await this.prisma.property.findUnique({
@@ -492,8 +544,7 @@ export class AvailabilityService {
         propertyId,
         status: HoldStatus.ACTIVE,
         expiresAt: { gt: new Date() },
-        checkIn: { lt: checkOut },
-        checkOut: { gt: checkIn },
+        AND: buildOverlapFilter('checkIn', 'checkOut', checkIn, checkOut),
       },
       select: { id: true },
     });
@@ -507,8 +558,7 @@ export class AvailabilityService {
         status: {
           in: [BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED],
         },
-        checkIn: { lt: checkOut },
-        checkOut: { gt: checkIn },
+        AND: buildOverlapFilter('checkIn', 'checkOut', checkIn, checkOut),
       },
       select: { id: true },
     });
@@ -516,10 +566,18 @@ export class AvailabilityService {
 
     const canBook = reasons.length === 0;
 
-    // V1 price breakdown (simple but stable contract)
-    const nightlySubtotal = property.basePrice * nightsCount;
-    const cleaningFee = property.cleaningFee ?? 0;
-    const total = nightlySubtotal + cleaningFee;
+    const nightlySubtotalAed = property.basePrice * nightsCount;
+    const cleaningFeeAed = property.cleaningFee ?? 0;
+    const serviceFeeAed = 0;
+    const taxesAed = 0;
+    const totalAed = nightlySubtotalAed + cleaningFeeAed + serviceFeeAed + taxesAed;
+
+    const nightlySubtotal = this.toDisplayAmount(nightlySubtotalAed, fx.rate);
+    const cleaningFee = this.toDisplayAmount(cleaningFeeAed, fx.rate);
+    const serviceFee = this.toDisplayAmount(serviceFeeAed, fx.rate);
+    const taxes = this.toDisplayAmount(taxesAed, fx.rate);
+    const total = this.toDisplayAmount(totalAed, fx.rate);
+    const basePricePerNight = this.toDisplayAmount(property.basePrice, fx.rate);
 
     return {
       ok: true,
@@ -530,12 +588,26 @@ export class AvailabilityService {
       checkOut: dto.checkOut,
       nights: nightsCount,
       minNightsRequired,
-      currency: property.currency,
+      currency: displayCurrency,
+      fxRate: fx.rate,
+      fxAsOf: fx.asOfDate,
+      fxProvider: fx.provider,
       breakdown: {
-        basePricePerNight: property.basePrice,
+        nights: nightsCount,
+        basePricePerNight,
         nightlySubtotal,
+        baseAmount: nightlySubtotal,
         cleaningFee,
+        serviceFee,
+        taxes,
         total,
+        basePricePerNightAed: property.basePrice,
+        nightlySubtotalAed,
+        baseAmountAed: nightlySubtotalAed,
+        cleaningFeeAed,
+        serviceFeeAed,
+        taxesAed,
+        totalAed,
       },
     };
   }
@@ -548,14 +620,17 @@ export class AvailabilityService {
       checkOut: string;
       guests?: number | null;
       ttlMinutes?: number | null;
+      currency?: string;
     },
+    context?: QuoteContext,
   ) {
     // 1) Quote first (source of truth)
     const quote = await this.quote(propertyId, {
       checkIn: dto.checkIn,
       checkOut: dto.checkOut,
       guests: dto.guests ?? null,
-    });
+      currency: dto.currency,
+    }, context);
 
     if (!quote.canBook) {
       return {
@@ -567,11 +642,36 @@ export class AvailabilityService {
     }
 
     // 2) Create hold (this enforces advisory lock + overlap checks again)
-    const hold = await this.createHold(user, propertyId, {
-      checkIn: dto.checkIn,
-      checkOut: dto.checkOut,
-      ttlMinutes: dto.ttlMinutes ?? 15,
-    });
+    const breakdown = quote.breakdown as {
+      total: number;
+      totalAed?: number;
+    };
+    const fxRate = typeof quote.fxRate === 'number' ? quote.fxRate : 1;
+    const fxAsOfDate =
+      typeof quote.fxAsOf === 'string' ? quote.fxAsOf : null;
+    const fxProvider =
+      typeof quote.fxProvider === 'string' ? quote.fxProvider : null;
+
+    const hold = await this.createHold(
+      user,
+      propertyId,
+      {
+        checkIn: dto.checkIn,
+        checkOut: dto.checkOut,
+        ttlMinutes: dto.ttlMinutes ?? 15,
+      },
+      {
+        quotedTotalAed:
+          typeof breakdown.totalAed === 'number'
+            ? breakdown.totalAed
+            : Math.round(breakdown.total / fxRate),
+        quotedTotalDisplay: breakdown.total,
+        displayCurrency: this.resolveDisplayCurrency(dto.currency, context),
+        fxRate,
+        fxAsOfDate,
+        fxProvider,
+      },
+    );
 
     return {
       ok: true,

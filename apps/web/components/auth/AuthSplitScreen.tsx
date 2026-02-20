@@ -4,9 +4,11 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import { LockKeyhole } from "lucide-react";
+import { useLocale } from "next-intl";
 import { AuthBlobImage } from "@/components/auth/AuthBlobImage";
 import { AuthDottedCurve } from "@/components/auth/AuthDottedCurve";
 import { type AuthFlowPanel } from "@/components/auth/authFlow";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 interface AuthSplitScreenProps {
   panel: AuthFlowPanel;
@@ -21,6 +23,23 @@ const SWITCH_TRANSITION = {
   ease: [0.22, 1, 0.36, 1] as const,
 };
 
+const COPY = {
+  en: {
+    secureAccess: "Secure access",
+    termsPrefix: "By continuing, you agree to our",
+    terms: "Terms",
+    and: "and",
+    privacy: "Privacy Policy",
+  },
+  ar: {
+    secureAccess: "وصول آمن",
+    termsPrefix: "بالمتابعة، فإنك توافق على",
+    terms: "الشروط",
+    and: "و",
+    privacy: "سياسة الخصوصية",
+  },
+} as const;
+
 export function AuthSplitScreen({
   panel,
   direction = 1,
@@ -28,6 +47,8 @@ export function AuthSplitScreen({
   subtitle,
   panels,
 }: AuthSplitScreenProps) {
+  const locale = normalizeLocale(useLocale());
+  const copy = COPY[locale];
   const reduceMotion = useReducedMotion() ?? false;
   const imageOnLeft = panel !== "signup";
   const formX = imageOnLeft ? "100%" : "0%";
@@ -43,7 +64,7 @@ export function AuthSplitScreen({
         <section className="relative flex-1 overflow-hidden border-t border-[#dbe5f2] bg-white">
           <div className="h-full overflow-y-auto px-4 pb-5 pt-10 sm:px-6 sm:pb-6 sm:pt-10">
             <div className="mx-auto w-full max-w-[460px]">
-              <HeaderCopy title={title} subtitle={subtitle} compact />
+              <HeaderCopy title={title} subtitle={subtitle} compact secureAccessLabel={copy.secureAccess} />
 
               <div className="mt-4 overflow-hidden">
                 <AnimatePresence mode="popLayout" initial={false} custom={direction}>
@@ -68,7 +89,7 @@ export function AuthSplitScreen({
                 </AnimatePresence>
               </div>
 
-              <TermsCopy compact />
+              <TermsCopy compact copy={copy} />
             </div>
           </div>
         </section>
@@ -96,7 +117,7 @@ export function AuthSplitScreen({
         >
           <div className="h-full overflow-y-auto">
             <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col justify-center px-8 py-7 lg:px-10 lg:py-9">
-              <HeaderCopy title={title} subtitle={subtitle} />
+              <HeaderCopy title={title} subtitle={subtitle} secureAccessLabel={copy.secureAccess} />
 
               <div className="mt-4 overflow-hidden">
                 <AnimatePresence mode="popLayout" initial={false} custom={direction}>
@@ -121,7 +142,7 @@ export function AuthSplitScreen({
                 </AnimatePresence>
               </div>
 
-              <TermsCopy />
+              <TermsCopy copy={copy} />
             </div>
           </div>
         </motion.section>
@@ -134,10 +155,12 @@ function HeaderCopy({
   title,
   subtitle,
   compact = false,
+  secureAccessLabel,
 }: {
   title: string;
   subtitle: string;
   compact?: boolean;
+  secureAccessLabel: string;
 }) {
   return (
     <header>
@@ -147,7 +170,7 @@ function HeaderCopy({
         }`}
       >
         <LockKeyhole className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
-        Secure access
+        {secureAccessLabel}
       </span>
 
       <h1
@@ -164,16 +187,22 @@ function HeaderCopy({
   );
 }
 
-function TermsCopy({ compact = false }: { compact?: boolean }) {
+function TermsCopy({
+  compact = false,
+  copy,
+}: {
+  compact?: boolean;
+  copy: typeof COPY["en"] | typeof COPY["ar"];
+}) {
   return (
     <p className={`mt-4 text-[11px] leading-relaxed text-slate-500 ${compact ? "text-center" : ""}`}>
-      By continuing, you agree to our{" "}
+      {copy.termsPrefix}{" "}
       <Link href="/terms" className="font-semibold text-slate-700 hover:text-slate-900">
-        Terms
+        {copy.terms}
       </Link>{" "}
-      and{" "}
+      {copy.and}{" "}
       <Link href="/privacy" className="font-semibold text-slate-700 hover:text-slate-900">
-        Privacy Policy
+        {copy.privacy}
       </Link>
       .
     </p>

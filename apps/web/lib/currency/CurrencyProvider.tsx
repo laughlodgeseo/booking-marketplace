@@ -11,6 +11,7 @@ import {
 } from "react";
 import { apiFetch } from "@/lib/http";
 import {
+  CURRENCY_COOKIE_NAME,
   CURRENCY_STORAGE_KEY,
   DEFAULT_CURRENCY,
   convertAedTo,
@@ -26,6 +27,13 @@ type FxApiResponse = {
   asOfDate: string | null;
   rates: FxRates;
 };
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 type CurrencyContextValue = {
   currency: SupportedCurrency;
@@ -46,9 +54,9 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<SupportedCurrency>(() => {
     if (typeof window === "undefined") return DEFAULT_CURRENCY;
-    return parseSupportedCurrency(
-      window.localStorage.getItem(CURRENCY_STORAGE_KEY),
-    );
+    const cookieValue = readCookie(CURRENCY_COOKIE_NAME);
+    if (cookieValue) return parseSupportedCurrency(cookieValue);
+    return parseSupportedCurrency(window.localStorage.getItem(CURRENCY_STORAGE_KEY));
   });
   const [rates, setRates] = useState<FxRates>(fallbackFxRates());
   const [asOfDate, setAsOfDate] = useState<string | null>(null);
@@ -60,7 +68,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       setIsLoadingRates(true);
       const res = await apiFetch<FxApiResponse>("/public/fx-rates", {
         method: "GET",
-        cache: "no-store",
+        cache: "force-cache",
         auth: "none",
       });
 
@@ -75,6 +83,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       const data = res.data;
       setRates({
         USD: typeof data.rates?.USD === "number" ? data.rates.USD : null,
+        SAR: typeof data.rates?.SAR === "number" ? data.rates.SAR : null,
         EUR: typeof data.rates?.EUR === "number" ? data.rates.EUR : null,
         GBP: typeof data.rates?.GBP === "number" ? data.rates.GBP : null,
       });
@@ -92,6 +101,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     setCurrencyState(next);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(CURRENCY_STORAGE_KEY, next);
+      document.cookie = `${CURRENCY_COOKIE_NAME}=${encodeURIComponent(next)}; Path=/; Max-Age=31536000; SameSite=Lax`;
     }
   }, []);
 

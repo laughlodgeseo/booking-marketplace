@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search, Users, CalendarDays, MapPin } from "lucide-react";
+import { isValidIsoRange } from "@/lib/date-range";
 
 type SearchDraft = {
   q: string;
@@ -32,15 +33,16 @@ export default function FloatingSearchBar(props: { defaultQ?: string }) {
   const canSearch = useMemo(() => {
     if (!draft.checkIn) return false;
     // allow search without checkOut (backend can ignore) but prefer it
+    if (draft.checkOut && !isValidIsoRange(draft.checkIn, draft.checkOut)) return false;
     return draft.guests >= 1 && draft.guests <= 16;
-  }, [draft.checkIn, draft.guests]);
+  }, [draft.checkIn, draft.checkOut, draft.guests]);
 
   function pushSearch() {
     const p = new URLSearchParams();
     if (draft.q.trim().length > 0) p.set("q", draft.q.trim());
     p.set("guests", String(draft.guests));
     if (draft.checkIn) p.set("checkIn", draft.checkIn);
-    if (draft.checkOut) p.set("checkOut", draft.checkOut);
+    if (isValidIsoRange(draft.checkIn, draft.checkOut)) p.set("checkOut", draft.checkOut);
     router.push(`/properties?${p.toString()}`);
   }
 

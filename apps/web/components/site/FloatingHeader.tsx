@@ -2,24 +2,35 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X, ArrowRight, LogOut, UserRound } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { UserRole } from "@/lib/auth/auth.types";
-import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import { normalizeLocale } from "@/lib/i18n/config";
 
-type NavItem = { href: string; label: string };
+type NavLabelKey =
+  | "home"
+  | "stays"
+  | "services"
+  | "owners"
+  | "gallery"
+  | "pricing"
+  | "contact";
 
-const NAV: NavItem[] = [
-  { href: "/", label: "Home" },
-  { href: "/properties", label: "Stays" },
-  { href: "/services", label: "Services" },
-  { href: "/owners", label: "For Owners" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" },
+type NavItem = { href: string; labelKey: NavLabelKey };
+
+const NAV: readonly NavItem[] = [
+  { href: "/", labelKey: "home" },
+  { href: "/properties", labelKey: "stays" },
+  { href: "/services", labelKey: "services" },
+  { href: "/owners", labelKey: "owners" },
+  { href: "/gallery", labelKey: "gallery" },
+  { href: "/pricing", labelKey: "pricing" },
+  { href: "/contact", labelKey: "contact" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -42,6 +53,9 @@ function dashboardPathForRole(role: UserRole): string {
 export default function FloatingHeader() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
+  const t = useTranslations("nav");
+  const locale = normalizeLocale(useLocale());
+  const isRtl = locale === "ar";
 
   const [isVisible, setIsVisible] = useState(true);
   const [isAtTop, setIsAtTop] = useState(true);
@@ -50,6 +64,11 @@ export default function FloatingHeader() {
   const lastScrollYRef = useRef(0);
 
   const dashboardHref = user ? dashboardPathForRole(user.role) : "/account";
+  const navItems = useMemo(
+    () => NAV.map((item) => ({ href: item.href, label: t(item.labelKey) })),
+    [t],
+  );
+  const drawerX = isRtl ? -40 : 40;
 
   useEffect(() => {
     const threshold = 10;
@@ -138,7 +157,7 @@ export default function FloatingHeader() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="hidden h-[76px] w-full items-center lg:grid lg:h-[80px] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4">
               <nav className="flex items-center gap-5">
-                {NAV.map((item) => (
+                {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -166,20 +185,20 @@ export default function FloatingHeader() {
               </Link>
 
               <div className="flex items-center justify-end gap-2">
-                <CurrencySwitcher compact />
+                <LanguageSwitcher compact />
 
                 <Link href="/properties" className={softActionClass}>
-                  Explore
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {t("explore")}
+                  <ArrowRight className="ms-2 h-4 w-4 rtl:rotate-180" />
                 </Link>
 
                 {showAuthSkeleton ? (
                   <div className="h-11 w-[180px] animate-pulse rounded-full bg-warm-alt/80" />
                 ) : user ? (
                   <>
-                    <Link href={dashboardHref} className={primaryActionClass} title="Open your dashboard">
-                      <UserRound className="mr-2 h-4 w-4" />
-                      Dashboard
+                    <Link href={dashboardHref} className={primaryActionClass} title={t("dashboard")}>
+                      <UserRound className="me-2 h-4 w-4" />
+                      {t("dashboard")}
                     </Link>
 
                     <button
@@ -187,19 +206,19 @@ export default function FloatingHeader() {
                       onClick={handleLogout}
                       disabled={loggingOut}
                       className={`${softActionClass} disabled:opacity-60`}
-                      title="Logout"
+                      title={t("logout")}
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {loggingOut ? "Logging out…" : "Logout"}
+                      <LogOut className="me-2 h-4 w-4" />
+                      {loggingOut ? t("loggingOut") : t("logout")}
                     </button>
                   </>
                 ) : (
                   <>
                     <Link href="/login" className={secondaryActionClass}>
-                      Login
+                      {t("login")}
                     </Link>
                     <Link href="/signup" className={primaryActionClass}>
-                      Sign up
+                      {t("signUp")}
                     </Link>
                   </>
                 )}
@@ -208,7 +227,7 @@ export default function FloatingHeader() {
 
             <div className="relative flex h-14 items-center justify-between lg:hidden">
               <div className="flex items-center gap-2">
-                <CurrencySwitcher compact />
+                <LanguageSwitcher compact />
               </div>
 
               <Link href="/" className="absolute left-1/2 -translate-x-1/2">
@@ -227,7 +246,7 @@ export default function FloatingHeader() {
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-warm-alt text-primary shadow-sm"
-                  aria-label="Toggle menu"
+                  aria-label={t("toggleMenu")}
                   aria-expanded={mobileOpen}
                 >
                   {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -248,10 +267,13 @@ export default function FloatingHeader() {
             onClick={() => setMobileOpen(false)}
           >
             <motion.div
-              className="absolute inset-y-0 right-0 w-[min(24rem,92vw)] overflow-y-auto border-l border-line bg-surface px-4 pb-6 pt-16 shadow-2xl"
-              initial={{ x: 40, opacity: 0 }}
+              className={[
+                "absolute inset-y-0 w-[min(24rem,92vw)] overflow-y-auto border-line bg-surface px-4 pb-6 pt-16 shadow-2xl",
+                isRtl ? "left-0 border-r" : "right-0 border-l",
+              ].join(" ")}
+              initial={{ x: drawerX, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 40, opacity: 0 }}
+              exit={{ x: drawerX, opacity: 0 }}
               transition={{ duration: 0.22 }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -263,8 +285,8 @@ export default function FloatingHeader() {
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-primary">{user.email}</div>
                       <div className="text-xs text-secondary">
-                        Role: {user.role}
-                        {!user.isEmailVerified ? " • Email not verified" : ""}
+                        {t("role")}: {user.role}
+                        {!user.isEmailVerified ? ` • ${t("emailNotVerified")}` : ""}
                       </div>
                     </div>
 
@@ -274,7 +296,7 @@ export default function FloatingHeader() {
                         onClick={() => setMobileOpen(false)}
                         className={`${primaryActionClass} w-full`}
                       >
-                        Dashboard
+                        {t("dashboard")}
                       </Link>
                       <button
                         type="button"
@@ -282,8 +304,8 @@ export default function FloatingHeader() {
                         disabled={loggingOut}
                         className={`${softActionClass} w-full disabled:opacity-60`}
                       >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        {loggingOut ? "Logging out…" : "Logout"}
+                        <LogOut className="me-2 h-4 w-4" />
+                        {loggingOut ? t("loggingOut") : t("logout")}
                       </button>
                     </div>
                   </div>
@@ -294,21 +316,21 @@ export default function FloatingHeader() {
                       onClick={() => setMobileOpen(false)}
                       className={`${secondaryActionClass} w-full bg-surface/90`}
                     >
-                      Login
+                      {t("login")}
                     </Link>
                     <Link
                       href="/signup"
                       onClick={() => setMobileOpen(false)}
                       className={`${primaryActionClass} w-full`}
                     >
-                      Sign up
+                      {t("signUp")}
                     </Link>
                   </div>
                 )}
               </div>
 
               <div className="grid gap-2">
-                {NAV.map((item) => (
+                {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}

@@ -1,41 +1,211 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, Layers3, Sparkles } from "lucide-react";
+import type { AppLocale } from "@/lib/i18n/config";
 
 type Program = {
   name: string;
   tagline: string;
+  idealFor: string;
   highlights: ReadonlyArray<string>;
+  Icon: LucideIcon;
+  controlLevel: string;
+  opsCoverage: string;
   emphasis?: boolean;
 };
 
-function ProgramCard({ p }: { p: Program }) {
-  const dark = p.emphasis === true;
+type OwnerProgramsCopy = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  reviewCapabilities: string;
+  discussProgram: string;
+  vendorSignup: string;
+  recommended: string;
+  idealForPrefix: string;
+  controlLevelLabel: string;
+  opsCoverageLabel: string;
+  programs: Program[];
+};
+
+const COPY: Record<AppLocale, OwnerProgramsCopy> = {
+  en: {
+    eyebrow: "Programs",
+    title: "Choose the operating depth that matches your ownership strategy",
+    subtitle:
+      "Program architecture is designed around measurable execution standards, transparent responsibility, and scalable delivery.",
+    reviewCapabilities: "Review service capabilities",
+    discussProgram: "Discuss this program",
+    vendorSignup: "Vendor sign up",
+    recommended: "Recommended",
+    idealForPrefix: "Ideal for",
+    controlLevelLabel: "Control level",
+    opsCoverageLabel: "Ops coverage",
+    programs: [
+      {
+        name: "Listing-only",
+        tagline: "You control operations in-house while we provide booking controls, visibility, and distribution support.",
+        idealFor: "Owners with an internal operations team and established SOPs.",
+        highlights: [
+          "Search and demand visibility",
+          "Calendar safety and availability discipline",
+          "Policy-based booking and cancellation framework",
+          "Clear payout and reservation reporting",
+        ],
+        controlLevel: "High owner control",
+        opsCoverage: "Platform + distribution",
+        Icon: Building2,
+      },
+      {
+        name: "Semi-managed",
+        tagline: "Shared operating model where we coordinate critical workflows while you retain strategic control.",
+        idealFor: "Owners seeking stronger performance without full delegation.",
+        highlights: [
+          "Turnover and readiness workflow coordination",
+          "Inspection checkpoints and exception handling",
+          "Service-level visibility and escalation routing",
+          "Flexible split of responsibilities by property",
+        ],
+        controlLevel: "Shared control",
+        opsCoverage: "Core workflows co-managed",
+        Icon: Layers3,
+        emphasis: true,
+      },
+      {
+        name: "Managed",
+        tagline: "End-to-end execution across housekeeping, inspections, maintenance, and guest issue management.",
+        idealFor: "Owners focused on consistency, scale, and minimal day-to-day involvement.",
+        highlights: [
+          "Booking-driven operations lifecycle execution",
+          "Readiness and quality standards governance",
+          "Maintenance workflow ownership and closure",
+          "Consistent delivery model across multiple assets",
+        ],
+        controlLevel: "Low owner overhead",
+        opsCoverage: "Full operations coverage",
+        Icon: Sparkles,
+      },
+    ],
+  },
+  ar: {
+    eyebrow: "البرامج",
+    title: "اختر عمق التشغيل المناسب لاستراتيجية ملكيتك",
+    subtitle: "هيكل البرامج مصمم حول معايير تنفيذ قابلة للقياس ومسؤوليات واضحة وتسليم قابل للتوسع.",
+    reviewCapabilities: "راجع قدرات الخدمات",
+    discussProgram: "ناقش هذا البرنامج",
+    vendorSignup: "تسجيل مورّد",
+    recommended: "موصى به",
+    idealForPrefix: "مناسب لـ",
+    controlLevelLabel: "مستوى التحكم",
+    opsCoverageLabel: "التغطية التشغيلية",
+    programs: [
+      {
+        name: "عرض فقط",
+        tagline: "تدير التشغيل داخلياً بينما نوفر لك ضوابط الحجز والرؤية والتوزيع.",
+        idealFor: "الملاك الذين لديهم فريق تشغيل داخلي وإجراءات عمل مستقرة.",
+        highlights: [
+          "رؤية أوضح للطلب والظهور",
+          "انضباط التقويم وحماية التوافر",
+          "إطار حجز وإلغاء قائم على السياسات",
+          "تقارير واضحة للحجوزات والمدفوعات",
+        ],
+        controlLevel: "تحكم عالٍ للمالك",
+        opsCoverage: "المنصة + التوزيع",
+        Icon: Building2,
+      },
+      {
+        name: "إدارة مشتركة",
+        tagline: "نموذج تشغيلي مشترك ننسق فيه المهام الحرجة مع احتفاظك بالتحكم الاستراتيجي.",
+        idealFor: "الملاك الراغبين بتحسين الأداء دون تفويض كامل.",
+        highlights: [
+          "تنسيق التحويل وجاهزية العقار",
+          "نقاط تفتيش ومعالجة الاستثناءات",
+          "رؤية تشغيلية مع مسارات تصعيد",
+          "تقسيم مرن للمسؤوليات حسب كل عقار",
+        ],
+        controlLevel: "تحكم مشترك",
+        opsCoverage: "إدارة مشتركة للعمليات الأساسية",
+        Icon: Layers3,
+        emphasis: true,
+      },
+      {
+        name: "إدارة كاملة",
+        tagline: "تنفيذ متكامل يشمل التدبير والتفتيش والصيانة ومعالجة ملاحظات الضيوف.",
+        idealFor: "الملاك الذين يركزون على الثبات والتوسع وتقليل الانشغال اليومي.",
+        highlights: [
+          "تنفيذ دورة تشغيلية مرتبطة بالحجوزات",
+          "حوكمة معايير الجاهزية والجودة",
+          "ملكية كاملة لمسار طلبات الصيانة حتى الإغلاق",
+          "نموذج تسليم متسق عبر عدة أصول",
+        ],
+        controlLevel: "عبء أقل على المالك",
+        opsCoverage: "تغطية تشغيلية كاملة",
+        Icon: Sparkles,
+      },
+    ],
+  },
+};
+
+function ProgramCard(props: {
+  program: Program;
+  copy: OwnerProgramsCopy;
+}) {
+  const emphasized = props.program.emphasis === true;
 
   return (
-    <div
-      className={[
-        "rounded-2xl p-6",
-        dark
-          ? "premium-card premium-card-dark"
-          : "premium-card premium-card-tinted premium-card-hover card-accent-left",
-      ].join(" ")}
+    <article
+      className={
+        emphasized
+          ? "relative overflow-hidden rounded-2xl border border-indigo-300/65 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-700 p-6 text-white shadow-[0_26px_54px_rgba(67,56,202,0.34)]"
+          : "group relative overflow-hidden rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]"
+      }
     >
+      {!emphasized ? (
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-[2px] rounded-full bg-gradient-to-r from-indigo-300/85 to-transparent" />
+      ) : null}
+      {!emphasized ? (
+        <div className="pointer-events-none absolute -right-16 -top-14 h-40 w-40 rounded-full bg-indigo-200/30 opacity-0 blur-3xl transition group-hover:opacity-100" />
+      ) : null}
+
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-lg font-semibold text-primary">{p.name}</p>
-          <p className={["mt-2 text-sm", dark ? "text-inverted/78" : "text-secondary/75"].join(" ")}>{p.tagline}</p>
+        <div className="flex items-start gap-3">
+          <span
+            className={[
+              "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border",
+              emphasized ? "border-white/35 bg-white/12 text-white" : "border-indigo-200/80 bg-indigo-50/80 text-indigo-600",
+            ].join(" ")}
+          >
+            <props.program.Icon className="h-5 w-5" />
+          </span>
+          <div>
+            <p className={["text-lg font-semibold", emphasized ? "text-white" : "text-primary"].join(" ")}>{props.program.name}</p>
+            <p className={["mt-2 text-sm", emphasized ? "text-white/84" : "text-secondary/82"].join(" ")}>{props.program.tagline}</p>
+          </div>
         </div>
-        {dark ? (
-          <span className="rounded-xl border border-brand/30 bg-brand px-3 py-2 text-xs font-extrabold text-accent-text">
-            Best for most owners
+
+        {emphasized ? (
+          <span className="rounded-xl border border-white/35 bg-white/14 px-3 py-2 text-xs font-semibold text-white">
+            {props.copy.recommended}
           </span>
         ) : null}
       </div>
 
+      <p
+        className={[
+          "mt-5 rounded-xl px-3 py-2 text-xs font-semibold",
+          emphasized ? "border border-white/26 bg-white/10 text-white/90" : "border border-indigo-200/70 bg-indigo-50/75 text-indigo-900",
+        ].join(" ")}
+      >
+        {props.copy.idealForPrefix}: {props.program.idealFor}
+      </p>
+
       <ul className="mt-6 space-y-2">
-        {p.highlights.slice(0, 7).map((h) => (
-          <li key={h} className={["flex gap-3 text-sm", dark ? "text-inverted/78" : "text-secondary/80"].join(" ")}>
-            <span className="mt-1 inline-block h-2 w-2 rounded-full bg-brand" />
-            <span>{h}</span>
+        {props.program.highlights.slice(0, 7).map((item) => (
+          <li key={item} className={["flex gap-3 text-sm", emphasized ? "text-white/88" : "text-secondary/84"].join(" ")}>
+            <span className={["mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg", emphasized ? "bg-white/14" : "bg-indigo-100"].join(" ")}>
+              <CheckCircle2 className={["h-3.5 w-3.5", emphasized ? "text-white" : "text-indigo-600"].join(" ")} />
+            </span>
+            <span>{item}</span>
           </li>
         ))}
       </ul>
@@ -44,109 +214,81 @@ function ProgramCard({ p }: { p: Program }) {
         <Link
           href="/contact"
           className={[
-            "inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold transition",
-            dark
-              ? "bg-brand text-accent-text shadow-brand-soft hover:brightness-95"
-              : "border border-line bg-surface text-primary hover:bg-warm-base",
+            "inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition",
+            emphasized ? "bg-white text-indigo-700 hover:bg-indigo-50" : "border border-indigo-300/80 bg-indigo-600 text-white hover:bg-indigo-700",
           ].join(" ")}
         >
-          Get started
-          <span aria-hidden className={p.emphasis ? "text-inverted/80" : "text-secondary/60"}>
-            →
-          </span>
+          {props.copy.discussProgram}
+          <ArrowRight className={["h-4 w-4", emphasized ? "text-indigo-700" : "text-white/90"].join(" ")} />
         </Link>
 
         <Link
-          href="/services"
+          href="/signup?role=vendor"
           className={[
-            "inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition",
-            dark
-              ? "border-inverted/35 bg-transparent text-inverted hover:bg-accent-soft/16"
-              : "border-line bg-transparent text-primary hover:bg-warm-base",
+            "inline-flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition",
+            emphasized
+              ? "border border-white/35 bg-transparent text-white hover:bg-white/12"
+              : "border border-line/80 bg-surface/70 text-primary hover:bg-accent-soft/55",
           ].join(" ")}
         >
-          What’s included
+          {props.copy.vendorSignup}
         </Link>
       </div>
-    </div>
+    </article>
   );
 }
 
-export default function OwnerPrograms() {
-  const programs: Program[] = [
-    {
-      name: "Listing-only",
-      tagline:
-        "You manage operations. We provide booking-grade inventory control, search visibility, and core workflow safety.",
-      highlights: [
-        "Search + map discovery",
-        "Calendar discipline and availability rules",
-        "Policy-driven booking states",
-        "Owner guidance for best practices",
-      ],
-    },
-    {
-      name: "Semi-managed",
-      tagline:
-        "We support operations with structured workflows while you keep some day-to-day control in-house.",
-      highlights: [
-        "Operational workflow support",
-        "Inspection checkpoints",
-        "Task visibility and escalation path",
-        "Flexible involvement level",
-      ],
-      emphasis: true,
-    },
-    {
-      name: "Managed",
-      tagline:
-        "Operator-run end-to-end: cleaning, inspections, linen, restock and maintenance workflows with standards.",
-      highlights: [
-        "Booking-driven ops tasks",
-        "Quality control and readiness checks",
-        "Maintenance request/work order lifecycle",
-        "Operational consistency across stays",
-      ],
-    },
-  ];
+export default function OwnerPrograms(props: { locale: AppLocale }) {
+  const copy = COPY[props.locale];
 
   return (
-    <section className="relative w-full py-14 sm:py-18">
+    <section id="owner-programs" className="relative w-full scroll-mt-24 py-14 sm:py-18">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
           <div className="max-w-3xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/70 shadow-sm backdrop-blur">
-              <span className="inline-block h-2 w-2 rounded-full bg-brand" />
-              Programs
-            </p>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
-              Choose how hands-on you want to be
-            </h2>
-            <p className="mt-2 text-sm text-secondary/75 sm:text-base">
-              We structure programs around real operations and accountability, not vague promises.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">{copy.eyebrow}</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.title}</h2>
+            <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.subtitle}</p>
           </div>
 
           <Link
-            href="/contact"
-            className="inline-flex items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-extrabold text-primary transition hover:bg-warm-base"
+            href="/services"
+            className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-surface/70 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-surface"
           >
-            Talk to us
-            <span aria-hidden className="text-secondary/60">
-              →
-            </span>
+            {copy.reviewCapabilities}
+            <ArrowRight className="h-4 w-4 text-indigo-600" />
           </Link>
         </div>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {programs.map((p) => (
-            <ProgramCard key={p.name} p={p} />
+          {copy.programs.map((program) => (
+            <ProgramCard key={program.name} program={program} copy={copy} />
           ))}
+        </div>
+
+        <div className="mt-8 overflow-hidden rounded-2xl border border-indigo-100/85 bg-white/84 shadow-[0_14px_34px_rgba(15,23,42,0.07)]">
+          <div className="grid gap-0 md:grid-cols-3">
+            {copy.programs.map((program, idx) => (
+              <div
+                key={`${program.name}-meta`}
+                className={[
+                  "p-5 transition hover:bg-indigo-50/35",
+                  idx < copy.programs.length - 1 ? "border-b border-indigo-100/70 md:border-b-0 md:border-r" : "",
+                ].join(" ")}
+              >
+                <p className="text-sm font-semibold text-primary">{program.name}</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-secondary/65">{copy.controlLevelLabel}</p>
+                <p className="mt-1 text-sm text-secondary/82">{program.controlLevel}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-secondary/65">{copy.opsCoverageLabel}</p>
+                <p className="mt-1 text-sm text-secondary/82">{program.opsCoverage}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -right-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-accent-soft/80 blur-3xl" />
+        <div className="absolute -right-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-indigo-200/70 blur-3xl" />
       </div>
     </section>
   );

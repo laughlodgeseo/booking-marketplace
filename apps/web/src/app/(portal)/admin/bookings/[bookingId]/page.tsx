@@ -14,7 +14,7 @@ import {
   type AdminBookingDetailResponse,
   type AdminBookingDocument,
 } from "@/lib/api/portal/admin";
-import { useCurrency } from "@/lib/currency/CurrencyProvider";
+import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 type ViewState =
   | { kind: "loading" }
@@ -45,6 +45,19 @@ function formatDateTime(value: string | null | undefined): string {
   });
 }
 
+function formatMoney(amount: number, currency: string | null | undefined): string {
+  const normalizedCurrency = (currency ?? "").trim().toUpperCase() || "AED";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: normalizedCurrency,
+      maximumFractionDigits: normalizedCurrency === "AED" ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${normalizedCurrency} ${amount.toLocaleString()}`;
+  }
+}
+
 function toneClass(tone: "neutral" | "success" | "warning" | "danger"): string {
   if (tone === "success") return "border-success/35 bg-success/10 text-success";
   if (tone === "warning") return "border-warning/35 bg-warning/12 text-warning";
@@ -55,7 +68,6 @@ function toneClass(tone: "neutral" | "success" | "warning" | "danger"): string {
 export default function AdminBookingDetailPage() {
   const params = useParams<{ bookingId: string }>();
   const bookingId = typeof params?.bookingId === "string" ? params.bookingId : "";
-  const { currency, formatFromAed, formatBaseAed } = useCurrency();
 
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -91,7 +103,8 @@ export default function AdminBookingDetailPage() {
 
   const coverUrl = useMemo(() => {
     if (state.kind !== "ready") return null;
-    return state.data.property.coverUrl ?? state.data.property.media[0]?.url ?? null;
+    const raw = state.data.property.coverUrl ?? state.data.property.media[0]?.url ?? null;
+    return raw ? resolveMediaUrl(raw) : null;
   }, [state]);
 
   async function reload() {
@@ -196,13 +209,8 @@ export default function AdminBookingDetailPage() {
                   Booking: {state.data.id.slice(0, 8)}
                 </span>
                 <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
-                  Total: {formatFromAed(state.data.totalAmount, { maximumFractionDigits: 0 })}
+                  Total: {formatMoney(state.data.totalAmount, state.data.currency)}
                 </span>
-                {currency !== "AED" ? (
-                  <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
-                    Base: {formatBaseAed(state.data.totalAmount)}
-                  </span>
-                ) : null}
               </div>
 
               <h2 className="mt-3 text-xl font-semibold text-primary">{state.data.property.title}</h2>
@@ -259,7 +267,7 @@ export default function AdminBookingDetailPage() {
                     {state.data.payment.provider} · {state.data.payment.status}
                   </div>
                   <div className="mt-1 text-sm text-secondary">
-                    {formatFromAed(state.data.payment.amount, { maximumFractionDigits: 0 })}
+                    {formatMoney(state.data.payment.amount, state.data.payment.currency)}
                   </div>
                   <div className="mt-2 text-xs text-muted">Ref: {state.data.payment.providerRef || "-"}</div>
 
@@ -290,7 +298,7 @@ export default function AdminBookingDetailPage() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <StatusPill status={refund.status}>{refund.status}</StatusPill>
                         <div className="text-xs font-semibold text-secondary">
-                          {formatFromAed(refund.amount, { maximumFractionDigits: 0 })}
+                          {formatMoney(refund.amount, refund.currency)}
                         </div>
                       </div>
                       <div className="mt-1 text-xs text-secondary">
@@ -355,30 +363,44 @@ export default function AdminBookingDetailPage() {
             <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
               <div className="text-sm font-semibold text-primary">Cancellation audit</div>
               {state.data.cancellation ? (
-                <div className="mt-3 rounded-2xl border border-line/70 bg-warm-base p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">
-                    {state.data.cancellation.actor} · {state.data.cancellation.mode}
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-primary">{state.data.cancellation.reason}</div>
-                  <div className="mt-1 text-xs text-secondary">
-                    Cancelled at {formatDateTime(state.data.cancellation.cancelledAt)}
-                  </div>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <InfoCard
-                      label="Penalty"
-                      value={formatFromAed(state.data.cancellation.penaltyAmount, { maximumFractionDigits: 0 })}
-                    />
-                    <InfoCard
-                      label="Refundable"
-                      value={formatFromAed(state.data.cancellation.refundableAmount, { maximumFractionDigits: 0 })}
-                    />
-                  </div>
-                  {state.data.cancellation.notes ? (
-                    <div className="mt-2 rounded-xl border border-line/70 bg-surface p-2.5 text-xs text-secondary">
-                      {state.data.cancellation.notes}
+                (() => {
+                  const cancellationCurrency =
+                    state.data.cancellation.displayCurrency ??
+                    state.data.cancellation.currency;
+                  const penaltyAmount =
+                    state.data.cancellation.penaltyAmountDisplay ??
+                    state.data.cancellation.penaltyAmount;
+                  const refundableAmount =
+                    state.data.cancellation.refundableAmountDisplay ??
+                    state.data.cancellation.refundableAmount;
+
+                  return (
+                    <div className="mt-3 rounded-2xl border border-line/70 bg-warm-base p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        {state.data.cancellation.actor} · {state.data.cancellation.mode}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-primary">{state.data.cancellation.reason}</div>
+                      <div className="mt-1 text-xs text-secondary">
+                        Cancelled at {formatDateTime(state.data.cancellation.cancelledAt)}
+                      </div>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <InfoCard
+                          label="Penalty"
+                          value={formatMoney(penaltyAmount, cancellationCurrency)}
+                        />
+                        <InfoCard
+                          label="Refundable"
+                          value={formatMoney(refundableAmount, cancellationCurrency)}
+                        />
+                      </div>
+                      {state.data.cancellation.notes ? (
+                        <div className="mt-2 rounded-xl border border-line/70 bg-surface p-2.5 text-xs text-secondary">
+                          {state.data.cancellation.notes}
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
+                  );
+                })()
               ) : (
                 <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
                   No cancellation record yet.

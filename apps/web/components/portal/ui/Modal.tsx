@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 type Size = "sm" | "md" | "lg" | "xl";
@@ -10,10 +10,10 @@ function cn(...xs: Array<string | false | null | undefined>) {
 }
 
 function sizeClass(size: Size): string {
-  if (size === "sm") return "max-w-md";
-  if (size === "md") return "max-w-xl";
-  if (size === "lg") return "max-w-3xl";
-  return "max-w-5xl";
+  if (size === "sm") return "lg:max-w-md";
+  if (size === "md") return "lg:max-w-xl";
+  if (size === "lg") return "lg:max-w-3xl";
+  return "lg:max-w-5xl";
 }
 
 export function Modal(props: {
@@ -25,6 +25,15 @@ export function Modal(props: {
   size?: Size;
   footer?: ReactNode;
 }) {
+  useEffect(() => {
+    if (!props.open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [props.open]);
+
   if (!props.open) return null;
 
   return (
@@ -35,16 +44,18 @@ export function Modal(props: {
         onClick={props.onClose}
         className="absolute inset-0 bg-dark-1/40"
       />
-      <div className="absolute inset-0 flex items-center justify-center p-4">
+      <div className="absolute inset-0 flex items-end justify-center lg:items-center lg:p-4">
         <div
           className={cn(
-            "w-full overflow-hidden rounded-3xl border border-line/80 bg-surface shadow-2xl",
+            "w-full overflow-hidden bg-warm-base/98 shadow-2xl",
+            "max-h-[94vh] rounded-t-[30px] border-t border-line/38",
+            "lg:max-h-[90vh] lg:rounded-3xl lg:border lg:border-line/80 lg:bg-surface",
             sizeClass(props.size ?? "md"),
           )}
           role="dialog"
           aria-modal="true"
         >
-          <div className="border-b border-line/50 bg-warm-base/60 px-5 py-4">
+          <div className="sticky top-0 z-10 border-b border-line/35 bg-warm-base/96 px-4 pb-3 pt-[calc(0.9rem+env(safe-area-inset-top))] sm:px-5 lg:border-line/50 lg:bg-warm-base/60 lg:px-5 lg:py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 {props.title ? (
@@ -58,7 +69,7 @@ export function Modal(props: {
               <button
                 type="button"
                 onClick={props.onClose}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-line/80 bg-surface shadow-sm hover:bg-warm-alt"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line/40 bg-warm-base/95 shadow-sm hover:bg-accent-soft/22 lg:h-10 lg:w-10 lg:border-line/80 lg:bg-surface lg:hover:bg-warm-alt"
                 aria-label="Close"
               >
                 <X className="h-4 w-4 text-secondary" />
@@ -66,10 +77,12 @@ export function Modal(props: {
             </div>
           </div>
 
-          <div className="max-h-[70vh] overflow-auto px-5 py-5">{props.children}</div>
+          <div className="overflow-auto px-4 py-4 sm:px-5 sm:py-5">{props.children}</div>
 
           {props.footer ? (
-            <div className="border-t border-line/50 bg-surface px-5 py-4">{props.footer}</div>
+            <div className="sticky bottom-0 border-t border-line/35 bg-warm-base/96 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5 lg:border-line/50 lg:bg-surface lg:px-5 lg:py-4 lg:pb-4">
+              {props.footer}
+            </div>
           ) : null}
         </div>
       </div>

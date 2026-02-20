@@ -1,18 +1,30 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { PortalShell } from "@/components/portal/PortalShell";
-import { PortalAvailabilityCalendar } from "@/components/portal/calendar/PortalAvailabilityCalendar";
+import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
 import {
   createVendorBlockRequest,
   getVendorCalendar,
 } from "@/lib/api/portal/vendor";
 
+const PortalAvailabilityCalendar = dynamic(
+  () => import("@/components/portal/calendar/PortalAvailabilityCalendar").then((mod) => mod.PortalAvailabilityCalendar),
+  {
+    ssr: false,
+    loading: () => <PortalLoadingCard kind="calendar" />,
+  },
+);
+
 export default function VendorCalendarPage() {
+  const tPortal = useTranslations("portal");
+
   return (
     <PortalShell
       role="vendor"
-      title="Calendar"
-      subtitle="Monthly booking visibility for your listings"
+      title={tPortal("calendar.pageTitle")}
+      subtitle={tPortal("calendar.vendorSubtitle")}
     >
       <PortalAvailabilityCalendar
         role="vendor"

@@ -6,6 +6,7 @@ import {
   CancellationReason,
   HoldStatus,
   NotificationType,
+  Prisma,
   UserRole,
 } from '@prisma/client';
 import { BookingsService } from './bookings.service';
@@ -114,6 +115,101 @@ describe('BookingsService critical paths', () => {
         idempotencyKey: 'idem-2',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('inherits hold FX snapshot totals when creating booking', async () => {
+    const hold = {
+      id: 'hold_fx_1',
+      createdById: 'customer_fx_1',
+      propertyId: 'property_fx_1',
+      checkIn: new Date('2026-04-01T00:00:00.000Z'),
+      checkOut: new Date('2026-04-03T00:00:00.000Z'),
+      status: HoldStatus.ACTIVE,
+      expiresAt: new Date('2026-04-02T12:00:00.000Z'),
+      quotedTotalAed: 120000,
+      quotedTotalDisplay: 32712,
+      displayCurrency: 'USD',
+      fxRate: new Prisma.Decimal('0.2726'),
+      fxAsOfDate: new Date('2026-04-01T00:00:00.000Z'),
+      fxProvider: 'provider:test',
+    };
+
+    const bookingCreate = jest.fn().mockResolvedValue({
+      id: 'booking_fx_1',
+      totalAmount: 32712,
+      currency: 'USD',
+      totalAmountAed: 120000,
+      displayTotalAmount: 32712,
+      displayCurrency: 'USD',
+    });
+
+    const prismaMock = {
+      booking: { findFirst: jest.fn().mockResolvedValue(null) },
+      property: {
+        findUnique: jest.fn().mockResolvedValue({
+          basePrice: 60000,
+          cleaningFee: 0,
+        }),
+      },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+
+    (prismaMock.$transaction as unknown as jest.Mock).mockImplementation(
+      async (
+        fn: (tx: {
+          propertyHold: {
+            findUnique: jest.Mock;
+            findFirst: jest.Mock;
+            update: jest.Mock;
+          };
+          booking: {
+            findFirst: jest.Mock;
+            create: jest.Mock;
+          };
+          propertyCalendarDay: { findFirst: jest.Mock };
+        }) => Promise<unknown>,
+      ) =>
+        fn({
+          propertyHold: {
+            findUnique: jest.fn().mockResolvedValue(hold),
+            findFirst: jest.fn().mockResolvedValue(null),
+            update: jest.fn().mockResolvedValue({
+              id: hold.id,
+              status: HoldStatus.CONVERTED,
+            }),
+          },
+          booking: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: bookingCreate,
+          },
+          propertyCalendarDay: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+        }),
+    );
+
+    const { service } = buildService({ prisma: prismaMock });
+
+    const result = await service.createFromHold({
+      userId: 'customer_fx_1',
+      userRole: UserRole.CUSTOMER,
+      holdId: 'hold_fx_1',
+      idempotencyKey: 'idem-fx-1',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.reused).toBe(false);
+    expect(bookingCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          totalAmount: 32712,
+          currency: 'USD',
+          totalAmountAed: 120000,
+          displayTotalAmount: 32712,
+          displayCurrency: 'USD',
+        }),
+      }),
+    );
   });
 
   it('creates SYSTEM cancellation snapshot for auto-expiry and is idempotent on rerun', async () => {

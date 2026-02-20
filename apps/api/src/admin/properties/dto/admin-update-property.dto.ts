@@ -2,12 +2,14 @@ import {
   IsBoolean,
   IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
+import type { PropertyTranslationsInput } from '../../../vendor/vendor-properties.dto';
 
 export class AdminUpdatePropertyDto {
   /**
@@ -113,4 +115,8 @@ export class AdminUpdatePropertyDto {
   @IsOptional()
   @IsBoolean()
   isInstantBook?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  translations?: PropertyTranslationsInput;
 }

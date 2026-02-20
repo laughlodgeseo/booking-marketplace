@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -11,6 +12,17 @@ import {
   Min,
 } from 'class-validator';
 import { PropertyDocumentType, PropertyMediaCategory } from '@prisma/client';
+
+export type PropertyTranslationInput = {
+  title?: string;
+  description?: string | null;
+  areaLabel?: string | null;
+  tagline?: string | null;
+};
+
+export type PropertyTranslationsInput = Partial<
+  Record<'en' | 'ar', PropertyTranslationInput>
+>;
 
 export class CreatePropertyDto {
   @IsString()
@@ -106,6 +118,10 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsBoolean()
   isInstantBook?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  translations?: PropertyTranslationsInput;
 }
 
 export class UpdatePropertyDto {
@@ -210,6 +226,10 @@ export class UpdatePropertyDto {
   @IsOptional()
   @IsBoolean()
   isInstantBook?: boolean;
+
+  @IsOptional()
+  @IsObject()
+  translations?: PropertyTranslationsInput;
 }
 
 export class ReorderMediaDto {

@@ -16,6 +16,7 @@ import {
   getAdminPortalPropertyDetail,
   viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
+import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 type AdminPropertyDetail = {
   id: string;
@@ -186,12 +187,12 @@ export default function AdminPropertyDetailPage() {
   }
 
   function viewMedia(url: string) {
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(resolveMediaUrl(url), "_blank", "noopener,noreferrer");
   }
 
   function downloadMedia(item: AdminPropertyDetail["media"][number], index: number) {
     const anchor = document.createElement("a");
-    anchor.href = item.url;
+    anchor.href = resolveMediaUrl(item.url);
     anchor.download = mediaFilename(item, index);
     document.body.appendChild(anchor);
     anchor.click();
@@ -300,7 +301,11 @@ export default function AdminPropertyDetailPage() {
                     <article key={item.id} className="overflow-hidden rounded-2xl border border-line/70 bg-warm-base">
                       <div className="aspect-[4/3] w-full bg-bg-2">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.url} alt={item.alt || "Property image"} className="h-full w-full object-cover" />
+                        <img
+                          src={resolveMediaUrl(item.url)}
+                          alt={item.alt || "Property image"}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
                       <div className="space-y-2 p-3">
                         <div className="text-xs text-secondary">

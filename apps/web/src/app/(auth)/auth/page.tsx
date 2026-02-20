@@ -4,7 +4,9 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Building2, User2, ArrowRight } from "lucide-react";
+import { useLocale } from "next-intl";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type AuthMode = "login" | "signup";
 type AuthRoleUi = "customer" | "vendor";
@@ -17,9 +19,56 @@ function readRole(raw: string | null): AuthRoleUi {
   return raw === "vendor" ? "vendor" : "customer";
 }
 
+const COPY = {
+  en: {
+    titleLogin: "Welcome back",
+    titleSignup: "Create your account",
+    subtitleLogin: "Choose how you want to continue.",
+    subtitleSignup: "Choose an account type to get started.",
+    eyebrow: "Account access",
+    footnoteLoginPrefix: "New here?",
+    footnoteLoginAction: "Create an account",
+    footnoteSignupPrefix: "Already have an account?",
+    footnoteSignupAction: "Sign in",
+    tabLogin: "Log in",
+    tabSignup: "Sign up",
+    customer: "Customer",
+    customerDesc: "Book stays, manage trips, request refunds.",
+    vendor: "Vendor",
+    vendorDesc: "List homes, manage availability, handle bookings.",
+    continueLogin: "Continue to login",
+    continueSignup: "Continue to sign up",
+    loadingTitle: "Loading access",
+    loadingSubtitle: "Preparing account gateway...",
+  },
+  ar: {
+    titleLogin: "مرحباً بعودتك",
+    titleSignup: "أنشئ حسابك",
+    subtitleLogin: "اختر طريقة المتابعة المناسبة لك.",
+    subtitleSignup: "اختر نوع الحساب للبدء.",
+    eyebrow: "وصول الحساب",
+    footnoteLoginPrefix: "جديد هنا؟",
+    footnoteLoginAction: "أنشئ حساباً",
+    footnoteSignupPrefix: "لديك حساب بالفعل؟",
+    footnoteSignupAction: "تسجيل الدخول",
+    tabLogin: "تسجيل الدخول",
+    tabSignup: "إنشاء حساب",
+    customer: "عميل",
+    customerDesc: "احجز الإقامات، وأدر الرحلات، واطلب الاسترداد.",
+    vendor: "مزوّد",
+    vendorDesc: "أضف الوحدات، وأدر التوافر، وتعامل مع الحجوزات.",
+    continueLogin: "المتابعة إلى تسجيل الدخول",
+    continueSignup: "المتابعة إلى إنشاء الحساب",
+    loadingTitle: "جارٍ تحميل الوصول",
+    loadingSubtitle: "يتم تجهيز بوابة الحساب...",
+  },
+} as const;
+
 function AuthGatewayContent() {
   const router = useRouter();
   const sp = useSearchParams();
+  const locale = normalizeLocale(useLocale());
+  const copy = COPY[locale];
 
   const initialMode = useMemo<AuthMode>(() => readMode(sp.get("mode")), [sp]);
   const initialRole = useMemo<AuthRoleUi>(() => readRole(sp.get("role")), [sp]);
@@ -27,9 +76,9 @@ function AuthGatewayContent() {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [role, setRole] = useState<AuthRoleUi>(initialRole);
 
-  const title = mode === "login" ? "Welcome back" : "Create your account";
+  const title = mode === "login" ? copy.titleLogin : copy.titleSignup;
   const subtitle =
-    mode === "login" ? "Choose how you want to continue." : "Choose an account type to get started.";
+    mode === "login" ? copy.subtitleLogin : copy.subtitleSignup;
 
   function go() {
     const qs = new URLSearchParams({ role });
@@ -40,31 +89,31 @@ function AuthGatewayContent() {
     <AuthCard
       title={title}
       subtitle={subtitle}
-      eyebrow="Account access"
+      eyebrow={copy.eyebrow}
       showBackHome
       width="lg"
       footnote={
         <div className="text-center text-xs text-secondary">
           {mode === "login" ? (
             <>
-              New here?{" "}
+              {copy.footnoteLoginPrefix}{" "}
               <button
                 type="button"
                 onClick={() => setMode("signup")}
                 className="font-semibold text-[#4F46E5] hover:underline"
               >
-                Create an account
+                {copy.footnoteLoginAction}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{" "}
+              {copy.footnoteSignupPrefix}{" "}
               <button
                 type="button"
                 onClick={() => setMode("login")}
                 className="font-semibold text-[#4F46E5] hover:underline"
               >
-                Sign in
+                {copy.footnoteSignupAction}
               </button>
             </>
           )}
@@ -84,7 +133,7 @@ function AuthGatewayContent() {
                 : "text-secondary hover:text-primary",
             ].join(" ")}
           >
-            Log in
+            {copy.tabLogin}
           </button>
           <button
             type="button"
@@ -96,7 +145,7 @@ function AuthGatewayContent() {
                 : "text-secondary hover:text-primary",
             ].join(" ")}
           >
-            Sign up
+            {copy.tabSignup}
           </button>
         </div>
 
@@ -104,15 +153,15 @@ function AuthGatewayContent() {
         <div className="grid gap-3 sm:grid-cols-2">
           <RoleCard
             active={role === "customer"}
-            title="Customer"
-            desc="Book stays, manage trips, request refunds."
+            title={copy.customer}
+            desc={copy.customerDesc}
             icon={<User2 className="h-5 w-5" />}
             onClick={() => setRole("customer")}
           />
           <RoleCard
             active={role === "vendor"}
-            title="Vendor"
-            desc="List homes, manage availability, handle bookings."
+            title={copy.vendor}
+            desc={copy.vendorDesc}
             icon={<Building2 className="h-5 w-5" />}
             onClick={() => setRole("vendor")}
           />
@@ -124,7 +173,7 @@ function AuthGatewayContent() {
           whileTap={{ scale: 0.98 }}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#4F46E5] px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.32)] hover:bg-[#4338CA] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30"
         >
-          {mode === "login" ? "Continue to login" : "Continue to sign up"}
+          {mode === "login" ? copy.continueLogin : copy.continueSignup}
           <ArrowRight className="h-4 w-4" />
         </motion.button>
       </div>
@@ -133,13 +182,16 @@ function AuthGatewayContent() {
 }
 
 export default function AuthGatewayPage() {
+  const locale = normalizeLocale(useLocale());
+  const copy = COPY[locale];
+
   return (
     <Suspense
       fallback={
         <AuthCard
-          title="Loading access"
-          subtitle="Preparing account gateway..."
-          eyebrow="Account access"
+          title={copy.loadingTitle}
+          subtitle={copy.loadingSubtitle}
+          eyebrow={copy.eyebrow}
           showBackHome
           width="lg"
         >

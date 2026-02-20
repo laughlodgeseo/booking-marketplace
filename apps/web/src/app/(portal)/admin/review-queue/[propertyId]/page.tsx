@@ -13,6 +13,7 @@ import {
   requestChangesAdminProperty,
 } from "@/lib/api/admin/reviewQueue";
 import { getAdminPortalPropertyDetail } from "@/lib/api/portal/admin";
+import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 type ViewState =
   | { kind: "loading" }
@@ -242,7 +243,7 @@ export default function AdminReviewQueueDetailPage() {
                         <div className="aspect-[4/3] w-full bg-bg-2">
                           {url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={url} alt={getString(item, "alt") ?? "Property media"} className="h-full w-full object-cover" />
+                            <img src={resolveMediaUrl(url)} alt={getString(item, "alt") ?? "Property media"} className="h-full w-full object-cover" />
                           ) : null}
                         </div>
                         <div className="p-3 text-xs text-secondary">{getString(item, "category") ?? "OTHER"}</div>

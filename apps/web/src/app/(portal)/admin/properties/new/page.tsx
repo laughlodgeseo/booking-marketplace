@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { ArrowLeft, CheckCircle2, Loader2, Save } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { SelectableTile } from "@/components/portal/ui/SelectableTile";
+import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
 import { AdminPropertyMediaManager } from "@/components/portal/admin/properties/AdminPropertyMediaManager";
-import { PortalMapPicker } from "@/components/portal/maps/PortalMapPicker";
 
 import {
   createAdminProperty,
@@ -22,6 +24,14 @@ import {
   type AdminPropertyDetail,
   type MediaCategory,
 } from "@/lib/api/portal/admin";
+
+const PortalMapPicker = dynamic(
+  () => import("@/components/portal/maps/PortalMapPicker").then((mod) => mod.PortalMapPicker),
+  {
+    ssr: false,
+    loading: () => <PortalLoadingCard kind="mapPicker" />,
+  },
+);
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -377,7 +387,7 @@ export default function AdminPropertyCreatePage() {
       right={
         <Link
           href="/admin/properties"
-          className="inline-flex h-11 items-center gap-2 rounded-2xl border border-line/80 bg-surface px-4 text-sm font-semibold shadow-sm hover:bg-warm-alt"
+          className="inline-flex h-11 items-center gap-2 rounded-2xl border border-brand/25 bg-accent-soft/28 px-4 text-sm font-semibold text-brand shadow-sm hover:bg-accent-soft/40"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to properties
@@ -596,7 +606,7 @@ export default function AdminPropertyCreatePage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-line/50 bg-surface p-6 shadow-sm">
+            <section className="rounded-3xl border border-brand/20 bg-[linear-gradient(180deg,rgba(248,242,232,0.94),rgba(240,233,220,0.72))] p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-primary">
@@ -606,7 +616,7 @@ export default function AdminPropertyCreatePage() {
                     Uses the same catalog as vendor listings.
                   </div>
                 </div>
-                <div className="text-xs font-semibold text-secondary">
+                <div className="inline-flex items-center rounded-full bg-accent-soft/42 px-3 py-1 text-xs font-semibold text-brand">
                   Selected: {selectedAmenityIds.length}
                 </div>
               </div>
@@ -621,7 +631,7 @@ export default function AdminPropertyCreatePage() {
                   amenitiesGroups.map((group) => (
                     <div
                       key={group.group?.id ?? "ungrouped"}
-                      className="rounded-2xl border border-line/80 bg-surface p-4"
+                      className="rounded-2xl border border-brand/16 bg-surface/80 p-4"
                     >
                       <div className="text-sm font-semibold text-primary">
                         {group.group?.name ?? "Other"}
@@ -630,19 +640,13 @@ export default function AdminPropertyCreatePage() {
                         {group.amenities.map((amenity) => {
                           const selected = selectedAmenityIds.includes(amenity.id);
                           return (
-                            <button
+                            <SelectableTile
                               key={amenity.id}
-                              type="button"
+                              label={amenity.name}
+                              selected={selected}
                               onClick={() => toggleAmenity(amenity.id)}
-                              className={cn(
-                                "rounded-xl border px-3 py-2 text-left text-sm font-medium",
-                                selected
-                                  ? "border-brand/45 bg-accent-soft/80 text-primary"
-                                  : "border-line/80 bg-surface text-secondary hover:bg-warm-alt"
-                              )}
-                            >
-                              {amenity.name}
-                            </button>
+                              className="min-h-[44px]"
+                            />
                           );
                         })}
                       </div>
@@ -701,7 +705,7 @@ export default function AdminPropertyCreatePage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-line/50 bg-surface p-6 shadow-sm">
+            <section className="rounded-3xl border border-brand/14 bg-surface p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-primary">Photos</div>
@@ -829,7 +833,7 @@ export default function AdminPropertyCreatePage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-line/50 bg-surface p-6 shadow-sm">
+            <section className="rounded-3xl border border-brand/18 bg-surface p-6 shadow-sm">
               <div className="mt-4 flex justify-end">
                 <button
                   type="button"
@@ -873,7 +877,7 @@ export default function AdminPropertyCreatePage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-line/50 bg-surface p-6 shadow-sm">
+            <section className="rounded-3xl border border-brand/18 bg-[linear-gradient(180deg,rgba(248,242,232,0.94),rgba(240,233,220,0.70))] p-6 shadow-sm">
               <div className="mb-4 text-sm font-semibold text-primary">
                 Amenities
               </div>
@@ -881,7 +885,7 @@ export default function AdminPropertyCreatePage() {
                 {amenitiesGroups.map((group) => (
                   <div
                     key={group.group?.id ?? "ungrouped"}
-                    className="rounded-2xl border border-line/80 p-4"
+                    className="rounded-2xl border border-brand/16 bg-surface/80 p-4"
                   >
                     <div className="text-sm font-semibold text-primary">
                       {group.group?.name ?? "Other"}
@@ -890,19 +894,13 @@ export default function AdminPropertyCreatePage() {
                       {group.amenities.map((amenity) => {
                         const selected = selectedAmenityIds.includes(amenity.id);
                         return (
-                          <button
+                          <SelectableTile
                             key={amenity.id}
-                            type="button"
+                            label={amenity.name}
+                            selected={selected}
                             onClick={() => toggleAmenity(amenity.id)}
-                            className={cn(
-                              "rounded-xl border px-3 py-2 text-left text-sm font-medium",
-                              selected
-                                ? "border-brand/45 bg-accent-soft/80 text-primary"
-                                : "border-line/80 bg-surface text-secondary hover:bg-warm-alt"
-                            )}
-                          >
-                            {amenity.name}
-                          </button>
+                            className="min-h-[44px]"
+                          />
                         );
                       })}
                     </div>

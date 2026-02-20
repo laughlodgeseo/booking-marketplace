@@ -1,9 +1,31 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma, PropertyStatus } from '@prisma/client';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BookingStatus,
+  CalendarDayStatus,
+  HoldStatus,
+  LocaleCode,
+  Prisma,
+  PropertyStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchPropertiesQuery } from './dto/search-properties.query';
 import { SearchMapQuery } from './dto/search-map.query';
 import { SearchMapViewportQuery } from './dto/search-map-viewport.query';
+import {
+  assertValidRange,
+  buildOverlapFilter,
+  calculateNights,
+  normalizeCheckIn,
+  normalizeCheckOut,
+  utcDateToIsoDay,
+} from '../../common/date-range';
+import {
+  DEFAULT_DISPLAY_CURRENCY,
+  normalizeDisplayCurrency,
+  AppLocale,
+  DisplayCurrency,
+} from '../../common/i18n/locale';
+import { FxRatesService } from '../fx/fx-rates.service';
 
 type CacheEntry<T> = { expiresAt: number; value: T };
 
@@ -24,23 +46,6 @@ function cacheSet<T>(key: string, value: T, ttlMs: number) {
 }
 function stableStringify(obj: object) {
   return JSON.stringify(obj, Object.keys(obj).sort());
-}
-
-function parseISODateOnly(s: string): Date {
-  // expects YYYY-MM-DD
-  // Always parse as UTC midnight for consistency
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    throw new BadRequestException('Invalid date format. Use YYYY-MM-DD.');
-  }
-  const d = new Date(`${s}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) throw new BadRequestException('Invalid date.');
-  return d;
-}
-
-function nightsBetween(checkIn: Date, checkOut: Date): number {
-  const ms = checkOut.getTime() - checkIn.getTime();
-  const nights = Math.floor(ms / (24 * 60 * 60 * 1000));
-  return nights;
 }
 
 function parseAmenityKeys(raw?: string): string[] {
@@ -108,8 +113,14 @@ type SearchCard = {
     nightly: number;
     cleaningFee: number;
     currency: string;
+    nightlyAed?: number;
+    cleaningFeeAed?: number;
     totalForStay?: number;
+    totalForStayAed?: number;
     nights?: number;
+    fxRate?: number;
+    fxAsOf?: string | null;
+    fxProvider?: string | null;
   };
   flags: {
     instantBook: boolean;
@@ -122,6 +133,10 @@ type SearchPoint = {
   lng: number;
   priceFrom: number;
   currency: string;
+  priceFromAed?: number;
+  fxRate?: number;
+  fxAsOf?: string | null;
+  fxProvider?: string | null;
 };
 
 type SearchPropertiesResult = {
@@ -152,9 +167,45 @@ type SearchMapViewportResult = {
   points: SearchPoint[];
 };
 
+type SearchContext = {
+  locale?: AppLocale;
+  displayCurrency?: DisplayCurrency;
+};
+
 @Injectable()
 export class SearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(SearchService.name);
+  private readonly debugSearch = process.env.DEBUG_SEARCH === '1';
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fxRates: FxRatesService,
+  ) {}
+
+  private resolveLocale(input?: AppLocale): LocaleCode {
+    return input === 'ar' ? LocaleCode.ar : LocaleCode.en;
+  }
+
+  private pickTranslation<T extends { locale: LocaleCode }>(
+    translations: T[] | undefined,
+    locale: LocaleCode,
+  ): T | null {
+    if (!translations || translations.length === 0) return null;
+    return (
+      translations.find((item) => item.locale === locale) ??
+      translations.find((item) => item.locale === LocaleCode.en) ??
+      null
+    );
+  }
+
+  private resolveDisplayCurrency(input?: DisplayCurrency): DisplayCurrency {
+    if (!input) return DEFAULT_DISPLAY_CURRENCY;
+    return normalizeDisplayCurrency(input);
+  }
+
+  private toDisplayAmount(amountAed: number, fxRate: number): number {
+    return Math.round(amountAed * fxRate);
+  }
 
   private buildGeoFilter(params: {
     lat?: number;
@@ -219,6 +270,29 @@ export class SearchService {
     return null;
   }
 
+  private parseSearchDates(query: SearchQueryLike): {
+    checkIn?: Date;
+    checkOut?: Date;
+    nights?: number;
+    rawCheckIn?: string;
+    rawCheckOut?: string;
+  } {
+    const rawCheckIn = query.checkIn?.trim() ?? '';
+    const rawCheckOut = query.checkOut?.trim() ?? '';
+
+    if (!rawCheckIn && !rawCheckOut) return {};
+    if (!rawCheckIn || !rawCheckOut) return {};
+
+    const checkIn = normalizeCheckIn(rawCheckIn);
+    const checkOut = normalizeCheckOut(rawCheckOut);
+    assertValidRange(checkIn, checkOut);
+
+    const nights = calculateNights(checkIn, checkOut);
+    if (nights <= 0) throw new BadRequestException('Invalid date range');
+
+    return { checkIn, checkOut, nights, rawCheckIn, rawCheckOut };
+  }
+
   /**
    * Availability filter (best policy): if checkIn/checkOut are provided,
    * only return properties that are bookable for the full range.
@@ -233,6 +307,12 @@ export class SearchService {
     checkOut?: Date,
   ): Prisma.PropertyWhereInput | null {
     if (!checkIn || !checkOut) return null;
+    const overlap = buildOverlapFilter(
+      'checkIn',
+      'checkOut',
+      checkIn,
+      checkOut,
+    );
 
     return {
       AND: [
@@ -241,23 +321,22 @@ export class SearchService {
           NOT: {
             calendarDays: {
               some: {
-                status: 'BLOCKED',
+                status: CalendarDayStatus.BLOCKED,
                 date: { gte: checkIn, lt: checkOut },
               },
             },
           },
         },
 
-        // No overlapping bookings (exclude CANCELLED only)
+        // No overlapping bookings (pending payment + confirmed)
         {
           NOT: {
             bookings: {
               some: {
-                status: { not: 'CANCELLED' },
-                AND: [
-                  { checkIn: { lt: checkOut } },
-                  { checkOut: { gt: checkIn } },
-                ],
+                status: {
+                  in: [BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED],
+                },
+                AND: overlap,
               },
             },
           },
@@ -268,12 +347,9 @@ export class SearchService {
           NOT: {
             holds: {
               some: {
-                status: 'ACTIVE',
+                status: HoldStatus.ACTIVE,
                 expiresAt: { gt: new Date() },
-                AND: [
-                  { checkIn: { lt: checkOut } },
-                  { checkOut: { gt: checkIn } },
-                ],
+                AND: overlap,
               },
             },
           },
@@ -284,8 +360,16 @@ export class SearchService {
 
   private buildCoreWhere(
     q: SearchPropertiesQuery | SearchMapQuery | SearchMapViewportQuery,
+    dateInfo?: {
+      checkIn?: Date;
+      checkOut?: Date;
+      nights?: number;
+    },
+    opts?: { includeAvailability?: boolean },
   ) {
     const query: SearchQueryLike = q;
+    const includeAvailability = opts?.includeAvailability !== false;
+    const dates = dateInfo ?? this.parseSearchDates(query);
 
     const geo = this.buildGeoFilter({
       lat: query.lat,
@@ -354,25 +438,34 @@ export class SearchService {
     }
 
     // Dates availability
-    const checkInStr = query.checkIn;
-    const checkOutStr = query.checkOut;
-    if (checkInStr && checkOutStr) {
-      const checkIn = parseISODateOnly(checkInStr);
-      const checkOut = parseISODateOnly(checkOutStr);
-      if (!(checkOut > checkIn))
-        throw new BadRequestException('checkOut must be after checkIn');
+    if (dates.checkIn && dates.checkOut && dates.nights !== undefined) {
+      const stayNights = dates.nights;
 
-      const stayNights = nightsBetween(checkIn, checkOut);
-      if (stayNights <= 0) throw new BadRequestException('Invalid date range');
-
-      // enforce min nights at search level (max nights optional)
-      and.push({ minNights: { lte: stayNights } });
+      // enforce min/max nights using availability settings (aligns with quote logic)
       and.push({
-        OR: [{ maxNights: null }, { maxNights: { gte: stayNights } }],
+        OR: [
+          { availabilitySettings: { is: null } },
+          {
+            availabilitySettings: {
+              is: {
+                defaultMinNights: { lte: stayNights },
+                OR: [
+                  { defaultMaxNights: null },
+                  { defaultMaxNights: { gte: stayNights } },
+                ],
+              },
+            },
+          },
+        ],
       });
 
-      const avail = this.buildAvailabilityWhere(checkIn, checkOut);
-      if (avail) and.push(avail);
+      if (includeAvailability) {
+        const avail = this.buildAvailabilityWhere(
+          dates.checkIn,
+          dates.checkOut,
+        );
+        if (avail) and.push(avail);
+      }
     }
 
     if (and.length > 0) where.AND = and;
@@ -428,7 +521,11 @@ export class SearchService {
 
   async searchProperties(
     q: SearchPropertiesQuery,
+    context?: SearchContext,
   ): Promise<SearchPropertiesResult> {
+    const locale = this.resolveLocale(context?.locale);
+    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const fx = await this.fxRates.resolveRate(displayCurrency);
     const page = q.page ?? 1;
     const limit = q.limit ?? q.pageSize ?? 20;
     const skip = (page - 1) * limit;
@@ -444,12 +541,27 @@ export class SearchService {
       page,
       limit,
       pageSize: limit,
+      locale,
+      displayCurrency,
     })}`;
     const cached = cacheGet<SearchPropertiesResult>(cacheKey);
     if (cached) return cached;
 
-    const where = this.buildCoreWhere(q);
+    const dateInfo = this.parseSearchDates(q);
+    const where = this.buildCoreWhere(q, dateInfo, {
+      includeAvailability: true,
+    });
     const orderBy = this.buildOrderBy(q.sort);
+
+    let preAvailabilityCount: number | null = null;
+    if (this.debugSearch && dateInfo.checkIn && dateInfo.checkOut) {
+      const baseWhere = this.buildCoreWhere(q, dateInfo, {
+        includeAvailability: false,
+      });
+      preAvailabilityCount = await this.prisma.property.count({
+        where: baseWhere,
+      });
+    }
 
     const [total, rows] = await Promise.all([
       this.prisma.property.count({ where }),
@@ -464,6 +576,15 @@ export class SearchService {
           title: true,
           city: true,
           area: true,
+          translations: {
+            where: { locale: { in: [locale, LocaleCode.en] } },
+            select: {
+              locale: true,
+              title: true,
+              areaLabel: true,
+            },
+            take: 2,
+          },
           address: true,
           lat: true,
           lng: true,
@@ -486,38 +607,75 @@ export class SearchService {
 
     let stay: null | { nights: number; checkIn: string; checkOut: string } =
       null;
-    if (q.checkIn && q.checkOut) {
-      const checkIn = parseISODateOnly(q.checkIn);
-      const checkOut = parseISODateOnly(q.checkOut);
-      const nights = nightsBetween(checkIn, checkOut);
-      stay = { nights, checkIn: q.checkIn, checkOut: q.checkOut };
+    if (
+      dateInfo.checkIn &&
+      dateInfo.checkOut &&
+      dateInfo.nights !== undefined
+    ) {
+      stay = {
+        nights: dateInfo.nights,
+        checkIn: q.checkIn!,
+        checkOut: q.checkOut!,
+      };
+    }
+
+    if (
+      this.debugSearch &&
+      dateInfo.checkIn &&
+      dateInfo.checkOut &&
+      dateInfo.nights !== undefined
+    ) {
+      const rawCheckIn = dateInfo.rawCheckIn ?? q.checkIn ?? '';
+      const rawCheckOut = dateInfo.rawCheckOut ?? q.checkOut ?? '';
+      const normalizedCheckIn = utcDateToIsoDay(dateInfo.checkIn);
+      const normalizedCheckOut = utcDateToIsoDay(dateInfo.checkOut);
+      const baseCount = preAvailabilityCount ?? total;
+      this.logger.debug(
+        `search availability debug: raw=${rawCheckIn}/${rawCheckOut} normalized=${normalizedCheckIn}/${normalizedCheckOut} nights=${dateInfo.nights} preAvail=${baseCount} postAvail=${total}`,
+      );
     }
 
     const items = rows.map((p) => {
+      const translation = this.pickTranslation(p.translations, locale);
       const cover = p.media?.[0] ?? null;
+      const nightlyDisplay = this.toDisplayAmount(p.basePrice, fx.rate);
+      const cleaningFeeDisplay = this.toDisplayAmount(p.cleaningFee, fx.rate);
+      const totalForStayAed = stay
+        ? p.basePrice * stay.nights + p.cleaningFee
+        : undefined;
+      const totalForStayDisplay =
+        typeof totalForStayAed === 'number'
+          ? this.toDisplayAmount(totalForStayAed, fx.rate)
+          : undefined;
 
       // Portal-driven pricing:
       // - always return nightly base
       // - if stay provided: also return total for stay (base*nights + cleaning)
       const price = {
-        nightly: p.basePrice,
-        cleaningFee: p.cleaningFee,
-        currency: p.currency,
+        nightly: nightlyDisplay,
+        cleaningFee: cleaningFeeDisplay,
+        currency: displayCurrency,
+        nightlyAed: p.basePrice,
+        cleaningFeeAed: p.cleaningFee,
         ...(stay
           ? {
-              totalForStay: p.basePrice * stay.nights + p.cleaningFee,
+              totalForStay: totalForStayDisplay,
+              totalForStayAed,
               nights: stay.nights,
             }
           : {}),
+        fxRate: fx.rate,
+        fxAsOf: fx.asOfDate,
+        fxProvider: fx.provider,
       };
 
       return {
         id: p.id,
         slug: p.slug,
-        title: p.title,
+        title: translation?.title ?? p.title,
         location: {
           city: p.city,
-          area: p.area,
+          area: translation?.areaLabel ?? p.area,
           address: p.address,
           lat: p.lat,
           lng: p.lng,
@@ -565,17 +723,28 @@ export class SearchService {
     return result;
   }
 
-  async searchMap(q: SearchMapQuery): Promise<SearchMapResult> {
+  async searchMap(
+    q: SearchMapQuery,
+    context?: SearchContext,
+  ): Promise<SearchMapResult> {
+    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const fx = await this.fxRates.resolveRate(displayCurrency);
     // Map endpoints often need bigger limits than cards.
     // Still enforce safety to avoid insane payloads.
     const hasDates = Boolean(q.checkIn && q.checkOut);
     const ttlMs = hasDates ? 30_000 : 90_000;
 
-    const cacheKey = `search:map:${stableStringify(q)}`;
+    const cacheKey = `search:map:${stableStringify({
+      ...q,
+      displayCurrency,
+    })}`;
     const cached = cacheGet<SearchMapResult>(cacheKey);
     if (cached) return cached;
 
-    const where = this.buildCoreWhere(q);
+    const dateInfo = this.parseSearchDates(q);
+    const where = this.buildCoreWhere(q, dateInfo, {
+      includeAvailability: true,
+    });
 
     // IMPORTANT: Map needs only points; keep selection minimal.
     const rows = await this.prisma.property.findMany({
@@ -597,8 +766,12 @@ export class SearchService {
         propertyId: r.id,
         lat: r.lat!,
         lng: r.lng!,
-        priceFrom: r.basePrice,
-        currency: r.currency,
+        priceFrom: this.toDisplayAmount(r.basePrice, fx.rate),
+        currency: displayCurrency,
+        priceFromAed: r.basePrice,
+        fxRate: fx.rate,
+        fxAsOf: fx.asOfDate,
+        fxProvider: fx.provider,
       }));
 
     const result: SearchMapResult = {
@@ -617,7 +790,10 @@ export class SearchService {
    */
   async searchMapViewport(
     q: SearchMapViewportQuery,
+    context?: SearchContext,
   ): Promise<SearchMapViewportResult> {
+    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const fx = await this.fxRates.resolveRate(displayCurrency);
     this.validateViewportBounds(q);
 
     const hasDates = Boolean(q.checkIn && q.checkOut);
@@ -625,11 +801,17 @@ export class SearchService {
     // Cache shorter for map viewport because users pan quickly
     const ttlMs = hasDates ? 20_000 : 45_000;
 
-    const cacheKey = `search:map-viewport:${stableStringify(q)}`;
+    const cacheKey = `search:map-viewport:${stableStringify({
+      ...q,
+      displayCurrency,
+    })}`;
     const cached = cacheGet<SearchMapViewportResult>(cacheKey);
     if (cached) return cached;
 
-    const where = this.buildCoreWhere(q);
+    const dateInfo = this.parseSearchDates(q);
+    const where = this.buildCoreWhere(q, dateInfo, {
+      includeAvailability: true,
+    });
 
     const rows = await this.prisma.property.findMany({
       where,
@@ -650,8 +832,12 @@ export class SearchService {
         propertyId: r.id,
         lat: r.lat!,
         lng: r.lng!,
-        priceFrom: r.basePrice,
-        currency: r.currency,
+        priceFrom: this.toDisplayAmount(r.basePrice, fx.rate),
+        currency: displayCurrency,
+        priceFromAed: r.basePrice,
+        fxRate: fx.rate,
+        fxAsOf: fx.asOfDate,
+        fxProvider: fx.provider,
       }));
 
     const result: SearchMapViewportResult = {

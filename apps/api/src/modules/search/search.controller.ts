@@ -1,8 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Header, Query, Req } from '@nestjs/common';
 import { SearchService } from './search.service';
 import { SearchPropertiesQuery } from './dto/search-properties.query';
 import { SearchMapQuery } from './dto/search-map.query';
 import { SearchMapViewportQuery } from './dto/search-map-viewport.query';
+import type { AppRequest } from '../../common/i18n/app-request';
 
 @Controller('search')
 export class SearchController {
@@ -14,8 +15,15 @@ export class SearchController {
    * - If checkIn/checkOut provided: filters to only date-available properties (best policy)
    */
   @Get('properties')
-  searchProperties(@Query() q: SearchPropertiesQuery) {
-    return this.search.searchProperties(q);
+  @Header(
+    'Cache-Control',
+    'public, max-age=30, s-maxage=30, stale-while-revalidate=120',
+  )
+  searchProperties(@Query() q: SearchPropertiesQuery, @Req() req: AppRequest) {
+    return this.search.searchProperties(q, {
+      locale: req.locale,
+      displayCurrency: req.displayCurrency,
+    });
   }
 
   /**
@@ -28,8 +36,11 @@ export class SearchController {
    * For real Google Maps pan/zoom, prefer /search/map-viewport.
    */
   @Get('map')
-  searchMap(@Query() q: SearchMapQuery) {
-    return this.search.searchMap(q);
+  searchMap(@Query() q: SearchMapQuery, @Req() req: AppRequest) {
+    return this.search.searchMap(q, {
+      locale: req.locale,
+      displayCurrency: req.displayCurrency,
+    });
   }
 
   /**
@@ -37,7 +48,13 @@ export class SearchController {
    * Frontend sends bounds (north/south/east/west) and we return only markers inside.
    */
   @Get('map-viewport')
-  searchMapViewport(@Query() q: SearchMapViewportQuery) {
-    return this.search.searchMapViewport(q);
+  searchMapViewport(
+    @Query() q: SearchMapViewportQuery,
+    @Req() req: AppRequest,
+  ) {
+    return this.search.searchMapViewport(q, {
+      locale: req.locale,
+      displayCurrency: req.displayCurrency,
+    });
   }
 }

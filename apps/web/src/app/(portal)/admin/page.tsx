@@ -13,10 +13,12 @@ import {
   Wallet,
   Wrench,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatCard } from "@/components/portal/StatCard";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
+import { FilterChips } from "@/components/portal/ui/FilterChips";
 import { getAdminAnalytics, getAdminOverview } from "@/lib/api/portal/admin";
 
 type AdminOverviewData = Awaited<ReturnType<typeof getAdminOverview>>;
@@ -46,7 +48,12 @@ function pickSeries(
   return toPoints(labels, points);
 }
 
-function BreakdownCard(props: { title: string; rows: Record<string, number> | undefined; icon: React.ReactNode }) {
+function BreakdownCard(props: {
+  title: string;
+  rows: Record<string, number> | undefined;
+  icon: React.ReactNode;
+  noDataLabel: string;
+}) {
   const entries = Object.entries(props.rows ?? {}).sort((a, b) => b[1] - a[1]);
 
   return (
@@ -56,7 +63,7 @@ function BreakdownCard(props: { title: string; rows: Record<string, number> | un
         {props.title}
       </div>
       {entries.length === 0 ? (
-        <div className="mt-3 text-sm text-secondary">No data available.</div>
+        <div className="mt-3 text-sm text-secondary">{props.noDataLabel}</div>
       ) : (
         <div className="mt-4 space-y-2">
           {entries.map(([key, value]) => (
@@ -74,6 +81,7 @@ function BreakdownCard(props: { title: string; rows: Record<string, number> | un
 }
 
 export default function AdminDashboardPage() {
+  const tPortal = useTranslations("portal");
   const [range, setRange] = useState<RangeKey>("90d");
   const [state, setState] = useState<ViewState>({ kind: "loading" });
 
@@ -92,7 +100,7 @@ export default function AdminDashboardPage() {
         if (!alive) return;
         setState({
           kind: "error",
-          message: error instanceof Error ? error.message : "Failed to load admin dashboard",
+          message: error instanceof Error ? error.message : tPortal("adminDashboard.errors.load"),
         });
       }
     }
@@ -100,15 +108,15 @@ export default function AdminDashboardPage() {
     return () => {
       alive = false;
     };
-  }, [range]);
+  }, [range, tPortal]);
 
   const content = useMemo(() => {
     if (state.kind === "loading") {
       return (
-        <div className="rounded-3xl border border-line/60 bg-surface p-8 text-sm text-secondary">
+        <div className="portal-card rounded-3xl bg-surface/90 p-8 text-sm text-secondary">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading dashboard...
+            {tPortal("loading.dashboard")}
           </div>
         </div>
       );
@@ -116,8 +124,8 @@ export default function AdminDashboardPage() {
 
     if (state.kind === "error") {
       return (
-        <div className="rounded-3xl border border-danger/30 bg-danger/10 p-6">
-          <div className="text-sm font-semibold text-danger">Dashboard unavailable</div>
+        <div className="portal-card rounded-3xl bg-danger/10 p-6">
+          <div className="text-sm font-semibold text-danger">{tPortal("adminDashboard.errors.title")}</div>
           <div className="mt-2 text-sm text-danger">{state.message}</div>
         </div>
       );
@@ -137,138 +145,134 @@ export default function AdminDashboardPage() {
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            label="Properties Under Review"
+            label={tPortal("adminDashboard.kpi.propertiesUnderReview")}
             value={kpis.propertiesUnderReview ?? 0}
-            helper="Awaiting approval"
+            helper={tPortal("adminDashboard.kpiHelpers.awaitingApproval")}
             icon={<ShieldCheck className="h-4 w-4" />}
             variant="dark"
           />
           <StatCard
-            label="Published Properties"
+            label={tPortal("adminDashboard.kpi.publishedProperties")}
             value={kpis.propertiesPublished ?? 0}
-            helper="Live inventory"
+            helper={tPortal("adminDashboard.kpiHelpers.liveInventory")}
             icon={<Building2 className="h-4 w-4" />}
           />
           <StatCard
-            label="Confirmed Bookings"
+            label={tPortal("adminDashboard.kpi.confirmedBookings")}
             value={kpis.bookingsConfirmed ?? 0}
-            helper="Current platform total"
+            helper={tPortal("adminDashboard.kpiHelpers.platformTotal")}
             icon={<ClipboardCheck className="h-4 w-4" />}
           />
           <StatCard
-            label="Revenue Captured"
+            label={tPortal("adminDashboard.kpi.revenueCaptured")}
             value={kpis.revenueCaptured ?? 0}
-            helper="Captured payments"
+            helper={tPortal("adminDashboard.kpiHelpers.capturedPayments")}
             icon={<Wallet className="h-4 w-4" />}
           />
           <StatCard
-            label="Users"
+            label={tPortal("adminDashboard.kpi.users")}
             value={kpis.usersTotal ?? 0}
-            helper="All roles"
+            helper={tPortal("adminDashboard.kpiHelpers.allRoles")}
             icon={<Users className="h-4 w-4" />}
           />
           <StatCard
-            label="Pending Vendors"
+            label={tPortal("adminDashboard.kpi.pendingVendors")}
             value={kpis.vendorsPending ?? 0}
-            helper="Need review"
+            helper={tPortal("adminDashboard.kpiHelpers.needReview")}
             icon={<Users className="h-4 w-4" />}
           />
           <StatCard
-            label="Ops Tasks Open"
+            label={tPortal("adminDashboard.kpi.opsTasksOpen")}
             value={kpis.opsTasksOpen ?? 0}
-            helper="Pending, assigned, in progress"
+            helper={tPortal("adminDashboard.kpiHelpers.opsTaskStates")}
             icon={<Wrench className="h-4 w-4" />}
           />
           <StatCard
-            label="Refunds Pending"
+            label={tPortal("adminDashboard.kpi.refundsPending")}
             value={kpis.refundsPending ?? 0}
-            helper="Needs action"
+            helper={tPortal("adminDashboard.kpiHelpers.needsAction")}
             icon={<AlertTriangle className="h-4 w-4" />}
           />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <SimpleBarChart
-            title="Bookings per period"
-            subtitle="Total booking volume"
+            title={tPortal("adminDashboard.charts.bookingsPerPeriod.title")}
+            subtitle={tPortal("adminDashboard.charts.bookingsPerPeriod.subtitle")}
             points={bookingsPoints}
           />
           <SimpleBarChart
-            title="Revenue per period"
-            subtitle="Captured payment amount"
+            title={tPortal("adminDashboard.charts.revenuePerPeriod.title")}
+            subtitle={tPortal("adminDashboard.charts.revenuePerPeriod.subtitle")}
             points={revenuePoints}
           />
           <SimpleBarChart
-            title="Payment captures trend"
-            subtitle="Captured transaction count"
+            title={tPortal("adminDashboard.charts.paymentCapturesTrend.title")}
+            subtitle={tPortal("adminDashboard.charts.paymentCapturesTrend.subtitle")}
             points={capturePoints}
           />
           <SimpleBarChart
-            title="Refunds trend"
-            subtitle="Succeeded refunds count"
+            title={tPortal("adminDashboard.charts.refundsTrend.title")}
+            subtitle={tPortal("adminDashboard.charts.refundsTrend.subtitle")}
             points={refundPoints}
           />
           <SimpleBarChart
-            title="Confirmed bookings trend"
-            subtitle="Confirmed over time"
+            title={tPortal("adminDashboard.charts.confirmedBookingsTrend.title")}
+            subtitle={tPortal("adminDashboard.charts.confirmedBookingsTrend.subtitle")}
             points={confirmedPoints}
           />
           <SimpleBarChart
-            title="Cancelled bookings trend"
-            subtitle="Cancelled over time"
+            title={tPortal("adminDashboard.charts.cancelledBookingsTrend.title")}
+            subtitle={tPortal("adminDashboard.charts.cancelledBookingsTrend.subtitle")}
             points={cancelledPoints}
           />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <BreakdownCard
-            title="Booking Status Breakdown"
+            title={tPortal("adminDashboard.breakdowns.bookingStatus")}
             rows={analytics.breakdowns?.bookingStatus}
             icon={<CheckCircle2 className="h-4 w-4" />}
+            noDataLabel={tPortal("adminDashboard.noData")}
           />
           <BreakdownCard
-            title="Ops Task Status Breakdown"
+            title={tPortal("adminDashboard.breakdowns.opsTaskStatus")}
             rows={analytics.breakdowns?.opsTaskStatus}
             icon={<Wrench className="h-4 w-4" />}
+            noDataLabel={tPortal("adminDashboard.noData")}
           />
           <BreakdownCard
-            title="Payment Status Breakdown"
+            title={tPortal("adminDashboard.breakdowns.paymentStatus")}
             rows={analytics.breakdowns?.paymentStatus}
             icon={<CreditCard className="h-4 w-4" />}
+            noDataLabel={tPortal("adminDashboard.noData")}
           />
           <BreakdownCard
-            title="Refund Status Breakdown"
+            title={tPortal("adminDashboard.breakdowns.refundStatus")}
             rows={analytics.breakdowns?.refundStatus}
             icon={<AlertTriangle className="h-4 w-4" />}
+            noDataLabel={tPortal("adminDashboard.noData")}
           />
         </div>
       </div>
     );
-  }, [state]);
+  }, [state, tPortal]);
 
   return (
     <PortalShell
       role="admin"
-      title="Admin Dashboard"
-      subtitle="Overview + analytics in one responsive workspace"
+      title={tPortal("adminDashboard.title")}
+      subtitle={tPortal("adminDashboard.subtitle")}
       right={(
-        <div className="flex items-center gap-2">
-          {(["30d", "90d", "365d"] as RangeKey[]).map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setRange(item)}
-              className={[
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                range === item
-                  ? "bg-white text-[#1d2a73] ring-1 ring-white/70"
-                  : "bg-black/20 text-inverted ring-1 ring-inverted/25 hover:bg-black/30",
-              ].join(" ")}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <FilterChips
+          options={[
+            { value: "30d", label: "30d" },
+            { value: "90d", label: "90d" },
+            { value: "365d", label: "365d" },
+          ]}
+          value={range}
+          onChange={(value) => setRange(value)}
+        />
       )}
     >
       {content}

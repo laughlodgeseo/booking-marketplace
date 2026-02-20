@@ -27,6 +27,27 @@ export type SearchParams = {
   pageSize?: number;
 };
 
+type RequestContext = {
+  locale?: string;
+  currency?: string;
+};
+
+function readCookieValue(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function withRequestHeaders(context?: RequestContext): Record<string, string> | undefined {
+  const headers: Record<string, string> = {};
+  const locale = context?.locale ?? readCookieValue("locale");
+  const currency = context?.currency ?? readCookieValue("currency");
+  if (locale) headers["x-locale"] = locale;
+  if (currency) headers["x-currency"] = currency;
+  return Object.keys(headers).length > 0 ? headers : undefined;
+}
+
 export type MapViewportParams = {
   north: number;
   south: number;
@@ -56,11 +77,12 @@ function normalizeAmenities(a: SearchParams["amenities"]): string | undefined {
   return s.length ? s : undefined;
 }
 
-export async function searchProperties(params: SearchParams) {
+export async function searchProperties(params: SearchParams, context?: RequestContext) {
   const amenities = normalizeAmenities(params.amenities);
 
   return apiFetch<SearchResponse>("/search/properties", {
     method: "GET",
+    headers: withRequestHeaders(context),
     query: {
       q: params.q ?? undefined,
       city: params.city ?? undefined,
@@ -80,16 +102,16 @@ export async function searchProperties(params: SearchParams) {
 
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 12,
-      limit: params.pageSize ?? 12,
       sort: normalizeSort(params.sort),
     },
-    cache: "no-store",
+    next: { revalidate: 30 },
   });
 }
 
-export async function searchMapViewport(params: MapViewportParams) {
+export async function searchMapViewport(params: MapViewportParams, context?: RequestContext) {
   return apiFetch<MapResponse>("/search/map-viewport", {
     method: "GET",
+    headers: withRequestHeaders(context),
     query: params,
     cache: "no-store",
   });

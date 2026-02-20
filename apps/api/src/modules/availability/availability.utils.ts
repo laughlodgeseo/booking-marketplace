@@ -1,28 +1,32 @@
 import { createHash } from 'node:crypto';
+import {
+  assertIsoDay,
+  buildOverlapFilter,
+  calculateNights,
+  isoDayToUtcDate,
+  normalizeCheckIn,
+  normalizeCheckOut,
+  rangesOverlap,
+  utcDateToIsoDay,
+  assertValidRange,
+  tryIsoDayToUtcDate,
+  type OverlapFilter,
+} from '../../common/date-range';
 
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+export {
+  assertIsoDay,
+  buildOverlapFilter,
+  calculateNights,
+  isoDayToUtcDate,
+  normalizeCheckIn,
+  normalizeCheckOut,
+  rangesOverlap,
+  utcDateToIsoDay,
+  assertValidRange,
+  tryIsoDayToUtcDate,
+};
 
-export function assertIsoDay(value: string, fieldName: string): void {
-  if (!ISO_DAY.test(value)) {
-    throw new Error(`${fieldName} must be YYYY-MM-DD`);
-  }
-}
-
-// Returns a Date at UTC midnight for YYYY-MM-DD
-export function isoDayToUtcDate(isoDay: string): Date {
-  assertIsoDay(isoDay, 'date');
-  const [y, m, d] = isoDay.split('-').map((x) => Number(x));
-  // Date.UTC month is 0-based
-  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
-}
-
-// Converts a UTC midnight Date back to YYYY-MM-DD
-export function utcDateToIsoDay(date: Date): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(date.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+export type { OverlapFilter };
 
 // Nights are checkIn..(checkOut-1 day)
 export function enumerateNights(checkInUtc: Date, checkOutUtc: Date): Date[] {

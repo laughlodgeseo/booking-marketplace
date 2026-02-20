@@ -1,6 +1,15 @@
-import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const SUPPORTED_CURRENCIES = ['AED', 'USD', 'SAR', 'EUR', 'GBP'] as const;
 
 export class ReserveRequestDto {
   @Matches(ISO_DAY, { message: 'checkIn must be YYYY-MM-DD' })
@@ -20,4 +29,9 @@ export class ReserveRequestDto {
   @Min(5)
   @Max(60)
   ttlMinutes?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(SUPPORTED_CURRENCIES)
+  currency?: string;
 }

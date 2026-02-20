@@ -11,13 +11,14 @@ export type AmenitiesGridProps = {
   items: AmenitiesGridItem[];
   columns?: 2 | 3 | 4;
   variant?: "card" | "section";
+  minItems?: number;
   footer?: ReactNode;
 };
 
 function colsClass(columns: 2 | 3 | 4) {
-  if (columns === 2) return "grid-cols-1 sm:grid-cols-2";
-  if (columns === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+  if (columns === 2) return "grid-cols-2 md:grid-cols-2";
+  if (columns === 3) return "grid-cols-2 md:grid-cols-3 lg:grid-cols-3";
+  return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 }
 
 export default function AmenitiesGrid({
@@ -25,30 +26,38 @@ export default function AmenitiesGrid({
   items,
   columns = 3,
   variant = "section",
+  minItems = 0,
   footer,
 }: AmenitiesGridProps) {
   const isLight = variant === "section";
+  const hasShell = Boolean(title || footer || variant === "card");
 
   const shell = isLight
-    ? "rounded-2xl border border-line bg-surface p-5 md:p-6"
-    : "rounded-2xl border border-inverted/10 bg-surface/[0.03] p-5 md:p-6";
+    ? "premium-card premium-card-tinted rounded-2xl border border-white/70 p-5 shadow-[0_18px_44px_rgba(11,15,25,0.1)] md:p-6"
+    : "rounded-2xl bg-surface/[0.06] p-5 shadow-sm ring-1 ring-black/10 md:p-6";
 
   const titleText = isLight ? "text-primary" : "text-inverted/90";
   const subText = isLight ? "text-secondary" : "text-inverted/60";
 
-  const itemBorder = isLight ? "border-line" : "border-inverted/10";
-  const itemBg = isLight ? "bg-surface" : "bg-surface/[0.02]";
-  const itemHover = isLight ? "hover:bg-warm-alt" : "hover:bg-surface/[0.04]";
+  const itemBg = isLight
+    ? "bg-[rgb(var(--color-bg-rgb)/0.78)]"
+    : "bg-[rgb(var(--color-surface-rgb)/0.08)]";
+  const itemHover = isLight
+    ? "hover:bg-[rgb(var(--color-bg-rgb)/0.9)] hover:shadow-sm"
+    : "hover:bg-[rgb(var(--color-surface-rgb)/0.12)] hover:shadow-sm";
 
-  const iconWrapBorder = isLight ? "border-line" : "border-inverted/10";
-  const iconWrapBg = isLight ? "bg-warm-alt" : "bg-surface/[0.03]";
-  const iconColor = isLight ? "text-secondary" : "text-inverted/85";
+  const iconWrapBg = isLight
+    ? "bg-indigo-600/10"
+    : "bg-[rgb(var(--color-surface-rgb)/0.16)]";
+  const iconColor = isLight ? "text-indigo-600/90" : "text-indigo-200";
 
   const labelText = isLight ? "text-primary" : "text-inverted/85";
   const smallText = isLight ? "text-muted" : "text-inverted/50";
+  const slots: Array<AmenitiesGridItem | null> = [...items];
+  while (slots.length < minItems) slots.push(null);
 
   return (
-    <section className={shell}>
+    <section className={hasShell ? shell : undefined}>
       {title ? (
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -60,8 +69,18 @@ export default function AmenitiesGrid({
         </div>
       ) : null}
 
-      <div className={`mt-5 grid gap-3 ${colsClass(columns)}`}>
-        {items.map((it) => {
+      <div className={`${title ? "mt-5" : ""} grid gap-3 ${colsClass(columns)}`.trim()}>
+        {slots.map((it, index) => {
+          if (!it) {
+            return (
+              <div
+                key={`ghost-${index}`}
+                aria-hidden="true"
+                className="min-h-[68px] rounded-xl bg-[rgb(var(--color-bg-rgb)/0.78)] ring-1 ring-white/72"
+              />
+            );
+          }
+
           const meta = getAmenityMeta(it.key);
           const Icon = meta.Icon;
           const label = it.label?.trim() ? it.label.trim() : meta.label;
@@ -69,21 +88,19 @@ export default function AmenitiesGrid({
           return (
             <div
               key={`${it.key}-${label}`}
-              className={[
-                "group flex items-center gap-3 rounded-xl border px-4 py-3 transition",
-                itemBorder,
+                className={[
+                "group flex items-center gap-3 rounded-2xl px-3.5 py-3 transition-shadow ring-1 ring-white/72",
                 itemBg,
                 itemHover,
               ].join(" ")}
             >
               <div
                 className={[
-                  "flex h-11 w-11 items-center justify-center rounded-xl border",
-                  iconWrapBorder,
+                  "grid h-9 w-9 shrink-0 place-items-center rounded-xl ring-1 ring-white/72",
                   iconWrapBg,
                 ].join(" ")}
               >
-                <Icon className={`h-[20px] w-[20px] ${iconColor}`} />
+                <Icon className={`h-[19px] w-[19px] stroke-[1.9] ${iconColor}`} />
               </div>
 
               <div className="min-w-0">

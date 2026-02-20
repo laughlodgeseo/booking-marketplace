@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { useLocale } from "next-intl";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type HeroSplitProps = {
   titleTop?: string;
@@ -19,14 +21,28 @@ type HeroSplitProps = {
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const HERO_CONTENT = {
-  eyebrow: "Dubai premium stays, operated like a hotel",
-  headlineTop: "Where every Dubai stay",
-  headlineEmphasis: "feels professionally hosted.",
-  subcopy:
-    "Instant confirmation, transparent pricing, and hotel-grade hosting backed by a real concierge team, 24/7.",
-  primaryCta: "Explore stays",
-  secondaryCta: "List your property",
-  collageBadge: "Verified availability",
+  en: {
+    eyebrow: "Dubai premium stays, operated like a hotel",
+    headlineTop: "Where every Dubai stay",
+    headlineEmphasis: "feels professionally hosted.",
+    subcopy:
+      "Instant confirmation, transparent pricing, and hotel-grade hosting backed by a real concierge team, 24/7.",
+    primaryCta: "Explore stays",
+    secondaryCta: "List your property",
+    collageBadge: "Verified availability",
+    concierge: "24/7 concierge",
+  },
+  ar: {
+    eyebrow: "إقامات دبي الفاخرة بإدارة تشغيلية احترافية",
+    headlineTop: "حيث تتحول كل إقامة في دبي",
+    headlineEmphasis: "إلى تجربة استضافة احترافية.",
+    subcopy:
+      "تأكيد فوري، تسعير واضح، واستضافة بمعايير فندقية مدعومة بفريق كونسيرج حقيقي على مدار الساعة.",
+    primaryCta: "استكشف الإقامات",
+    secondaryCta: "أدرج عقارك",
+    collageBadge: "توافر موثّق",
+    concierge: "كونسيرج 24/7",
+  },
 } as const;
 
 const COLLAGE_IMAGES = {
@@ -83,14 +99,16 @@ function tileReveal(delay: number, reduceMotion: boolean) {
 }
 
 export default function HeroSplit(props: HeroSplitProps) {
+  const locale = normalizeLocale(useLocale());
+  const copy = HERO_CONTENT[locale];
   const primaryCtaHref = safeHref(props.primaryCtaHref, "/properties");
   const secondaryCtaHref = safeHref(props.secondaryCtaHref, "/owners");
   const reduceMotion = useReducedMotion() ?? false;
-  const headlineTop = safeValue(props.titleTop, HERO_CONTENT.headlineTop);
-  const headlineEmphasis = safeValue(props.titleEmphasis, HERO_CONTENT.headlineEmphasis);
-  const subcopy = safeValue(props.subtitle, HERO_CONTENT.subcopy);
-  const primaryCtaLabel = safeValue(props.primaryCtaLabel, HERO_CONTENT.primaryCta);
-  const secondaryCtaLabel = safeValue(props.secondaryCtaLabel, HERO_CONTENT.secondaryCta);
+  const headlineTop = safeValue(props.titleTop, copy.headlineTop);
+  const headlineEmphasis = safeValue(props.titleEmphasis, copy.headlineEmphasis);
+  const subcopy = safeValue(props.subtitle, copy.subcopy);
+  const primaryCtaLabel = safeValue(props.primaryCtaLabel, copy.primaryCta);
+  const secondaryCtaLabel = safeValue(props.secondaryCtaLabel, copy.secondaryCta);
   const mainImageSrc = safeValue(props.heroImageUrl, COLLAGE_IMAGES.main);
 
   return (
@@ -104,7 +122,7 @@ export default function HeroSplit(props: HeroSplitProps) {
                 className="inline-flex items-center gap-2 rounded-full border border-[#d8ddf5] bg-white/84 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#222a49] shadow-[0_10px_24px_rgba(67,56,202,0.12)]"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-[#4f46e5]" />
-                {HERO_CONTENT.eyebrow}
+                {copy.eyebrow}
               </motion.div>
 
               <motion.h1
@@ -150,10 +168,10 @@ export default function HeroSplit(props: HeroSplitProps) {
                 className="flex flex-wrap items-center justify-center gap-2 lg:justify-start"
               >
                 <span className="inline-flex h-8 items-center rounded-full border border-[#c8d2ff] bg-white/86 px-3 text-xs font-semibold text-[#223064]">
-                  Verified availability
+                  {copy.collageBadge}
                 </span>
                 <span className="inline-flex h-8 items-center rounded-full border border-[#c8d2ff] bg-white/86 px-3 text-xs font-semibold text-[#223064]">
-                  24/7 concierge
+                  {copy.concierge}
                 </span>
               </motion.div>
             </div>
@@ -213,7 +231,7 @@ export default function HeroSplit(props: HeroSplitProps) {
                     className="absolute right-5 top-5 inline-flex items-center gap-1.5 rounded-full border border-white/52 bg-white/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#20305d] shadow-[0_10px_28px_rgba(13,18,35,0.16)]"
                   >
                     <ShieldCheck className="h-3.5 w-3.5 text-[#4b55de]" />
-                    {HERO_CONTENT.collageBadge}
+                    {copy.collageBadge}
                   </motion.div>
                 </div>
               </motion.div>

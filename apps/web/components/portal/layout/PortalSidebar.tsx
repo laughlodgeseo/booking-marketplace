@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { PortalNavItem } from "@/components/portal/layout/portal-navigation";
 import { groupNav } from "@/components/portal/layout/portal-navigation";
 
@@ -24,38 +25,38 @@ export function PortalSidebar(props: {
   footerHint?: ReactNode;
 }) {
   const pathname = usePathname();
+  const tPortal = useTranslations("portal");
   const grouped = groupNav(props.nav);
 
   return (
-    <aside className="hidden w-[300px] shrink-0 lg:block">
-      {/* ✅ Darker panel so it clearly separates from page bg (no borders) */}
-      <div className="sticky top-[90px] overflow-hidden rounded-3xl bg-[linear-gradient(180deg,#E7DDCF_0%,#E1D7C9_55%,#D9CFBF_100%)] shadow-[0_28px_78px_rgba(11,15,25,0.16)]">
+    <aside className="hidden w-[300px] shrink-0 overflow-x-hidden lg:block">
+      <div className="sticky top-[90px] overflow-hidden rounded-3xl bg-[linear-gradient(180deg,rgba(234,227,215,0.96)_0%,rgba(229,220,206,0.95)_55%,rgba(223,214,198,0.94)_100%)] shadow-[0_22px_62px_rgba(33,39,53,0.14)]">
         {/* subtle inner highlight so it feels “built” */}
         <div className="pointer-events-none absolute inset-0 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.55)]" />
 
-        {/* ✅ Top section as its own distinct “header block” */}
         <div className="px-4 pt-4">
-          <div className="rounded-3xl bg-[linear-gradient(180deg,rgba(255,255,255,0.78)_0%,rgba(255,255,255,0.62)_100%)] p-4 shadow-[0_16px_46px_rgba(11,15,25,0.10)]">
+          <div className="rounded-3xl bg-[linear-gradient(180deg,rgba(246,240,230,0.88)_0%,rgba(241,233,220,0.75)_100%)] p-4 shadow-[0_12px_34px_rgba(33,39,53,0.12)]">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-xs font-semibold tracking-wide text-[#0B0F19]/60">Navigation</div>
+                <div className="text-xs font-semibold tracking-wide text-primary/62">
+                  {tPortal("navigation")}
+                </div>
                 <div className="mt-1 flex items-center gap-2">
                   <div className="text-sm font-semibold text-primary">{props.title}</div>
-                  <ChevronRight className="h-4 w-4 text-[#0B0F19]/38" />
+                  <ChevronRight className="h-4 w-4 text-primary/38" />
                 </div>
 
                 {props.subtitle ? (
-                  <div className="mt-1 text-xs leading-relaxed text-[#0B0F19]/62">{props.subtitle}</div>
+                  <div className="mt-1 text-xs leading-relaxed text-primary/62">{props.subtitle}</div>
                 ) : null}
               </div>
 
-              {/* gold badge */}
-              <div className="mt-0.5 inline-flex h-8 items-center rounded-2xl bg-[rgba(198,169,109,0.16)] px-3 text-[11px] font-semibold text-[#6B5630] shadow-[0_10px_22px_rgba(11,15,25,0.08)]">
-                L&L
+              <div className="mt-0.5 inline-flex h-8 items-center rounded-2xl bg-accent-soft/35 px-3 text-[11px] font-semibold text-brand">
+                Indigo
               </div>
             </div>
 
-            <div className="mt-4 h-px w-full bg-[linear-gradient(90deg,rgba(198,169,109,0.70),rgba(79,70,229,0.10),rgba(11,15,25,0.0))]" />
+            <div className="portal-divider mt-4" />
           </div>
         </div>
 
@@ -63,12 +64,11 @@ export function PortalSidebar(props: {
           <div className="space-y-5">
             {grouped.map((group) => (
               <div key={group.group} className="pt-1">
-                <div className="px-2 text-[11px] font-semibold tracking-wide text-[#0B0F19]/58">
+                <div className="px-2 text-[11px] font-semibold tracking-wide text-primary/58">
                   {group.group.toUpperCase()}
                 </div>
-                <div className="mt-2 h-px w-full bg-[linear-gradient(90deg,rgba(198,169,109,0.34),rgba(11,15,25,0.0))]" />
+                <div className="portal-divider mt-2" />
 
-                {/* ✅ Raised pills for ALL nav items */}
                 <div className="mt-3 grid gap-2.5">
                   {group.items.map((item) => {
                     const active = isActive(pathname, item.href);
@@ -78,43 +78,39 @@ export function PortalSidebar(props: {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          "group relative flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-semibold",
-                          // Default raised pill
-                          "bg-white/86 shadow-[0_10px_28px_rgba(11,15,25,0.10)] transition",
-                          // Hover lift
-                          "hover:translate-y-[-1px] hover:bg-white hover:shadow-[0_14px_34px_rgba(11,15,25,0.14)] active:translate-y-0",
-                          active ? "text-primary" : "text-[#0B0F19]/78"
+                          "group relative flex w-full min-w-0 items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-semibold",
+                          "bg-surface/84 ring-1 ring-[rgba(79,70,229,0.18)] transition",
+                          "hover:translate-y-[-1px] hover:bg-accent-soft/28 active:translate-y-0",
+                          active
+                            ? "bg-brand text-accent-text shadow-[0_14px_34px_rgba(79,70,229,0.28)] ring-[rgba(79,70,229,0.45)]"
+                            : "text-primary/78"
                         )}
                       >
-                        {/* subtle gold active rail (not a border) */}
                         {active ? (
-                          <span className="pointer-events-none absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#C6A96D]" />
+                          <span className="pointer-events-none absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-accent-text/88" />
                         ) : null}
 
-                        <span className="flex items-center gap-2">
+                        <span className="flex min-w-0 flex-1 items-center gap-2">
                           <span
                             className={cn(
-                              "flex h-8 w-8 items-center justify-center rounded-xl transition",
-                              // icon base
-                              "bg-[rgba(11,15,25,0.04)] text-secondary",
-                              // hover warmth
-                              "group-hover:bg-[rgba(198,169,109,0.14)] group-hover:text-[#0B0F19]",
-                              // active warmth
-                              active ? "bg-[rgba(198,169,109,0.18)] text-[#0B0F19]" : ""
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition",
+                              "bg-accent-soft/28 text-brand",
+                              "group-hover:bg-accent-soft/40 group-hover:text-brand",
+                              active ? "bg-accent-text/18 text-accent-text" : ""
                             )}
                           >
                             {item.icon ?? <ChevronRight className="h-4 w-4" />}
                           </span>
 
-                          <span className={cn(active ? "text-primary" : "text-[#0B0F19]/78 group-hover:text-primary")}>
+                          <span className={cn("truncate", active ? "text-accent-text" : "text-primary/78 group-hover:text-primary")}>
                             {item.label}
                           </span>
                         </span>
 
                         <ChevronRight
                           className={cn(
-                            "h-4 w-4 transition",
-                            active ? "text-[#0B0F19]/45" : "text-[#0B0F19]/28 group-hover:text-[#0B0F19]/48"
+                            "h-4 w-4 shrink-0 transition",
+                            active ? "text-accent-text/75" : "text-primary/28 group-hover:text-primary/50"
                           )}
                         />
                       </Link>
@@ -125,18 +121,18 @@ export function PortalSidebar(props: {
             ))}
           </div>
 
-          <div className="mt-6 rounded-3xl bg-[rgba(255,255,255,0.74)] p-4 shadow-[0_14px_40px_rgba(11,15,25,0.12)]">
-            <div className="text-xs font-semibold text-[#0B0F19]/60">Signed in</div>
+          <div className="mt-6 rounded-3xl bg-surface/78 p-4 shadow-[0_14px_40px_rgba(33,39,53,0.12)]">
+            <div className="text-xs font-semibold text-primary/60">{tPortal("signedIn")}</div>
             <div className="mt-1 text-sm font-semibold text-primary">
-              {props.userName?.trim() || "Welcome back"}
+              {props.userName?.trim() || tPortal("defaultWelcome")}
             </div>
             <div className="mt-1 text-xs text-secondary">{props.userEmail || "—"}</div>
-            <div className="mt-1 text-xs leading-relaxed text-[#0B0F19]/62">
-              {props.footerHint ?? "Use the search bar to find items fast."}
+            <div className="mt-1 text-xs leading-relaxed text-primary/62">
+              {props.footerHint ?? tPortal("footerHint")}
             </div>
-            <div className="mt-4 h-px w-full bg-[linear-gradient(90deg,rgba(198,169,109,0.40),rgba(11,15,25,0.0))]" />
-            <div className="mt-3 text-[11px] font-semibold text-[#6B5630]">
-              Premium operator console
+            <div className="portal-divider mt-4" />
+            <div className="mt-3 text-[11px] font-semibold text-brand">
+              {tPortal("premiumConsole")}
             </div>
           </div>
         </div>

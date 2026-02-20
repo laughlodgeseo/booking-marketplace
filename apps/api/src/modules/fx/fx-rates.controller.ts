@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Header,
   Post,
   Req,
   UseGuards,
@@ -22,6 +23,10 @@ export class FxRatesPublicController {
   constructor(private readonly service: FxRatesService) {}
 
   @Get()
+  @Header(
+    'Cache-Control',
+    'public, max-age=60, s-maxage=60, stale-while-revalidate=300',
+  )
   async latest() {
     return this.service.getLatestRates();
   }

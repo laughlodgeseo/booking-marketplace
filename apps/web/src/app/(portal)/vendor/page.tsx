@@ -10,10 +10,12 @@ import {
   Waves,
   Wrench,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatCard } from "@/components/portal/StatCard";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
+import { FilterChips } from "@/components/portal/ui/FilterChips";
 import { getVendorAnalytics, getVendorOverview } from "@/lib/api/portal/vendor";
 
 type VendorOverviewData = Awaited<ReturnType<typeof getVendorOverview>>;
@@ -44,6 +46,7 @@ function pickSeries(
 }
 
 export default function VendorDashboardPage() {
+  const tPortal = useTranslations("portal");
   const [range, setRange] = useState<RangeKey>("90d");
   const [state, setState] = useState<ViewState>({ kind: "loading" });
 
@@ -62,7 +65,7 @@ export default function VendorDashboardPage() {
         if (!alive) return;
         setState({
           kind: "error",
-          message: error instanceof Error ? error.message : "Failed to load vendor dashboard",
+          message: error instanceof Error ? error.message : tPortal("vendorDashboard.errors.load"),
         });
       }
     }
@@ -70,15 +73,15 @@ export default function VendorDashboardPage() {
     return () => {
       alive = false;
     };
-  }, [range]);
+  }, [range, tPortal]);
 
   const content = useMemo(() => {
     if (state.kind === "loading") {
       return (
-        <div className="rounded-3xl border border-line/60 bg-surface p-8 text-sm text-secondary">
+        <div className="portal-card rounded-3xl bg-surface/90 p-8 text-sm text-secondary">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading dashboard...
+            {tPortal("loading.dashboard")}
           </div>
         </div>
       );
@@ -86,8 +89,8 @@ export default function VendorDashboardPage() {
 
     if (state.kind === "error") {
       return (
-        <div className="rounded-3xl border border-danger/30 bg-danger/10 p-6">
-          <div className="text-sm font-semibold text-danger">Dashboard unavailable</div>
+        <div className="portal-card rounded-3xl bg-danger/10 p-6">
+          <div className="text-sm font-semibold text-danger">{tPortal("vendorDashboard.errors.title")}</div>
           <div className="mt-2 text-sm text-danger">{state.message}</div>
         </div>
       );
@@ -106,68 +109,68 @@ export default function VendorDashboardPage() {
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <StatCard
-            label="Published Properties"
+            label={tPortal("vendorDashboard.kpi.publishedProperties")}
             value={kpis.propertiesPublished ?? 0}
-            helper="Live in marketplace"
+            helper={tPortal("vendorDashboard.kpiHelpers.liveInMarketplace")}
             icon={<Building2 className="h-4 w-4" />}
             variant="dark"
           />
           <StatCard
-            label="Under Review"
+            label={tPortal("vendorDashboard.kpi.underReview")}
             value={kpis.propertiesUnderReview ?? 0}
-            helper="Pending approval"
+            helper={tPortal("vendorDashboard.kpiHelpers.pendingApproval")}
             icon={<ClipboardCheck className="h-4 w-4" />}
           />
           <StatCard
-            label="Revenue Captured"
+            label={tPortal("vendorDashboard.kpi.revenueCaptured")}
             value={kpis.revenueCaptured ?? 0}
-            helper="Captured payments"
+            helper={tPortal("vendorDashboard.kpiHelpers.capturedPayments")}
             icon={<Wallet className="h-4 w-4" />}
           />
           <StatCard
-            label="Bookings Total"
+            label={tPortal("vendorDashboard.kpi.bookingsTotal")}
             value={kpis.bookingsTotal ?? 0}
-            helper="All statuses"
+            helper={tPortal("vendorDashboard.kpiHelpers.allStatuses")}
             icon={<ClipboardCheck className="h-4 w-4" />}
           />
           <StatCard
-            label="Upcoming Stays"
+            label={tPortal("vendorDashboard.kpi.upcomingStays")}
             value={kpis.bookingsUpcoming ?? 0}
-            helper="Confirmed check-ins ahead"
+            helper={tPortal("vendorDashboard.kpiHelpers.confirmedCheckIns")}
             icon={<CalendarDays className="h-4 w-4" />}
           />
           <StatCard
-            label="Ops Tasks Open"
+            label={tPortal("vendorDashboard.kpi.opsTasksOpen")}
             value={kpis.opsTasksOpen ?? 0}
-            helper="Pending operational workload"
+            helper={tPortal("vendorDashboard.kpiHelpers.pendingOperationalWorkload")}
             icon={<Wrench className="h-4 w-4" />}
           />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <SimpleBarChart
-            title="Revenue trend"
-            subtitle="Captured payment amount"
+            title={tPortal("vendorDashboard.charts.revenueTrend.title")}
+            subtitle={tPortal("vendorDashboard.charts.revenueTrend.subtitle")}
             points={revenuePoints}
           />
           <SimpleBarChart
-            title="Bookings trend"
-            subtitle="Booking volume per period"
+            title={tPortal("vendorDashboard.charts.bookingsTrend.title")}
+            subtitle={tPortal("vendorDashboard.charts.bookingsTrend.subtitle")}
             points={bookingsPoints}
           />
           <SimpleBarChart
-            title="Upcoming stays trend"
-            subtitle="Confirmed check-ins"
+            title={tPortal("vendorDashboard.charts.upcomingStaysTrend.title")}
+            subtitle={tPortal("vendorDashboard.charts.upcomingStaysTrend.subtitle")}
             points={upcomingPoints}
           />
           <SimpleBarChart
-            title="Ops task trend"
-            subtitle="Operational workload"
+            title={tPortal("vendorDashboard.charts.opsTaskTrend.title")}
+            subtitle={tPortal("vendorDashboard.charts.opsTaskTrend.subtitle")}
             points={opsPoints}
           />
           <SimpleBarChart
-            title="Occupancy nights trend"
-            subtitle="Confirmed occupied nights"
+            title={tPortal("vendorDashboard.charts.occupancyNightsTrend.title")}
+            subtitle={tPortal("vendorDashboard.charts.occupancyNightsTrend.subtitle")}
             points={occupancyPoints}
           />
           <div className="premium-card premium-card-tinted rounded-3xl p-5">
@@ -175,11 +178,13 @@ export default function VendorDashboardPage() {
               <span className="card-icon-plate h-8 w-8">
                 <Waves className="h-4 w-4" />
               </span>
-              Status breakdowns
+              {tPortal("vendorDashboard.statusBreakdowns")}
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl bg-surface p-3 ring-1 ring-line/60">
-                <div className="text-xs font-semibold tracking-wide text-muted">Booking statuses</div>
+                <div className="text-xs font-semibold tracking-wide text-muted">
+                  {tPortal("vendorDashboard.bookingStatuses")}
+                </div>
                 <div className="mt-2 space-y-1.5 text-sm text-primary">
                   {Object.entries(analytics.breakdowns?.bookingStatus ?? {}).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between gap-2">
@@ -192,7 +197,9 @@ export default function VendorDashboardPage() {
                 </div>
               </div>
               <div className="rounded-2xl bg-surface p-3 ring-1 ring-line/60">
-                <div className="text-xs font-semibold tracking-wide text-muted">Ops task statuses</div>
+                <div className="text-xs font-semibold tracking-wide text-muted">
+                  {tPortal("vendorDashboard.opsTaskStatuses")}
+                </div>
                 <div className="mt-2 space-y-1.5 text-sm text-primary">
                   {Object.entries(analytics.breakdowns?.opsTaskStatus ?? {}).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between gap-2">
@@ -209,31 +216,23 @@ export default function VendorDashboardPage() {
         </div>
       </div>
     );
-  }, [state]);
+  }, [state, tPortal]);
 
   return (
     <PortalShell
       role="vendor"
-      title="Vendor Dashboard"
-      subtitle="Overview + analytics in one responsive workspace"
+      title={tPortal("vendorDashboard.title")}
+      subtitle={tPortal("vendorDashboard.subtitle")}
       right={(
-        <div className="flex items-center gap-2">
-          {(["30d", "90d", "365d"] as RangeKey[]).map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setRange(item)}
-              className={[
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                range === item
-                  ? "bg-white text-[#1d2a73] ring-1 ring-white/70"
-                  : "bg-black/20 text-inverted ring-1 ring-inverted/25 hover:bg-black/30",
-              ].join(" ")}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <FilterChips
+          options={[
+            { value: "30d", label: "30d" },
+            { value: "90d", label: "90d" },
+            { value: "365d", label: "365d" },
+          ]}
+          value={range}
+          onChange={(value) => setRange(value)}
+        />
       )}
     >
       {content}

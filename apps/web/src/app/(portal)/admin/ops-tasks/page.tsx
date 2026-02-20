@@ -171,7 +171,7 @@ export default function AdminOpsTasksPage() {
               <select
                 value={filters.type}
                 onChange={(e) => setFilters((p) => ({ ...p, type: e.target.value }))}
-                className="h-10 rounded-xl border bg-surface px-3 text-sm font-semibold text-primary"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base font-semibold text-primary lg:h-10 lg:rounded-xl lg:bg-surface lg:px-3 lg:text-sm"
               >
                 <option value="ALL">All types</option>
                 {derived.types.map((t) => (
@@ -184,7 +184,7 @@ export default function AdminOpsTasksPage() {
               <select
                 value={filters.status}
                 onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
-                className="h-10 rounded-xl border bg-surface px-3 text-sm font-semibold text-primary"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base font-semibold text-primary lg:h-10 lg:rounded-xl lg:bg-surface lg:px-3 lg:text-sm"
               >
                 <option value="ALL">All statuses</option>
                 {derived.statuses.map((s) => (
@@ -197,8 +197,8 @@ export default function AdminOpsTasksPage() {
           }
         />
 
-        <div className="rounded-2xl border bg-surface overflow-hidden">
-          <div className="border-b bg-warm-alt px-5 py-3">
+        <div className="overflow-hidden rounded-2xl border border-line/40 bg-warm-base/95 lg:bg-surface">
+          <div className="border-b border-line/30 bg-warm-alt px-4 py-3 sm:px-5">
             <div className="text-xs font-semibold text-secondary">Tasks</div>
             <div className="mt-1 text-xs text-muted">
               Showing <span className="font-semibold text-primary">{derived.filtered.length}</span> of{" "}
@@ -226,7 +226,7 @@ export default function AdminOpsTasksPage() {
                       event.preventDefault();
                       router.push(`/admin/ops-tasks/${encodeURIComponent(id)}`);
                     }}
-                    className="rounded-2xl border border-line/80 bg-surface p-4 text-left transition hover:bg-warm-alt"
+                    className="rounded-2xl border border-line/40 bg-warm-base/95 p-4 text-left transition hover:bg-warm-alt lg:border-line/80 lg:bg-surface"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="truncate text-sm font-semibold text-primary">{id}</div>
@@ -252,17 +252,17 @@ export default function AdminOpsTasksPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t bg-surface px-4 py-3">
+          <div className="flex flex-col gap-3 border-t border-line/30 bg-warm-base/95 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:bg-surface">
             <div className="text-xs text-secondary">
               Page <span className="font-semibold text-primary">{page}</span> of{" "}
               <span className="font-semibold text-primary">{derived.totalPages}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="rounded-xl border px-3 py-1.5 text-xs font-semibold text-secondary disabled:opacity-50"
+                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary disabled:opacity-50 sm:flex-none lg:h-auto lg:rounded-xl lg:bg-transparent lg:px-3 lg:py-1.5 lg:text-xs lg:text-secondary"
               >
                 Prev
               </button>
@@ -270,7 +270,7 @@ export default function AdminOpsTasksPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(derived.totalPages, p + 1))}
                 disabled={page >= derived.totalPages}
-                className="rounded-xl border px-3 py-1.5 text-xs font-semibold text-secondary disabled:opacity-50"
+                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary disabled:opacity-50 sm:flex-none lg:h-auto lg:rounded-xl lg:bg-transparent lg:px-3 lg:py-1.5 lg:text-xs lg:text-secondary"
               >
                 Next
               </button>

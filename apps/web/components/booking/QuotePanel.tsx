@@ -8,6 +8,7 @@ import type { QuoteResponse, ReserveResponse } from "@/lib/types/property";
 import { CalendarDays, Users, ShieldCheck, Timer, Sparkles, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useCurrency } from "@/lib/currency/CurrencyProvider";
+import { isValidIsoRange } from "@/lib/date-range";
 
 function formatIsoShort(iso: string): string {
   const d = new Date(iso);
@@ -69,14 +70,19 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const canQuote = useMemo(() => {
-    return !!dates.from && !!dates.to && guests >= 1 && guests <= 16;
+    return isValidIsoRange(dates.from, dates.to) && guests >= 1 && guests <= 16;
   }, [dates.from, dates.to, guests]);
 
   async function runQuote() {
     if (!dates.from || !dates.to) return;
     setUi({ kind: "loadingQuote" });
 
-    const res = await quote(propertyId, { checkIn: dates.from, checkOut: dates.to, guests });
+    const res = await quote(propertyId, {
+      checkIn: dates.from,
+      checkOut: dates.to,
+      guests,
+      currency: selectedCurrency.currency,
+    });
     if (!res.ok) {
       setUi({ kind: "error", message: res.message });
       return;
@@ -91,7 +97,12 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
 
     setUi({ kind: "reserving", quote: ui.quote });
     setMobileOpen(true);
-    const res = await reserve(propertyId, { checkIn: dates.from, checkOut: dates.to, guests });
+    const res = await reserve(propertyId, {
+      checkIn: dates.from,
+      checkOut: dates.to,
+      guests,
+      currency: selectedCurrency.currency,
+    });
 
     if (!res.ok) {
       setUi({ kind: "error", message: res.message });
@@ -118,8 +129,23 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
   ? `/checkout/${encodeURIComponent(propertyId)}?holdId=${encodeURIComponent(hold.id)}`
   : `/checkout/${encodeURIComponent(propertyId)}`;
 
-  const displayMoney = (amount: number) =>
+  const displayMoneyFromAed = (amount: number) =>
     selectedCurrency.formatFromAed(amount, { maximumFractionDigits: 0 });
+  const quoteCurrency =
+    ui.kind === "quoted" || ui.kind === "reserving"
+      ? (ui.quote.currency ?? selectedCurrency.currency)
+      : selectedCurrency.currency;
+  const displayQuoteMoney = (amount: number) => {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: quoteCurrency,
+        maximumFractionDigits: quoteCurrency === "AED" ? 0 : 2,
+      }).format(amount);
+    } catch {
+      return `${quoteCurrency} ${amount.toLocaleString()}`;
+    }
+  };
   const baseMoney = (amount: number) => selectedCurrency.formatBaseAed(amount);
 
   return (
@@ -134,7 +160,7 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
           <div>
             <div className="text-xs text-secondary">From</div>
             <div className="text-2xl font-semibold text-primary">
-              {displayMoney(priceFrom)}
+              {displayMoneyFromAed(priceFrom)}
             </div>
           </div>
           <div className="text-xs text-secondary">per night baseline</div>
@@ -171,29 +197,29 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
               <div className="text-xs font-semibold text-primary">Price breakdown</div>
               <div className="mt-3 space-y-2">
                 <LabelRow label="Nights" value={`${breakdown.nights}`} />
-                <LabelRow label="Base" value={displayMoney(breakdown.baseAmount)} />
+                <LabelRow label="Base" value={displayQuoteMoney(breakdown.baseAmount)} />
                 <LabelRow
                   label="Cleaning"
-                  value={displayMoney(breakdown.cleaningFee)}
+                  value={displayQuoteMoney(breakdown.cleaningFee)}
                 />
                 <LabelRow
                   label="Service fee"
-                  value={displayMoney(breakdown.serviceFee)}
+                  value={displayQuoteMoney(breakdown.serviceFee)}
                 />
-                <LabelRow label="Taxes" value={displayMoney(breakdown.taxes)} />
+                <LabelRow label="Taxes" value={displayQuoteMoney(breakdown.taxes)} />
               </div>
 
               <div className="mt-3 border-t border-line pt-3">
                 <LabelRow
                   label="Total"
-                  value={displayMoney(breakdown.total)}
+                  value={displayQuoteMoney(breakdown.total)}
                   emphasize
                 />
               </div>
 
-              {selectedCurrency.currency !== "AED" ? (
+              {quoteCurrency !== "AED" && typeof breakdown.totalAed === "number" ? (
                 <div className="mt-2 text-right text-xs text-muted">
-                  Base: {baseMoney(breakdown.total)}
+                  Base: {baseMoney(breakdown.totalAed)}
                 </div>
               ) : null}
 
@@ -247,7 +273,7 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
             <div className="min-w-0">
               <div className="text-[11px] text-secondary">From</div>
               <div className="truncate text-sm font-semibold text-primary">
-                {displayMoney(priceFrom)}
+                {displayMoneyFromAed(priceFrom)}
                 <span className="ml-1 text-xs font-medium text-secondary">/ night</span>
               </div>
             </div>

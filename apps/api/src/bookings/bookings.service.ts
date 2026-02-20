@@ -23,6 +23,7 @@ import { PrismaService } from '../modules/prisma/prisma.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CancellationPolicyService } from './policies/cancellation.policy';
 import { NotificationsService } from '../modules/notifications/notifications.service';
+import { buildOverlapFilter } from '../common/date-range';
 
 const PAYMENT_WINDOW_MINUTES = 15;
 
@@ -45,7 +46,6 @@ export class BookingsService {
     const property = await this.prisma.property.findUnique({
       where: { id: params.propertyId },
       select: {
-        currency: true,
         basePrice: true,
         cleaningFee: true,
       },
@@ -63,8 +63,7 @@ export class BookingsService {
     const fees = property.cleaningFee ?? 0;
 
     return {
-      currency: property.currency ?? 'AED',
-      total: subtotal + fees,
+      totalAed: subtotal + fees,
     };
   }
 
@@ -127,10 +126,12 @@ export class BookingsService {
               status: {
                 in: [BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED],
               },
-              AND: [
-                { checkIn: { lt: hold.checkOut } },
-                { checkOut: { gt: hold.checkIn } },
-              ],
+              AND: buildOverlapFilter(
+                'checkIn',
+                'checkOut',
+                hold.checkIn,
+                hold.checkOut,
+              ),
             },
           });
 
@@ -144,10 +145,12 @@ export class BookingsService {
               status: HoldStatus.ACTIVE,
               expiresAt: { gt: now },
               id: { not: hold.id },
-              AND: [
-                { checkIn: { lt: hold.checkOut } },
-                { checkOut: { gt: hold.checkIn } },
-              ],
+              AND: buildOverlapFilter(
+                'checkIn',
+                'checkOut',
+                hold.checkIn,
+                hold.checkOut,
+              ),
             },
           });
 
@@ -166,11 +169,24 @@ export class BookingsService {
           if (blocked)
             throw new BadRequestException('Dates include blocked nights.');
 
-          const quote = await this.computeQuote({
+          const fallbackQuote = await this.computeQuote({
             propertyId: hold.propertyId,
             checkIn: hold.checkIn,
             checkOut: hold.checkOut,
           });
+
+          const holdFxRate = Number(hold.fxRate?.toString() ?? '1');
+          const fxRate =
+            Number.isFinite(holdFxRate) && holdFxRate > 0 ? holdFxRate : 1;
+          const totalAmountAed =
+            typeof hold.quotedTotalAed === 'number'
+              ? hold.quotedTotalAed
+              : fallbackQuote.totalAed;
+          const displayCurrency = hold.displayCurrency || 'AED';
+          const displayTotalAmount =
+            typeof hold.quotedTotalDisplay === 'number'
+              ? hold.quotedTotalDisplay
+              : Math.round(totalAmountAed * fxRate);
 
           const booking = await tx.booking.create({
             data: {
@@ -182,8 +198,14 @@ export class BookingsService {
               adults: 2,
               children: 0,
               status: BookingStatus.PENDING_PAYMENT,
-              totalAmount: quote.total,
-              currency: quote.currency,
+              totalAmount: displayTotalAmount,
+              currency: displayCurrency,
+              totalAmountAed,
+              displayTotalAmount,
+              displayCurrency,
+              fxRate,
+              fxAsOfDate: hold.fxAsOfDate ?? null,
+              fxProvider: hold.fxProvider ?? null,
               idempotencyKey,
               expiresAt: new Date(
                 Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000,
@@ -307,6 +329,19 @@ export class BookingsService {
         );
       }
 
+      const bookingTotalAed = booking.totalAmountAed ?? booking.totalAmount;
+      const bookingDisplayCurrency =
+        (booking.displayCurrency ?? '').trim() || booking.currency || 'AED';
+      const bookingDisplayTotal =
+        booking.displayTotalAmount ?? booking.totalAmount;
+      const bookingFxRateRaw = Number(booking.fxRate?.toString() ?? '1');
+      const bookingFxRate =
+        Number.isFinite(bookingFxRateRaw) && bookingFxRateRaw > 0
+          ? bookingFxRateRaw
+          : 1;
+      const toDisplayFromAed = (amountAed: number) =>
+        Math.round(amountAed * bookingFxRate);
+
       const isSystemAutoExpiredCancellation =
         actor === CancellationActor.SYSTEM &&
         dto.reason === CancellationReason.AUTO_EXPIRED_UNPAID;
@@ -372,13 +407,22 @@ export class BookingsService {
           booking: {
             checkIn: booking.checkIn,
             checkOut: booking.checkOut,
-            totalAmount: booking.totalAmount,
-            currency: booking.currency,
+            totalAmount: bookingTotalAed,
+            currency: 'AED',
           },
           policy,
           requestedMode,
         });
       }
+
+      const penaltyAmountDisplay =
+        bookingDisplayCurrency === 'AED'
+          ? decision.penaltyAmount
+          : toDisplayFromAed(decision.penaltyAmount);
+      const refundableAmountDisplay =
+        bookingDisplayCurrency === 'AED'
+          ? decision.refundableAmount
+          : toDisplayFromAed(decision.refundableAmount);
 
       // ✅ Refund staging (only if payment exists and is refundable)
       let refundId: string | null = null;
@@ -396,7 +440,7 @@ export class BookingsService {
             paymentId: booking.payment!.id,
             status: RefundStatus.PENDING,
             reason: RefundReason.CANCELLATION,
-            amount: decision.refundableAmount,
+            amount: refundableAmountDisplay,
             currency: booking.currency,
             provider: booking.payment!.provider,
           },
@@ -417,11 +461,17 @@ export class BookingsService {
             mode: decision.mode,
             policyVersion: decision.policyVersion,
 
-            totalAmount: booking.totalAmount,
+            totalAmount: bookingTotalAed,
             managementFee: 0,
             penaltyAmount: decision.penaltyAmount,
             refundableAmount: decision.refundableAmount,
-            currency: booking.currency,
+            currency: 'AED',
+            displayCurrency: bookingDisplayCurrency,
+            displayFxRate: bookingFxRate,
+            displayFxAsOfDate: booking.fxAsOfDate ?? null,
+            totalAmountDisplay: bookingDisplayTotal,
+            penaltyAmountDisplay,
+            refundableAmountDisplay,
 
             releasesInventory: decision.releasesInventory,
             refundId,
@@ -453,8 +503,8 @@ export class BookingsService {
           tier: decision.tier,
           mode: decision.mode,
           hoursToCheckIn: decision.hoursToCheckIn,
-          penaltyAmount: decision.penaltyAmount,
-          refundableAmount: decision.refundableAmount,
+          penaltyAmount: penaltyAmountDisplay,
+          refundableAmount: refundableAmountDisplay,
           policyVersion: decision.policyVersion,
           reason: dto.reason,
           notes: dto.notes?.trim() || null,

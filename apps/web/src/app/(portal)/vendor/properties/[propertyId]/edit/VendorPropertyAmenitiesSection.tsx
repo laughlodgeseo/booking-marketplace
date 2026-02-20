@@ -8,6 +8,7 @@ import {
   type AmenitiesCatalogResponse,
   type VendorAmenity,
 } from "@/lib/api/portal/vendor";
+import { SelectableTile } from "@/components/portal/ui/SelectableTile";
 
 type Props = {
   property: VendorPropertyDetail;
@@ -157,7 +158,7 @@ export function VendorPropertyAmenitiesSection({ property, onChanged }: Props) {
   const showingCount = view?.total ?? 0;
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm space-y-4">
+    <section className="portal-card rounded-2xl bg-surface/90 p-5 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-base font-semibold text-primary">Amenities</h3>
@@ -169,8 +170,8 @@ export function VendorPropertyAmenitiesSection({ property, onChanged }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-accent-text">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="rounded-full bg-accent-soft/42 px-3 py-1 text-xs font-semibold text-brand">
             Selected: {selectedCount}
           </span>
           <button
@@ -199,7 +200,7 @@ export function VendorPropertyAmenitiesSection({ property, onChanged }: Props) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g., WiFi, Pool, Parking"
-            className="mt-2 w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-brand/10"
+            className="mt-2 w-full rounded-xl border border-line bg-surface/88 px-3 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-brand/16"
           />
         </label>
 
@@ -250,31 +251,22 @@ export function VendorPropertyAmenitiesSection({ property, onChanged }: Props) {
                 <div className="text-xs text-muted">{g.amenities.length} items</div>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {g.amenities.map((a: VendorAmenity) => {
-                  const id = String(a.id);
-                  const checked = draftSelectedIds.has(id);
-                  return (
-                    <label
-                      key={id}
-                      className={[
-                        "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm",
-                        checked ? "border-brand bg-surface" : "border-line bg-surface hover:bg-warm-alt",
-                      ].join(" ")}
-                      title={a.key}
-                    >
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={checked}
-                        onChange={() => toggleAmenity(id)}
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {g.amenities.map((a: VendorAmenity) => {
+                    const id = String(a.id);
+                    const checked = draftSelectedIds.has(id);
+                    return (
+                      <SelectableTile
+                        key={id}
+                        label={a.name}
+                        hint={a.key}
+                        selected={checked}
+                        onClick={() => toggleAmenity(id)}
+                        className="min-h-[46px]"
                       />
-                      <span className="font-medium text-primary">{a.name}</span>
-                      <span className="ml-auto text-xs text-muted">{a.key}</span>
-                    </label>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
             </div>
           ))}
         </div>

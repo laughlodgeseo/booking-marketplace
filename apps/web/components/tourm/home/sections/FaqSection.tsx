@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
+import { useLocale } from "next-intl";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type Faq = {
   q: string;
@@ -17,12 +19,14 @@ export default function FaqSection({
   subtitle: string;
   faqs: ReadonlyArray<Faq>;
 }) {
+  const locale = normalizeLocale(useLocale());
+
   return (
     <section className="relative w-full py-16 sm:py-20">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="max-w-3xl">
           <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/60">
-            FAQs
+            {locale === "ar" ? "الأسئلة الشائعة" : "FAQs"}
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
             {title}

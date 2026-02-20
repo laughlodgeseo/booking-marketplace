@@ -399,9 +399,15 @@ enum GuestReviewStatus {
 }
 
 enum FxQuoteCurrency {
+  SAR
   USD
   EUR
   GBP
+}
+
+enum LocaleCode {
+  en
+  ar
 }
 
 model User {
@@ -576,6 +582,7 @@ model AmenityGroup {
   isActive  Boolean @default(true)
 
   amenities Amenity[]
+  translations AmenityGroupTranslation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -599,6 +606,7 @@ model Amenity {
   isActive  Boolean @default(true)
 
   properties PropertyAmenity[]
+  translations AmenityTranslation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -668,6 +676,7 @@ model Property {
   guestReviews      GuestReview[]
 
   amenities PropertyAmenity[]
+  translations PropertyTranslation[]
   bookings  Booking[]
 
   availabilitySettings PropertyAvailabilitySettings?
@@ -701,6 +710,58 @@ model Property {
   // ✅ Search performance indexes (NEW)
   @@index([status, city, area], map: "idx_property_status_city_area")
   @@index([status, lat, lng], map: "idx_property_status_lat_lng")
+}
+
+model PropertyTranslation {
+  id String @id @default(cuid())
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  locale LocaleCode
+
+  title       String
+  description String?
+  areaLabel   String?
+  tagline     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([propertyId, locale], map: "uniq_property_translation_property_locale")
+  @@index([locale])
+}
+
+model AmenityTranslation {
+  id String @id @default(cuid())
+
+  amenityId String
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  locale LocaleCode
+  name   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([amenityId, locale], map: "uniq_amenity_translation_amenity_locale")
+  @@index([locale])
+}
+
+model AmenityGroupTranslation {
+  id String @id @default(cuid())
+
+  amenityGroupId String
+  amenityGroup   AmenityGroup @relation(fields: [amenityGroupId], references: [id], onDelete: Cascade)
+
+  locale LocaleCode
+  name   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([amenityGroupId, locale], map: "uniq_amenity_group_translation_group_locale")
+  @@index([locale])
 }
 
 model Media {
@@ -1009,10 +1070,26 @@ model FxRate {
   quoteCurrency FxQuoteCurrency
   rate          Decimal         @db.Decimal(18, 8)
   asOfDate      DateTime
+  provider      String          @default("manual")
   updatedAt     DateTime        @updatedAt
 
   @@unique([baseCurrency, quoteCurrency, asOfDate], map: "uniq_fx_rate_base_quote_date")
   @@index([asOfDate])
+}
+
+model FxSnapshot {
+  id String @id @default(cuid())
+
+  baseCurrency  String          @default("AED")
+  quoteCurrency FxQuoteCurrency
+  rate          Decimal         @db.Decimal(18, 8)
+  asOfDate      DateTime
+  provider      String          @default("manual")
+
+  createdAt DateTime @default(now())
+
+  @@index([asOfDate])
+  @@index([quoteCurrency, asOfDate])
 }
 
 model Booking {
@@ -1037,6 +1114,14 @@ model Booking {
 
   totalAmount Int
   currency    String @default("AED")
+
+  // Canonical accounting amount (always AED) + display snapshot
+  totalAmountAed     Int?
+  displayTotalAmount Int?
+  displayCurrency    String   @default("AED")
+  fxRate             Decimal  @default(1) @db.Decimal(18, 8)
+  fxAsOfDate         DateTime?
+  fxProvider         String?
 
   idempotencyKey     String?
   idempotencyRecords BookingIdempotency[]
@@ -1154,6 +1239,14 @@ model PropertyHold {
   status     HoldStatus @default(ACTIVE)
   expiresAt  DateTime
 
+  // Quote snapshot used for hold -> booking consistency.
+  quotedTotalAed     Int?
+  quotedTotalDisplay Int?
+  displayCurrency    String   @default("AED")
+  fxRate             Decimal  @default(1) @db.Decimal(18, 8)
+  fxAsOfDate         DateTime?
+  fxProvider         String?
+
   createdById String
   createdBy   User   @relation("HoldCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
 
@@ -1241,6 +1334,14 @@ model BookingCancellation {
   penaltyAmount    Int    @default(0)
   refundableAmount Int    @default(0)
   currency         String @default("AED")
+
+  // Display snapshot for UI consistency with booking currency selection.
+  displayCurrency     String   @default("AED")
+  displayFxRate       Decimal  @default(1) @db.Decimal(18, 8)
+  displayFxAsOfDate   DateTime?
+  totalAmountDisplay  Int?
+  penaltyAmountDisplay Int?
+  refundableAmountDisplay Int?
 
   releasesInventory Boolean @default(true)
 

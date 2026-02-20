@@ -1,0 +1,465 @@
+{
+  "common": {
+    "language": "Language",
+    "currency": "Currency",
+    "english": "English",
+    "arabic": "Arabic",
+    "close": "Close",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "home": "Home",
+    "stays": "Stays",
+    "services": "Services",
+    "owners": "For Owners",
+    "gallery": "Gallery",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "explore": "Explore",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "loggingOut": "Logging out...",
+    "login": "Login",
+    "signUp": "Sign up",
+    "role": "Role",
+    "emailNotVerified": "Email not verified",
+    "toggleMenu": "Toggle menu"
+  },
+  "portal": {
+    "operations": "Operations",
+    "searchPlaceholder": "Search inside portal...",
+    "alerts": "Alerts",
+    "logout": "Logout",
+    "navigation": "Navigation",
+    "signedIn": "Signed in",
+    "welcomeBack": "Welcome back, {name}",
+    "defaultWelcome": "Welcome back",
+    "footerHint": "Use the search bar to find items fast.",
+    "premiumConsole": "Premium operations console",
+    "roles": {
+      "admin": "Admin Portal",
+      "vendor": "Vendor Portal",
+      "customer": "Customer Portal",
+      "default": "Portal"
+    },
+    "groups": {
+      "workspace": "Workspace",
+      "operations": "Operations",
+      "finance": "Finance",
+      "account": "Account",
+      "general": "General"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "properties": "Properties",
+      "bookings": "Bookings",
+      "calendar": "Calendar",
+      "blockRequests": "Block Requests",
+      "messages": "Messages",
+      "notifications": "Notifications",
+      "opsTasks": "Ops Tasks",
+      "maintenance": "Maintenance",
+      "workOrders": "Work Orders",
+      "statements": "Statements",
+      "reviewQueue": "Review Queue",
+      "guestReviews": "Guest Reviews",
+      "vendors": "Vendors",
+      "createProperty": "Create Property",
+      "contactSubmissions": "Contact Submissions",
+      "deletionRequests": "Deletion Requests",
+      "unpublishRequests": "Unpublish Requests",
+      "payments": "Payments",
+      "refunds": "Refunds",
+      "guestDocuments": "Guest Documents",
+      "payouts": "Payouts",
+      "documents": "Documents"
+    },
+    "loading": {
+      "messages": "Loading messages...",
+      "notifications": "Loading notifications...",
+      "calendar": "Loading calendar...",
+      "dashboard": "Loading dashboard...",
+      "overview": "Loading overview...",
+      "vendorLogin": "Loading vendor login...",
+      "mapPicker": "Loading map picker..."
+    },
+    "shell": {
+      "openNavigation": "Open portal navigation",
+      "closeNavigation": "Close portal navigation",
+      "userFallback": "User"
+    },
+    "table": {
+      "open": "Open",
+      "actions": "Actions",
+      "moreDetails": "More details",
+      "emptyTitle": "Nothing to show",
+      "emptyDescription": "No rows found.",
+      "detailsTitle": "{title} details"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Search…",
+      "filters": "Filters",
+      "closeFilters": "Close filters"
+    },
+    "chart": {
+      "max": "Max",
+      "noData": "No chart data yet."
+    },
+    "messages": {
+      "pageTitle": "Messages",
+      "customerSubtitle": "Contact admin support for booking and stay questions",
+      "adminSubtitle": "Admin inbox for vendor and customer conversations",
+      "vendorSubtitle": "Chat with admin about listings, bookings, and operations",
+      "threadSubtitle": "Portal Home / Messages / Thread",
+      "startNew": "Start a new message",
+      "subjectOptional": "Subject (optional)",
+      "writeMessage": "Write your message...",
+      "privateHint": "Conversations are private and visible only to you and admin operators.",
+      "startThread": "Start thread",
+      "inbox": "Inbox",
+      "allTopics": "All topics",
+      "unreadOnly": "Unread only",
+      "noThreads": "No threads found.",
+      "generalSupport": "General support",
+      "noMessages": "No messages yet",
+      "noActivity": "No activity",
+      "selectThread": "Select a thread to read messages.",
+      "threadWith": "Thread with",
+      "writeReply": "Write a reply...",
+      "sendReply": "Send reply",
+      "busy": {
+        "sending": "Sending message...",
+        "creatingThread": "Creating thread..."
+      },
+      "errors": {
+        "loadInbox": "Failed to load inbox",
+        "loadThread": "Failed to load thread",
+        "sendMessage": "Failed to send message",
+        "createThread": "Failed to create thread"
+      },
+      "topics": {
+        "bookingIssue": "Booking issue",
+        "checkinAccess": "Check-in / access",
+        "cleaning": "Cleaning",
+        "maintenance": "Maintenance",
+        "paymentRefund": "Payment / refund",
+        "other": "Other"
+      }
+    },
+    "notifications": {
+      "titleAdmin": "Admin Notifications",
+      "titleVendor": "Vendor Notifications",
+      "titleCustomer": "Notifications",
+      "subtitle": "Critical updates and action-required events",
+      "backToPortal": "Back to portal",
+      "portalHome": "Portal Home",
+      "breadcrumbCurrent": "Notifications",
+      "inbox": "Inbox",
+      "unreadOnly": "Unread only",
+      "markAllRead": "Mark all read",
+      "markRead": "Mark read",
+      "open": "Open",
+      "noneFound": "No notifications found.",
+      "prev": "Prev",
+      "next": "Next",
+      "pageLabel": "Page {page}",
+      "totalLabel": "{total} total",
+      "status": {
+        "unread": "UNREAD",
+        "read": "READ"
+      },
+      "busy": {
+        "markingRead": "Marking read...",
+        "markingAllRead": "Marking all read..."
+      },
+      "errors": {
+        "load": "Failed to load notifications"
+      },
+      "messages": {
+        "propertyApprovedActivationRequired": "Property approved. Activation payment is required before publishing.",
+        "documentUploadRequest": "Action required: upload required guest documents.",
+        "bookingConfirmed": "Booking confirmed.",
+        "bookingCancelled": "Booking cancelled.",
+        "paymentPending": "Payment is pending.",
+        "paymentFailed": "Payment failed.",
+        "refundProcessed": "Refund processed.",
+        "opsTasksCreated": "Operations tasks created.",
+        "entityUpdate": "{entityType} update"
+      }
+    },
+    "calendar": {
+      "pageTitle": "Calendar",
+      "customerSubtitle": "Read-only monthly availability to support booking decisions",
+      "adminSubtitle": "Inspect booking blocks and operational availability by property",
+      "vendorSubtitle": "Monthly booking visibility for your listings",
+      "monthlyAvailability": "Monthly availability",
+      "propertyLabel": "Property",
+      "introVendor": "Available, booked, hold, and blocked days in one monthly view.",
+      "introAdmin": "Platform availability with booking, hold, and admin/vendor blocked signals.",
+      "introCustomer": "Read-only availability to support confident booking decisions.",
+      "blockRequestTitle": "Block date request",
+      "ownerControlsTitle": "Owner-use date controls",
+      "blockRequestDescription": "Submit a block request for admin approval. End date is checkout-style (exclusive).",
+      "ownerControlsDescription": "Block or unblock dates for owner-use. End date is checkout-style (exclusive).",
+      "noteOptional": "Note (optional)",
+      "submitRequest": "Submit request",
+      "block": "Block",
+      "unblock": "Unblock",
+      "noDateSelected": "No date selected",
+      "selectedProperty": "Selected property",
+      "available": "Available",
+      "availableDescription": "No bookings, holds, or blocks overlap this date selection.",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "guest": "Guest",
+      "bookingRef": "Booking ref",
+      "status": "Status",
+      "value": "Value",
+      "note": "Note",
+      "busy": {
+        "blocking": "Blocking...",
+        "unblocking": "Unblocking..."
+      },
+      "success": {
+        "blockRequestSubmitted": "Block request submitted successfully.",
+        "blocked": "Dates blocked successfully.",
+        "unblocked": "Dates unblocked successfully."
+      },
+      "errors": {
+        "load": "Failed to load calendar",
+        "submitBlockRequest": "Failed to submit block request",
+        "blockDates": "Failed to block dates",
+        "unblockDates": "Failed to unblock dates"
+      }
+    },
+    "accountOverview": {
+      "title": "My Account",
+      "subtitle": "Bookings, refunds, and account activity",
+      "welcome": "Welcome",
+      "accountLabel": "Account",
+      "emailVerification": "Email verification",
+      "verified": "Verified",
+      "notVerified": "Not verified",
+      "documentsRequired": "Guest documents required",
+      "missing": "Missing",
+      "urgent48h": "Urgent: check-in within 48 hours",
+      "uploadNow": "Upload now",
+      "becomeHostTitle": "Become a host",
+      "becomeHostDescription": "List your property and start earning with managed short-term rentals.",
+      "learnHosting": "Learn about hosting",
+      "listProperty": "List your property",
+      "kpi": {
+        "bookingsUpcoming": "Bookings Upcoming",
+        "bookingsTotal": "Bookings Total",
+        "refundsTotal": "Refunds Total"
+      },
+      "errors": {
+        "load": "Failed to load overview",
+        "title": "Could not load account"
+      }
+    },
+    "adminDashboard": {
+      "title": "Admin Dashboard",
+      "subtitle": "Overview + analytics in one responsive workspace",
+      "noData": "No data available.",
+      "kpi": {
+        "propertiesUnderReview": "Properties Under Review",
+        "publishedProperties": "Published Properties",
+        "confirmedBookings": "Confirmed Bookings",
+        "revenueCaptured": "Revenue Captured",
+        "users": "Users",
+        "pendingVendors": "Pending Vendors",
+        "opsTasksOpen": "Ops Tasks Open",
+        "refundsPending": "Refunds Pending"
+      },
+      "kpiHelpers": {
+        "awaitingApproval": "Awaiting approval",
+        "liveInventory": "Live inventory",
+        "platformTotal": "Current platform total",
+        "capturedPayments": "Captured payments",
+        "allRoles": "All roles",
+        "needReview": "Need review",
+        "opsTaskStates": "Pending, assigned, in progress",
+        "needsAction": "Needs action"
+      },
+      "charts": {
+        "bookingsPerPeriod": {
+          "title": "Bookings per period",
+          "subtitle": "Total booking volume"
+        },
+        "revenuePerPeriod": {
+          "title": "Revenue per period",
+          "subtitle": "Captured payment amount"
+        },
+        "paymentCapturesTrend": {
+          "title": "Payment captures trend",
+          "subtitle": "Captured transaction count"
+        },
+        "refundsTrend": {
+          "title": "Refunds trend",
+          "subtitle": "Succeeded refunds count"
+        },
+        "confirmedBookingsTrend": {
+          "title": "Confirmed bookings trend",
+          "subtitle": "Confirmed over time"
+        },
+        "cancelledBookingsTrend": {
+          "title": "Cancelled bookings trend",
+          "subtitle": "Cancelled over time"
+        }
+      },
+      "breakdowns": {
+        "bookingStatus": "Booking Status Breakdown",
+        "opsTaskStatus": "Ops Task Status Breakdown",
+        "paymentStatus": "Payment Status Breakdown",
+        "refundStatus": "Refund Status Breakdown"
+      },
+      "errors": {
+        "load": "Failed to load admin dashboard",
+        "title": "Dashboard unavailable"
+      }
+    },
+    "vendorDashboard": {
+      "title": "Vendor Dashboard",
+      "subtitle": "Overview + analytics in one responsive workspace",
+      "statusBreakdowns": "Status breakdowns",
+      "bookingStatuses": "Booking statuses",
+      "opsTaskStatuses": "Ops task statuses",
+      "kpi": {
+        "publishedProperties": "Published Properties",
+        "underReview": "Under Review",
+        "revenueCaptured": "Revenue Captured",
+        "bookingsTotal": "Bookings Total",
+        "upcomingStays": "Upcoming Stays",
+        "opsTasksOpen": "Ops Tasks Open"
+      },
+      "kpiHelpers": {
+        "liveInMarketplace": "Live in marketplace",
+        "pendingApproval": "Pending approval",
+        "capturedPayments": "Captured payments",
+        "allStatuses": "All statuses",
+        "confirmedCheckIns": "Confirmed check-ins ahead",
+        "pendingOperationalWorkload": "Pending operational workload"
+      },
+      "charts": {
+        "revenueTrend": {
+          "title": "Revenue trend",
+          "subtitle": "Captured payment amount"
+        },
+        "bookingsTrend": {
+          "title": "Bookings trend",
+          "subtitle": "Booking volume per period"
+        },
+        "upcomingStaysTrend": {
+          "title": "Upcoming stays trend",
+          "subtitle": "Confirmed check-ins"
+        },
+        "opsTaskTrend": {
+          "title": "Ops task trend",
+          "subtitle": "Operational workload"
+        },
+        "occupancyNightsTrend": {
+          "title": "Occupancy nights trend",
+          "subtitle": "Confirmed occupied nights"
+        }
+      },
+      "errors": {
+        "load": "Failed to load vendor dashboard",
+        "title": "Dashboard unavailable"
+      }
+    },
+    "vendorLogin": {
+      "title": "Vendor login",
+      "subtitle": "Log in to manage listings, media, documents, review submissions, and publishing.",
+      "email": "Email",
+      "password": "Password",
+      "emailPlaceholder": "vendor@demo.com",
+      "passwordPlaceholder": "••••••••",
+      "signIn": "Sign in",
+      "signingIn": "Signing in…",
+      "authNote": "Current portal auth uses a token stored in sessionStorage. Next step: upgrade to SSR-safe cookie auth so server components can fetch with auth too.",
+      "errors": {
+        "missingToken": "Login failed: missing access token.",
+        "roleMismatch": "This account is \"{role}\". Vendor portal requires role \"VENDOR\".",
+        "loginFailed": "Login failed"
+      }
+    }
+  },
+  "propertiesPage": {
+    "eyebrow": "Stays",
+    "title": "Stays in Dubai & UAE",
+    "subtitle": "Date-aware availability search powered by our booking engine - no stale inventory, no surprises.",
+    "listErrorTitle": "We're having trouble loading this",
+    "listErrorMessage": "Could not load properties right now.",
+    "listErrorRetry": "Retry listings"
+  },
+  "propertiesShell": {
+    "showing": "Showing",
+    "of": "of",
+    "browse": "Browse stays",
+    "cardView": "Card View",
+    "mapCardsView": "Map + Cards View",
+    "loadMore": "Load more stays",
+    "endResults": "You have reached the end of the results.",
+    "mapTitle": "Map",
+    "mapUpdating": "Updating pins...",
+    "mapUnavailable": "Pins unavailable",
+    "mapPins": "{count} pins",
+    "retryPins": "Retry pins",
+    "noPins": "No pins in this viewport. Pan or zoom out to discover nearby stays.",
+    "pinsFootnote": "Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth."
+  },
+  "quotePanel": {
+    "dates": "Dates",
+    "guests": "Guests",
+    "fromNight": "From {price} / night",
+    "base": "Base: {amount}",
+    "quote": "Quote",
+    "nights": "{nights} nights",
+    "dateRange": "{checkIn} -> {checkOut}",
+    "getQuote": "Get quote",
+    "gettingQuote": "Getting quote...",
+    "reserve": "Reserve (hold inventory)",
+    "creatingHold": "Creating hold...",
+    "availabilityTitle": "Check availability",
+    "availabilitySubtitle": "Select dates and guests to get an exact total.",
+    "errorPrefix": "Error:"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "subtitle": "Convert your hold into a booking. Booking becomes CONFIRMED only after verified payment events.",
+    "backProperty": "Back to property",
+    "browseStays": "Browse stays",
+    "flowTitle": "Your reservation flow",
+    "flowSubtitle": "Hold prevents double-booking, booking is payment-gated and webhook-confirmed.",
+    "step1": "Hold created",
+    "step1Detail": "Inventory is reserved temporarily.",
+    "step2": "Create booking",
+    "step2Detail": "Status: PENDING_PAYMENT",
+    "step3": "Hosted payment",
+    "step3Detail": "Webhooks confirm booking.",
+    "importantLabel": "Important:",
+    "importantBody": "if payment fails or expires, the booking may be cancelled automatically and availability is released safely.",
+    "noHoldTitle": "No hold found",
+    "noHoldBody": "This page requires holdId. Go back to the property, select dates, and click Reserve (hold inventory)."
+  },
+  "propertyCard": {
+    "defaultTitle": "Stay",
+    "guests": "{count} guests",
+    "beds": "{count} beds",
+    "baths": "{count} baths",
+    "basePrice": "Base: {amount}",
+    "perNight": "{price} / night",
+    "priceOnRequest": "Price on request",
+    "view": "View",
+    "photoAria": "{title} photo {index}",
+    "showImageAria": "Show image {index}"
+  },
+  "pinPreview": {
+    "defaultTitle": "Stay",
+    "defaultLocation": "Dubai",
+    "perNight": "/ night",
+    "closePreview": "Close preview",
+    "openListing": "Open listing"
+  }
+}

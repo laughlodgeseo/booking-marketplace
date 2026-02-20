@@ -8,7 +8,6 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useCurrency } from "@/lib/currency/CurrencyProvider";
 import {
   downloadUserBookingDocument,
   getUserBookingDetail,
@@ -43,6 +42,19 @@ function formatDateTime(value: string): string {
   });
 }
 
+function formatMoney(amount: number, currency: string | null | undefined): string {
+  const normalizedCurrency = (currency ?? "").trim().toUpperCase() || "AED";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: normalizedCurrency,
+      maximumFractionDigits: normalizedCurrency === "AED" ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${normalizedCurrency} ${amount.toLocaleString()}`;
+  }
+}
+
 function labelDocType(type: BookingDocumentType): string {
   if (type === "PASSPORT") return "Passport";
   if (type === "EMIRATES_ID") return "Emirates ID";
@@ -56,7 +68,6 @@ export default function AccountBookingDetailPage() {
   const bookingId = typeof params?.bookingId === "string" ? params.bookingId : "";
 
   const { status: authStatus } = useAuth();
-  const { formatFromAed } = useCurrency();
 
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [docError, setDocError] = useState<string | null>(null);
@@ -155,7 +166,7 @@ export default function AccountBookingDetailPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill status={state.data.status}>{state.data.status}</StatusPill>
                 <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
-                  Total: {formatFromAed(state.data.totalAmount, { maximumFractionDigits: 0 })}
+                  Total: {formatMoney(state.data.totalAmount, state.data.currency)}
                 </span>
                 <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
                   {state.data.nights} nights
@@ -243,7 +254,7 @@ export default function AccountBookingDetailPage() {
                     {state.data.payment.provider} · {state.data.payment.status}
                   </div>
                   <div className="mt-1 text-sm text-secondary">
-                    {formatFromAed(state.data.payment.amount, { maximumFractionDigits: 0 })}
+                    {formatMoney(state.data.payment.amount, state.data.payment.currency)}
                   </div>
 
                   <div className="mt-3 space-y-2">

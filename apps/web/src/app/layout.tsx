@@ -1,7 +1,19 @@
 import type { Metadata } from "next";
+import { Cairo } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import Providers from "./providers";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { directionForLocale } from "@/lib/i18n/config";
+import { getLocaleMessages } from "@/lib/i18n/messages";
+import { getRequestLocale } from "@/lib/i18n/server";
+
+const arabicFont = Cairo({
+  subsets: ["arabic"],
+  variable: "--font-arabic",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://rentpropertyuae.com"),
@@ -37,13 +49,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getRequestLocale();
+  const messages = getLocaleMessages(locale);
+  const dir = directionForLocale(locale);
+
   return (
-    <html lang="en">
-      <body>
-        <Providers>
-          <AuthProvider>{children}</AuthProvider>
-        </Providers>
+    <html lang={locale} dir={dir}>
+      <body
+        className={[
+          "min-h-screen bg-[var(--site-bg)]",
+          arabicFont.variable,
+          locale === "ar" ? "font-arabic-locale" : "",
+        ].join(" ")}
+      >
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>
+            <AuthProvider>{children}</AuthProvider>
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

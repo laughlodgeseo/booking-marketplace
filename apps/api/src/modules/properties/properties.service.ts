@@ -4,11 +4,24 @@ import {
   CalendarDayStatus,
   GuestReviewStatus,
   HoldStatus,
+  LocaleCode,
   Prisma,
   PropertyStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { FxRatesService } from '../fx/fx-rates.service';
 import { ListPropertiesDto } from './dto/list-properties.dto';
+import {
+  buildOverlapFilter,
+  tryIsoDayToUtcDate,
+  utcDateToIsoDay,
+} from '../../common/date-range';
+import {
+  DEFAULT_DISPLAY_CURRENCY,
+  normalizeDisplayCurrency,
+  type AppLocale,
+  type DisplayCurrency,
+} from '../../common/i18n/locale';
 
 type AmenityGroupDto = {
   id: string;
@@ -27,32 +40,61 @@ type AmenityDto = {
   group: AmenityGroupDto | null;
 };
 
+type RequestContext = {
+  locale?: AppLocale;
+  displayCurrency?: DisplayCurrency;
+};
+
 @Injectable()
 export class PropertiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fxRates: FxRatesService,
+  ) {}
 
-  private isoDayRegex = /^\d{4}-\d{2}-\d{2}$/;
+  private resolveLocale(input?: AppLocale): LocaleCode {
+    return input === 'ar' ? LocaleCode.ar : LocaleCode.en;
+  }
+
+  private pickTranslation<T extends { locale: LocaleCode }>(
+    translations: T[] | undefined,
+    locale: LocaleCode,
+  ): T | null {
+    if (!translations || translations.length === 0) return null;
+    return (
+      translations.find((item) => item.locale === locale) ??
+      translations.find((item) => item.locale === LocaleCode.en) ??
+      null
+    );
+  }
+
+  private resolveDisplayCurrency(input?: DisplayCurrency): DisplayCurrency {
+    return input ? normalizeDisplayCurrency(input) : DEFAULT_DISPLAY_CURRENCY;
+  }
+
+  private toDisplayAmount(amountAed: number, fxRate: number): number {
+    return Math.round(amountAed * fxRate);
+  }
 
   private parseIsoDay(value: string, fallback?: Date): Date {
     const raw = value.trim();
-    if (!this.isoDayRegex.test(raw)) {
+    if (!raw) {
       if (fallback) return fallback;
       throw new BadRequestException('Invalid date range. Use YYYY-MM-DD.');
     }
-    return new Date(`${raw}T00:00:00.000Z`);
+    const parsed = tryIsoDayToUtcDate(raw);
+    if (parsed) return parsed;
+    if (fallback) return fallback;
+    throw new BadRequestException('Invalid date range. Use YYYY-MM-DD.');
   }
 
-  private toIsoDay(date: Date): string {
-    const y = date.getUTCFullYear();
-    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(date.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-
-  async list(input: ListPropertiesDto) {
+  async list(input: ListPropertiesDto, context?: RequestContext) {
     const page = input.page ?? 1;
     const limit = input.limit ?? 12;
     const skip = (page - 1) * limit;
+    const locale = this.resolveLocale(context?.locale);
+    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const fx = await this.fxRates.resolveRate(displayCurrency);
 
     const where: Prisma.PropertyWhereInput = {
       status: PropertyStatus.PUBLISHED,
@@ -105,6 +147,15 @@ export class PropertiesService {
           basePrice: true,
           cleaningFee: true,
           currency: true,
+          translations: {
+            where: { locale: { in: [locale, LocaleCode.en] } },
+            select: {
+              locale: true,
+              title: true,
+              areaLabel: true,
+            },
+            take: 2,
+          },
           media: {
             orderBy: { sortOrder: 'asc' },
             take: 1,
@@ -124,21 +175,41 @@ export class PropertiesService {
       limit,
       total,
       totalPages: Math.ceil(total / limit),
-      items: items.map((p) => ({
-        ratingAvg:
-          p.guestReviews.length > 0
-            ? p.guestReviews.reduce((sum, row) => sum + row.rating, 0) /
-              p.guestReviews.length
-            : null,
-        ratingCount: p.guestReviews.length,
-        ...p,
-        priceFrom: p.basePrice,
-        cover: p.media[0] ?? null,
-      })),
+      items: items.map((p) => {
+        const localized = this.pickTranslation(p.translations, locale);
+        const { translations: _translations, ...rest } = p;
+        const basePriceDisplay = this.toDisplayAmount(p.basePrice, fx.rate);
+        const cleaningFeeDisplay = this.toDisplayAmount(p.cleaningFee, fx.rate);
+        return {
+          ratingAvg:
+            p.guestReviews.length > 0
+              ? p.guestReviews.reduce((sum, row) => sum + row.rating, 0) /
+                p.guestReviews.length
+              : null,
+          ratingCount: p.guestReviews.length,
+          ...rest,
+          title: localized?.title ?? p.title,
+          area: localized?.areaLabel ?? p.area,
+          basePrice: basePriceDisplay,
+          cleaningFee: cleaningFeeDisplay,
+          currency: displayCurrency,
+          priceFrom: basePriceDisplay,
+          basePriceAed: p.basePrice,
+          cleaningFeeAed: p.cleaningFee,
+          priceFromAed: p.basePrice,
+          fxRate: fx.rate,
+          fxAsOf: fx.asOfDate,
+          fxProvider: fx.provider,
+          cover: p.media[0] ?? null,
+        };
+      }),
     };
   }
 
-  async bySlug(slug: string) {
+  async bySlug(slug: string, context?: RequestContext) {
+    const locale = this.resolveLocale(context?.locale);
+    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const fx = await this.fxRates.resolveRate(displayCurrency);
     // ✅ Public safety: only show PUBLISHED listings
     const property = await this.prisma.property.findFirst({
       where: { slug, status: PropertyStatus.PUBLISHED },
@@ -159,6 +230,16 @@ export class PropertiesService {
         cleaningFee: true,
         currency: true,
         status: true,
+        translations: {
+          where: { locale: { in: [locale, LocaleCode.en] } },
+          select: {
+            locale: true,
+            title: true,
+            description: true,
+            areaLabel: true,
+          },
+          take: 2,
+        },
         media: {
           orderBy: { sortOrder: 'asc' },
           select: { url: true, alt: true, sortOrder: true, category: true },
@@ -192,12 +273,22 @@ export class PropertiesService {
                 icon: true,
                 sortOrder: true,
                 isActive: true,
+                translations: {
+                  where: { locale: { in: [locale, LocaleCode.en] } },
+                  select: { locale: true, name: true },
+                  take: 2,
+                },
                 group: {
                   select: {
                     id: true,
                     key: true,
                     name: true,
                     sortOrder: true,
+                    translations: {
+                      where: { locale: { in: [locale, LocaleCode.en] } },
+                      select: { locale: true, name: true },
+                      take: 2,
+                    },
                   },
                 },
               },
@@ -209,8 +300,38 @@ export class PropertiesService {
 
     if (!property) return null;
 
+    const propertyTranslation = this.pickTranslation(
+      property.translations,
+      locale,
+    );
+
     const amenities: AmenityDto[] = (property.amenities ?? [])
-      .map((pa) => pa.amenity)
+      .map((pa) => {
+        const amenityTranslation = this.pickTranslation(
+          pa.amenity.translations,
+          locale,
+        );
+        const groupTranslation = pa.amenity.group
+          ? this.pickTranslation(pa.amenity.group.translations, locale)
+          : null;
+
+        return {
+          id: pa.amenity.id,
+          key: pa.amenity.key,
+          name: amenityTranslation?.name ?? pa.amenity.name,
+          icon: pa.amenity.icon,
+          sortOrder: pa.amenity.sortOrder,
+          isActive: pa.amenity.isActive,
+          group: pa.amenity.group
+            ? {
+                id: pa.amenity.group.id,
+                key: pa.amenity.group.key,
+                name: groupTranslation?.name ?? pa.amenity.group.name,
+                sortOrder: pa.amenity.group.sortOrder,
+              }
+            : null,
+        };
+      })
       .filter((a) => a.isActive)
       .sort((a, b) => {
         const ga = a.group?.sortOrder ?? 9999;
@@ -244,9 +365,24 @@ export class PropertiesService {
       return nx.localeCompare(ny);
     });
 
+    const basePriceDisplay = this.toDisplayAmount(property.basePrice, fx.rate);
+    const cleaningFeeDisplay = this.toDisplayAmount(property.cleaningFee, fx.rate);
+
     return {
       ...property,
-      priceFrom: property.basePrice,
+      title: propertyTranslation?.title ?? property.title,
+      description: propertyTranslation?.description ?? property.description,
+      area: propertyTranslation?.areaLabel ?? property.area,
+      basePrice: basePriceDisplay,
+      cleaningFee: cleaningFeeDisplay,
+      currency: displayCurrency,
+      priceFrom: basePriceDisplay,
+      basePriceAed: property.basePrice,
+      cleaningFeeAed: property.cleaningFee,
+      priceFromAed: property.basePrice,
+      fxRate: fx.rate,
+      fxAsOf: fx.asOfDate,
+      fxProvider: fx.provider,
       ratingAvg:
         property.guestReviews.length > 0
           ? property.guestReviews.reduce((sum, row) => sum + row.rating, 0) /
@@ -293,8 +429,7 @@ export class PropertiesService {
           status: {
             in: [BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED],
           },
-          checkIn: { lt: to },
-          checkOut: { gt: from },
+          AND: buildOverlapFilter('checkIn', 'checkOut', from, to),
         },
         select: { checkIn: true, checkOut: true },
       }),
@@ -311,15 +446,14 @@ export class PropertiesService {
           propertyId: property.id,
           status: HoldStatus.ACTIVE,
           expiresAt: { gt: new Date() },
-          checkIn: { lt: to },
-          checkOut: { gt: from },
+          AND: buildOverlapFilter('checkIn', 'checkOut', from, to),
         },
         select: { checkIn: true, checkOut: true },
       }),
     ]);
 
     const blockedSet = new Set(
-      blockedDays.map((row) => this.toIsoDay(row.date)),
+      blockedDays.map((row) => utcDateToIsoDay(row.date)),
     );
 
     const bookedSet = new Set<string>();
@@ -334,7 +468,7 @@ export class PropertiesService {
         t < end.getTime();
         t += 24 * 60 * 60 * 1000
       ) {
-        bookedSet.add(this.toIsoDay(new Date(t)));
+        bookedSet.add(utcDateToIsoDay(new Date(t)));
       }
     }
 
@@ -349,7 +483,7 @@ export class PropertiesService {
         t < end.getTime();
         t += 24 * 60 * 60 * 1000
       ) {
-        heldSet.add(this.toIsoDay(new Date(t)));
+        heldSet.add(utcDateToIsoDay(new Date(t)));
       }
     }
 
@@ -359,7 +493,7 @@ export class PropertiesService {
     }> = [];
 
     for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
-      const iso = this.toIsoDay(new Date(t));
+      const iso = utcDateToIsoDay(new Date(t));
       const status = bookedSet.has(iso)
         ? 'BOOKED'
         : blockedSet.has(iso)
@@ -373,8 +507,8 @@ export class PropertiesService {
     return {
       propertyId: property.id,
       slug: property.slug,
-      from: this.toIsoDay(from),
-      to: this.toIsoDay(to),
+      from: utcDateToIsoDay(from),
+      to: utcDateToIsoDay(to),
       days,
     };
   }

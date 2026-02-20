@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ENV } from "@/lib/env";
 import type { MapPoint } from "@/lib/types/search";
-import { useCurrency } from "@/lib/currency/CurrencyProvider";
 
 type LatLng = { lat: number; lng: number };
 type ViewportBounds = { north: number; south: number; east: number; west: number };
@@ -61,6 +60,18 @@ function clearMarkers(markers: google.maps.Marker[]) {
   markers.length = 0;
 }
 
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: currency === "AED" ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+}
+
 export default function GoogleMap(props: {
   center: LatLng;
   zoom: number;
@@ -87,7 +98,6 @@ export default function GoogleMap(props: {
 
   const [ready, setReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const { formatFromAed } = useCurrency();
 
   const apiKey = ENV.googleMapsApiKey;
   const safeClassName = className ?? "h-[520px] w-full rounded-2xl";
@@ -158,8 +168,8 @@ export default function GoogleMap(props: {
         label: {
           text:
             typeof p.priceFrom === "number"
-              ? formatFromAed(p.priceFrom, { maximumFractionDigits: 0 })
-              : "AED --",
+              ? formatMoney(p.priceFrom, p.currency)
+              : `${p.currency} --`,
           fontSize: "12px",
           fontWeight: "600",
         },
@@ -172,7 +182,7 @@ export default function GoogleMap(props: {
 
       h.markers.push(marker);
     }
-  }, [formatFromAed, onMarkerClick, points, ready]);
+  }, [onMarkerClick, points, ready]);
 
   // Emit viewport changes after pan/zoom settles.
   useEffect(() => {

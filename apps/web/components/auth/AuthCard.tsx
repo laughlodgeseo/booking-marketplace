@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useLocale } from "next-intl";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type Width = "sm" | "md" | "lg" | "xl";
 
@@ -13,6 +17,23 @@ interface AuthCardProps {
   width?: Width;
   footnote?: ReactNode;
 }
+
+const COPY = {
+  en: {
+    backHome: "Back to home",
+    termsPrefix: "By continuing, you agree to our",
+    terms: "Terms",
+    and: "and",
+    privacy: "Privacy Policy",
+  },
+  ar: {
+    backHome: "العودة للرئيسية",
+    termsPrefix: "بالمتابعة، فإنك توافق على",
+    terms: "الشروط",
+    and: "و",
+    privacy: "سياسة الخصوصية",
+  },
+} as const;
 
 function widthClass(w: Width): string {
   switch (w) {
@@ -38,6 +59,9 @@ export function AuthCard({
   width = "md",
   footnote,
 }: AuthCardProps) {
+  const locale = normalizeLocale(useLocale());
+  const copy = COPY[locale];
+
   return (
     <main className="mx-auto flex min-h-dvh w-full items-start justify-center px-4 pb-10 pt-10 sm:px-6 lg:min-h-screen lg:items-center lg:px-8 lg:py-10">
       <div className={`w-full ${widthClass(width)}`}>
@@ -62,7 +86,7 @@ export function AuthCard({
               {showBackHome ? (
                 <div className="mt-3 text-xs text-slate-600">
                   <Link href="/" className="font-semibold text-indigo-700 hover:underline">
-                    Back to home
+                    {copy.backHome}
                   </Link>
                 </div>
               ) : null}
@@ -74,13 +98,13 @@ export function AuthCard({
           {footnote ? <div className="mt-4">{footnote}</div> : null}
 
           <div className="mt-4 text-center text-[11px] leading-relaxed text-slate-600">
-            By continuing, you agree to our{" "}
+            {copy.termsPrefix}{" "}
             <Link href="/terms" className="font-semibold text-slate-700 hover:text-slate-900">
-              Terms
+              {copy.terms}
             </Link>{" "}
-            and{" "}
+            {copy.and}{" "}
             <Link href="/privacy" className="font-semibold text-slate-700 hover:text-slate-900">
-              Privacy Policy
+              {copy.privacy}
             </Link>
             .
           </div>

@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { createTranslator } from "next-intl";
 import UnifiedSearchBar from "@/components/search/UnifiedSearchBar";
 import FiltersBar from "@/components/search/FiltersBar";
 import PropertiesSearchShell from "@/components/search/properties/PropertiesSearchShell";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
 import { searchProperties } from "@/lib/api/search";
 import { parsePropertiesQuery } from "@/lib/search/params";
+import { parseSupportedCurrency } from "@/lib/currency/currency";
+import { getLocaleMessages } from "@/lib/i18n/messages";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Stays | Laugh & Lodge",
@@ -16,6 +21,15 @@ type PageProps = {
 };
 
 export default async function PropertiesPage(props: PageProps) {
+  const locale = await getRequestLocale();
+  const messages = getLocaleMessages(locale);
+  const t = createTranslator({
+    locale,
+    messages,
+    namespace: "propertiesPage",
+  });
+  const cookieStore = await cookies();
+  const currency = parseSupportedCurrency(cookieStore.get("currency")?.value);
   const searchParams = await props.searchParams;
   const query = parsePropertiesQuery(searchParams);
 
@@ -34,7 +48,7 @@ export default async function PropertiesPage(props: PageProps) {
     page: query.page,
     pageSize: query.pageSize,
     sort: query.sort ?? "relevance",
-  });
+  }, { locale, currency });
 
   const items = res.ok ? res.data.items : [];
   const meta = res.ok ? res.data.meta : null;
@@ -65,13 +79,13 @@ export default async function PropertiesPage(props: PageProps) {
         <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-14 lg:px-8">
           <div className="max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-indigo-100/90">
-              Stays
+              {t("eyebrow")}
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Stays in Dubai &amp; UAE
+              {t("title")}
             </h1>
             <p className="mt-2 text-sm text-indigo-100 sm:text-base">
-              Date-aware availability search powered by our booking engine - no stale inventory, no surprises.
+              {t("subtitle")}
             </p>
           </div>
 
@@ -93,9 +107,9 @@ export default async function PropertiesPage(props: PageProps) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {!res.ok ? (
             <NetworkErrorState
-              title="We're having trouble loading this"
-              message={res.message || "Could not load properties right now."}
-              retryLabel="Retry listings"
+              title={t("listErrorTitle")}
+              message={res.message || t("listErrorMessage")}
+              retryLabel={t("listErrorRetry")}
             />
           ) : (
             <PropertiesSearchShell

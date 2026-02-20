@@ -1,15 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { SearchResponse, MapPoint } from "@/lib/types/search";
 import type { PropertiesQuery } from "@/lib/search/params";
 import { buildPropertiesSearchParams, stableStringifyQuery, withPage, withResetPage } from "@/lib/search/params";
 import { searchMapViewport } from "@/lib/api/search";
-import GoogleMap from "@/components/maps/GoogleMap";
 import TourmPropertyCard from "@/components/tourm/property/TourmPropertyCard";
 import FiltersPanel from "@/components/search/properties/PropertiesFiltersPanel";
 import PinPreviewCard from "@/components/search/properties/PinPreviewCard";
+import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
+
+const GoogleMap = dynamic(() => import("@/components/maps/GoogleMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="grid h-[78vh] w-full place-items-center bg-warm-alt/65 lg:h-[640px] xl:h-[700px]" />
+  ),
+});
 
 type Props = {
   query: PropertiesQuery;
@@ -41,6 +50,7 @@ function defaultZoom(items: SearchResponse["items"]) {
 
 export default function PropertiesSearchShell(props: Props) {
   const router = useRouter();
+  const t = useTranslations("propertiesShell");
   const showFiltersPanel = props.showFiltersPanel ?? true;
 
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
@@ -184,10 +194,10 @@ export default function PropertiesSearchShell(props: Props) {
                 onClick={() => onGoToPage(page + 1)}
                 className="h-11 w-full rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
               >
-                Load more stays
+                {t("loadMore")}
               </button>
             ) : (
-              <p className="text-center text-xs text-secondary/75">You have reached the end of the results.</p>
+              <p className="text-center text-xs text-secondary/75">{t("endResults")}</p>
             )}
           </div>
 
@@ -223,34 +233,38 @@ export default function PropertiesSearchShell(props: Props) {
         <div className="text-sm text-secondary">
           {props.meta ? (
             <>
-              Showing <span className="font-semibold text-primary">{props.items.length}</span> of{" "}
+              {t("showing")} <span className="font-semibold text-primary">{props.items.length}</span> {t("of")}{" "}
               <span className="font-semibold text-primary">{props.meta.total}</span>
             </>
           ) : (
-            "Browse stays"
+            t("browse")
           )}
         </div>
-        <div className="inline-flex w-full items-center rounded-full bg-warm-alt p-1 shadow-sm sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setViewMode("cards")}
-            className={[
-              "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
-              viewMode === "cards" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
-            ].join(" ")}
-          >
-            Card View
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("map")}
-            className={[
-              "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
-              viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
-            ].join(" ")}
-          >
-            Map + Cards View
-          </button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <CurrencySwitcher compact />
+
+          <div className="inline-flex w-full items-center rounded-full bg-warm-alt p-1 shadow-sm sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={[
+                "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
+                viewMode === "cards" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
+              ].join(" ")}
+            >
+              {t("cardView")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("map")}
+              className={[
+                "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
+                viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
+              ].join(" ")}
+            >
+              {t("mapCardsView")}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -265,9 +279,13 @@ export default function PropertiesSearchShell(props: Props) {
           <div className="min-w-0 lg:sticky lg:top-24">
             <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm">
               <div className="flex items-center justify-between gap-3 bg-bg-2/70 px-4 py-3">
-                <div className="text-sm font-semibold text-primary">Map</div>
+                <div className="text-sm font-semibold text-primary">{t("mapTitle")}</div>
                 <div className="text-xs text-secondary">
-                  {mapLoading ? "Updating pins…" : mapError ? "Pins unavailable" : `${mapPoints.length} pins`}
+                  {mapLoading
+                    ? t("mapUpdating")
+                    : mapError
+                      ? t("mapUnavailable")
+                      : t("mapPins", { count: mapPoints.length })}
                 </div>
               </div>
 
@@ -292,14 +310,14 @@ export default function PropertiesSearchShell(props: Props) {
                       onClick={retryMapPins}
                       className="mt-2 rounded-lg bg-surface/15 px-2 py-1 font-semibold text-inverted hover:bg-surface/25"
                     >
-                      Retry pins
+                      {t("retryPins")}
                     </button>
                   </div>
                 ) : null}
 
                 {!mapError && !mapLoading && mapPoints.length === 0 ? (
                   <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
-                    No pins in this viewport. Pan or zoom out to discover nearby stays.
+                    {t("noPins")}
                   </div>
                 ) : null}
 
@@ -316,7 +334,7 @@ export default function PropertiesSearchShell(props: Props) {
             </div>
 
             <p className="mt-3 text-xs text-muted">
-              Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth.
+              {t("pinsFootnote")}
             </p>
           </div>
         </div>

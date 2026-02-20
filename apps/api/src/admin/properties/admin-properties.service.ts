@@ -8,6 +8,7 @@ import { join } from 'path';
 import {
   ActivationInvoiceStatus,
   BookingStatus,
+  LocaleCode,
   NotificationType,
   PaymentProvider,
   PropertyMediaCategory,
@@ -23,6 +24,7 @@ import { AdminCreatePropertyDto } from './dto/admin-create-property.dto';
 import { AdminUpdatePropertyDto } from './dto/admin-update-property.dto';
 import {
   ReorderMediaDto,
+  type PropertyTranslationsInput,
   UpdateMediaCategoryDto,
 } from '../../vendor/vendor-properties.dto';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
@@ -138,10 +140,85 @@ export class AdminPropertiesService {
     return v.length > 0 ? v : 'AED';
   }
 
+  private normalizeTranslationString(input: unknown): string | null {
+    if (typeof input !== 'string') return null;
+    const value = input.trim();
+    return value.length > 0 ? value : null;
+  }
+
+  private async upsertPropertyTranslations(
+    propertyId: string,
+    translations: PropertyTranslationsInput | undefined,
+    fallback: {
+      title: string;
+      description: string | null;
+      areaLabel: string | null;
+    },
+  ): Promise<void> {
+    const ops: Array<Promise<unknown>> = [];
+
+    ops.push(
+      this.prisma.propertyTranslation.upsert({
+        where: {
+          propertyId_locale: {
+            propertyId,
+            locale: LocaleCode.en,
+          },
+        },
+        update: {
+          title: fallback.title,
+          description: fallback.description,
+          areaLabel: fallback.areaLabel,
+        },
+        create: {
+          propertyId,
+          locale: LocaleCode.en,
+          title: fallback.title,
+          description: fallback.description,
+          areaLabel: fallback.areaLabel,
+        },
+      }),
+    );
+
+    const ar = translations?.ar;
+    if (ar) {
+      const title = this.normalizeTranslationString(ar.title);
+      if (title) {
+        ops.push(
+          this.prisma.propertyTranslation.upsert({
+            where: {
+              propertyId_locale: {
+                propertyId,
+                locale: LocaleCode.ar,
+              },
+            },
+            update: {
+              title,
+              description: this.normalizeTranslationString(ar.description) ?? null,
+              areaLabel: this.normalizeTranslationString(ar.areaLabel) ?? null,
+              tagline: this.normalizeTranslationString(ar.tagline) ?? null,
+            },
+            create: {
+              propertyId,
+              locale: LocaleCode.ar,
+              title,
+              description: this.normalizeTranslationString(ar.description) ?? null,
+              areaLabel: this.normalizeTranslationString(ar.areaLabel) ?? null,
+              tagline: this.normalizeTranslationString(ar.tagline) ?? null,
+            },
+          }),
+        );
+      }
+    }
+
+    await Promise.all(ops);
+  }
+
   async getOneByAdmin(propertyId: string) {
     const item = await this.prisma.property.findUnique({
       where: { id: propertyId },
       include: {
+        translations: true,
         media: { orderBy: { sortOrder: 'asc' } },
         documents: { orderBy: { createdAt: 'desc' } },
         amenities: {
@@ -277,7 +354,7 @@ export class AdminPropertiesService {
 
     for (let attempt = 1; attempt <= 8; attempt++) {
       try {
-        return await this.prisma.property.create({
+        const created = await this.prisma.property.create({
           data: {
             vendorId,
             createdByAdminId: adminId,
@@ -312,6 +389,14 @@ export class AdminPropertiesService {
             documents: { orderBy: { createdAt: 'desc' } },
           },
         });
+
+        await this.upsertPropertyTranslations(created.id, dto.translations, {
+          title: created.title,
+          description: created.description ?? null,
+          areaLabel: created.area ?? null,
+        });
+
+        return this.getOneByAdmin(created.id);
       } catch (err) {
         if (!this.isSlugUniqueViolation(err)) throw err;
 
@@ -361,7 +446,7 @@ export class AdminPropertiesService {
       );
     }
 
-    return this.prisma.property.update({
+    const updated = await this.prisma.property.update({
       where: { id: propertyId },
       data: {
         vendorId: undefined,
@@ -392,6 +477,14 @@ export class AdminPropertiesService {
         documents: { orderBy: { createdAt: 'desc' } },
       },
     });
+
+    await this.upsertPropertyTranslations(propertyId, dto.translations, {
+      title: updated.title,
+      description: updated.description ?? null,
+      areaLabel: updated.area ?? null,
+    });
+
+    return this.getOneByAdmin(propertyId);
   }
 
   async publishByAdmin(adminId: string, propertyId: string) {

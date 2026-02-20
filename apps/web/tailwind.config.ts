@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import rtl from "tailwindcss-rtl";
 
 export default {
   content: [
@@ -80,5 +81,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [rtl],
 } satisfies Config;

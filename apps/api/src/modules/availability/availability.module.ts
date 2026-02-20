@@ -6,9 +6,10 @@ import { HoldsController } from './controllers/holds.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { QuoteController } from './controllers/quote.controller';
 import { ReserveController } from './controllers/reserve.controller';
+import { FxModule } from '../fx/fx.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, FxModule],
   controllers: [
     PublicAvailabilityController,
     VendorAvailabilityController,

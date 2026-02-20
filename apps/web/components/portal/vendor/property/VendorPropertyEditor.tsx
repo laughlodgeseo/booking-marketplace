@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import type {
   AmenitiesCatalogResponse,
   UpdateVendorPropertyLocationInput,
@@ -27,7 +28,16 @@ import {
 import { MediaManager } from "@/components/portal/vendor/property/MediaManager";
 import { DocumentManager } from "@/components/portal/vendor/property/DocumentManager";
 import { ReviewChecklistCard, computeGates } from "@/components/portal/vendor/property/ReviewChecklistCard";
-import { PortalMapPicker } from "@/components/portal/maps/PortalMapPicker";
+import { SelectableTile } from "@/components/portal/ui/SelectableTile";
+import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
+
+const PortalMapPicker = dynamic(
+  () => import("@/components/portal/maps/PortalMapPicker").then((mod) => mod.PortalMapPicker),
+  {
+    ssr: false,
+    loading: () => <PortalLoadingCard kind="mapPicker" />,
+  },
+);
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -36,6 +46,9 @@ function cn(...xs: Array<string | false | null | undefined>) {
 type TabKey = "basics" | "location" | "amenities" | "photos" | "documents" | "review";
 
 function toDraftInput(p: VendorPropertyDetail): VendorPropertyDraftInput {
+  const translationEn = p.translations?.find((row) => row.locale === "en");
+  const translationAr = p.translations?.find((row) => row.locale === "ar");
+
   return {
     title: p.title ?? "",
     slug: p.slug ?? "",
@@ -55,6 +68,20 @@ function toDraftInput(p: VendorPropertyDetail): VendorPropertyDraftInput {
     checkInToMax: p.checkInToMax ?? null,
     checkOutMin: p.checkOutMin ?? null,
     isInstantBook: Boolean(p.isInstantBook),
+    translations: {
+      en: {
+        title: translationEn?.title ?? p.title ?? "",
+        description: translationEn?.description ?? p.description ?? "",
+        areaLabel: translationEn?.areaLabel ?? p.area ?? "",
+        tagline: translationEn?.tagline ?? "",
+      },
+      ar: {
+        title: translationAr?.title ?? "",
+        description: translationAr?.description ?? "",
+        areaLabel: translationAr?.areaLabel ?? "",
+        tagline: translationAr?.tagline ?? "",
+      },
+    },
   };
 }
 
@@ -271,7 +298,7 @@ export default function VendorPropertyEditor(props: {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+      <div className="portal-card rounded-2xl bg-surface/90 p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-lg font-semibold text-primary">{property.title || "Untitled property"}</div>
@@ -295,7 +322,7 @@ export default function VendorPropertyEditor(props: {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex min-w-0 flex-wrap gap-2">
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -305,11 +332,13 @@ export default function VendorPropertyEditor(props: {
                 if (t.key === "amenities") void ensureAmenitiesCatalog();
               }}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-semibold transition",
-                tab === t.key ? "bg-brand text-accent-text" : "bg-surface text-primary ring-1 ring-line hover:bg-warm-alt"
+                "inline-flex min-w-0 max-w-full items-center rounded-full px-4 py-2 text-sm font-semibold transition",
+                tab === t.key
+                  ? "bg-brand text-accent-text shadow-[0_10px_26px_rgba(79,70,229,0.24)]"
+                  : "bg-surface/88 text-primary ring-1 ring-line/28 hover:bg-accent-soft/22"
               )}
             >
-              {t.label}
+              <span className="truncate">{t.label}</span>
             </button>
           ))}
         </div>
@@ -340,12 +369,15 @@ export default function VendorPropertyEditor(props: {
       ) : null}
 
       {tab === "amenities" ? (
-        <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+        <section className="portal-card rounded-2xl bg-surface/90 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-primary">Amenities</h3>
               <p className="mt-1 text-sm text-secondary">Select what your property offers.</p>
             </div>
+            <span className="inline-flex items-center rounded-full bg-accent-soft/40 px-3 py-1 text-xs font-semibold text-brand">
+              Selected: {selectedAmenityIds.length}
+            </span>
           </div>
 
           {amenitiesLoading ? (
@@ -355,27 +387,20 @@ export default function VendorPropertyEditor(props: {
           ) : (
             <div className="mt-5 space-y-5">
               {amenitiesCatalog.amenitiesGrouped.map((g) => (
-                <div key={g.group.id} className="rounded-2xl border border-line bg-surface p-4">
+                <div key={g.group.id} className="portal-card rounded-2xl bg-warm-alt/72 p-4">
                   <div className="text-sm font-semibold text-primary">{g.group.name}</div>
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {g.amenities.map((a) => {
                       const checked = selectedAmenityIds.includes(a.id);
                       return (
-                        <button
+                        <SelectableTile
                           key={a.id}
-                          type="button"
+                          label={a.name}
+                          selected={checked}
                           disabled={busy !== null}
                           onClick={() => void toggleAmenity(a.id)}
-                          className={cn(
-                            "flex items-center justify-between rounded-xl border px-3 py-2 text-left text-sm transition",
-                            checked ? "border-brand bg-brand text-accent-text" : "border-line bg-surface text-primary hover:bg-warm-alt"
-                          )}
-                        >
-                          <span className="font-medium">{a.name}</span>
-                          <span className={cn("text-xs font-semibold", checked ? "text-inverted/70" : "text-muted")}>
-                            {checked ? "Selected" : "Select"}
-                          </span>
-                        </button>
+                          className="min-h-[44px]"
+                        />
                       );
                     })}
                   </div>
@@ -651,6 +676,7 @@ function BasicsPanel(props: {
   onSave: (next: VendorPropertyDraftInput) => Promise<void>;
 }) {
   const [v, setV] = useState<VendorPropertyDraftInput>(props.value);
+  const ar = v.translations?.ar ?? {};
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
@@ -695,6 +721,48 @@ function BasicsPanel(props: {
             onChange={(e) => setV((p) => ({ ...p, area: e.target.value || null }))}
             className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary"
             disabled={props.disabled}
+          />
+        </Field>
+
+        <Field label="Arabic title">
+          <input
+            value={ar.title ?? ""}
+            onChange={(e) =>
+              setV((p) => ({
+                ...p,
+                translations: {
+                  ...(p.translations ?? {}),
+                  ar: {
+                    ...(p.translations?.ar ?? {}),
+                    title: e.target.value,
+                  },
+                },
+              }))
+            }
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary"
+            disabled={props.disabled}
+            dir="rtl"
+          />
+        </Field>
+
+        <Field label="Arabic area">
+          <input
+            value={ar.areaLabel ?? ""}
+            onChange={(e) =>
+              setV((p) => ({
+                ...p,
+                translations: {
+                  ...(p.translations ?? {}),
+                  ar: {
+                    ...(p.translations?.ar ?? {}),
+                    areaLabel: e.target.value,
+                  },
+                },
+              }))
+            }
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary"
+            disabled={props.disabled}
+            dir="rtl"
           />
         </Field>
 
@@ -793,12 +861,47 @@ function BasicsPanel(props: {
             disabled={props.disabled}
           />
         </Field>
+
+        <Field label="Arabic description" className="sm:col-span-2">
+          <textarea
+            value={ar.description ?? ""}
+            onChange={(e) =>
+              setV((p) => ({
+                ...p,
+                translations: {
+                  ...(p.translations ?? {}),
+                  ar: {
+                    ...(p.translations?.ar ?? {}),
+                    description: e.target.value,
+                  },
+                },
+              }))
+            }
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary"
+            rows={6}
+            disabled={props.disabled}
+            dir="rtl"
+          />
+        </Field>
       </div>
 
       <div className="mt-5">
         <button
           type="button"
-          onClick={() => void props.onSave(v)}
+          onClick={() =>
+            void props.onSave({
+              ...v,
+              translations: {
+                ...(v.translations ?? {}),
+                en: {
+                  ...(v.translations?.en ?? {}),
+                  title: v.title,
+                  description: v.description ?? null,
+                  areaLabel: v.area ?? null,
+                },
+              },
+            })
+          }
           disabled={props.disabled}
           className={cn(
             "rounded-xl px-4 py-2 text-sm font-semibold",

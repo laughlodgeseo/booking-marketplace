@@ -7,18 +7,26 @@ export type Quote = {
   checkOut: string;
   nights: number;
   currency: string;
-  totalAmount: number;
+  fxRate: number;
+  fxAsOf: string | null;
+  totalAmount: number; // display currency total
+  totalAmountAed: number;
 };
 
 type QuoteApiResponse = {
   ok: true;
+  canBook?: boolean;
+  reasons?: string[];
   propertyId: string;
   checkIn: string;
   checkOut: string;
   nights: number;
   currency: string;
+  fxRate?: number;
+  fxAsOf?: string | null;
   breakdown?: {
     total?: number;
+    totalAed?: number;
   };
 };
 
@@ -60,6 +68,7 @@ export type QuoteInput = {
   checkIn: string;
   checkOut: string;
   guests: number;
+  currency?: string;
 };
 
 export async function quoteProperty(propertyId: string, input: QuoteInput): Promise<Quote> {
@@ -75,6 +84,13 @@ export async function quoteProperty(propertyId: string, input: QuoteInput): Prom
 
   const total = d.breakdown?.total;
   if (typeof total !== "number") throw new Error("Invalid quote: breakdown.total missing");
+  const fxRate = typeof d.fxRate === "number" && d.fxRate > 0 ? d.fxRate : 1;
+  const totalAed =
+    typeof d.breakdown?.totalAed === "number"
+      ? d.breakdown.totalAed
+      : d.currency === "AED"
+        ? total
+        : Math.round(total / fxRate);
 
   return {
     ok: true,
@@ -83,7 +99,10 @@ export async function quoteProperty(propertyId: string, input: QuoteInput): Prom
     checkOut: d.checkOut,
     nights: d.nights,
     currency: d.currency,
+    fxRate,
+    fxAsOf: typeof d.fxAsOf === "string" ? d.fxAsOf : null,
     totalAmount: total,
+    totalAmountAed: totalAed,
   };
 }
 
@@ -109,6 +128,13 @@ export async function reserveHold(propertyId: string, input: QuoteInput): Promis
   const q = d.quote;
   const total = q.breakdown?.total;
   if (typeof total !== "number") throw new Error("Invalid reserve quote: breakdown.total missing");
+  const fxRate = typeof q.fxRate === "number" && q.fxRate > 0 ? q.fxRate : 1;
+  const totalAed =
+    typeof q.breakdown?.totalAed === "number"
+      ? q.breakdown.totalAed
+      : q.currency === "AED"
+        ? total
+        : Math.round(total / fxRate);
 
   return {
     ok: true,
@@ -122,7 +148,10 @@ export async function reserveHold(propertyId: string, input: QuoteInput): Promis
       checkOut: q.checkOut,
       nights: q.nights,
       currency: q.currency,
+      fxRate,
+      fxAsOf: typeof q.fxAsOf === "string" ? q.fxAsOf : null,
       totalAmount: total,
+      totalAmountAed: totalAed,
     },
   };
 }

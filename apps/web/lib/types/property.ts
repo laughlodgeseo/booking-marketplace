@@ -69,6 +69,12 @@ export type PropertyDetail = {
 
   currency: CurrencyCode;
   priceFrom: number;
+  priceFromAed?: number;
+  basePriceAed?: number;
+  cleaningFeeAed?: number;
+  fxRate?: number;
+  fxAsOf?: string | null;
+  fxProvider?: string | null;
 
   maxGuests: number;
   bedrooms: number | null;
@@ -83,19 +89,36 @@ export type PropertyDetail = {
 export type QuoteBreakdown = {
   nights: number;
   currency: CurrencyCode;
+  basePricePerNight?: number;
+  nightlySubtotal?: number;
   baseAmount: number;
   cleaningFee: number;
   serviceFee: number;
   taxes: number;
   total: number;
+  basePricePerNightAed?: number;
+  nightlySubtotalAed?: number;
+  baseAmountAed?: number;
+  cleaningFeeAed?: number;
+  serviceFeeAed?: number;
+  taxesAed?: number;
+  totalAed?: number;
 };
 
 export type QuoteResponse = {
   ok: true;
+  canBook?: boolean;
+  reasons?: string[];
   propertyId: string;
   checkIn: string;
   checkOut: string;
-  guests: number;
+  guests?: number;
+  nights?: number;
+  minNightsRequired?: number;
+  currency?: CurrencyCode;
+  fxRate?: number;
+  fxAsOf?: string | null;
+  fxProvider?: string | null;
   breakdown: QuoteBreakdown;
 };
 
@@ -118,6 +141,12 @@ export type ReserveHold = {
   checkOut: string; // YYYY-MM-DD
   expiresAt: string; // ISO
   status: HoldStatus;
+  quotedTotalAed?: number | null;
+  quotedTotalDisplay?: number | null;
+  displayCurrency?: CurrencyCode | null;
+  fxRate?: number;
+  fxAsOfDate?: string | null;
+  fxProvider?: string | null;
 };
 
 export type ReserveQuote = {
@@ -131,11 +160,19 @@ export type ReserveQuote = {
   minNightsRequired: number;
   currency: CurrencyCode;
   breakdown: {
+    nights?: number;
     basePricePerNight: number;
     nightlySubtotal: number;
+    baseAmount?: number;
     cleaningFee: number;
+    serviceFee?: number;
+    taxes?: number;
     total: number;
+    totalAed?: number;
   };
+  fxRate?: number;
+  fxAsOf?: string | null;
+  fxProvider?: string | null;
 };
 
 export type ReserveResponse = {

@@ -1,4 +1,4 @@
-export type CurrencyCode = "AED" | "USD" | "EUR" | "GBP";
+export type CurrencyCode = "AED" | "USD" | "SAR" | "EUR" | "GBP";
 
 export type PropertyStatus = "DRAFT" | "PUBLISHED";
 
@@ -33,8 +33,14 @@ export type SearchPropertyCard = {
     nightly: number;
     cleaningFee: number;
     currency: CurrencyCode;
+    nightlyAed?: number;
+    cleaningFeeAed?: number;
     totalForStay?: number;
+    totalForStayAed?: number;
     nights?: number;
+    fxRate?: number;
+    fxAsOf?: string | null;
+    fxProvider?: string | null;
   };
   flags: {
     instantBook: boolean;
@@ -78,6 +84,10 @@ export type MapPoint = {
   lng: number;
   priceFrom: number;
   currency: CurrencyCode;
+  priceFromAed?: number;
+  fxRate?: number;
+  fxAsOf?: string | null;
+  fxProvider?: string | null;
   slug?: string;
   title?: string;
 };

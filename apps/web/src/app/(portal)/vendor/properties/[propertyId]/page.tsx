@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 import { getVendorPropertyDraft, type VendorPropertyDetail } from "@/lib/api/portal/vendor";
 
@@ -54,7 +55,8 @@ export default function VendorPropertyHubPage() {
 
   const coverUrl = useMemo(() => {
     if (state.kind !== "ready") return null;
-    return state.data.media[0]?.url ?? null;
+    const url = state.data.media[0]?.url ?? null;
+    return url ? resolveMediaUrl(url) : null;
   }, [state]);
 
   return (

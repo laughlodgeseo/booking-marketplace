@@ -1,66 +1,180 @@
 import Link from "next/link";
+import { ArrowRight, CalendarCheck2, CheckCircle2, ClipboardCheck, UserRoundPlus } from "lucide-react";
+import type { AppLocale } from "@/lib/i18n/config";
 
-export default function OwnersCta() {
+type OwnersCtaCopy = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  signupCta: string;
+  onboardingTeamCta: string;
+  fitTitle: string;
+  fitBody: string;
+  readinessTitle: string;
+  readinessBody: string;
+  nextStepsTitle: string;
+  expectedTitle: string;
+  nextSteps: Array<{ title: string; detail: string; Icon: React.ComponentType<{ className?: string }> }>;
+  deliverables: string[];
+};
+
+const COPY: Record<AppLocale, OwnersCtaCopy> = {
+  en: {
+    eyebrow: "Final step",
+    title: "Start owner onboarding with a vendor account",
+    subtitle:
+      "Move from evaluation to execution with a structured onboarding path that defines ownership model, operating standards, and launch timeline.",
+    signupCta: "Sign up as vendor",
+    onboardingTeamCta: "Talk to onboarding team",
+    fitTitle: "Program-fit recommendation",
+    fitBody: "Model matched to ownership goals and asset profile.",
+    readinessTitle: "Launch readiness governance",
+    readinessBody: "Scope and standards aligned before first booking.",
+    nextStepsTitle: "Next steps after sign-up",
+    expectedTitle: "What you can expect",
+    nextSteps: [
+      {
+        title: "Create vendor account",
+        detail: "Secure profile setup to start owner onboarding and document exchange.",
+        Icon: UserRoundPlus,
+      },
+      {
+        title: "Submit asset profile",
+        detail: "Share unit details, location, and preferred operating depth for scope assessment.",
+        Icon: ClipboardCheck,
+      },
+      {
+        title: "Confirm launch plan",
+        detail: "Align on service scope, timeline, standards, and commercial model before go-live.",
+        Icon: CalendarCheck2,
+      },
+    ],
+    deliverables: [
+      "Clear onboarding milestones and owner responsibilities",
+      "Program recommendation based on property profile",
+      "Operational standard framework before launch",
+      "Commercial transparency before commitment",
+    ],
+  },
+  ar: {
+    eyebrow: "الخطوة الأخيرة",
+    title: "ابدأ تسجيل المالك عبر حساب مورّد",
+    subtitle:
+      "انتقل من التقييم إلى التنفيذ عبر مسار تسجيل منظم يحدد نموذج الملكية ومعايير التشغيل وجدول الإطلاق.",
+    signupCta: "التسجيل كمورّد",
+    onboardingTeamCta: "تحدث مع فريق التسجيل",
+    fitTitle: "توصية البرنامج الأنسب",
+    fitBody: "نموذج ملائم لأهداف الملكية وملف العقار.",
+    readinessTitle: "حوكمة جاهزية الإطلاق",
+    readinessBody: "مواءمة النطاق والمعايير قبل أول حجز.",
+    nextStepsTitle: "الخطوات التالية بعد التسجيل",
+    expectedTitle: "ما الذي ستحصل عليه",
+    nextSteps: [
+      {
+        title: "إنشاء حساب مورّد",
+        detail: "إعداد ملف آمن لبدء تسجيل المالك وتبادل المستندات.",
+        Icon: UserRoundPlus,
+      },
+      {
+        title: "إرسال ملف العقار",
+        detail: "شارك تفاصيل الوحدة والموقع ومستوى التشغيل المطلوب لتقييم النطاق.",
+        Icon: ClipboardCheck,
+      },
+      {
+        title: "اعتماد خطة الإطلاق",
+        detail: "مواءمة نطاق الخدمة والجدول الزمني والمعايير والنموذج التجاري قبل الإطلاق.",
+        Icon: CalendarCheck2,
+      },
+    ],
+    deliverables: [
+      "مراحل تسجيل واضحة ومسؤوليات محددة للمالك",
+      "توصية برنامج بناءً على ملف العقار",
+      "إطار معايير تشغيل قبل الإطلاق",
+      "شفافية تجارية كاملة قبل الالتزام",
+    ],
+  },
+};
+
+export default function OwnersCta(props: { locale: AppLocale }) {
+  const copy = COPY[props.locale];
+
   return (
-    <section className="relative w-full pb-16 pt-6 sm:pb-20">
+    <section className="relative w-full pb-16 pt-8 sm:pb-20 sm:pt-10">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="premium-card premium-card-dark overflow-hidden rounded-[2rem]">
-          <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-2 lg:items-center">
+        <div className="relative overflow-hidden rounded-[2rem] border border-indigo-300/60 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-700 text-white shadow-[0_26px_72px_rgba(67,56,202,0.34)]">
+          <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.8)_0.5px,transparent_0.5px)] [background-size:4px_4px]" />
+          <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-[1fr_1fr] lg:items-start">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-inverted/25 bg-dark-1/25 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.22em] text-inverted/70 backdrop-blur">
-                <span className="inline-block h-2 w-2 rounded-full bg-brand" />
-                Get started
-              </p>
-
-              <h3 className="mt-4 text-2xl font-semibold tracking-tight text-inverted sm:text-3xl">
-                Let’s evaluate your property for a program fit
-              </h3>
-              <p className="mt-3 text-sm text-inverted/76 sm:text-base">
-                Share your location, unit type, and goals. We’ll suggest a program level and walk you
-                through operational expectations.
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.eyebrow}</p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{copy.title}</h3>
+              <p className="mt-3 text-sm text-white/84 sm:text-base">{copy.subtitle}</p>
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
-                  href="/contact"
-                  className="rounded-2xl bg-brand px-5 py-3 text-sm font-extrabold text-accent-text shadow-brand-soft transition hover:brightness-95"
+                  href="/signup?role=vendor"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-indigo-700 shadow-[0_14px_30px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:bg-indigo-50"
                 >
-                  Contact us
+                  {copy.signupCta}
+                  <ArrowRight className="h-4 w-4 text-indigo-700" />
                 </Link>
                 <Link
-                  href="/services"
-                  className="rounded-2xl border border-inverted/35 bg-transparent px-5 py-3 text-sm font-extrabold text-inverted transition hover:bg-accent-soft/16"
+                  href="/contact"
+                  className="rounded-xl border border-white/35 bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
-                  View services
+                  {copy.onboardingTeamCta}
                 </Link>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/28 bg-white/12 px-3 py-3 text-sm">
+                  <p className="font-semibold text-white">{copy.fitTitle}</p>
+                  <p className="mt-1 text-white/84">{copy.fitBody}</p>
+                </div>
+                <div className="rounded-xl border border-white/28 bg-white/12 px-3 py-3 text-sm">
+                  <p className="font-semibold text-white">{copy.readinessTitle}</p>
+                  <p className="mt-1 text-white/84">{copy.readinessBody}</p>
+                </div>
               </div>
             </div>
 
-            <div className="premium-card premium-card-tinted rounded-2xl p-6">
-              <p className="text-sm font-extrabold text-primary">What we’ll ask</p>
-              <ul className="mt-4 space-y-2">
-                {[
-                  "Property location and unit type",
-                  "Furnishing level and readiness",
-                  "Preferred management level",
-                  "Target outcomes (income, minimal involvement, scaling)",
-                ].map((b) => (
-                  <li key={b} className="flex gap-3 text-sm text-secondary/80">
-                    <span className="mt-1 inline-block h-2 w-2 rounded-full bg-brand/60" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 text-xs text-secondary/60">
-                We’ll keep everything clear and aligned with your responsibilities and our operational scope.
-              </p>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/28 bg-white/12 p-6 backdrop-blur">
+                <p className="text-sm font-semibold text-white">{copy.nextStepsTitle}</p>
+                <ul className="mt-4 space-y-3">
+                  {copy.nextSteps.map((step) => (
+                    <li key={step.title} className="flex gap-3 text-sm text-white/88">
+                      <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-white/30 bg-white/12">
+                        <step.Icon className="h-3.5 w-3.5 text-white" />
+                      </span>
+                      <span>
+                        <span className="font-semibold text-white">{step.title}: </span>
+                        {step.detail}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-2xl border border-white/28 bg-white/12 p-6 backdrop-blur">
+                <p className="text-sm font-semibold text-white">{copy.expectedTitle}</p>
+                <ul className="mt-4 space-y-2">
+                  {copy.deliverables.map((item) => (
+                    <li key={item} className="flex gap-3 text-sm text-white/88">
+                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-white/16">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-0 bottom-0 h-72 w-72 rounded-full bg-accent-soft/80 blur-3xl" />
+        <div className="absolute left-0 bottom-0 h-72 w-72 rounded-full bg-indigo-200/80 blur-3xl" />
       </div>
     </section>
   );

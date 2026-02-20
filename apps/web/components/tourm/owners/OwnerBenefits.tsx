@@ -1,74 +1,190 @@
+import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarClock, Layers3, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import type { AppLocale } from "@/lib/i18n/config";
+
 type Benefit = {
   title: string;
   desc: string;
+  outcome: string;
+  Icon: LucideIcon;
 };
 
-function BenefitCard({ b }: { b: Benefit }) {
+type OwnerBenefitsCopy = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  outcomePrefix: string;
+  benefits: Benefit[];
+};
+
+const COPY: Record<AppLocale, OwnerBenefitsCopy> = {
+  en: {
+    eyebrow: "Benefits",
+    title: "Portfolio benefits designed for premium short-stay ownership",
+    subtitle:
+      "From revenue governance to quality controls, each layer is built to improve owner confidence and guest consistency at scale.",
+    cta: "Match benefits to programs",
+    outcomePrefix: "Outcome",
+    benefits: [
+      {
+        title: "Revenue discipline",
+        desc: "Pricing strategy is managed with seasonality, event demand, and booking-window logic rather than static rates.",
+        outcome: "More stable occupancy and stronger RevPAR consistency over time.",
+        Icon: TrendingUp,
+      },
+      {
+        title: "Turnover reliability",
+        desc: "Cleaning, linen, and inspection execution is timed against guest departure and next-arrival deadlines.",
+        outcome: "Lower arrival-day friction and improved guest review stability.",
+        Icon: CalendarClock,
+      },
+      {
+        title: "Portfolio scalability",
+        desc: "Standardized SOPs and workflow ownership model let you run one unit or multiple assets with consistency.",
+        outcome: "Predictable operations as your portfolio grows.",
+        Icon: Layers3,
+      },
+      {
+        title: "Compliance posture",
+        desc: "Operational practices align to local short-stay expectations, community standards, and guest identity checks.",
+        outcome: "Reduced regulatory and building-community risk exposure.",
+        Icon: ShieldCheck,
+      },
+      {
+        title: "Quality accountability",
+        desc: "Tasks, exceptions, and completion states are visible so ownership and execution quality remain transparent.",
+        outcome: "Clear accountability across team members and vendors.",
+        Icon: BadgeCheck,
+      },
+      {
+        title: "Brand-level guest experience",
+        desc: "Experience standards are designed to be repeatable across properties, not dependent on ad-hoc effort.",
+        outcome: "Stronger trust, repeat stays, and referral probability.",
+        Icon: Sparkles,
+      },
+    ],
+  },
+  ar: {
+    eyebrow: "المزايا",
+    title: "مزايا محفظة مصممة لملكية الإقامات القصيرة الراقية",
+    subtitle:
+      "من حوكمة الإيراد إلى ضوابط الجودة، كل طبقة مصممة لرفع ثقة المالك واستقرار تجربة الضيف على نطاق أوسع.",
+    cta: "طابق المزايا مع البرامج",
+    outcomePrefix: "النتيجة",
+    benefits: [
+      {
+        title: "انضباط الإيرادات",
+        desc: "تُدار استراتيجية التسعير حسب المواسم والأحداث ونوافذ الحجز بدل الاعتماد على أسعار ثابتة.",
+        outcome: "استقرار أعلى في الإشغال وتماسك أفضل في العائد لكل وحدة متاحة بمرور الوقت.",
+        Icon: TrendingUp,
+      },
+      {
+        title: "موثوقية التحويل",
+        desc: "تنفيذ التنظيف والمفروشات والتفتيش مرتبط بتوقيت مغادرة الضيف وموعد الوصول التالي.",
+        outcome: "انخفاض المشكلات يوم الوصول وتحسن استقرار التقييمات.",
+        Icon: CalendarClock,
+      },
+      {
+        title: "قابلية توسع المحفظة",
+        desc: "توحيد إجراءات التشغيل وتوزيع المسؤولية يمكّنك من إدارة وحدة أو عدة أصول بثبات.",
+        outcome: "تشغيل قابل للتوقع مع نمو محفظتك.",
+        Icon: Layers3,
+      },
+      {
+        title: "جاهزية الامتثال",
+        desc: "الممارسات التشغيلية متوافقة مع متطلبات الإقامات القصيرة وأنظمة المجتمع وفحوصات هوية الضيف.",
+        outcome: "خفض التعرض لمخاطر الجهات التنظيمية وإدارات المباني.",
+        Icon: ShieldCheck,
+      },
+      {
+        title: "مساءلة الجودة",
+        desc: "المهام والاستثناءات وحالات الإغلاق مرئية لضمان شفافية التنفيذ وجودته.",
+        outcome: "مسؤولية واضحة عبر أعضاء الفريق والموردين.",
+        Icon: BadgeCheck,
+      },
+      {
+        title: "تجربة ضيف بمعيار علامة",
+        desc: "معايير التجربة قابلة للتكرار عبر العقارات وليست معتمدة على جهود فردية متفرقة.",
+        outcome: "ثقة أقوى، إقامات متكررة، واحتمالية إحالات أعلى.",
+        Icon: Sparkles,
+      },
+    ],
+  },
+};
+
+function BenefitCard(props: {
+  benefit: Benefit;
+  featured?: boolean;
+  outcomePrefix: string;
+}) {
   return (
-    <div className="premium-card premium-card-tinted premium-card-hover card-accent-left rounded-2xl p-6">
-      <div className="card-icon-plate h-11 w-11">
-        <div className="h-3 w-3 rounded-full bg-brand/55" />
+    <article
+      className={[
+        "group relative overflow-hidden rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]",
+        props.featured ? "lg:p-7" : "",
+      ].join(" ")}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
+        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-indigo-200/35 blur-3xl" />
       </div>
-      <p className="mt-4 text-base font-semibold text-primary">{b.title}</p>
-      <p className="mt-2 text-sm leading-relaxed text-secondary/75">{b.desc}</p>
-    </div>
+
+      <div className="relative flex items-start justify-between gap-3">
+        <span className="grid h-11 w-11 place-items-center rounded-xl border border-indigo-200/80 bg-indigo-50 text-indigo-600">
+          <props.benefit.Icon className="h-5 w-5" />
+        </span>
+        <span className="h-2.5 w-2.5 rounded-full bg-indigo-300/70 opacity-0 transition group-hover:opacity-100" />
+      </div>
+
+      <p className="relative mt-4 text-base font-semibold text-primary">{props.benefit.title}</p>
+      <p className="relative mt-2 text-sm leading-relaxed text-secondary/82">{props.benefit.desc}</p>
+
+      <p className="relative mt-4 rounded-xl border border-indigo-200/75 bg-indigo-50/72 px-3 py-2 text-xs font-semibold text-indigo-900">
+        {props.outcomePrefix}: {props.benefit.outcome}
+      </p>
+    </article>
   );
 }
 
-export default function OwnerBenefits() {
-  const benefits: Benefit[] = [
-    {
-      title: "Calendar discipline",
-      desc: "Availability rules and holds prevent accidental overlaps and double-booking — inventory stays safe.",
-    },
-    {
-      title: "Operator workflows",
-      desc: "Cleaning, inspections, linen and restock tasks can be generated from booking states for consistent standards.",
-    },
-    {
-      title: "Policy-driven decisions",
-      desc: "Cancellations and refunds follow strict rules with audit snapshots — no loopholes, no surprises.",
-    },
-    {
-      title: "Better guest outcomes",
-      desc: "Reliable operations reduce friction, increase trust, and support stronger reviews over time.",
-    },
-    {
-      title: "Accountability by design",
-      desc: "Agreements, task lifecycles, and status transitions are tracked — operational control stays clear.",
-    },
-    {
-      title: "Built to scale",
-      desc: "From one unit to multi-property portfolios — consistent processes and reporting-ready architecture.",
-    },
-  ];
+export default function OwnerBenefits(props: { locale: AppLocale }) {
+  const copy = COPY[props.locale];
+  const [featured, ...rest] = copy.benefits;
 
   return (
-    <section className="relative w-full py-14 sm:py-18">
+    <section id="owner-benefits" className="relative w-full scroll-mt-24 py-14 sm:py-18">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/70 shadow-sm backdrop-blur">
-            <span className="inline-block h-2 w-2 rounded-full bg-brand" />
-            Benefits
-          </p>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
-            Built for real operations — not just bookings
-          </h2>
-          <p className="mt-2 text-sm text-secondary/75 sm:text-base">
-            Our product follows an operator mindset: inventory safety, standards, and policies that
-            protect owners and guests.
-          </p>
+        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">{copy.eyebrow}</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.title}</h2>
+            <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.subtitle}</p>
+          </div>
+
+          <Link
+            href="/owners#owner-programs"
+            className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:bg-indigo-50"
+          >
+            {copy.cta}
+            <ArrowRight className="h-4 w-4 text-indigo-600" />
+          </Link>
         </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {benefits.map((b) => (
-            <BenefitCard key={b.title} b={b} />
-          ))}
+        <div className="mt-10 grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-6">
+            <BenefitCard benefit={featured} featured outcomePrefix={copy.outcomePrefix} />
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:col-span-6">
+            {rest.map((benefit) => (
+              <BenefitCard key={benefit.title} benefit={benefit} outcomePrefix={copy.outcomePrefix} />
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-0 top-1/3 h-72 w-72 -translate-y-1/2 rounded-full bg-accent-soft/80 blur-3xl" />
+        <div className="absolute left-0 top-1/3 h-72 w-72 -translate-y-1/2 rounded-full bg-indigo-200/70 blur-3xl" />
       </div>
     </section>
   );

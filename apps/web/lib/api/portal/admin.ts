@@ -188,6 +188,12 @@ export type AdminRefundDetailResponse = {
     penaltyAmount: number;
     refundableAmount: number;
     currency: string;
+    displayCurrency?: string;
+    displayFxRate?: number;
+    displayFxAsOfDate?: string | null;
+    totalAmountDisplay?: number | null;
+    penaltyAmountDisplay?: number | null;
+    refundableAmountDisplay?: number | null;
   } | null;
 };
 
@@ -370,6 +376,12 @@ export type AdminBookingDetailResponse = {
     penaltyAmount: number;
     refundableAmount: number;
     currency: string;
+    displayCurrency?: string;
+    displayFxRate?: number;
+    displayFxAsOfDate?: string | null;
+    totalAmountDisplay?: number | null;
+    penaltyAmountDisplay?: number | null;
+    refundableAmountDisplay?: number | null;
     releasesInventory: boolean;
     refundId: string | null;
   } | null;
@@ -1059,6 +1071,18 @@ export type AdminPropertyCreateInput = {
 
   vendorId?: string | null;
   publishNow?: boolean | null;
+
+  translations?: Partial<
+    Record<
+      "en" | "ar",
+      {
+        title?: string;
+        description?: string | null;
+        areaLabel?: string | null;
+        tagline?: string | null;
+      }
+    >
+  >;
 };
 
 export type AdminPropertyUpdateInput = Partial<AdminPropertyCreateInput>;
@@ -1166,6 +1190,13 @@ export type AdminPropertyDetail = Record<string, unknown> & {
   vendorId?: string | null;
   createdByAdminId?: string | null;
   media?: AdminMediaItem[];
+  translations?: Array<{
+    locale: "en" | "ar";
+    title: string;
+    description?: string | null;
+    areaLabel?: string | null;
+    tagline?: string | null;
+  }>;
 };
 
 export async function createAdminProperty(input: AdminPropertyCreateInput): Promise<AdminPropertyDetail> {

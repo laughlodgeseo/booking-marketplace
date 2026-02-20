@@ -5,6 +5,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { CardList, type CardListItem } from "@/components/portal/ui/CardList";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { FilterChips } from "@/components/portal/ui/FilterChips";
 import {
   approveAdminPropertyDeletionRequest,
   getAdminPropertyDeletionRequests,
@@ -139,24 +140,17 @@ export default function AdminDeletionRequestsPage() {
       subtitle="Approve or reject vendor listing deletion requests"
     >
       <div className="space-y-5">
-        <div className="rounded-3xl border border-line/50 bg-surface p-4 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setStatus(value)}
-                className={[
-                  "rounded-full px-4 py-2 text-sm font-semibold",
-                  status === value
-                    ? "bg-brand text-accent-text"
-                    : "bg-surface text-primary ring-1 ring-line/90 hover:bg-warm-alt",
-                ].join(" ")}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
+        <div className="portal-card rounded-3xl bg-surface/90 p-4">
+          <FilterChips
+            options={[
+              { value: "ALL", label: "All" },
+              { value: "PENDING", label: "Pending" },
+              { value: "APPROVED", label: "Approved" },
+              { value: "REJECTED", label: "Rejected" },
+            ]}
+            value={status}
+            onChange={(value) => setStatus(value)}
+          />
           {busy ? <div className="mt-3 text-xs font-semibold text-secondary">{busy}</div> : null}
         </div>
 
@@ -166,7 +160,7 @@ export default function AdminDeletionRequestsPage() {
             <SkeletonBlock className="h-24" />
           </div>
         ) : state.kind === "error" ? (
-          <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">
+          <div className="portal-card rounded-3xl bg-danger/12 p-6 text-sm text-danger">
             {state.message}
           </div>
         ) : (

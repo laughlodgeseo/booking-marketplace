@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { MediaCategory, PropertyMedia } from "@/lib/types/property";
+import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 import {
   uploadVendorPropertyMedia,
   updateVendorPropertyMediaCategory,
@@ -238,7 +239,7 @@ function RoomSection(props: {
             <div key={m.id} className="rounded-xl border bg-surface overflow-hidden">
               <div className="relative aspect-[4/3] bg-warm-alt">
                 <Image
-                  src={m.url}
+                  src={resolveMediaUrl(m.url)}
                   alt={m.alt ?? props.title}
                   fill
                   className="object-cover"

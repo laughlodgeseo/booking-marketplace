@@ -31,7 +31,7 @@ export function StatCard(props: StatCardProps) {
         : "premium-card premium-card-hover card-accent-left";
 
   return (
-    <div className={`${shellClass} group relative overflow-hidden rounded-3xl p-6`}>
+    <div className={`${shellClass} group relative overflow-hidden rounded-3xl p-4 sm:p-5 lg:p-6`}>
       {/* subtle decorative gradient */}
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-accent-soft/80 blur-3xl" />
@@ -43,7 +43,7 @@ export function StatCard(props: StatCardProps) {
             <div className="text-xs font-semibold tracking-wide text-muted">
               {props.label}
             </div>
-            <div className="mt-2 text-3xl font-semibold text-primary">
+            <div className="mt-2 text-2xl font-semibold text-primary sm:text-3xl">
               {props.value}
             </div>
           </div>

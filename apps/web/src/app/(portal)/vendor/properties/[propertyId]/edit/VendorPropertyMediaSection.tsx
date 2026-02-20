@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { VendorPropertyMedia } from "@/lib/api/portal/vendor";
 import type { MediaCategory } from "@/lib/types/property";
+import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 import {
   uploadVendorPropertyMedia,
   updateVendorPropertyMediaCategory,
@@ -132,7 +133,7 @@ export function VendorPropertyMediaSection(props: {
                     <div key={m.id} className="rounded-xl border overflow-hidden">
                       <div className="relative aspect-[4/3] bg-warm-alt">
                         <Image
-                          src={m.url}
+                          src={resolveMediaUrl(m.url)}
                           alt=""
                           fill
                           className="object-cover"

@@ -16,6 +16,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { CalendarCheck2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import type { PortalCalendarEvent, PortalCalendarResponse } from "@/lib/api/portal/calendar";
 import { SharedAvailabilityCalendar, type SharedAvailabilityStatus } from "@/components/calendar/SharedAvailabilityCalendar";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
@@ -83,18 +84,22 @@ function formatMoney(amount: number | null, currency: string | null): string {
   }
 }
 
-function rangeLabel(range: DateRange): string {
-  const from = range.from;
-  const to = range.to ?? range.from;
-  if (!from || !to) return "No date selected";
-  if (isSameDay(from, to)) return format(from, "MMM d, yyyy");
-  return `${format(from, "MMM d, yyyy")} - ${format(to, "MMM d, yyyy")}`;
+function formatDisplayDate(value: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" }).format(value);
 }
 
-function roleIntro(role: RoleView): string {
-  if (role === "vendor") return "Available, booked, hold, and blocked days in one monthly view.";
-  if (role === "admin") return "Platform availability with booking, hold, and admin/vendor blocked signals.";
-  return "Read-only availability to support confident booking decisions.";
+function rangeLabel(range: DateRange, locale: string, emptyLabel: string): string {
+  const from = range.from;
+  const to = range.to ?? range.from;
+  if (!from || !to) return emptyLabel;
+  if (isSameDay(from, to)) return formatDisplayDate(from, locale);
+  return `${formatDisplayDate(from, locale)} - ${formatDisplayDate(to, locale)}`;
+}
+
+function roleIntro(role: RoleView, tPortal: ReturnType<typeof useTranslations>): string {
+  if (role === "vendor") return tPortal("calendar.introVendor");
+  if (role === "admin") return tPortal("calendar.introAdmin");
+  return tPortal("calendar.introCustomer");
 }
 
 export function PortalAvailabilityCalendar(props: {
@@ -107,6 +112,8 @@ export function PortalAvailabilityCalendar(props: {
   onUnblockRange?: (params: { propertyId: string; from: string; to: string; note?: string }) => Promise<unknown>;
 }) {
   const { loadData, role } = props;
+  const tPortal = useTranslations("portal");
+  const locale = useLocale();
 
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
@@ -152,7 +159,7 @@ export function PortalAvailabilityCalendar(props: {
         if (!alive) return;
         setState({
           kind: "error",
-          message: error instanceof Error ? error.message : "Failed to load calendar",
+          message: error instanceof Error ? error.message : tPortal("calendar.errors.load"),
         });
       }
     }
@@ -212,8 +219,8 @@ export function PortalAvailabilityCalendar(props: {
   }
 
   const propertySelector = (
-    <label className="flex items-center gap-3 rounded-2xl bg-white/70 px-4 py-3 shadow-sm ring-1 ring-black/5">
-      <span className="text-xs font-semibold tracking-wide text-muted">PROPERTY</span>
+    <label className="flex items-center gap-3 rounded-2xl bg-surface/82 px-4 py-3 ring-1 ring-line/24">
+      <span className="text-xs font-semibold tracking-wide text-muted">{tPortal("calendar.propertyLabel")}</span>
       <select
         value={selectedPropertyId ?? data?.selectedPropertyId ?? ""}
         onChange={(event) => setSelectedPropertyId(event.target.value || null)}
@@ -238,7 +245,7 @@ export function PortalAvailabilityCalendar(props: {
           <SkeletonBlock className="h-[420px]" />
         </div>
       ) : state.kind === "error" ? (
-        <div className="rounded-3xl bg-[rgb(var(--color-danger-rgb)/0.12)] p-6 text-sm text-[rgb(var(--color-danger-rgb)/1)] shadow-sm ring-1 ring-black/5">
+        <div className="rounded-3xl bg-[rgb(var(--color-danger-rgb)/0.12)] p-6 text-sm text-[rgb(var(--color-danger-rgb)/1)] ring-1 ring-danger/20">
           {state.message}
         </div>
       ) : (
@@ -248,22 +255,24 @@ export function PortalAvailabilityCalendar(props: {
             month={month}
             onMonthChange={setMonth}
             days={calendarDays}
-            title="Monthly availability"
-            subtitle={roleIntro(role)}
+            title={tPortal("calendar.monthlyAvailability")}
+            subtitle={roleIntro(role, tPortal)}
             propertySelector={propertySelector}
             selectedRange={range}
             onSelectDay={pickDay}
           />
 
           {props.allowBlockControls && role === "vendor" ? (
-            <div className="rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-black/5">
+            <div className="portal-card rounded-3xl bg-surface/82 p-4">
               <div className="text-sm font-semibold text-primary">
-                {props.blockControlMode === "request" ? "Block date request" : "Owner-use date controls"}
+                {props.blockControlMode === "request"
+                  ? tPortal("calendar.blockRequestTitle")
+                  : tPortal("calendar.ownerControlsTitle")}
               </div>
               <div className="mt-1 text-xs text-secondary">
                 {props.blockControlMode === "request"
-                  ? "Submit a block request for admin approval. End date is checkout-style (exclusive)."
-                  : "Block or unblock dates for owner-use. End date is checkout-style (exclusive)."}
+                  ? tPortal("calendar.blockRequestDescription")
+                  : tPortal("calendar.ownerControlsDescription")}
               </div>
 
               <div
@@ -278,19 +287,19 @@ export function PortalAvailabilityCalendar(props: {
                   type="date"
                   value={rangeFrom}
                   onChange={(event) => setRangeFrom(event.target.value)}
-                  className="h-10 rounded-2xl bg-white/70 px-3 text-sm text-primary shadow-sm ring-1 ring-black/5 outline-none focus-visible:ring-4 focus-visible:ring-[rgba(198,169,109,0.18)]"
+                  className="h-10 rounded-2xl bg-surface/82 px-3 text-sm text-primary ring-1 ring-line/24 outline-none focus-visible:ring-4 focus-visible:ring-brand/16"
                 />
                 <input
                   type="date"
                   value={rangeTo}
                   onChange={(event) => setRangeTo(event.target.value)}
-                  className="h-10 rounded-2xl bg-white/70 px-3 text-sm text-primary shadow-sm ring-1 ring-black/5 outline-none focus-visible:ring-4 focus-visible:ring-[rgba(198,169,109,0.18)]"
+                  className="h-10 rounded-2xl bg-surface/82 px-3 text-sm text-primary ring-1 ring-line/24 outline-none focus-visible:ring-4 focus-visible:ring-brand/16"
                 />
                 <input
                   value={rangeNote}
                   onChange={(event) => setRangeNote(event.target.value)}
-                  placeholder="Note (optional)"
-                  className="h-10 rounded-2xl bg-white/70 px-3 text-sm text-primary shadow-sm ring-1 ring-black/5 outline-none focus-visible:ring-4 focus-visible:ring-[rgba(198,169,109,0.18)]"
+                  placeholder={tPortal("calendar.noteOptional")}
+                  className="h-10 rounded-2xl bg-surface/82 px-3 text-sm text-primary ring-1 ring-line/24 outline-none focus-visible:ring-4 focus-visible:ring-brand/16"
                 />
                 <button
                   type="button"
@@ -299,7 +308,7 @@ export function PortalAvailabilityCalendar(props: {
                     if (!props.onBlockRange || !selectedPropertyId) return;
                     setRangeError(null);
                     setRangeMessage(null);
-                    setRangeBusy("Blocking...");
+                    setRangeBusy(tPortal("calendar.busy.blocking"));
                     try {
                       await props.onBlockRange({
                         propertyId: selectedPropertyId,
@@ -309,8 +318,8 @@ export function PortalAvailabilityCalendar(props: {
                       });
                       setRangeMessage(
                         props.blockControlMode === "request"
-                          ? "Block request submitted successfully."
-                          : "Dates blocked successfully.",
+                          ? tPortal("calendar.success.blockRequestSubmitted")
+                          : tPortal("calendar.success.blocked"),
                       );
                       setRefreshTick((value) => value + 1);
                     } catch (error) {
@@ -318,16 +327,18 @@ export function PortalAvailabilityCalendar(props: {
                         error instanceof Error
                           ? error.message
                           : props.blockControlMode === "request"
-                            ? "Failed to submit block request"
-                            : "Failed to block dates",
+                            ? tPortal("calendar.errors.submitBlockRequest")
+                            : tPortal("calendar.errors.blockDates"),
                       );
                     } finally {
                       setRangeBusy(null);
                     }
                   }}
-                  className="rounded-2xl bg-[rgb(var(--color-danger-rgb)/1)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 disabled:opacity-60"
+                  className="rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(79,70,229,0.22)] hover:bg-brand-hover disabled:opacity-60"
                 >
-                  {props.blockControlMode === "request" ? "Submit request" : "Block"}
+                  {props.blockControlMode === "request"
+                    ? tPortal("calendar.submitRequest")
+                    : tPortal("calendar.block")}
                 </button>
 
                 {props.blockControlMode !== "request" && props.onUnblockRange ? (
@@ -338,7 +349,7 @@ export function PortalAvailabilityCalendar(props: {
                       if (!props.onUnblockRange || !selectedPropertyId) return;
                       setRangeError(null);
                       setRangeMessage(null);
-                      setRangeBusy("Unblocking...");
+                      setRangeBusy(tPortal("calendar.busy.unblocking"));
                       try {
                         await props.onUnblockRange({
                           propertyId: selectedPropertyId,
@@ -346,17 +357,19 @@ export function PortalAvailabilityCalendar(props: {
                           to: rangeTo,
                           note: rangeNote.trim() || undefined,
                         });
-                        setRangeMessage("Dates unblocked successfully.");
+                        setRangeMessage(tPortal("calendar.success.unblocked"));
                         setRefreshTick((value) => value + 1);
                       } catch (error) {
-                        setRangeError(error instanceof Error ? error.message : "Failed to unblock dates");
+                        setRangeError(
+                          error instanceof Error ? error.message : tPortal("calendar.errors.unblockDates"),
+                        );
                       } finally {
                         setRangeBusy(null);
                       }
                     }}
-                    className="rounded-2xl bg-white/70 px-4 py-2 text-sm font-semibold text-primary shadow-sm ring-1 ring-black/5 hover:bg-white disabled:opacity-60"
+                    className="rounded-2xl bg-surface/82 px-4 py-2 text-sm font-semibold text-primary ring-1 ring-line/24 hover:bg-accent-soft/20 disabled:opacity-60"
                   >
-                    Unblock
+                    {tPortal("calendar.unblock")}
                   </button>
                 ) : null}
               </div>
@@ -364,13 +377,13 @@ export function PortalAvailabilityCalendar(props: {
               {rangeBusy ? <div className="mt-2 text-xs font-semibold text-secondary">{rangeBusy}</div> : null}
 
               {rangeMessage ? (
-                <div className="mt-3 rounded-2xl bg-[rgb(var(--color-success-rgb)/0.12)] p-3 text-xs text-[rgb(var(--color-success-rgb)/1)] shadow-sm ring-1 ring-black/5">
+                <div className="mt-3 rounded-2xl bg-[rgb(var(--color-success-rgb)/0.12)] p-3 text-xs text-[rgb(var(--color-success-rgb)/1)] ring-1 ring-success/22">
                   {rangeMessage}
                 </div>
               ) : null}
 
               {rangeError ? (
-                <div className="mt-3 rounded-2xl bg-[rgb(var(--color-danger-rgb)/0.12)] p-3 text-xs text-[rgb(var(--color-danger-rgb)/1)] shadow-sm ring-1 ring-black/5">
+                <div className="mt-3 rounded-2xl bg-[rgb(var(--color-danger-rgb)/0.12)] p-3 text-xs text-[rgb(var(--color-danger-rgb)/1)] ring-1 ring-danger/20">
                   {rangeError}
                 </div>
               ) : null}
@@ -380,20 +393,22 @@ export function PortalAvailabilityCalendar(props: {
       )}
 
       {range.from ? (
-        <section className="rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-black/5">
-          <div className="rounded-3xl bg-white/70 p-4 text-sm text-secondary shadow-sm ring-1 ring-black/5">
-            <div className="font-semibold text-primary">{rangeLabel(range)}</div>
+        <section className="portal-card rounded-3xl bg-surface/82 p-4">
+          <div className="rounded-3xl bg-warm-alt/66 p-4 text-sm text-secondary ring-1 ring-line/20">
+            <div className="font-semibold text-primary">
+              {rangeLabel(range, locale, tPortal("calendar.noDateSelected"))}
+            </div>
             <div className="mt-1">
               {(data?.properties ?? []).find(
                 (property) => property.id === (selectedPropertyId ?? data?.selectedPropertyId ?? ""),
-              )?.title ?? "Selected property"}
+              )?.title ?? tPortal("calendar.selectedProperty")}
             </div>
           </div>
 
           {detailEvents.length === 0 ? (
-            <div className="mt-3 rounded-3xl bg-[rgb(var(--color-success-rgb)/0.12)] p-4 text-sm text-[rgb(var(--color-success-rgb)/1)] shadow-sm ring-1 ring-black/5">
-              <div className="font-semibold">Available</div>
-              <div className="mt-1">No bookings, holds, or blocks overlap this date selection.</div>
+            <div className="mt-3 rounded-3xl bg-[rgb(var(--color-success-rgb)/0.12)] p-4 text-sm text-[rgb(var(--color-success-rgb)/1)] ring-1 ring-success/22">
+              <div className="font-semibold">{tPortal("calendar.available")}</div>
+              <div className="mt-1">{tPortal("calendar.availableDescription")}</div>
             </div>
           ) : (
             <div className="mt-3 space-y-3">
@@ -408,34 +423,34 @@ export function PortalAvailabilityCalendar(props: {
 
                     <div className="mt-3 grid gap-3 text-sm text-secondary sm:grid-cols-2 lg:grid-cols-4">
                       <div>
-                        <div className="text-xs font-semibold text-muted">Check-in</div>
-                        <div className="mt-1">{format(parseISO(event.start), "MMM d, yyyy")}</div>
+                        <div className="text-xs font-semibold text-muted">{tPortal("calendar.checkIn")}</div>
+                        <div className="mt-1">{formatDisplayDate(parseISO(event.start), locale)}</div>
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-muted">Check-out</div>
-                        <div className="mt-1">{format(parseISO(event.end), "MMM d, yyyy")}</div>
+                        <div className="text-xs font-semibold text-muted">{tPortal("calendar.checkOut")}</div>
+                        <div className="mt-1">{formatDisplayDate(parseISO(event.end), locale)}</div>
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-muted">Guest</div>
+                        <div className="text-xs font-semibold text-muted">{tPortal("calendar.guest")}</div>
                         <div className="mt-1">{event.guestDisplay ?? "-"}</div>
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-muted">Booking ref</div>
+                        <div className="text-xs font-semibold text-muted">{tPortal("calendar.bookingRef")}</div>
                         <div className="mt-1 font-mono text-xs">{event.bookingRef ?? "-"}</div>
                       </div>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-secondary">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 shadow-sm ring-1 ring-black/5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-surface/84 px-3 py-1 ring-1 ring-line/22">
                         <CalendarCheck2 className="h-3.5 w-3.5" />
-                        Status: {event.status}
+                        {tPortal("calendar.status")}: {event.status}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 shadow-sm ring-1 ring-black/5">
-                        Value: {formatMoney(event.totalAmount, event.currency)}
+                      <span className="inline-flex items-center gap-1 rounded-full bg-surface/84 px-3 py-1 ring-1 ring-line/22">
+                        {tPortal("calendar.value")}: {formatMoney(event.totalAmount, event.currency)}
                       </span>
                       {event.note ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 shadow-sm ring-1 ring-black/5">
-                          Note: {event.note}
+                        <span className="inline-flex items-center gap-1 rounded-full bg-surface/84 px-3 py-1 ring-1 ring-line/22">
+                          {tPortal("calendar.note")}: {event.note}
                         </span>
                       ) : null}
                     </div>
@@ -444,7 +459,7 @@ export function PortalAvailabilityCalendar(props: {
 
                 if (!href) {
                   return (
-                    <div key={`${event.type}:${event.id}`} className="rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-black/5">
+                    <div key={`${event.type}:${event.id}`} className="rounded-3xl bg-surface/84 p-4 ring-1 ring-line/22">
                       {body}
                     </div>
                   );
@@ -454,7 +469,7 @@ export function PortalAvailabilityCalendar(props: {
                   <Link
                     key={`${event.type}:${event.id}`}
                     href={href}
-                    className="block rounded-3xl bg-white/70 p-4 shadow-sm ring-1 ring-black/5 transition hover:bg-warm-alt"
+                    className="block rounded-3xl bg-surface/84 p-4 ring-1 ring-line/22 transition hover:bg-accent-soft/20"
                   >
                     {body}
                   </Link>

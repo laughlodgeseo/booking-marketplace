@@ -32,13 +32,14 @@ import {
   TreePalm,
   Sun,
   LifeBuoy,
-  Lamp,
   Music,
   Camera,
   Sofa,
   LampDesk,
   ConciergeBell,
   CircleHelp,
+  ShieldAlert,
+  AlertTriangle,
 } from "lucide-react";
 
 export type AmenityKey =
@@ -52,6 +53,8 @@ export type AmenityKey =
   | "GYM"
   | "KITCHEN"
   | "MICROWAVE"
+  | "OVEN"
+  | "KETTLE"
   | "REFRIGERATOR"
   | "WASHER"
   | "DRYER"
@@ -77,10 +80,12 @@ export type AmenityKey =
   | "CHECKOUT_TIME"
   | "FIRE_EXTINGUISHER"
   | "SMOKE_ALARM"
+  | "CARBON_MONOXIDE_ALARM"
   | "FIRST_AID"
   | "WIFI_BACKUP"
   | "COFFEE"
   | "SOUND_SYSTEM"
+  | "NETFLIX"
   | "CCTV"
   | "SOFA"
   | "DESK"
@@ -101,12 +106,35 @@ const OTHER: AmenityMeta = {
 
 const AMENITY_ALIASES: Record<string, AmenityKey> = {
   PARKING: "PARKING_FREE",
+  FREE_PARKING: "PARKING_FREE",
+  PARKING_ON_PREMISES: "PARKING_FREE",
   SMOKE_FREE: "NO_SMOKING",
   AIRCON: "AIR_CONDITIONING",
   AIRCONDITIONING: "AIR_CONDITIONING",
   AIR_CONDITIONER: "AIR_CONDITIONING",
   WIFI_24_7: "WIFI",
+  WIRELESS_INTERNET: "WIFI",
   WI_FI: "WIFI",
+  SWIMMING_POOL: "POOL",
+  FITNESS_CENTER: "GYM",
+  WASHING_MACHINE: "WASHER",
+  ELECTRIC_KETTLE: "KETTLE",
+  WATER_KETTLE: "KETTLE",
+  KETTLE: "KETTLE",
+  OVEN: "OVEN",
+  BAKING_OVEN: "OVEN",
+  BUILT_IN_OVEN: "OVEN",
+  SMART_TV: "NETFLIX",
+  STREAMING: "NETFLIX",
+  STREAMING_SERVICE: "NETFLIX",
+  STREAMING_SERVICES: "NETFLIX",
+  NETFLIX: "NETFLIX",
+  FIRE_SAFETY_KIT: "FIRE_EXTINGUISHER",
+  SMOKE_DETECTOR: "SMOKE_ALARM",
+  CARBON_MONOXIDE_DETECTOR: "CARBON_MONOXIDE_ALARM",
+  CARBON_MONOXIDE_SENSOR: "CARBON_MONOXIDE_ALARM",
+  FIRST_AID_KIT: "FIRST_AID",
+  FIRST_AID_BOX: "FIRST_AID",
 };
 
 export const AMENITY_CATALOG: Record<AmenityKey, AmenityMeta> = {
@@ -126,6 +154,8 @@ export const AMENITY_CATALOG: Record<AmenityKey, AmenityMeta> = {
 
   KITCHEN: { key: "KITCHEN", label: "Kitchen", Icon: UtensilsCrossed },
   MICROWAVE: { key: "MICROWAVE", label: "Microwave", Icon: Microwave },
+  OVEN: { key: "OVEN", label: "Oven", Icon: Flame },
+  KETTLE: { key: "KETTLE", label: "Kettle", Icon: Coffee },
   REFRIGERATOR: { key: "REFRIGERATOR", label: "Refrigerator", Icon: Refrigerator },
 
   WASHER: { key: "WASHER", label: "Washer", Icon: WashingMachine },
@@ -137,7 +167,12 @@ export const AMENITY_CATALOG: Record<AmenityKey, AmenityMeta> = {
   SECURITY: { key: "SECURITY", label: "Building security", Icon: ShieldCheck },
   DOORMAN: { key: "DOORMAN", label: "Doorman", Icon: KeyRound },
   CCTV: { key: "CCTV", label: "CCTV", Icon: Camera },
-  SMOKE_ALARM: { key: "SMOKE_ALARM", label: "Smoke alarm", Icon: Lamp },
+  SMOKE_ALARM: { key: "SMOKE_ALARM", label: "Smoke alarm", Icon: ShieldAlert },
+  CARBON_MONOXIDE_ALARM: {
+    key: "CARBON_MONOXIDE_ALARM",
+    label: "Carbon monoxide alarm",
+    Icon: AlertTriangle,
+  },
   FIRE_EXTINGUISHER: { key: "FIRE_EXTINGUISHER", label: "Fire extinguisher", Icon: LifeBuoy },
   FIRST_AID: { key: "FIRST_AID", label: "First aid kit", Icon: ShieldCheck },
 
@@ -161,6 +196,7 @@ export const AMENITY_CATALOG: Record<AmenityKey, AmenityMeta> = {
   CITY_VIEW: { key: "CITY_VIEW", label: "City view", Icon: Building2 },
 
   COFFEE: { key: "COFFEE", label: "Coffee", Icon: Coffee },
+  NETFLIX: { key: "NETFLIX", label: "Netflix", Icon: Tv },
   SOUND_SYSTEM: { key: "SOUND_SYSTEM", label: "Sound system", Icon: Music },
   SOFA: { key: "SOFA", label: "Sofa", Icon: Sofa },
 

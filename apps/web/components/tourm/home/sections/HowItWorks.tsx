@@ -1,7 +1,19 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { CalendarDays, MapPin, Search, ShieldCheck, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ConciergeBell,
+  CreditCard,
+  FileCheck2,
+  MapPin,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type Step = {
   step: string;
@@ -20,7 +32,27 @@ const ICONS: ReadonlyArray<StepIcon> = [
   { Icon: ShieldCheck },
   { Icon: Sparkles },
   { Icon: CheckCircle2 },
+  { Icon: CreditCard },
+  { Icon: ConciergeBell },
+  { Icon: FileCheck2 },
 ];
+
+const UI_COPY = {
+  en: {
+    eyebrow: "How it works",
+    stepsCountLabel: (count: number) => `${count} operational steps`,
+    scrollLabel: "Scroll to advance",
+    swipeLabel: "Swipe to explore",
+    stepPrefix: "Step",
+  },
+  ar: {
+    eyebrow: "كيف يعمل",
+    stepsCountLabel: (count: number) => `${count} خطوات تشغيلية`,
+    scrollLabel: "مرر للأسفل للمتابعة",
+    swipeLabel: "اسحب للاستكشاف",
+    stepPrefix: "الخطوة",
+  },
+} as const;
 
 export default function HowItWorks({
   title,
@@ -31,92 +63,247 @@ export default function HowItWorks({
   subtitle: string;
   steps: ReadonlyArray<Step>;
 }) {
-  const list = steps.slice(0, 6);
+  const locale = normalizeLocale(useLocale());
+  const isRtl = locale === "ar";
+  const copy = UI_COPY[locale];
+  const list = useMemo(() => {
+    const filtered = steps.filter((s) => s.step && s.title && s.desc);
+    return filtered
+      .map((step, index) => ({ step, index }))
+      .sort((a, b) => {
+        const aNumber = Number.parseInt(a.step.step, 10);
+        const bNumber = Number.parseInt(b.step.step, 10);
+        const aNumeric = Number.isFinite(aNumber);
+        const bNumeric = Number.isFinite(bNumber);
+
+        if (aNumeric && bNumeric && aNumber !== bNumber) {
+          return aNumber - bNumber;
+        }
+        if (aNumeric !== bNumeric) {
+          return aNumeric ? -1 : 1;
+        }
+        return a.index - b.index;
+      })
+      .map((entry) => entry.step);
+  }, [steps]);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [gsapMode, setGsapMode] = useState(false);
+  const cardWidth = 280;
+  const cardHeight = 300;
+  const trackGap = 20;
+  const [edgeInset, setEdgeInset] = useState(0);
+
+  useEffect(() => {
+    const updateEdgeInset = () => {
+      const viewport = viewportRef.current;
+      const viewportWidth = viewport?.clientWidth ?? window.innerWidth;
+      // Compensate for flex gap before the first card so its right edge lands at center.
+      setEdgeInset(Math.max(0, Math.round(viewportWidth / 2 - cardWidth - trackGap)));
+    };
+
+    updateEdgeInset();
+    window.addEventListener("resize", updateEdgeInset);
+    return () => window.removeEventListener("resize", updateEdgeInset);
+  }, [cardWidth]);
+
+  useEffect(() => {
+    if (list.length < 2) return;
+
+    let mounted = true;
+    let mediaMatcher: gsap.MatchMedia | null = null;
+
+    const init = async () => {
+      try {
+        const gsapModule = await import("gsap");
+        const scrollTriggerModule = await import("gsap/ScrollTrigger");
+
+        if (!mounted) return;
+
+        const gsap = gsapModule.gsap ?? gsapModule.default;
+        const ScrollTrigger = scrollTriggerModule.ScrollTrigger ?? scrollTriggerModule.default;
+        gsap.registerPlugin(ScrollTrigger);
+
+        const mm = gsap.matchMedia();
+        mediaMatcher = mm;
+
+        mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
+          const section = sectionRef.current;
+          const viewport = viewportRef.current;
+          const track = trackRef.current;
+          if (!section || !viewport || !track) return;
+
+          const shiftDistance = () => {
+            const styles = window.getComputedStyle(viewport);
+            const leftPad = Number.parseFloat(styles.paddingLeft || "0");
+            const rightPad = Number.parseFloat(styles.paddingRight || "0");
+            const visibleWidth = viewport.clientWidth - leftPad - rightPad;
+            return Math.max(0, track.scrollWidth - visibleWidth);
+          };
+          if (shiftDistance() < 48) {
+            setGsapMode(false);
+            return;
+          }
+
+          setGsapMode(true);
+
+          const horizontalTween = gsap.fromTo(
+            track,
+            { x: () => (isRtl ? -shiftDistance() : 0) },
+            {
+              x: () => (isRtl ? 0 : -shiftDistance()),
+              ease: "none",
+              scrollTrigger: {
+                trigger: viewport,
+                start: "center center",
+                end: () => `+=${Math.max(window.innerHeight * 1.2, shiftDistance() + window.innerHeight * 0.72)}`,
+                pin: true,
+                scrub: 1,
+                anticipatePin: 1,
+                invalidateOnRefresh: true,
+              },
+            },
+          );
+
+          const cards = track.querySelectorAll<HTMLElement>("[data-step-card]");
+          cards.forEach((card) => {
+            gsap.fromTo(
+              card,
+              { autoAlpha: 0.32, x: isRtl ? -72 : 72, y: 0, scale: 0.94 },
+              {
+                autoAlpha: 1,
+                x: 0,
+                y: 0,
+                scale: 1,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: card,
+                  containerAnimation: horizontalTween,
+                  start: isRtl ? "right 88%" : "left 88%",
+                  end: isRtl ? "right 40%" : "left 40%",
+                  scrub: true,
+                },
+              },
+            );
+          });
+
+          return () => {
+            horizontalTween.kill();
+            gsap.set(track, { clearProps: "transform" });
+            if (mounted) {
+              setGsapMode(false);
+            }
+          };
+        });
+
+        mm.add("(max-width: 767px), (prefers-reduced-motion: reduce)", () => {
+          setGsapMode(false);
+        });
+      } catch {
+        if (mounted) {
+          setGsapMode(false);
+        }
+      }
+    };
+
+    init();
+
+    return () => {
+      mounted = false;
+      mediaMatcher?.revert();
+    };
+  }, [isRtl, list.length, edgeInset]);
+
+  const indigoPlateClass =
+    "grid place-items-center rounded-[0.95rem] border border-white/65 bg-white/90 text-indigo-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)]";
+  const squareCardClass =
+    "premium-card premium-card-tinted premium-card-hover group relative flex shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] p-4 sm:p-5 before:!bg-[linear-gradient(180deg,rgb(99_102_241_/_0.12),transparent_68%)]";
 
   return (
-    <section className="relative w-full py-16 sm:py-20">
+    <section ref={sectionRef} className="relative w-full py-16 sm:py-20">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+        <div className="flex flex-col items-start justify-between gap-7 sm:flex-row sm:items-end">
           <div className="max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/60">
-              How it works
+              {copy.eyebrow}
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
+            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
               {title}
             </h2>
-            <p className="mt-2 text-sm text-secondary/75 sm:text-base">{subtitle}</p>
+            <p className="mt-3 text-base leading-relaxed text-secondary/80 sm:text-lg">{subtitle}</p>
           </div>
 
           <div className="hidden items-center gap-2 sm:flex">
-            <div className="h-2.5 w-2.5 rounded-full bg-brand" />
-            <div className="h-2.5 w-2.5 rounded-full bg-warm-alt" />
-            <div className="h-2.5 w-2.5 rounded-full bg-warm-alt" />
+            <div className="h-2.5 w-2.5 rounded-full bg-indigo-600" />
+            <div className="h-2.5 w-2.5 rounded-full bg-indigo-400" />
+            <div className="h-2.5 w-2.5 rounded-full bg-indigo-300" />
           </div>
         </div>
 
-        {/* Tourm-like process cards */}
-        <div className="relative mt-7 sm:mt-8">
-          {/* faint connector line behind cards (desktop) */}
-          <div className="pointer-events-none absolute left-0 right-0 top-10 hidden h-px bg-gradient-to-r from-transparent via-brand/25 to-transparent lg:block" />
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {list.map((s, idx) => {
-              const Icon = ICONS[idx]?.Icon ?? Sparkles;
-
-              return (
-                <motion.div
-                  key={`${s.step}-${s.title}`}
-                  className="premium-card premium-card-tinted premium-card-hover card-accent-left group relative rounded-3xl p-6"
-                  initial={{ y: 18, opacity: 0 }}
-                  whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true, margin: "-120px" }}
-                  transition={{
-                    duration: 0.45,
-                    delay: Math.min(idx * 0.06, 0.24),
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Step badge */}
-                    <div className="flex items-center gap-3">
-                      <div className="card-icon-plate h-11 w-11">
-                        <span className="text-sm font-extrabold text-primary">{s.step}</span>
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/60">
-                          Step {s.step}
-                        </p>
-                        <p className="mt-1 text-lg font-extrabold leading-snug text-primary">
-                          {s.title}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Icon bubble */}
-                    <div className="card-icon-plate h-11 w-11 shrink-0">
-                      <Icon className="h-5 w-5 text-brand" />
-                    </div>
-                  </div>
-
-                  <p className="mt-3 text-sm leading-relaxed text-secondary/75">{s.desc}</p>
-
-                  <div className="mt-5 h-px w-full bg-gradient-to-r from-brand/25 via-warm-base to-transparent" />
-
-                  {/* Small accent dot like Tourm */}
-                  <div className="pointer-events-none absolute -top-2 right-6 h-3 w-3 rounded-full bg-brand opacity-0 transition group-hover:opacity-100" />
-                </motion.div>
-              );
-            })}
+        <div className="relative mt-10 sm:mt-12">
+          <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-secondary/70">
+              {copy.stepsCountLabel(list.length)}
+            </p>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-indigo-700/80">
+              {gsapMode ? copy.scrollLabel : copy.swipeLabel}
+            </p>
           </div>
+
+          <div
+            ref={viewportRef}
+            className={[
+              "relative w-screen max-w-none snap-x snap-mandatory",
+              gsapMode ? "overflow-hidden" : "no-scrollbar overflow-x-auto",
+            ].join(" ")}
+            style={{ marginLeft: "calc(50% - 50vw)" }}
+          >
+            <div ref={trackRef} className={`flex w-max gap-5 ${isRtl ? "flex-row-reverse" : ""}`}>
+              <div aria-hidden className="h-px shrink-0" style={{ width: `${edgeInset}px` }} />
+              {list.map((s, idx) => {
+                const Icon = ICONS[idx % ICONS.length]?.Icon ?? Sparkles;
+
+                return (
+                  <article
+                    key={`${s.step}-${s.title}`}
+                    data-step-card
+                    className={squareCardClass}
+                    style={{ width: `${cardWidth}px`, height: `${cardHeight}px` }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`${indigoPlateClass} h-12 w-12`}>
+                          <span className="text-lg font-extrabold text-indigo-600">{s.step}</span>
+                        </div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-secondary/70">
+                          {copy.stepPrefix} {s.step}
+                        </p>
+                      </div>
+
+                      <div className={`${indigoPlateClass} h-12 w-12 shrink-0`}>
+                        <Icon className="h-6 w-6 text-indigo-600" />
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex-1">
+                      <p className="text-lg font-extrabold leading-tight text-primary [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical] overflow-hidden">
+                        {s.title}
+                      </p>
+                      <p className="mt-3 text-sm leading-relaxed text-secondary/80 [display:-webkit-box] [-webkit-line-clamp:6] [-webkit-box-orient:vertical] overflow-hidden">
+                        {s.desc}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+              <div aria-hidden className="h-px shrink-0" style={{ width: `${edgeInset}px` }} />
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* section background plate */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-10 h-44 w-[92%] -translate-x-1/2 rounded-[2.75rem] border border-line bg-surface/40" />
-        <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
-        <div className="absolute -right-24 bottom-14 h-72 w-72 rounded-full bg-dark-1/10 blur-3xl" />
-      </div>
     </section>
   );
 }

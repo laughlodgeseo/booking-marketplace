@@ -8,6 +8,7 @@ import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
 import {
   ActivationInvoiceStatus,
+  LocaleCode,
   PaymentProvider,
   Prisma,
   PropertyDeletionRequestStatus,
@@ -28,6 +29,7 @@ import {
   ReorderMediaDto,
   UpdateMediaCategoryDto,
   UploadPropertyDocumentDto,
+  type PropertyTranslationsInput,
 } from './vendor-properties.dto';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 
@@ -104,6 +106,85 @@ export class VendorPropertiesService {
     return v ? v : null;
   }
 
+  private normalizeTranslationString(input: unknown): string | null {
+    if (typeof input !== 'string') return null;
+    const value = input.trim();
+    return value.length > 0 ? value : null;
+  }
+
+  private async upsertPropertyTranslations(
+    propertyId: string,
+    translations: PropertyTranslationsInput | undefined,
+    fallback: {
+      title: string;
+      description: string | null;
+      areaLabel: string | null;
+    },
+  ): Promise<void> {
+    const upserts: Array<Promise<unknown>> = [];
+
+    // Always keep EN in sync with canonical property fields.
+    upserts.push(
+      this.prisma.propertyTranslation.upsert({
+        where: {
+          propertyId_locale: {
+            propertyId,
+            locale: LocaleCode.en,
+          },
+        },
+        update: {
+          title: fallback.title,
+          description: fallback.description,
+          areaLabel: fallback.areaLabel,
+        },
+        create: {
+          propertyId,
+          locale: LocaleCode.en,
+          title: fallback.title,
+          description: fallback.description,
+          areaLabel: fallback.areaLabel,
+        },
+      }),
+    );
+
+    const arInput = translations?.ar;
+    if (arInput) {
+      const title = this.normalizeTranslationString(arInput.title);
+      if (title) {
+        upserts.push(
+          this.prisma.propertyTranslation.upsert({
+            where: {
+              propertyId_locale: {
+                propertyId,
+                locale: LocaleCode.ar,
+              },
+            },
+            update: {
+              title,
+              description:
+                this.normalizeTranslationString(arInput.description) ?? null,
+              areaLabel:
+                this.normalizeTranslationString(arInput.areaLabel) ?? null,
+              tagline: this.normalizeTranslationString(arInput.tagline) ?? null,
+            },
+            create: {
+              propertyId,
+              locale: LocaleCode.ar,
+              title,
+              description:
+                this.normalizeTranslationString(arInput.description) ?? null,
+              areaLabel:
+                this.normalizeTranslationString(arInput.areaLabel) ?? null,
+              tagline: this.normalizeTranslationString(arInput.tagline) ?? null,
+            },
+          }),
+        );
+      }
+    }
+
+    await Promise.all(upserts);
+  }
+
   private ensureCoords(lat: number, lng: number) {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       throw new BadRequestException('Invalid coordinates.');
@@ -166,6 +247,7 @@ export class VendorPropertiesService {
       where: { vendorId: vendorUserId },
       orderBy: { createdAt: 'desc' },
       include: {
+        translations: true,
         media: { orderBy: { sortOrder: 'asc' } },
         documents: { orderBy: { createdAt: 'desc' } },
       },
@@ -180,6 +262,7 @@ export class VendorPropertiesService {
     return this.prisma.property.findUnique({
       where: { id: propertyId },
       include: {
+        translations: true,
         media: { orderBy: { sortOrder: 'asc' } },
         documents: { orderBy: { createdAt: 'desc' } },
         amenities: { include: { amenity: true } },
@@ -313,7 +396,7 @@ export class VendorPropertiesService {
     // Retry on P2002 (slug) with a new unique slug.
     for (let attempt = 1; attempt <= 8; attempt++) {
       try {
-        return await this.prisma.property.create({
+        const created = await this.prisma.property.create({
           data: {
             vendorId: vendorUserId,
             title: dto.title.trim(),
@@ -339,6 +422,14 @@ export class VendorPropertiesService {
             status: PropertyStatus.DRAFT,
           },
         });
+
+        await this.upsertPropertyTranslations(created.id, dto.translations, {
+          title: created.title,
+          description: created.description ?? null,
+          areaLabel: created.area ?? null,
+        });
+
+        return this.getOne(vendorUserId, created.id);
       } catch (err) {
         if (!this.isSlugUniqueViolation(err)) throw err;
 
@@ -404,15 +495,21 @@ export class VendorPropertiesService {
       },
     });
 
+    await this.upsertPropertyTranslations(propertyId, dto.translations, {
+      title: updated.title,
+      description: updated.description ?? null,
+      areaLabel: updated.area ?? null,
+    });
+
     if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
       await this.prisma.property.update({
         where: { id: propertyId },
         data: { status: PropertyStatus.DRAFT },
       });
-      return this.prisma.property.findUnique({ where: { id: propertyId } });
+      return this.getOne(vendorUserId, propertyId);
     }
 
-    return updated;
+    return this.getOne(vendorUserId, propertyId);
   }
 
   /**

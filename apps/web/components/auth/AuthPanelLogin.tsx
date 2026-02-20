@@ -4,10 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Building2, Eye, EyeOff, User2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useMemo, useState } from "react";
 import { login } from "@/lib/auth/authApi";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { AuthUiRole } from "@/components/auth/authFlow";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 interface AuthPanelLoginProps {
   role: AuthUiRole;
@@ -17,9 +19,48 @@ interface AuthPanelLoginProps {
 const INPUT_CLASS =
   "h-12 w-full rounded-[12px] border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-slate-400 focus-visible:border-indigo-400 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
 
+const COPY = {
+  en: {
+    roleVendor: "Vendor",
+    roleCustomer: "Customer",
+    roleSignIn: (roleLabel: string) => `${roleLabel} sign in`,
+    switchRole: "Switch role",
+    email: "Email",
+    password: "Password",
+    emailPlaceholder: "you@example.com",
+    passwordPlaceholder: "••••••••",
+    hidePassword: "Hide password",
+    showPassword: "Show password",
+    signingIn: "Signing in...",
+    signIn: "Sign in",
+    forgotPassword: "Forgot password?",
+    createAccount: "Create account",
+    loginFailed: "Login failed",
+  },
+  ar: {
+    roleVendor: "مزوّد",
+    roleCustomer: "عميل",
+    roleSignIn: (roleLabel: string) => `تسجيل دخول ${roleLabel}`,
+    switchRole: "تبديل الدور",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    emailPlaceholder: "you@example.com",
+    passwordPlaceholder: "••••••••",
+    hidePassword: "إخفاء كلمة المرور",
+    showPassword: "إظهار كلمة المرور",
+    signingIn: "جارٍ تسجيل الدخول...",
+    signIn: "تسجيل الدخول",
+    forgotPassword: "نسيت كلمة المرور؟",
+    createAccount: "إنشاء حساب",
+    loginFailed: "فشل تسجيل الدخول",
+  },
+} as const;
+
 export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
   const router = useRouter();
   const { refresh } = useAuth();
+  const locale = normalizeLocale(useLocale());
+  const copy = COPY[locale];
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +68,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const roleLabel = role === "vendor" ? "Vendor" : "Customer";
+  const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
   const roleIcon = role === "vendor" ? <Building2 className="h-4 w-4" /> : <User2 className="h-4 w-4" />;
 
   const qsGateway = useMemo(() => {
@@ -55,7 +96,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
       await refresh();
       router.push(nextPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : copy.loginFailed);
     } finally {
       setLoading(false);
     }
@@ -66,21 +107,21 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
       <div className="flex items-center justify-between gap-3">
         <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900">
           <span className="text-indigo-600">{roleIcon}</span>
-          {roleLabel} sign in
+          {copy.roleSignIn(roleLabel)}
         </div>
         <Link href={qsGateway} className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
-          Switch role
+          {copy.switchRole}
         </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="block">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">Email</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">{copy.email}</span>
           <input
             type="email"
             required
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder={copy.emailPlaceholder}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={INPUT_CLASS}
@@ -88,13 +129,13 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">Password</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">{copy.password}</span>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               required
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder={copy.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`${INPUT_CLASS} pr-12`}
@@ -103,7 +144,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? copy.hidePassword : copy.showPassword}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -129,16 +170,16 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
           disabled={loading}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#2F3EA3] px-5 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(47,62,163,0.30)] transition-colors duration-150 hover:bg-[#27358F] disabled:cursor-not-allowed disabled:opacity-65 lg:h-auto lg:py-3.5"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? copy.signingIn : copy.signIn}
           <ArrowRight className="h-4 w-4" />
         </button>
 
         <div className="mt-1 flex items-center justify-between text-xs">
           <Link href={forgotHref} className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
-            Forgot password?
+            {copy.forgotPassword}
           </Link>
           <Link href={qsSignup} className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
-            Create account
+            {copy.createAccount}
           </Link>
         </div>
       </form>

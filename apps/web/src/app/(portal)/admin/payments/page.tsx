@@ -149,7 +149,7 @@ export default function AdminPaymentsPage() {
                 onChange={(event) =>
                   setFilters((current) => ({ ...current, provider: event.target.value }))
                 }
-                className="h-10 rounded-xl border border-line/80 bg-surface px-3 text-sm font-semibold text-primary"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base font-semibold text-primary lg:h-10 lg:rounded-xl lg:border-line/80 lg:bg-surface lg:px-3 lg:text-sm"
               >
                 <option value="ALL">All providers</option>
                 {providers.map((provider) => (
@@ -162,7 +162,7 @@ export default function AdminPaymentsPage() {
                 onChange={(event) =>
                   setFilters((current) => ({ ...current, status: event.target.value }))
                 }
-                className="h-10 rounded-xl border border-line/80 bg-surface px-3 text-sm font-semibold text-primary"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base font-semibold text-primary lg:h-10 lg:rounded-xl lg:border-line/80 lg:bg-surface lg:px-3 lg:text-sm"
               >
                 <option value="ALL">All statuses</option>
                 {statuses.map((status) => (
@@ -184,7 +184,7 @@ export default function AdminPaymentsPage() {
             {state.message}
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-3xl border border-line/60 bg-surface p-6 text-sm text-secondary">
+          <div className="rounded-3xl border border-line/40 bg-warm-base/95 p-6 text-sm text-secondary lg:border-line/60 lg:bg-surface">
             No payments match these filters.
           </div>
         ) : (
@@ -202,7 +202,7 @@ export default function AdminPaymentsPage() {
                 <Link
                   key={paymentId}
                   href={`/admin/payments/${encodeURIComponent(paymentId)}`}
-                  className="block rounded-3xl border border-line/60 bg-surface p-5 shadow-sm transition hover:bg-warm-alt/60"
+                  className="block rounded-3xl border border-line/40 bg-warm-base/95 p-5 shadow-sm transition hover:bg-warm-alt/60 lg:border-line/60 lg:bg-surface"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>

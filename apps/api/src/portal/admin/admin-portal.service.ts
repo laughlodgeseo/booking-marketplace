@@ -1158,6 +1158,12 @@ export class AdminPortalService {
             penaltyAmount: true,
             refundableAmount: true,
             currency: true,
+            displayCurrency: true,
+            displayFxRate: true,
+            displayFxAsOfDate: true,
+            totalAmountDisplay: true,
+            penaltyAmountDisplay: true,
+            refundableAmountDisplay: true,
             releasesInventory: true,
             refundId: true,
           },
@@ -1349,6 +1355,10 @@ export class AdminPortalService {
         ? {
             ...booking.cancellation,
             cancelledAt: booking.cancellation.cancelledAt.toISOString(),
+            displayFxRate: Number(booking.cancellation.displayFxRate),
+            displayFxAsOfDate: booking.cancellation.displayFxAsOfDate
+              ? booking.cancellation.displayFxAsOfDate.toISOString()
+              : null,
           }
         : null,
       refunds: booking.refunds.map((refund) => ({
@@ -2150,6 +2160,12 @@ export class AdminPortalService {
             penaltyAmount: true,
             refundableAmount: true,
             currency: true,
+            displayCurrency: true,
+            displayFxRate: true,
+            displayFxAsOfDate: true,
+            totalAmountDisplay: true,
+            penaltyAmountDisplay: true,
+            refundableAmountDisplay: true,
           },
         },
       },
@@ -2172,6 +2188,10 @@ export class AdminPortalService {
         ? {
             ...refund.bookingCancellation,
             cancelledAt: refund.bookingCancellation.cancelledAt.toISOString(),
+            displayFxRate: Number(refund.bookingCancellation.displayFxRate),
+            displayFxAsOfDate: refund.bookingCancellation.displayFxAsOfDate
+              ? refund.bookingCancellation.displayFxAsOfDate.toISOString()
+              : null,
           }
         : null,
     };

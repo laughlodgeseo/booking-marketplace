@@ -143,17 +143,17 @@ function AccountRefundsContent() {
           />
 
           {pageMeta ? (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-secondary">
                 Page {pageMeta.currentPage} of {pageMeta.totalPages}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
                 <Link
                   href={`/account/refunds?page=${Math.max(1, pageMeta.currentPage - 1)}&pageSize=${pageMeta.pageSize}`}
                   aria-disabled={pageMeta.currentPage <= 1}
                   className={cn(
-                    "rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm",
+                    "inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm sm:flex-none lg:bg-surface",
                     pageMeta.currentPage <= 1 && "pointer-events-none opacity-50",
                   )}
                 >
@@ -164,7 +164,7 @@ function AccountRefundsContent() {
                   href={`/account/refunds?page=${Math.min(pageMeta.totalPages, pageMeta.currentPage + 1)}&pageSize=${pageMeta.pageSize}`}
                   aria-disabled={pageMeta.currentPage >= pageMeta.totalPages}
                   className={cn(
-                    "rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm",
+                    "inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm sm:flex-none lg:bg-surface",
                     pageMeta.currentPage >= pageMeta.totalPages && "pointer-events-none opacity-50",
                   )}
                 >

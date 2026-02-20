@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import type {
   AdminAmenitiesCatalogResponse,
   AdminMediaItem,
@@ -18,8 +19,17 @@ import {
   viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { AdminPropertyMediaManager } from "@/components/portal/admin/properties/AdminPropertyMediaManager";
-import { PortalMapPicker } from "@/components/portal/maps/PortalMapPicker";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { SelectableTile } from "@/components/portal/ui/SelectableTile";
+import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
+
+const PortalMapPicker = dynamic(
+  () => import("@/components/portal/maps/PortalMapPicker").then((mod) => mod.PortalMapPicker),
+  {
+    ssr: false,
+    loading: () => <PortalLoadingCard kind="mapPicker" />,
+  },
+);
 
 type TabKey = "basics" | "location" | "amenities" | "photos" | "documents" | "review";
 
@@ -95,6 +105,20 @@ function toOptionalNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function propertyTranslation(
+  property: EditableAdminProperty,
+  locale: "en" | "ar"
+): {
+  title?: string;
+  description?: string | null;
+  areaLabel?: string | null;
+  tagline?: string | null;
+} | null {
+  const rows = Array.isArray(property.translations) ? property.translations : [];
+  const hit = rows.find((row) => row && typeof row === "object" && row.locale === locale);
+  return hit ?? null;
+}
+
 function fmtDate(value: string | null | undefined): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -144,6 +168,9 @@ export function AdminPropertyEditor(props: {
     title: property.title ?? "",
     slug: property.slug ?? "",
     description: property.description ?? "",
+    titleAr: propertyTranslation(property, "ar")?.title ?? "",
+    descriptionAr: propertyTranslation(property, "ar")?.description ?? "",
+    areaAr: propertyTranslation(property, "ar")?.areaLabel ?? "",
     maxGuests: String(property.maxGuests ?? 1),
     bedrooms: String(property.bedrooms ?? 0),
     bathrooms: String(property.bathrooms ?? 0),
@@ -167,10 +194,14 @@ export function AdminPropertyEditor(props: {
   }, [props.initial]);
 
   useEffect(() => {
+    const ar = propertyTranslation(property, "ar");
     setBasics({
       title: property.title ?? "",
       slug: property.slug ?? "",
       description: property.description ?? "",
+      titleAr: ar?.title ?? "",
+      descriptionAr: ar?.description ?? "",
+      areaAr: ar?.areaLabel ?? "",
       maxGuests: String(property.maxGuests ?? 1),
       bedrooms: String(property.bedrooms ?? 0),
       bathrooms: String(property.bathrooms ?? 0),
@@ -187,6 +218,7 @@ export function AdminPropertyEditor(props: {
     property.cleaningFee,
     property.currency,
     property.description,
+    property.translations,
     property.maxGuests,
     property.maxNights,
     property.minNights,
@@ -254,6 +286,18 @@ export function AdminPropertyEditor(props: {
       currency: basics.currency.trim() || "AED",
       minNights: toOptionalNumber(basics.minNights),
       maxNights: toOptionalNumber(basics.maxNights),
+      translations: {
+        en: {
+          title: basics.title.trim(),
+          description: basics.description.trim() || null,
+          areaLabel: location.area.trim() || null,
+        },
+        ar: {
+          title: basics.titleAr.trim() || undefined,
+          description: basics.descriptionAr.trim() || null,
+          areaLabel: basics.areaAr.trim() || null,
+        },
+      },
     };
 
     setBusy("Saving basics...");
@@ -442,7 +486,7 @@ export function AdminPropertyEditor(props: {
         <div className="rounded-2xl border border-line/80 bg-warm-base p-3 text-sm text-secondary">{notice}</div>
       ) : null}
 
-      <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+      <section className="portal-card rounded-2xl bg-surface/90 p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-primary">{property.title || "Untitled property"}</h2>
@@ -467,7 +511,7 @@ export function AdminPropertyEditor(props: {
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex min-w-0 flex-wrap gap-2">
           {tabs.map((item) => (
             <button
               key={item.key}
@@ -477,13 +521,13 @@ export function AdminPropertyEditor(props: {
                 if (item.key === "amenities") void ensureAmenitiesCatalog();
               }}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-semibold transition",
+                "inline-flex min-w-0 max-w-full items-center rounded-full px-4 py-2 text-sm font-semibold transition",
                 tab === item.key
-                  ? "bg-brand text-accent-text"
-                  : "bg-surface text-primary ring-1 ring-line hover:bg-warm-alt"
+                  ? "bg-brand text-accent-text shadow-[0_10px_26px_rgba(79,70,229,0.24)]"
+                  : "bg-surface/88 text-primary ring-1 ring-line/28 hover:bg-accent-soft/22"
               )}
             >
-              {item.label}
+              <span className="truncate">{item.label}</span>
             </button>
           ))}
         </div>
@@ -507,6 +551,24 @@ export function AdminPropertyEditor(props: {
                 onChange={(event) => setBasics((current) => ({ ...current, slug: event.target.value }))}
                 className="h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm text-primary"
                 disabled={busy !== null}
+              />
+            </Field>
+            <Field label="Arabic title">
+              <input
+                value={basics.titleAr}
+                onChange={(event) => setBasics((current) => ({ ...current, titleAr: event.target.value }))}
+                className="h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm text-primary"
+                disabled={busy !== null}
+                dir="rtl"
+              />
+            </Field>
+            <Field label="Arabic area">
+              <input
+                value={basics.areaAr}
+                onChange={(event) => setBasics((current) => ({ ...current, areaAr: event.target.value }))}
+                className="h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm text-primary"
+                disabled={busy !== null}
+                dir="rtl"
               />
             </Field>
             <Field label="Max guests">
@@ -585,6 +647,16 @@ export function AdminPropertyEditor(props: {
                 onChange={(event) => setBasics((current) => ({ ...current, description: event.target.value }))}
                 className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary"
                 disabled={busy !== null}
+              />
+            </Field>
+            <Field label="Arabic description" className="sm:col-span-2">
+              <textarea
+                rows={6}
+                value={basics.descriptionAr}
+                onChange={(event) => setBasics((current) => ({ ...current, descriptionAr: event.target.value }))}
+                className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary"
+                disabled={busy !== null}
+                dir="rtl"
               />
             </Field>
           </div>
@@ -681,8 +753,13 @@ export function AdminPropertyEditor(props: {
       ) : null}
 
       {tab === "amenities" ? (
-        <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+        <section className="portal-card rounded-2xl bg-surface/90 p-5">
           <h3 className="text-base font-semibold text-primary">Amenities</h3>
+          <div className="mt-2">
+            <span className="inline-flex items-center rounded-full bg-accent-soft/40 px-3 py-1 text-xs font-semibold text-brand">
+              Selected: {selectedAmenityIds.length}
+            </span>
+          </div>
           {amenitiesLoading ? (
             <div className="mt-3 text-sm text-secondary">Loading amenities...</div>
           ) : amenitiesCatalog.length === 0 ? (
@@ -690,26 +767,20 @@ export function AdminPropertyEditor(props: {
           ) : (
             <div className="mt-4 space-y-4">
               {amenitiesCatalog.map((group) => (
-                <div key={group.group?.id ?? "ungrouped"} className="rounded-2xl border border-line/70 bg-surface p-4">
+                <div key={group.group?.id ?? "ungrouped"} className="portal-card rounded-2xl bg-warm-alt/72 p-4">
                   <div className="text-sm font-semibold text-primary">{group.group?.name ?? "Other"}</div>
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {group.amenities.map((amenity) => {
                       const selected = selectedAmenityIds.includes(amenity.id);
                       return (
-                        <button
+                        <SelectableTile
                           key={amenity.id}
-                          type="button"
+                          label={amenity.name}
+                          selected={selected}
                           onClick={() => void toggleAmenity(amenity.id)}
                           disabled={busy !== null}
-                          className={cn(
-                            "rounded-xl border px-3 py-2 text-left text-sm font-medium",
-                            selected
-                              ? "border-brand/45 bg-accent-soft/70 text-primary"
-                              : "border-line/80 bg-surface text-secondary hover:bg-warm-alt"
-                          )}
-                        >
-                          {amenity.name}
-                        </button>
+                          className="min-h-[44px]"
+                        />
                       );
                     })}
                   </div>

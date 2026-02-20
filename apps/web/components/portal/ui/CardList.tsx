@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { PortalCard } from "@/components/portal/ui/PortalCard";
+import { SectionHeader } from "@/components/portal/ui/SectionHeader";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -23,15 +25,14 @@ export function CardList(props: {
   emptyDescription?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-line/50 bg-surface shadow-sm">
-      <div className="border-b border-line/50 bg-warm-base/40 px-5 py-4">
-        <div className="text-sm font-semibold text-primary">{props.title}</div>
-        {props.subtitle ? <div className="mt-1 text-sm text-secondary">{props.subtitle}</div> : null}
+    <PortalCard padding="none" className="overflow-hidden">
+      <div className="bg-warm-alt/65 px-4 py-4 sm:px-5">
+        <SectionHeader title={props.title} subtitle={props.subtitle} />
       </div>
 
       {props.items.length === 0 ? (
         <div className="p-8">
-          <div className="rounded-2xl border border-dashed border-line/80 bg-warm-base p-6 text-center">
+          <div className="rounded-2xl bg-warm-alt/75 p-6 text-center">
             <div className="text-sm font-semibold text-primary">{props.emptyTitle ?? "No records"}</div>
             <div className="mt-1 text-sm text-secondary">
               {props.emptyDescription ?? "There are no items to display right now."}
@@ -54,8 +55,8 @@ export function CardList(props: {
                 }
               }}
               className={cn(
-                "rounded-2xl border border-line/80 bg-surface p-4 shadow-sm transition",
-                item.onClick ? "cursor-pointer hover:bg-warm-alt/70 hover:shadow" : "cursor-default",
+                "rounded-2xl border border-line/38 bg-warm-base/94 p-4 shadow-sm transition lg:border-transparent lg:bg-warm-alt/66",
+                item.onClick ? "cursor-pointer hover:bg-accent-soft/24 hover:-translate-y-0.5" : "cursor-default",
               )}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -64,18 +65,18 @@ export function CardList(props: {
                   {item.subtitle ? <div className="mt-1 text-sm text-secondary">{item.subtitle}</div> : null}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   {item.status}
                   {item.actions ? (
                     <div
                       onClick={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
-                      className="flex items-center gap-2"
+                      className="flex flex-wrap items-center gap-2"
                     >
                       {item.actions}
                     </div>
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-inverted/70" />
+                    <ChevronRight className="h-4 w-4 text-muted" />
                   )}
                 </div>
               </div>
@@ -85,6 +86,6 @@ export function CardList(props: {
           ))}
         </div>
       )}
-    </div>
+    </PortalCard>
   );
 }

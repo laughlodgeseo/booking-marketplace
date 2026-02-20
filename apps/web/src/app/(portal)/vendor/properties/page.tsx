@@ -100,19 +100,19 @@ export default function VendorPropertiesPage() {
         />
       ) : (
         <div className="space-y-5">
-          <div className="rounded-3xl border border-line/50 bg-surface p-4 shadow-sm">
+          <div className="rounded-3xl border border-line/40 bg-warm-base/95 p-4 shadow-sm lg:border-line/50 lg:bg-surface">
             <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto] lg:items-center">
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by title, slug, city..."
-                className="h-11 rounded-2xl border border-line/80 bg-surface px-4 text-sm text-primary outline-none focus:border-brand/45 focus:ring-4 focus:ring-brand/20"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base text-primary outline-none focus:border-brand/45 focus:ring-4 focus:ring-brand/20 lg:bg-surface lg:text-sm"
               />
 
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="h-11 rounded-2xl border border-line/80 bg-surface px-4 text-sm font-semibold text-primary"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base font-semibold text-primary lg:bg-surface lg:text-sm"
               >
                 <option value="ALL">All statuses</option>
                 {(derived?.statuses ?? []).map((status) => (
@@ -122,7 +122,7 @@ export default function VendorPropertiesPage() {
 
               <Link
                 href="/vendor/properties/new"
-                className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-4 text-sm font-semibold text-accent-text shadow-sm hover:bg-brand-hover"
+                className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-brand px-4 text-sm font-semibold text-accent-text shadow-sm hover:bg-brand-hover lg:w-auto"
               >
                 Create property
               </Link>
@@ -130,7 +130,7 @@ export default function VendorPropertiesPage() {
           </div>
 
           {derived?.filtered.length === 0 ? (
-            <div className="rounded-3xl border border-line/60 bg-surface p-6 text-sm text-secondary">
+            <div className="rounded-3xl border border-line/40 bg-warm-base/95 p-6 text-sm text-secondary lg:border-line/60 lg:bg-surface">
               No properties match your filters.
             </div>
           ) : (
@@ -139,7 +139,7 @@ export default function VendorPropertiesPage() {
                 <Link
                   key={property.id}
                   href={`/vendor/properties/${encodeURIComponent(property.id)}`}
-                  className="rounded-3xl border border-line/60 bg-surface p-5 shadow-sm transition hover:bg-warm-alt/60"
+                  className="rounded-3xl border border-line/40 bg-warm-base/95 p-5 shadow-sm transition hover:bg-warm-alt/60 lg:border-line/60 lg:bg-surface"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -161,16 +161,16 @@ export default function VendorPropertiesPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-secondary">
               Page {state.page} of {derived?.totalPages ?? 1}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
                 disabled={state.page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm disabled:opacity-50"
+                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm disabled:opacity-50 sm:flex-none lg:bg-surface"
               >
                 Prev
               </button>
@@ -178,7 +178,7 @@ export default function VendorPropertiesPage() {
                 type="button"
                 disabled={state.page >= (derived?.totalPages ?? 1)}
                 onClick={() => setPage((current) => current + 1)}
-                className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm disabled:opacity-50"
+                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm disabled:opacity-50 sm:flex-none lg:bg-surface"
               >
                 Next
               </button>

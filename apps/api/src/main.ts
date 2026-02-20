@@ -7,7 +7,15 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import { randomUUID } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
-import { PROPERTY_IMAGES_DIR } from './common/upload/storage-paths';
+import { PUBLIC_UPLOADS_DIR } from './common/upload/storage-paths';
+import {
+  DEFAULT_DISPLAY_CURRENCY,
+  DEFAULT_LOCALE,
+  normalizeDisplayCurrency,
+  normalizeLocale,
+  parseLocaleFromAcceptLanguage,
+} from './common/i18n/locale';
+import type { AppRequest } from './common/i18n/app-request';
 
 type CorsOriginCallback = (error: Error | null, allow?: boolean) => void;
 
@@ -30,7 +38,7 @@ async function bootstrap() {
   app.use(cookieParser());
   app.use(helmet());
 
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use((req: AppRequest, res: Response, next: NextFunction) => {
     const incoming = req.headers['x-correlation-id'];
     const correlationId =
       typeof incoming === 'string' && incoming.trim()
@@ -59,12 +67,49 @@ async function bootstrap() {
     next();
   });
 
+  app.use((req: AppRequest, res: Response, next: NextFunction) => {
+    const localeHeader =
+      typeof req.headers['x-locale'] === 'string'
+        ? req.headers['x-locale']
+        : null;
+    const acceptLanguage =
+      typeof req.headers['accept-language'] === 'string'
+        ? req.headers['accept-language']
+        : null;
+
+    const resolvedLocale = localeHeader
+      ? normalizeLocale(localeHeader)
+      : parseLocaleFromAcceptLanguage(acceptLanguage ?? DEFAULT_LOCALE);
+
+    const currencyHeader =
+      typeof req.headers['x-currency'] === 'string'
+        ? req.headers['x-currency']
+        : null;
+    const resolvedCurrency = currencyHeader
+      ? normalizeDisplayCurrency(currencyHeader)
+      : DEFAULT_DISPLAY_CURRENCY;
+
+    req.locale = resolvedLocale ?? DEFAULT_LOCALE;
+    req.displayCurrency = resolvedCurrency;
+    res.setHeader('X-Locale', req.locale);
+    res.setHeader('X-Currency', req.displayCurrency);
+    next();
+  });
+
   /**
    * Public static assets
-   * - ONLY property images are public
+   * - Property images are public under /uploads/**
    * - Ownership / verification docs must NEVER be public
    */
-  app.use('/uploads/properties/images', express.static(PROPERTY_IMAGES_DIR));
+  app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+    const normalizedPath = req.path.replace(/\\/g, '/').toLowerCase();
+    if (normalizedPath.includes('/documents/')) {
+      res.status(404).end();
+      return;
+    }
+    next();
+  });
+  app.use('/uploads', express.static(PUBLIC_UPLOADS_DIR));
 
   const staticAllowedOrigins = new Set<string>([
     'https://rentpropertyuae.vercel.app',
@@ -116,7 +161,7 @@ async function bootstrap() {
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders:
-      'Content-Type, Authorization, Accept, X-Requested-With, Idempotency-Key, X-Correlation-Id',
+      'Content-Type, Authorization, Accept, X-Requested-With, Idempotency-Key, X-Correlation-Id, X-Locale, X-Currency',
   });
 
   /**

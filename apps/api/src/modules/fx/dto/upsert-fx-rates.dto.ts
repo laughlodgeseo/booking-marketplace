@@ -9,6 +9,10 @@ export class UpsertFxRatesDto {
 
   @IsNumber()
   @Min(0.000001)
+  sar!: number;
+
+  @IsNumber()
+  @Min(0.000001)
   usd!: number;
 
   @IsNumber()

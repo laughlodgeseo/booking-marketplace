@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import { createBookingFromHold } from "@/lib/api/bookings";
 import { PendingPaymentCard } from "@/components/checkout/PendingPaymentCard";
 import { HoldExpiredCard } from "@/components/checkout/HoldExpiredCard";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 type ViewState =
   | { kind: "idle" }
@@ -81,6 +83,8 @@ function extractBookingFromUnknown(x: unknown): { id: string; status: string } |
 }
 
 export function CreateBookingCardBatchA(props: { propertyId: string; holdId: string; guests: number }) {
+  const locale = normalizeLocale(useLocale());
+  const isAr = locale === "ar";
   const propertyId = (props.propertyId ?? "").trim();
   const holdId = (props.holdId ?? "").trim();
 
@@ -106,7 +110,12 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
       const hit = extractBookingFromUnknown(res);
       if (!hit) {
         // fallback: we *must* still show something safe
-        setView({ kind: "error", message: "Booking created but response shape was unexpected. Please go to Account → Bookings." });
+        setView({
+          kind: "error",
+          message: isAr
+            ? "تم إنشاء الحجز لكن صيغة الاستجابة غير متوقعة. يرجى الذهاب إلى الحساب ← الحجوزات."
+            : "Booking created but response shape was unexpected. Please go to Account → Bookings.",
+        });
         return;
       }
 
@@ -137,14 +146,16 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
   if (view.kind === "unauthorized") {
     return (
       <div className="rounded-2xl border border-line bg-surface p-6">
-        <div className="text-sm font-semibold text-primary">Please log in</div>
-        <p className="mt-2 text-sm text-secondary">You must be logged in to create a booking.</p>
+        <div className="text-sm font-semibold text-primary">{isAr ? "يرجى تسجيل الدخول" : "Please log in"}</div>
+        <p className="mt-2 text-sm text-secondary">
+          {isAr ? "يجب تسجيل الدخول لإنشاء الحجز." : "You must be logged in to create a booking."}
+        </p>
         <div className="mt-5">
           <Link
             href="/login"
             className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
           >
-            Go to login
+            {isAr ? "الذهاب لتسجيل الدخول" : "Go to login"}
           </Link>
         </div>
       </div>
@@ -155,31 +166,43 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
     <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold tracking-wide text-muted">Checkout</div>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-primary">Create booking</h2>
+          <div className="text-xs font-semibold tracking-wide text-muted">{isAr ? "إتمام الحجز" : "Checkout"}</div>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-primary">
+            {isAr ? "إنشاء الحجز" : "Create booking"}
+          </h2>
           <p className="mt-2 text-sm text-secondary">
-            This will convert your <span className="font-semibold">ACTIVE</span> hold into a booking. Inventory safety rules are enforced by the backend.
+            {isAr ? (
+              <>
+                سيتم تحويل الحجز المؤقت <span className="font-semibold">النشط</span> إلى حجز فعلي. يطبق الخادم قواعد
+                سلامة المخزون.
+              </>
+            ) : (
+              <>
+                This will convert your <span className="font-semibold">ACTIVE</span> hold into a booking. Inventory
+                safety rules are enforced by the backend.
+              </>
+            )}
           </p>
         </div>
 
         <div className={classNames("rounded-xl border px-3 py-1.5 text-xs font-semibold", canCreate ? "border-line bg-warm-alt text-secondary" : "border-danger/30 bg-danger/12 text-danger")}>
-          {canCreate ? "READY" : "MISSING HOLD"}
+          {canCreate ? (isAr ? "جاهز" : "READY") : isAr ? "الحجز المؤقت مفقود" : "MISSING HOLD"}
         </div>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-line bg-warm-alt p-4">
-          <div className="text-xs font-semibold text-secondary">Property</div>
+          <div className="text-xs font-semibold text-secondary">{isAr ? "العقار" : "Property"}</div>
           <div className="mt-1 text-sm font-semibold text-primary break-all">{propertyId || "—"}</div>
         </div>
 
         <div className="rounded-xl border border-line bg-warm-alt p-4">
-          <div className="text-xs font-semibold text-secondary">Hold</div>
+          <div className="text-xs font-semibold text-secondary">{isAr ? "الحجز المؤقت" : "Hold"}</div>
           <div className="mt-1 text-sm font-semibold text-primary break-all">{holdId || "—"}</div>
         </div>
 
         <div className="rounded-xl border border-line bg-warm-alt p-4">
-          <div className="text-xs font-semibold text-secondary">Guests</div>
+          <div className="text-xs font-semibold text-secondary">{isAr ? "الضيوف" : "Guests"}</div>
           <div className="mt-1 text-sm font-semibold text-primary">{props.guests}</div>
         </div>
       </div>
@@ -202,19 +225,27 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
               : "bg-brand text-accent-text hover:bg-brand-hover"
           )}
         >
-          {view.kind === "creating" ? "Creating…" : "Create booking"}
+          {view.kind === "creating"
+            ? isAr
+              ? "جارٍ الإنشاء…"
+              : "Creating…"
+            : isAr
+              ? "إنشاء الحجز"
+              : "Create booking"}
         </button>
 
         <Link
           href="/properties"
           className="inline-flex items-center justify-center rounded-xl border border-line bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt"
         >
-          Back to browsing
+          {isAr ? "العودة للتصفح" : "Back to browsing"}
         </Link>
       </div>
 
       <div className="mt-4 text-xs leading-5 text-muted">
-        If the hold has expired, you’ll be shown a safe message and asked to re-check dates.
+        {isAr
+          ? "إذا انتهت صلاحية الحجز المؤقت ستظهر رسالة آمنة مع طلب إعادة التحقق من التواريخ."
+          : "If the hold has expired, you'll be shown a safe message and asked to re-check dates."}
       </div>
     </div>
   );

@@ -111,7 +111,7 @@ export default function VendorBookingsPage() {
       actions: (
         <Link
           href={`/vendor/bookings/${encodeURIComponent(booking.id)}`}
-          className="rounded-xl border border-line/80 bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-warm-alt"
+          className="inline-flex h-11 items-center justify-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22 lg:bg-surface"
         >
           Open page
         </Link>
@@ -134,19 +134,19 @@ export default function VendorBookingsPage() {
         <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">{state.message}</div>
       ) : (
         <div className="space-y-5">
-          <div className="rounded-3xl border border-line/50 bg-surface p-4 shadow-sm">
-            <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+          <div className="rounded-3xl border border-line/40 bg-warm-base/95 p-4 shadow-sm lg:border-line/50 lg:bg-surface">
+            <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search booking id, guest, property..."
-                className="h-11 rounded-2xl border border-line/80 bg-surface px-4 text-sm text-primary outline-none focus:border-brand/45 focus:ring-4 focus:ring-brand/20"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base text-primary outline-none focus:border-brand/45 focus:ring-4 focus:ring-brand/20 lg:bg-surface lg:text-sm"
               />
 
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="h-11 rounded-2xl border border-line/80 bg-surface px-4 text-sm font-semibold text-primary"
+                className="h-11 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-base font-semibold text-primary lg:bg-surface lg:text-sm"
               >
                 <option value="ALL">All statuses</option>
                 {(derived?.statuses ?? []).map((status) => (
@@ -166,17 +166,17 @@ export default function VendorBookingsPage() {
             emptyDescription="No bookings match the current filters."
           />
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-secondary">
               Page {state.data.page} of {derived?.totalPages ?? 1}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
                 disabled={state.data.page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm disabled:opacity-50"
+                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm disabled:opacity-50 sm:flex-none lg:bg-surface"
               >
                 Prev
               </button>
@@ -185,7 +185,7 @@ export default function VendorBookingsPage() {
                 type="button"
                 disabled={state.data.page >= (derived?.totalPages ?? 1)}
                 onClick={() => setPage((current) => current + 1)}
-                className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm disabled:opacity-50"
+                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm disabled:opacity-50 sm:flex-none lg:bg-surface"
               >
                 Next
               </button>

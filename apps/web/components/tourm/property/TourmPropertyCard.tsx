@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { SearchResponse } from "@/lib/types/search";
-import { useCurrency } from "@/lib/currency/CurrencyProvider";
 
 type Item = SearchResponse["items"][number];
 type CardOrientation = "vertical" | "horizontal";
@@ -27,6 +27,18 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: currency === "AED" ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+}
+
 export default function TourmPropertyCard({
   item,
   orientation = "vertical",
@@ -34,9 +46,10 @@ export default function TourmPropertyCard({
   item: Item;
   orientation?: CardOrientation;
 }) {
+  const t = useTranslations("propertyCard");
   const isHorizontal = orientation === "horizontal";
   const router = useRouter();
-  const rawTitle = (item.title ?? "Stay").trim();
+  const rawTitle = (item.title ?? t("defaultTitle")).trim();
   const titleParts = rawTitle
     .split("•")
     .map((part) => part.trim())
@@ -51,16 +64,19 @@ export default function TourmPropertyCard({
   const beds = item.capacity?.bedrooms ?? null;
   const baths = item.capacity?.bathrooms ?? null;
   const amenityPills = [
-    guests ? `${guests} guests` : null,
-    beds ? `${beds} beds` : null,
-    baths ? `${baths} baths` : null,
+    guests ? t("guests", { count: guests }) : null,
+    beds ? t("beds", { count: beds }) : null,
+    baths ? t("baths", { count: baths }) : null,
   ].filter((value): value is string => Boolean(value));
-
-  const { currency, formatFromAed, formatBaseAed } = useCurrency();
   const baseNightly = item.pricing?.nightly ?? null;
-  const price = baseNightly === null ? null : formatFromAed(baseNightly);
+  const itemCurrency = item.pricing?.currency ?? "AED";
+  const price =
+    typeof baseNightly === "number" ? formatMoney(baseNightly, itemCurrency) : null;
+  const baseNightlyAed = item.pricing?.nightlyAed;
   const basePriceHint =
-    currency !== "AED" && baseNightly !== null ? `Base: ${formatBaseAed(baseNightly)}` : null;
+    itemCurrency !== "AED" && typeof baseNightlyAed === "number"
+      ? t("basePrice", { amount: formatMoney(baseNightlyAed, "AED") })
+      : null;
 
   const slides = useMemo<Slide[]>(() => {
     const output: Slide[] = [];
@@ -265,7 +281,7 @@ export default function TourmPropertyCard({
                   e.preventDefault();
                   e.stopPropagation();
                 }}
-                aria-label={`${title} photo ${idx + 1}`}
+                aria-label={t("photoAria", { title, index: idx + 1 })}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -284,17 +300,6 @@ export default function TourmPropertyCard({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/28 via-ink/5 to-transparent transition-colors duration-300 group-hover:from-ink/14 group-hover:via-transparent" />
 
-        {price ? (
-          <div
-            className={[
-              "absolute left-3 top-3 rounded-full bg-surface/95 px-3 py-1.5 text-sm font-semibold tracking-tight text-primary shadow-md md:left-4 md:top-4",
-              isHorizontal ? "hidden md:block" : "hidden lg:block",
-            ].join(" ")}
-          >
-            {price} <span className="text-xs font-medium text-secondary">/ night</span>
-          </div>
-        ) : null}
-
         {hasMultipleSlides ? (
           <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
             {slides.map((slide, idx) => {
@@ -308,7 +313,7 @@ export default function TourmPropertyCard({
                     "rounded-full transition",
                     active ? "h-1.5 w-5 bg-surface" : "h-1.5 w-1.5 bg-surface/55 hover:bg-surface/80",
                   ].join(" ")}
-                  aria-label={`Show image ${idx + 1}`}
+                  aria-label={t("showImageAria", { index: idx + 1 })}
                 />
               );
             })}
@@ -339,7 +344,9 @@ export default function TourmPropertyCard({
 
             <div className="flex items-center justify-between gap-3 border-t border-neutral-200/70 pt-3">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-primary">{price ? `${price} / night` : "Price on request"}</p>
+                <p className="text-sm font-semibold text-primary">
+                  {price ? t("perNight", { price }) : t("priceOnRequest")}
+                </p>
                 {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
               </div>
 
@@ -347,7 +354,7 @@ export default function TourmPropertyCard({
                 href={`/properties/${item.slug}#book`}
                 className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
-                View
+                {t("view")}
               </Link>
             </div>
           </div>
@@ -356,24 +363,26 @@ export default function TourmPropertyCard({
             <div className="flex flex-wrap gap-2">
               {guests ? (
                 <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {guests} guests
+                  {t("guests", { count: guests })}
                 </span>
               ) : null}
               {beds ? (
                 <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {beds} beds
+                  {t("beds", { count: beds })}
                 </span>
               ) : null}
               {baths ? (
                 <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {baths} baths
+                  {t("baths", { count: baths })}
                 </span>
                 ) : null}
             </div>
 
             <div className="flex items-center justify-between gap-3 border-t border-neutral-200/70 pt-3">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-primary">{price ? `${price} / night` : "Price on request"}</p>
+                <p className="text-sm font-semibold text-primary">
+                  {price ? t("perNight", { price }) : t("priceOnRequest")}
+                </p>
                 {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
               </div>
 
@@ -381,7 +390,7 @@ export default function TourmPropertyCard({
                 href={`/properties/${item.slug}#book`}
                 className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
-                View
+                {t("view")}
               </Link>
             </div>
           </div>

@@ -66,13 +66,13 @@ export default function FiltersPanel(props: Props) {
   }, [props.query]);
 
   return (
-    <div className="rounded-2xl border border-line/80 bg-surface/70 p-4 text-primary backdrop-blur">
+    <div className="rounded-2xl bg-white p-4 text-neutral-900 shadow-lg">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-muted" />
-          <div className="text-sm font-semibold text-primary">Filters</div>
+          <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
+          <div className="text-sm font-semibold text-neutral-900">Filters</div>
           {props.resultsCount !== null ? (
-            <div className="hidden text-xs text-muted sm:block">{props.resultsCount} total</div>
+            <div className="hidden text-xs text-neutral-500 sm:block">{props.resultsCount} total</div>
           ) : null}
         </div>
 
@@ -93,7 +93,7 @@ export default function FiltersPanel(props: Props) {
                   amenities: undefined,
                 })
               }
-              className="rounded-lg border border-line/80 bg-surface px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-warm-alt"
+              className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-200"
             >
               Reset
             </button>
@@ -102,7 +102,7 @@ export default function FiltersPanel(props: Props) {
           <button
             type="button"
             onClick={() => setOpen((s) => !s)}
-            className="rounded-lg border border-line/80 bg-surface px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-warm-alt"
+            className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-200"
           >
             {open ? "Hide" : "Show"}
           </button>
@@ -117,7 +117,7 @@ export default function FiltersPanel(props: Props) {
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
               Popular areas
             </div>
             <div className="flex flex-wrap gap-2">
@@ -129,10 +129,10 @@ export default function FiltersPanel(props: Props) {
                     type="button"
                     onClick={() => props.onChange({ city: p.city, area: p.area })}
                     className={[
-                      "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                      "rounded-full px-3 py-1.5 text-xs font-semibold transition",
                       active
-                        ? "border-line/80 bg-brand text-accent-text"
-                        : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+                        ? "bg-indigo-600 text-white"
+                        : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200",
                     ].join(" ")}
                   >
                     {p.label}
@@ -144,7 +144,7 @@ export default function FiltersPanel(props: Props) {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 <MapPin className="h-4 w-4" />
                 City
               </div>
@@ -152,12 +152,12 @@ export default function FiltersPanel(props: Props) {
                 value={props.query.city ?? ""}
                 onChange={(e) => props.onChange({ city: e.target.value.trim() || undefined })}
                 placeholder="Dubai"
-                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none placeholder:text-muted focus:border-line/80"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
               />
             </label>
 
             <label className="block">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 <MapPin className="h-4 w-4" />
                 Area
               </div>
@@ -165,14 +165,14 @@ export default function FiltersPanel(props: Props) {
                 value={props.query.area ?? ""}
                 onChange={(e) => props.onChange({ area: e.target.value.trim() || undefined })}
                 placeholder="Dubai Marina"
-                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none placeholder:text-muted focus:border-line/80"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
               />
             </label>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="block">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 <Users className="h-4 w-4" />
                 Guests
               </div>
@@ -185,12 +185,12 @@ export default function FiltersPanel(props: Props) {
                   const n = Number(e.target.value);
                   props.onChange({ guests: Number.isFinite(n) && n > 0 ? n : undefined });
                 }}
-                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm text-neutral-900"
               />
             </label>
 
             <label className="block">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 <BedDouble className="h-4 w-4" />
                 Bedrooms
               </div>
@@ -203,12 +203,12 @@ export default function FiltersPanel(props: Props) {
                   const n = Number(e.target.value);
                   props.onChange({ bedrooms: Number.isFinite(n) && n >= 0 ? n : undefined });
                 }}
-                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm text-neutral-900"
               />
             </label>
 
             <label className="block">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 <Bath className="h-4 w-4" />
                 Bathrooms
               </div>
@@ -221,13 +221,13 @@ export default function FiltersPanel(props: Props) {
                   const n = Number(e.target.value);
                   props.onChange({ bathrooms: Number.isFinite(n) && n >= 0 ? n : undefined });
                 }}
-                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary outline-none focus:border-line/80"
+                className="w-full rounded-xl bg-white px-3 py-2 text-sm text-neutral-900"
               />
             </label>
           </div>
 
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
               Amenities
             </div>
 
@@ -246,10 +246,10 @@ export default function FiltersPanel(props: Props) {
                       props.onChange({ amenities: next.length ? next : undefined });
                     }}
                     className={[
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                      "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition",
                       active
-                        ? "border-line/80 bg-brand text-accent-text"
-                        : "border-line/80 bg-surface text-primary hover:bg-warm-alt",
+                        ? "bg-indigo-600 text-white"
+                        : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200",
                     ].join(" ")}
                   >
                     <a.Icon className="h-4 w-4" />
@@ -261,13 +261,13 @@ export default function FiltersPanel(props: Props) {
 
             {amenitiesSelected.length > 0 ? (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <div className="text-xs text-muted">
-                  Selected: <span className="font-semibold text-secondary">{amenitiesSelected.length}</span>
+                <div className="text-xs text-neutral-500">
+                  Selected: <span className="font-semibold text-neutral-600">{amenitiesSelected.length}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => props.onChange({ amenities: undefined })}
-                  className="inline-flex items-center gap-2 rounded-lg border border-line/80 bg-surface px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-warm-alt"
+                  className="inline-flex items-center gap-2 rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-200"
                 >
                   <X className="h-4 w-4" />
                   Clear
@@ -275,7 +275,7 @@ export default function FiltersPanel(props: Props) {
               </div>
             ) : null}
 
-            <div className="mt-2 text-[11px] leading-relaxed text-muted">
+            <div className="mt-2 text-[11px] leading-relaxed text-neutral-500">
               Server-driven filters. Query is passed to backend (no fake UI).
             </div>
           </div>

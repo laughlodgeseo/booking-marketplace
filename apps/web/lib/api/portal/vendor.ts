@@ -244,6 +244,17 @@ export type VendorPropertyAmenity = {
   };
 };
 
+export type PropertyLocaleTextInput = {
+  title?: string;
+  description?: string | null;
+  areaLabel?: string | null;
+  tagline?: string | null;
+};
+
+export type PropertyTranslationsInput = Partial<
+  Record<"en" | "ar", PropertyLocaleTextInput>
+>;
+
 export type VendorPropertyDetail = {
   id: string;
   title: string;
@@ -282,6 +293,13 @@ export type VendorPropertyDetail = {
   media: VendorPropertyMedia[];
   documents: VendorPropertyDocument[];
   amenities: VendorPropertyAmenity[];
+  translations?: Array<{
+    locale: "en" | "ar";
+    title: string;
+    description?: string | null;
+    areaLabel?: string | null;
+    tagline?: string | null;
+  }>;
 };
 
 export type VendorPropertyDraftInput = {
@@ -311,6 +329,7 @@ export type VendorPropertyDraftInput = {
   checkOutMin?: number | null;
 
   isInstantBook?: boolean;
+  translations?: PropertyTranslationsInput;
 };
 
 export type UpdateVendorPropertyLocationInput = {

@@ -4,26 +4,26 @@ import type React from "react";
 
 type Tone = "neutral" | "success" | "warning" | "danger";
 
-const TONES: Record<Tone, { bg: string; fg: string; shadow: string }> = {
+const TONES: Record<Tone, { bg: string; fg: string; ring: string }> = {
   neutral: {
-    bg: "bg-[rgba(255,255,255,0.72)]",
-    fg: "text-[#0B0F19]/72",
-    shadow: "shadow-[0_10px_22px_rgba(11,15,25,0.10)]",
+    bg: "bg-accent-soft/22",
+    fg: "text-brand",
+    ring: "ring-1 ring-brand/20",
   },
   success: {
-    bg: "bg-[rgba(30,122,75,0.12)]",
-    fg: "text-success",
-    shadow: "shadow-[0_10px_22px_rgba(11,15,25,0.10)]",
+    bg: "bg-accent-soft/32",
+    fg: "text-brand",
+    ring: "ring-1 ring-brand/26",
   },
   warning: {
-    bg: "bg-[rgba(166,106,28,0.12)]",
-    fg: "text-warning",
-    shadow: "shadow-[0_10px_22px_rgba(11,15,25,0.10)]",
+    bg: "bg-accent-soft/30",
+    fg: "text-brand",
+    ring: "ring-1 ring-brand/24",
   },
   danger: {
-    bg: "bg-[rgba(180,35,24,0.12)]",
-    fg: "text-danger",
-    shadow: "shadow-[0_10px_22px_rgba(11,15,25,0.10)]",
+    bg: "bg-accent-soft/40",
+    fg: "text-brand",
+    ring: "ring-1 ring-brand/34",
   },
 };
 
@@ -61,10 +61,10 @@ export function StatusPill(props: {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+        "inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs",
         t.bg,
         t.fg,
-        t.shadow,
+        t.ring,
         props.className
       )}
     >

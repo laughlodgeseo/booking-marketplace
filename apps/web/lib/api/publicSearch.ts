@@ -14,11 +14,16 @@ function toQuery(
 }
 
 export type FeaturedSearchParams = {
-  limit: number;
+  pageSize: number;
   q?: string;
   city?: string;
   area?: string;
   sort?: "recommended" | "price_asc" | "price_desc" | "newest";
+};
+
+export type FeaturedSearchContext = {
+  locale?: string;
+  currency?: string;
 };
 
 /**
@@ -56,6 +61,7 @@ type BackendSearchResponse = {
   items: BackendSearchItem[];
   query?: {
     page?: number;
+    pageSize?: number;
     limit?: number;
   };
 };
@@ -104,12 +110,11 @@ function safeMsgFromUnknown(e: unknown): string {
 
 export async function fetchFeaturedStays(
   params: FeaturedSearchParams,
+  context?: FeaturedSearchContext,
 ): Promise<FeaturedOk | FeaturedFail> {
   const qs = toQuery({
     page: 1,
-    limit: params.limit,
-    // keep for backwards compatibility (harmless)
-    pageSize: params.limit,
+    pageSize: params.pageSize,
     sort: params.sort ?? "recommended",
     q: params.q ?? null,
     city: params.city ?? null,
@@ -120,9 +125,15 @@ export async function fetchFeaturedStays(
 
   let res: Response;
   try {
+    const headers: Record<string, string> = {
+      accept: "application/json",
+    };
+    if (context?.locale) headers["x-locale"] = context.locale;
+    if (context?.currency) headers["x-currency"] = context.currency;
+
     res = await fetch(url, {
-      headers: { accept: "application/json" },
-      cache: "no-store",
+      headers,
+      next: { revalidate: 60 },
     });
   } catch (e: unknown) {
     return {
@@ -174,7 +185,7 @@ export async function fetchFeaturedStays(
   }
 
   const page = raw.query?.page ?? 1;
-  const pageSize = raw.query?.limit ?? params.limit;
+  const pageSize = raw.query?.pageSize ?? raw.query?.limit ?? params.pageSize;
   const total = raw.items.length;
 
   return {

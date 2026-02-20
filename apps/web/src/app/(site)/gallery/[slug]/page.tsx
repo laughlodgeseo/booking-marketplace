@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Building2, CheckCircle2, Sparkles } from "lucide-react";
 import GalleryDetailCollage from "@/components/tourm/gallery/GalleryDetailCollage";
 import { GALLERY_CATEGORY_LABEL, GALLERY_ITEMS } from "@/lib/content/gallery-items";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -41,12 +42,61 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function GalleryDetailPage(props: PageProps) {
   const { slug } = await props.params;
+  const locale = await getRequestLocale();
   const item = GALLERY_ITEMS.find((entry) => entry.slug === slug);
   if (!item) notFound();
 
   const related = GALLERY_ITEMS.filter((entry) => entry.slug !== item.slug)
     .sort((a, b) => Number(b.category === item.category) - Number(a.category === item.category))
     .slice(0, 3);
+  const copy =
+    locale === "ar"
+      ? {
+          gallery: "المعرض",
+          highlights: [
+            {
+              icon: Sparkles,
+              title: "تشطيبات راقية",
+              copy: "مواد وإضاءة منسقة بعناية لضمان راحة ضيف متسقة وقابلة للتكرار.",
+            },
+            {
+              icon: CheckCircle2,
+              title: "توافر موثّق",
+              copy: "الصور مرتبطة بمخزون فعلي مع ثقة حجز مرتبطة بالتواريخ.",
+            },
+            {
+              icon: Building2,
+              title: "إقامات جاهزة للتشغيل",
+              copy: "تصاميم مختارة لتسهيل التحويلات والحفاظ على معايير استضافة ثابتة.",
+            },
+          ],
+          searchArea: "ابحث في هذه المنطقة",
+          exploreGallery: "استكشف المعرض الكامل",
+          moreFromGallery: "المزيد من المعرض",
+        }
+      : {
+          gallery: "Gallery",
+          highlights: [
+            {
+              icon: Sparkles,
+              title: "Premium finishes",
+              copy: "Composed materials and lighting designed for repeatable guest comfort.",
+            },
+            {
+              icon: CheckCircle2,
+              title: "Verified availability",
+              copy: "Visuals map to real inventory with date-aware booking confidence.",
+            },
+            {
+              icon: Building2,
+              title: "Operator-ready stays",
+              copy: "Layouts selected for easy turnovers and consistent hosting standards.",
+            },
+          ],
+          searchArea: "Search this area",
+          exploreGallery: "Explore full gallery",
+          moreFromGallery: "More from the gallery",
+        };
 
   return (
     <main className="min-h-screen bg-transparent">
@@ -60,7 +110,7 @@ export default async function GalleryDetailPage(props: PageProps) {
         <div className="relative mx-auto max-w-7xl px-4 pb-11 pt-12 sm:px-6 sm:pt-14 lg:px-8">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/13 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/90 ring-1 ring-white/35">
             <Link href="/gallery" className="transition hover:text-white">
-              Gallery
+              {copy.gallery}
             </Link>
             <span className="text-white/60">/</span>
             <span>{GALLERY_CATEGORY_LABEL[item.category]}</span>
@@ -75,23 +125,7 @@ export default async function GalleryDetailPage(props: PageProps) {
           <GalleryDetailCollage title={item.title} images={item.gallery} />
 
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
-            {[
-              {
-                icon: Sparkles,
-                title: "Premium finishes",
-                copy: "Composed materials and lighting designed for repeatable guest comfort.",
-              },
-              {
-                icon: CheckCircle2,
-                title: "Verified availability",
-                copy: "Visuals map to real inventory with date-aware booking confidence.",
-              },
-              {
-                icon: Building2,
-                title: "Operator-ready stays",
-                copy: "Layouts selected for easy turnovers and consistent hosting standards.",
-              },
-            ].map((highlight) => (
+            {copy.highlights.map((highlight) => (
               <div
                 key={highlight.title}
                 className="rounded-[1.5rem] bg-surface/88 p-5 text-primary ring-1 ring-black/5 shadow-[0_14px_36px_rgba(11,15,25,0.1)]"
@@ -110,20 +144,20 @@ export default async function GalleryDetailPage(props: PageProps) {
                 href={`/properties?q=${encodeURIComponent(item.area)}`}
                 className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-inverted shadow-[0_14px_32px_rgba(79,70,229,0.3)] transition hover:bg-brand-hover"
               >
-                Search this area
+                {copy.searchArea}
               </Link>
               <Link
                 href="/gallery"
                 className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface/92 px-5 text-sm font-semibold text-primary ring-1 ring-black/5 shadow-[0_12px_30px_rgba(11,15,25,0.1)] transition hover:bg-white"
               >
-                Explore full gallery
+                {copy.exploreGallery}
               </Link>
             </div>
           </div>
         </div>
 
         <div className="mx-auto mt-11 max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-sm font-semibold text-primary">More from the gallery</p>
+          <p className="text-sm font-semibold text-primary">{copy.moreFromGallery}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((entry) => (
               <Link

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BLOG_POSTS } from "@/lib/content/blog-posts";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -38,6 +39,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function BlogPostPage(props: PageProps) {
   const { slug } = await props.params;
+  const locale = await getRequestLocale();
   const post = BLOG_POSTS.find((entry) => entry.slug === slug);
   if (!post) notFound();
 
@@ -66,7 +68,7 @@ export default async function BlogPostPage(props: PageProps) {
             href="/blog"
             className="inline-flex h-11 items-center justify-center rounded-2xl border border-line bg-surface px-4 text-sm font-semibold text-primary transition hover:bg-accent-soft/55"
           >
-            Back to blog
+            {locale === "ar" ? "العودة إلى المدونة" : "Back to blog"}
           </Link>
         </div>
       </article>

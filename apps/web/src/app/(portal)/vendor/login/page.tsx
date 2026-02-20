@@ -2,6 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/http";
 import { clearAccessToken, setAccessToken } from "@/lib/auth/tokenStore";
 
@@ -49,13 +50,15 @@ function safePath(v: string | null): string {
 }
 
 export default function VendorLoginPage() {
+  const tPortal = useTranslations("portal");
+
   return (
     <Suspense
       fallback={
         <main className="min-h-screen bg-surface">
           <div className="mx-auto max-w-md px-4 pb-24 pt-24 sm:px-6 lg:px-8">
             <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm text-sm text-secondary">
-              Loading vendor login...
+              {tPortal("loading.vendorLogin")}
             </div>
           </div>
         </main>
@@ -67,6 +70,7 @@ export default function VendorLoginPage() {
 }
 
 function VendorLoginContent() {
+  const tPortal = useTranslations("portal");
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -97,7 +101,7 @@ function VendorLoginContent() {
 
       const token = loginRes.data.accessToken;
       if (!token || token.trim().length === 0) {
-        throw new Error("Login failed: missing access token.");
+        throw new Error(tPortal("vendorLogin.errors.missingToken"));
       }
 
       // Store token for all portal API calls (your current auth strategy)
@@ -118,13 +122,13 @@ function VendorLoginContent() {
       const meUser = extractMeUser(meRes.data);
       if (meUser.role !== "VENDOR") {
         clearAccessToken();
-        throw new Error(`This account is "${meUser.role}". Vendor portal requires role "VENDOR".`);
+        throw new Error(tPortal("vendorLogin.errors.roleMismatch", { role: meUser.role }));
       }
 
       router.replace(nextPath);
     } catch (ex) {
       clearAccessToken();
-      setErr(ex instanceof Error ? ex.message : "Login failed");
+      setErr(ex instanceof Error ? ex.message : tPortal("vendorLogin.errors.loginFailed"));
     } finally {
       setBusy(false);
     }
@@ -134,9 +138,9 @@ function VendorLoginContent() {
     <main className="min-h-screen bg-surface">
       <div className="mx-auto max-w-md px-4 pb-24 pt-24 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-          <div className="text-lg font-semibold text-primary">Vendor login</div>
+          <div className="text-lg font-semibold text-primary">{tPortal("vendorLogin.title")}</div>
           <p className="mt-1 text-sm text-secondary">
-            Log in to manage listings, media, documents, review submissions, and publishing.
+            {tPortal("vendorLogin.subtitle")}
           </p>
 
           {err ? (
@@ -147,25 +151,25 @@ function VendorLoginContent() {
 
           <form onSubmit={onSubmit} className="mt-5 space-y-4">
             <label className="block">
-              <div className="text-sm font-semibold text-primary">Email</div>
+              <div className="text-sm font-semibold text-primary">{tPortal("vendorLogin.email")}</div>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 inputMode="email"
                 autoComplete="email"
-                placeholder="vendor@demo.com"
+                placeholder={tPortal("vendorLogin.emailPlaceholder")}
                 className="mt-2 w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-brand/10"
               />
             </label>
 
             <label className="block">
-              <div className="text-sm font-semibold text-primary">Password</div>
+              <div className="text-sm font-semibold text-primary">{tPortal("vendorLogin.password")}</div>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder={tPortal("vendorLogin.passwordPlaceholder")}
                 className="mt-2 w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-brand/10"
               />
             </label>
@@ -175,12 +179,11 @@ function VendorLoginContent() {
               disabled={busy || email.trim().length === 0 || password.length === 0}
               className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-50"
             >
-              {busy ? "Signing in…" : "Sign in"}
+              {busy ? tPortal("vendorLogin.signingIn") : tPortal("vendorLogin.signIn")}
             </button>
 
             <p className="text-xs text-muted">
-              Current portal auth uses a token stored in sessionStorage. Next step: upgrade to SSR-safe cookie auth so
-              server components can fetch with auth too.
+              {tPortal("vendorLogin.authNote")}
             </p>
           </form>
         </div>
