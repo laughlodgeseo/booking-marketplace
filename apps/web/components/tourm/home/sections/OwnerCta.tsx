@@ -132,19 +132,22 @@ export default function OwnerCta({
               <div className="absolute inset-0 bg-gradient-to-br from-warm-alt to-surface" />
             )}
 
-            <div className="absolute inset-0 bg-gradient-to-tr from-black/72 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(30,27,75,0.78)_0%,rgba(49,46,129,0.56)_46%,rgba(79,70,229,0.2)_100%)]" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-[radial-gradient(88%_92%_at_50%_100%,rgba(129,140,248,0.46),rgba(99,102,241,0.16)_52%,transparent_86%)]" />
 
             <motion.div
-              className="absolute bottom-6 left-6 right-6 rounded-3xl border border-inverted/25 bg-surface/15 p-5 text-inverted backdrop-blur-md"
+              className="absolute bottom-6 left-6 right-6 overflow-hidden rounded-[1.6rem] border border-indigo-100/44 bg-[linear-gradient(145deg,rgba(30,27,75,0.9)_0%,rgba(67,56,202,0.8)_100%)] p-5 text-white shadow-[0_24px_60px_rgba(49,46,129,0.45)] backdrop-blur-xl"
               initial={{ y: 10, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, margin: "-120px" }}
               transition={{ duration: 0.45, delay: 0.12 }}
             >
-              <p className="text-sm font-extrabold">
+              <div className="pointer-events-none absolute inset-x-5 top-0 h-[2px] rounded-full bg-[linear-gradient(90deg,rgba(199,210,254,0.92),rgba(224,231,255,0.28),transparent)]" />
+
+              <p className="text-sm font-extrabold tracking-[0.01em] text-white">
                 {copy.imageTitle}
               </p>
-              <p className="mt-1 text-xs text-inverted/80">
+              <p className="mt-1 text-xs leading-relaxed text-white">
                 {copy.imageBody}
               </p>
 
@@ -152,7 +155,7 @@ export default function OwnerCta({
                 {copy.tags.map((t) => (
                   <span
                     key={t}
-                    className="rounded-full border border-inverted/24 bg-white/16 px-3 py-1 text-xs font-semibold text-white"
+                    className="rounded-full border border-indigo-100/50 bg-indigo-100/18 px-3 py-1 text-xs font-semibold text-white"
                   >
                     {t}
                   </span>
