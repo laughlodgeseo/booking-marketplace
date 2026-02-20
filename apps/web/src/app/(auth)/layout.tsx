@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const panel = panelFromPath(pathname);
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[var(--site-bg)]">
+    <div className="auth-shell relative min-h-dvh overflow-hidden bg-[var(--site-bg)]">
       <AuthMotionBackdrop />
       <div className="relative z-20 h-full">
         {panel ? (

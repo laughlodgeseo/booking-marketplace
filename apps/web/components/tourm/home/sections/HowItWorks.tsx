@@ -150,9 +150,9 @@ export default function HowItWorks({
 
           const horizontalTween = gsap.fromTo(
             track,
-            { x: () => (isRtl ? -shiftDistance() : 0) },
+            { x: 0 },
             {
-              x: () => (isRtl ? 0 : -shiftDistance()),
+              x: () => -shiftDistance(),
               ease: "none",
               scrollTrigger: {
                 trigger: viewport,
@@ -170,7 +170,7 @@ export default function HowItWorks({
           cards.forEach((card) => {
             gsap.fromTo(
               card,
-              { autoAlpha: 0.32, x: isRtl ? -72 : 72, y: 0, scale: 0.94 },
+              { autoAlpha: 0.32, x: 72, y: 0, scale: 0.94 },
               {
                 autoAlpha: 1,
                 x: 0,
@@ -180,8 +180,8 @@ export default function HowItWorks({
                 scrollTrigger: {
                   trigger: card,
                   containerAnimation: horizontalTween,
-                  start: isRtl ? "right 88%" : "left 88%",
-                  end: isRtl ? "right 40%" : "left 40%",
+                  start: "left 88%",
+                  end: "left 40%",
                   scrub: true,
                 },
               },
@@ -253,13 +253,14 @@ export default function HowItWorks({
 
           <div
             ref={viewportRef}
+            dir="ltr"
             className={[
-              "relative w-screen max-w-none snap-x snap-mandatory",
+              "relative w-screen max-w-none snap-x snap-mandatory touch-pan-x overscroll-x-contain",
               gsapMode ? "overflow-hidden" : "no-scrollbar overflow-x-auto",
             ].join(" ")}
             style={{ marginLeft: "calc(50% - 50vw)" }}
           >
-            <div ref={trackRef} className={`flex w-max gap-5 ${isRtl ? "flex-row-reverse" : ""}`}>
+            <div ref={trackRef} className="flex w-max gap-5">
               <div aria-hidden className="h-px shrink-0" style={{ width: `${edgeInset}px` }} />
               {list.map((s, idx) => {
                 const Icon = ICONS[idx % ICONS.length]?.Icon ?? Sparkles;
@@ -268,7 +269,8 @@ export default function HowItWorks({
                   <article
                     key={`${s.step}-${s.title}`}
                     data-step-card
-                    className={squareCardClass}
+                    dir={isRtl ? "rtl" : "ltr"}
+                    className={`${squareCardClass} ${isRtl ? "text-right" : ""}`}
                     style={{ width: `${cardWidth}px`, height: `${cardHeight}px` }}
                   >
                     <div className="flex items-start justify-between gap-4">

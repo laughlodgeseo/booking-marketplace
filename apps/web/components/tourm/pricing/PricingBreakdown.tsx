@@ -30,7 +30,7 @@ type PricingBreakdownCopy = {
 const COPY: Record<AppLocale, PricingBreakdownCopy> = {
   en: {
     sectionEyebrow: "Breakdown",
-    sectionTitle: "Example quote structure before payment confirmation",
+    sectionTitle: "Example quote layout before payment confirmation",
     sectionBody:
       "This sample shows how totals are explained. Final values always depend on selected dates, property rules, and applicable policy components.",
     includeTitle: "What we show before checkout",
@@ -57,7 +57,7 @@ const COPY: Record<AppLocale, PricingBreakdownCopy> = {
   },
   ar: {
     sectionEyebrow: "تفصيل الأسعار",
-    sectionTitle: "هيكل عرض سعر توضيحي قبل تأكيد الدفع",
+    sectionTitle: "نموذج عرض سعر توضيحي قبل تأكيد الدفع",
     sectionBody:
       "يوضح هذا المثال طريقة عرض الإجماليات. القيم النهائية تعتمد دائماً على التواريخ المختارة وقواعد العقار وعناصر السياسة المطبقة.",
     includeTitle: "ما الذي نعرضه قبل إتمام الحجز",
@@ -107,7 +107,7 @@ export default function PricingBreakdown(props: { locale: AppLocale }) {
   const subtotal = nights * nightly + cleaning + serviceFee + tourismDirham;
   const total = subtotal + vat;
   const nightsLabel = `${nights} ${props.locale === "ar" ? "ليالٍ" : "nights"} x ${formatFromAed(nightly, { maximumFractionDigits: 0 })}`;
-  const arrowClass = props.locale === "ar" ? "h-4 w-4 text-white/90 rotate-180" : "h-4 w-4 text-white/90";
+  const arrowClass = props.locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
 
   return (
     <section id="pricing-breakdown" className="relative w-full scroll-mt-24 py-14 sm:py-18">
@@ -118,12 +118,12 @@ export default function PricingBreakdown(props: { locale: AppLocale }) {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.sectionTitle}</h2>
             <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.sectionBody}</p>
 
-            <div className="mt-6 rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)]">
+            <div className="site-surface-card rounded-2xl p-6">
               <p className="text-sm font-semibold text-primary">{copy.includeTitle}</p>
               <ul className="mt-4 space-y-2">
                 {copy.includeItems.map((item) => (
                   <li key={item} className="flex gap-3 text-sm text-secondary/84">
-                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg bg-indigo-100">
+                    <span className="site-icon-plate mt-0.5 h-5 w-5 shrink-0 rounded-lg">
                       <CheckCircle2 className="h-3.5 w-3.5 text-indigo-600" />
                     </span>
                     <span>{item}</span>
@@ -148,7 +148,7 @@ export default function PricingBreakdown(props: { locale: AppLocale }) {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-indigo-100/90 bg-white/88 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.10)] sm:p-8">
+          <div className="site-surface-card rounded-[2rem] p-6 sm:p-8">
             <p className="text-sm font-semibold text-primary">{copy.sampleQuoteTitle}</p>
             <p className="mt-2 text-xs text-secondary/65">{copy.sampleQuoteNote}</p>
 
@@ -175,7 +175,7 @@ export default function PricingBreakdown(props: { locale: AppLocale }) {
 
             <Link
               href="/contact"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl border border-indigo-300/80 bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              className="site-cta-primary mt-6 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
             >
               {copy.askDetails}
               <ArrowRight className={arrowClass} />

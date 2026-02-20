@@ -1,0 +1,12 @@
+Configured qualities: 75,90,92,100
+Used qualities: 90,92,100
+
+apps/web/components/tourm/home/sections/PartnerDistributionStrip.tsx:51:                      quality={100}
+apps/web/components/tourm/home/sections/WhyChooseUs.tsx:218:          quality={90}
+apps/web/components/tourm/home/sections/WhyChooseUs.tsx:234:              quality={90}
+apps/web/components/tourm/home/sections/WhyChooseUs.tsx:272:          quality={92}
+apps/web/components/tourm/home/sections/DistributionCollage.tsx:37:            quality={90}
+apps/web/components/tourm/home/sections/DistributionCollage.tsx:48:            quality={90}
+apps/web/components/tourm/home/sections/DistributionCollage.tsx:60:          quality={90}
+apps/web/components/tourm/home/sections/TrustCollage.tsx:13:            quality={90}
+apps/web/components/tourm/home/sections/TrustCollage.tsx:25:            quality={90}

@@ -128,12 +128,12 @@ const COPY: Record<"en" | "ar", RefundCopy> = {
 export default async function RefundsPage() {
   const locale = await getRequestLocale();
   const copy = COPY[locale];
-  const arrowClass = locale === "ar" ? "h-4 w-4 text-white/90 rotate-180" : "h-4 w-4 text-white/90";
+  const arrowClass = locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
 
   return (
     <main className="indigo-no-gold min-h-screen bg-transparent">
-      <section className="relative overflow-hidden border-b border-white/24 bg-gradient-to-br from-[#4F46E5] to-[#4338CA] text-white">
-        <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(248,250,252,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(248,250,252,0.12)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <section className="site-hero-shell relative overflow-hidden text-white">
+        <div className="site-hero-grid absolute inset-0 opacity-25" />
         <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 sm:px-6 sm:pt-14">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.legalEyebrow}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{copy.title}</h1>
@@ -153,9 +153,9 @@ export default async function RefundsPage() {
 
       <section className="py-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:p-8">
-            <div className="flex items-start gap-3 rounded-2xl border border-indigo-200/80 bg-indigo-50/70 p-4 text-sm text-indigo-900">
-              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-indigo-200 bg-white text-indigo-600">
+          <div className="site-surface-card rounded-2xl p-6 sm:p-8">
+            <div className="flex items-start gap-3 rounded-2xl border border-indigo-200/80 bg-indigo-50/58 p-4 text-sm text-indigo-900">
+              <span className="site-icon-plate mt-0.5 h-8 w-8 shrink-0 rounded-lg">
                 <RotateCcw className="h-4 w-4" />
               </span>
               <span>{copy.note}</span>
@@ -163,7 +163,10 @@ export default async function RefundsPage() {
 
             <div className="mt-6 space-y-5">
               {copy.sections.map((section) => (
-                <article key={section.title} className="rounded-2xl border border-indigo-100/80 bg-white p-5">
+                <article
+                  key={section.title}
+                  className="rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.72))] p-5"
+                >
                   <h2 className="text-base font-semibold text-primary">{section.title}</h2>
                   <div className="mt-2 space-y-2">
                     {section.body.map((paragraph) => (
@@ -179,14 +182,14 @@ export default async function RefundsPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/contact"
-                className="inline-flex items-center gap-2 rounded-xl border border-indigo-300/80 bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                className="site-cta-primary inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
               >
                 {copy.contactRefundSupport}
                 <ArrowRight className={arrowClass} />
               </Link>
               <Link
                 href="/cancellation"
-                className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:bg-indigo-50"
+                className="site-cta-muted inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
               >
                 {copy.reviewCancellation}
                 <ShieldCheck className="h-4 w-4 text-indigo-600" />

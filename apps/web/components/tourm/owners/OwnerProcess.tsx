@@ -24,7 +24,7 @@ type OwnerProcessCopy = {
 const COPY: Record<AppLocale, OwnerProcessCopy> = {
   en: {
     eyebrow: "Process",
-    title: "Onboarding timeline engineered for reliable launch",
+    title: "Onboarding timeline designed for dependable go-live",
     subtitle:
       "Each stage closes with a concrete deliverable so go-live decisions are based on readiness, not assumptions.",
     cta: "Start onboarding discussion",
@@ -111,6 +111,7 @@ const COPY: Record<AppLocale, OwnerProcessCopy> = {
 
 export default function OwnerProcess(props: { locale: AppLocale }) {
   const copy = COPY[props.locale];
+  const arrowClass = props.locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
 
   return (
     <section id="owner-process" className="relative w-full scroll-mt-24 py-14 sm:py-18">
@@ -124,10 +125,10 @@ export default function OwnerProcess(props: { locale: AppLocale }) {
 
           <Link
             href="/contact"
-            className="inline-flex items-center gap-2 rounded-xl border border-indigo-300/80 bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            className="site-cta-primary inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
           >
             {copy.cta}
-            <ArrowRight className="h-4 w-4 text-white/90" />
+            <ArrowRight className={arrowClass} />
           </Link>
         </div>
 
@@ -138,14 +139,14 @@ export default function OwnerProcess(props: { locale: AppLocale }) {
             {copy.steps.map((step) => (
               <article
                 key={step.n}
-                className="group relative overflow-hidden rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]"
+                className="site-surface-card site-surface-card-hover group relative overflow-hidden rounded-2xl p-6"
               >
                 <div className="pointer-events-none absolute -right-14 -top-12 h-32 w-32 rounded-full bg-indigo-200/28 opacity-0 blur-3xl transition group-hover:opacity-100" />
                 <div className="relative z-10 flex items-center justify-between gap-3">
                   <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-indigo-200/80 bg-indigo-50 px-2 text-xs font-semibold text-indigo-700">
                     {step.n}
                   </span>
-                  <span className="grid h-8 w-8 place-items-center rounded-lg border border-indigo-200/80 bg-indigo-50 text-indigo-600">
+                  <span className="site-icon-plate h-8 w-8 rounded-lg">
                     <step.Icon className="h-4 w-4" />
                   </span>
                 </div>
@@ -157,7 +158,7 @@ export default function OwnerProcess(props: { locale: AppLocale }) {
                   <p className="rounded-lg border border-indigo-200/75 bg-indigo-50/72 px-3 py-2 text-xs font-semibold text-indigo-900">
                     {copy.timelineLabel}: {step.timeline}
                   </p>
-                  <p className="rounded-lg border border-indigo-100/85 bg-white px-3 py-2 text-xs font-semibold text-secondary/82">
+                  <p className="rounded-lg border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.90),rgba(240,233,220,0.66))] px-3 py-2 text-xs font-semibold text-secondary/82">
                     {copy.deliverableLabel}: {step.deliverable}
                   </p>
                 </div>
@@ -168,7 +169,7 @@ export default function OwnerProcess(props: { locale: AppLocale }) {
       </div>
 
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-10 h-44 w-[92%] -translate-x-1/2 rounded-[2.5rem] border border-indigo-100/80 bg-white/30" />
+        <div className="absolute left-1/2 top-10 h-44 w-[92%] -translate-x-1/2 rounded-[2.5rem] border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.32),rgba(240,233,220,0.18))]" />
       </div>
     </section>
   );

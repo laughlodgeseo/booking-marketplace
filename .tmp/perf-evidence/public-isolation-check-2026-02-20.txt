@@ -1,0 +1,8 @@
+Portal imports in public surface:
+
+Search properties callers:
+apps/web/lib/api/search.ts:62:  return apiFetch<SearchResponse>("/search/properties", {
+apps/web/lib/api/publicSearch.ts:26: * /api/search/properties -> { ok, query, items }
+apps/web/lib/api/publicSearch.ts:118:  const url = `${apiUrl("/search/properties")}${qs}`;
+
+Legacy limit usage in search callers:

@@ -28,15 +28,15 @@ export default function PartnerDistributionStrip() {
           </div>
 
           <div className="order-1 lg:order-2 lg:col-span-6">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-indigo-600/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600/82">
               {locale === "ar" ? "قنوات التوزيع" : "Distribution"}
             </p>
-            <h3 className="mt-3 max-w-[26ch] text-[30px] font-semibold leading-[1.08] tracking-[-0.01em] text-neutral-900 md:text-[38px]">
+            <h3 className="mt-3 max-w-[24ch] text-3xl font-semibold leading-[1.08] tracking-[-0.02em] text-neutral-900 sm:text-[2.45rem] lg:text-[2.7rem]">
               {locale === "ar"
                 ? "سنعرض عقارك على هذه المنصات"
                 : "We'll list your property on these sites"}
             </h3>
-            <p className="mt-4 max-w-[52ch] text-[15px] leading-6 text-neutral-600">
+            <p className="mt-4 max-w-[54ch] text-base leading-relaxed text-neutral-700 sm:text-[1.05rem]">
               {locale === "ar"
                 ? "توزيع احترافي عبر القنوات لرفع الإشغال مع إبقاء التوافر والتسعير متزامنين."
                 : "Premium channel distribution designed to increase occupancy while keeping availability and pricing in sync."}

@@ -27,14 +27,14 @@ const COPY = {
   en: {
     secureAccess: "Secure access",
     termsPrefix: "By continuing, you agree to our",
-    terms: "Terms",
+    terms: "Terms & Conditions",
     and: "and",
     privacy: "Privacy Policy",
   },
   ar: {
     secureAccess: "وصول آمن",
     termsPrefix: "بالمتابعة، فإنك توافق على",
-    terms: "الشروط",
+    terms: "الشروط والأحكام",
     and: "و",
     privacy: "سياسة الخصوصية",
   },
@@ -61,7 +61,7 @@ export function AuthSplitScreen({
           <AuthBlobImage panel={panel} edge="left" className="scale-[1.04]" />
         </div>
 
-        <section className="relative flex-1 overflow-hidden border-t border-[#dbe5f2] bg-white">
+        <section className="site-surface-subtle relative flex-1 overflow-hidden border-t border-[#dbe5f2]">
           <div className="h-full overflow-y-auto px-4 pb-5 pt-10 sm:px-6 sm:pb-6 sm:pt-10">
             <div className="mx-auto w-full max-w-[460px]">
               <HeaderCopy title={title} subtitle={subtitle} compact secureAccessLabel={copy.secureAccess} />
@@ -111,7 +111,7 @@ export function AuthSplitScreen({
         <motion.section
           animate={{ x: formX }}
           transition={reduceMotion ? { duration: 0.18 } : SWITCH_TRANSITION}
-          className={`absolute inset-y-0 left-0 z-10 w-1/2 bg-white/95 will-change-transform ${
+          className={`site-surface-subtle absolute inset-y-0 left-0 z-10 w-1/2 will-change-transform ${
             imageOnLeft ? "border-l border-[#dbe5f2]" : "border-r border-[#dbe5f2]"
           }`}
         >
@@ -165,7 +165,7 @@ function HeaderCopy({
   return (
     <header>
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border border-[#d5e2f2] bg-[#edf3fb] font-semibold uppercase tracking-[0.12em] text-[#48648a] ${
+        className={`site-chip inline-flex items-center gap-1.5 font-semibold uppercase tracking-[0.12em] ${
           compact ? "px-2.5 py-1 text-[10px]" : "px-3 py-1 text-[11px]"
         }`}
       >
@@ -175,12 +175,12 @@ function HeaderCopy({
 
       <h1
         className={`mt-3 font-semibold tracking-[-0.01em] text-slate-900 ${
-          compact ? "text-[30px] leading-[1.1]" : "text-[1.9rem] leading-tight lg:text-[2.08rem]"
+          compact ? "text-[30px] leading-[1.1]" : "text-[1.98rem] leading-tight lg:text-[2.18rem]"
         }`}
       >
         {title}
       </h1>
-      <p className={`mt-1.5 leading-relaxed text-slate-600 ${compact ? "text-[15px] leading-[1.6]" : "text-[14px] lg:text-[15px]"}`}>
+      <p className={`mt-1.5 leading-relaxed text-secondary/82 ${compact ? "text-[15px] leading-[1.62]" : "text-[14px] lg:text-[15px]"}`}>
         {subtitle}
       </p>
     </header>
@@ -195,13 +195,13 @@ function TermsCopy({
   copy: typeof COPY["en"] | typeof COPY["ar"];
 }) {
   return (
-    <p className={`mt-4 text-[11px] leading-relaxed text-slate-500 ${compact ? "text-center" : ""}`}>
+    <p className={`mt-4 text-[11px] leading-relaxed text-secondary/72 ${compact ? "text-center" : ""}`}>
       {copy.termsPrefix}{" "}
-      <Link href="/terms" className="font-semibold text-slate-700 hover:text-slate-900">
+      <Link href="/terms" className="font-semibold text-primary hover:text-indigo-800">
         {copy.terms}
       </Link>{" "}
       {copy.and}{" "}
-      <Link href="/privacy" className="font-semibold text-slate-700 hover:text-slate-900">
+      <Link href="/privacy" className="font-semibold text-primary hover:text-indigo-800">
         {copy.privacy}
       </Link>
       .

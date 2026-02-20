@@ -16,8 +16,8 @@ type ContactFaqCopy = {
 const COPY: Record<AppLocale, ContactFaqCopy> = {
   en: {
     eyebrow: "FAQs",
-    title: "Frequently asked contact questions",
-    subtitle: "Quick answers for guests, owners, and partners.",
+    title: "Frequently asked support and onboarding questions",
+    subtitle: "Quick clarity for guests, owners, and partners before they reach out.",
     needOnboarding: "Need owner onboarding directly?",
     signupVendor: "Sign up as vendor",
     faqs: [
@@ -49,8 +49,8 @@ const COPY: Record<AppLocale, ContactFaqCopy> = {
   },
   ar: {
     eyebrow: "الأسئلة الشائعة",
-    title: "الأسئلة الأكثر شيوعاً حول التواصل",
-    subtitle: "إجابات سريعة للضيوف والملاك والشركاء.",
+    title: "الأسئلة الأكثر شيوعاً حول الدعم والتسجيل",
+    subtitle: "توضيحات سريعة للضيوف والملاك والشركاء قبل التواصل.",
     needOnboarding: "هل تحتاج بدء تسجيل المالك مباشرة؟",
     signupVendor: "سجل كمورّد",
     faqs: [
@@ -98,16 +98,16 @@ export default function ContactFaq(props: { locale: AppLocale }) {
           {copy.faqs.map((faq) => (
             <details
               key={faq.q}
-              className="group rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_14px_30px_rgba(15,23,42,0.07)] open:border-indigo-200"
+              className="site-surface-card group rounded-2xl p-6 open:border-indigo-200"
             >
               <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-base font-semibold text-primary">
                 <span className="flex items-start gap-3">
-                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-200/75 bg-indigo-50 text-indigo-600">
+                  <span className="site-icon-plate mt-0.5 h-7 w-7 shrink-0 rounded-lg">
                     <CircleHelp className="h-4 w-4" />
                   </span>
                   <span>{faq.q}</span>
                 </span>
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-200/75 bg-indigo-50 text-indigo-600">
+                <span className="site-icon-plate h-7 w-7 shrink-0 rounded-lg">
                   <Plus className="h-4 w-4 transition-transform duration-200 group-open:rotate-45" />
                 </span>
               </summary>

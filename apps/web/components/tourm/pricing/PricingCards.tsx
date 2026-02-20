@@ -21,7 +21,7 @@ type PricingCardsCopy = {
 const COPY: Record<AppLocale, PricingCardsCopy> = {
   en: {
     sectionEyebrow: "Pricing model",
-    sectionTitle: "What makes up your total before payment",
+    sectionTitle: "How your final total is built before payment",
     sectionBody:
       "We separate pricing components clearly so guests can make informed booking decisions and owners can trust commercial transparency.",
     coreLabel: "Core",
@@ -71,7 +71,7 @@ const COPY: Record<AppLocale, PricingCardsCopy> = {
   },
   ar: {
     sectionEyebrow: "نموذج التسعير",
-    sectionTitle: "ما الذي يشكل إجمالي السعر قبل الدفع",
+    sectionTitle: "كيف يتكون الإجمالي النهائي قبل الدفع",
     sectionBody:
       "نفصل مكونات التسعير بوضوح حتى يتخذ الضيف قراراً مدروساً ويتمتع المالك بشفافية تجارية موثوقة.",
     coreLabel: "أساسي",
@@ -129,7 +129,7 @@ function CardItem(props: { card: Card; coreLabel: string }) {
       className={
         emphasized
           ? "relative overflow-hidden rounded-2xl border border-indigo-300/65 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-700 p-6 text-white shadow-[0_26px_54px_rgba(67,56,202,0.34)]"
-          : "rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]"
+          : "site-surface-card site-surface-card-hover rounded-2xl p-6"
       }
     >
       <div className="flex items-start justify-between gap-4">
@@ -137,7 +137,7 @@ function CardItem(props: { card: Card; coreLabel: string }) {
           <span
             className={[
               "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border",
-              emphasized ? "border-white/35 bg-white/12 text-white" : "border-indigo-200/80 bg-indigo-50/80 text-indigo-600",
+              emphasized ? "border-white/35 bg-white/92 text-indigo-700" : "site-icon-plate text-indigo-600",
             ].join(" ")}
           >
             <props.card.Icon className="h-5 w-5" />
@@ -157,8 +157,13 @@ function CardItem(props: { card: Card; coreLabel: string }) {
       <ul className="mt-6 space-y-2">
         {props.card.bullets.slice(0, 7).map((bullet) => (
           <li key={bullet} className={["flex gap-3 text-sm", emphasized ? "text-white/88" : "text-secondary/84"].join(" ")}>
-            <span className={["mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg", emphasized ? "bg-white/14" : "bg-indigo-100"].join(" ")}>
-              <CheckCircle2 className={["h-3.5 w-3.5", emphasized ? "text-white" : "text-indigo-600"].join(" ")} />
+            <span
+              className={[
+                "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg",
+                emphasized ? "bg-white/92" : "bg-indigo-100",
+              ].join(" ")}
+            >
+              <CheckCircle2 className={["h-3.5 w-3.5", emphasized ? "text-indigo-700" : "text-indigo-600"].join(" ")} />
             </span>
             <span>{bullet}</span>
           </li>

@@ -39,22 +39,22 @@ type OwnersPageCopy = {
 
 const COPY: Record<AppLocale, OwnersPageCopy> = {
   en: {
-    jumpTo: "Jump to",
+    jumpTo: "Navigate",
     jumpLinks: [
       { label: "Benefits", href: "#owner-benefits" },
       { label: "Programs", href: "#owner-programs" },
       { label: "Process", href: "#owner-process" },
       { label: "FAQ", href: "#owner-faq" },
     ],
-    vendorSignup: "Vendor sign up",
+    vendorSignup: "Start vendor onboarding",
     serviceScope: "Service scope",
     bookConsultation: "Book consultation",
     ownerProposition: "Owner proposition",
-    propositionTitle: "Premium ownership experience with operational certainty",
+    propositionTitle: "Owner-first growth with disciplined operations",
     propositionDesc:
-      "You get structured execution, clear accountability, and scalable delivery standards designed for real guest and portfolio performance.",
-    startOnboarding: "Start vendor onboarding",
-    reviewCommercial: "Review commercial model",
+      "Get measurable execution standards, transparent accountability, and scalable delivery built for portfolio performance and stronger guest outcomes.",
+    startOnboarding: "Open onboarding",
+    reviewCommercial: "Review commercial structure",
     controlPoints: [
       {
         title: "Execution model",
@@ -83,22 +83,22 @@ const COPY: Record<AppLocale, OwnersPageCopy> = {
     ],
   },
   ar: {
-    jumpTo: "انتقل إلى",
+    jumpTo: "تنقل إلى",
     jumpLinks: [
       { label: "المزايا", href: "#owner-benefits" },
       { label: "البرامج", href: "#owner-programs" },
       { label: "العملية", href: "#owner-process" },
       { label: "الأسئلة الشائعة", href: "#owner-faq" },
     ],
-    vendorSignup: "تسجيل مورّد",
+    vendorSignup: "ابدأ تسجيل المورّد",
     serviceScope: "نطاق الخدمات",
     bookConsultation: "احجز استشارة",
     ownerProposition: "عرض المالك",
-    propositionTitle: "تجربة ملكية راقية بثبات تشغيلي واضح",
+    propositionTitle: "نمو محفظة المالك بانضباط تشغيلي واضح",
     propositionDesc:
-      "تحصل على تنفيذ منظّم ومسؤوليات واضحة ومعايير تشغيل قابلة للتوسع، بما يحقق أداءً أفضل للضيف ولمحفظتك العقارية.",
-    startOnboarding: "ابدأ تسجيل المورّد",
-    reviewCommercial: "راجع النموذج التجاري",
+      "احصل على معايير تنفيذ قابلة للقياس ومسؤوليات واضحة وتسليم قابل للتوسع لتحقيق أداء أقوى للمحفظة وتجربة الضيف.",
+    startOnboarding: "ابدأ التسجيل",
+    reviewCommercial: "راجع الهيكل التجاري",
     controlPoints: [
       {
         title: "نموذج التنفيذ",
@@ -132,6 +132,7 @@ export default async function OwnersPage() {
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
   const copy = COPY[locale];
+  const arrowClass = locale === "ar" ? "h-3.5 w-3.5 text-indigo-100 rotate-180" : "h-3.5 w-3.5 text-indigo-100";
 
   return (
     <main className="indigo-no-gold relative min-h-screen overflow-hidden bg-transparent">
@@ -144,17 +145,17 @@ export default async function OwnersPage() {
 
       <section className="-mt-7 py-0 sm:-mt-8">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="relative z-20 rounded-3xl border border-indigo-100/90 bg-white/82 p-4 shadow-[0_20px_52px_rgba(15,23,42,0.10)] backdrop-blur">
+          <div className="site-surface-card relative z-20 rounded-3xl p-4 backdrop-blur">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="mr-2 text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">
+                <p className="mr-2 text-xs font-semibold uppercase tracking-[0.22em] text-secondary/72">
                   {copy.jumpTo}
                 </p>
                 {copy.jumpLinks.map((item) => (
                   <a
                     key={item.href}
                     href={item.href}
-                    className="inline-flex h-11 items-center rounded-full border border-indigo-200/85 bg-indigo-50/85 px-3 text-xs font-semibold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100"
+                    className="site-chip inline-flex h-11 items-center px-3 text-xs font-semibold transition hover:-translate-y-0.5 hover:bg-indigo-100/66"
                   >
                     {item.label}
                   </a>
@@ -164,19 +165,19 @@ export default async function OwnersPage() {
               <div className="flex flex-wrap gap-2">
                 <Link
                   href="/signup?role=vendor"
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-indigo-300/80 bg-indigo-600 px-3 text-xs font-semibold text-white shadow-[0_12px_26px_rgba(79,70,229,0.26)] transition hover:-translate-y-0.5 hover:bg-indigo-700"
+                  className="site-cta-primary inline-flex h-11 items-center gap-2 rounded-full px-3 text-xs font-semibold transition hover:-translate-y-0.5"
                 >
-                  {copy.vendorSignup} <ArrowRight className="h-3.5 w-3.5 text-white/90" />
+                  {copy.vendorSignup} <ArrowRight className={arrowClass} />
                 </Link>
                 <Link
                   href="/services"
-                  className="inline-flex h-11 items-center rounded-full border border-line/80 bg-surface px-3 text-xs font-semibold text-primary transition hover:bg-warm-alt"
+                  className="site-cta-muted inline-flex h-11 items-center rounded-full px-3 text-xs font-semibold transition"
                 >
                   {copy.serviceScope}
                 </Link>
                 <Link
                   href="/contact"
-                  className="inline-flex h-11 items-center rounded-full border border-line/80 bg-surface px-3 text-xs font-semibold text-primary transition hover:bg-warm-alt"
+                  className="site-cta-muted inline-flex h-11 items-center rounded-full px-3 text-xs font-semibold transition"
                 >
                   {copy.bookConsultation}
                 </Link>
@@ -192,14 +193,14 @@ export default async function OwnersPage() {
             {copy.controlPoints.map((point) => (
               <article
                 key={point.title}
-                className="rounded-2xl border border-indigo-100/90 bg-white/84 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.07)]"
+                className="site-surface-card site-surface-card-hover rounded-2xl p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/66">{point.title}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/68">{point.title}</p>
                     <p className="mt-2 text-base font-semibold text-primary">{point.value}</p>
                   </div>
-                  <span className="grid h-9 w-9 place-items-center rounded-lg border border-indigo-200/80 bg-indigo-50 text-indigo-600">
+                  <span className="site-icon-plate h-9 w-9">
                     <point.Icon className="h-4 w-4" />
                   </span>
                 </div>
@@ -212,10 +213,10 @@ export default async function OwnersPage() {
 
       <section className="py-6 sm:py-8">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-indigo-100/90 bg-white/82 px-6 py-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] sm:px-8">
+          <div className="site-surface-card rounded-3xl px-6 py-6 sm:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="max-w-3xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">{copy.ownerProposition}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/72">{copy.ownerProposition}</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
                   {copy.propositionTitle}
                 </h2>
@@ -227,14 +228,14 @@ export default async function OwnersPage() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/signup?role=vendor"
-                  className="inline-flex items-center gap-2 rounded-xl border border-indigo-300/80 bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                  className="site-cta-primary inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
                 >
                   {copy.startOnboarding}
-                  <ArrowRight className="h-4 w-4 text-white/90" />
+                  <ArrowRight className={locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100"} />
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex items-center rounded-xl border border-line/80 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:bg-indigo-50"
+                  className="site-cta-muted inline-flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition"
                 >
                   {copy.reviewCommercial}
                 </Link>

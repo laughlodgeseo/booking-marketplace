@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
+import { Manrope, Sora } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import Providers from "./providers";
@@ -13,6 +14,20 @@ const arabicFont = Cairo({
   variable: "--font-arabic",
   display: "swap",
   weight: ["400", "500", "600", "700"],
+});
+
+const latinFont = Manrope({
+  subsets: ["latin"],
+  variable: "--font-latin",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const displayFont = Sora({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -58,8 +73,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} dir={dir}>
       <body
         className={[
-          "min-h-screen bg-[var(--site-bg)]",
+          "font-site min-h-screen bg-[var(--site-bg)]",
           arabicFont.variable,
+          latinFont.variable,
+          displayFont.variable,
           locale === "ar" ? "font-arabic-locale" : "",
         ].join(" ")}
       >

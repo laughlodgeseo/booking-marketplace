@@ -22,8 +22,8 @@ type OwnersFaqCopy = {
 const COPY: Record<AppLocale, OwnersFaqCopy> = {
   en: {
     eyebrow: "FAQs",
-    title: "Questions owners ask before onboarding",
-    subtitle: "Clear answers on operating model, risk controls, and what to expect from launch to scale.",
+    title: "Key questions owners ask before onboarding",
+    subtitle: "Clear answers on operating model, risk controls, and expectations from launch to scale.",
     needReviewTitle: "Need property-specific review?",
     needReviewBody: "Share your unit details and target goals for tailored guidance.",
     bookCall: "Book an owner call",
@@ -62,7 +62,7 @@ const COPY: Record<AppLocale, OwnersFaqCopy> = {
   },
   ar: {
     eyebrow: "الأسئلة الشائعة",
-    title: "أسئلة يطرحها الملاك قبل بدء التسجيل",
+    title: "أهم الأسئلة التي يطرحها الملاك قبل التسجيل",
     subtitle: "إجابات واضحة حول نموذج التشغيل وضبط المخاطر وما يمكن توقعه من الإطلاق إلى التوسع.",
     needReviewTitle: "هل تحتاج مراجعة خاصة لعقارك؟",
     needReviewBody: "شارك تفاصيل وحدتك وأهدافك لنقدم لك توجيهاً مخصصاً.",
@@ -109,7 +109,7 @@ export default function OwnersFaq(props: { locale: AppLocale }) {
     <section id="owner-faq" className="relative w-full scroll-mt-24 py-14 sm:py-18">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-          <aside className="rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] lg:sticky lg:top-24 lg:h-fit">
+          <aside className="site-surface-card rounded-2xl p-6 lg:sticky lg:top-24 lg:h-fit">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">{copy.eyebrow}</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.title}</h2>
             <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.subtitle}</p>
@@ -129,7 +129,7 @@ export default function OwnersFaq(props: { locale: AppLocale }) {
                 </Link>
               </div>
 
-              <div className="rounded-xl border border-indigo-100/85 bg-white p-3 text-xs text-secondary/78">
+              <div className="rounded-xl border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.94),rgba(240,233,220,0.72))] p-3 text-xs text-secondary/78">
                 <p className="inline-flex items-center gap-1.5 font-semibold text-primary">
                   <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
                   {copy.policySafe}
@@ -143,16 +143,16 @@ export default function OwnersFaq(props: { locale: AppLocale }) {
             {copy.faqs.map((faq) => (
               <details
                 key={faq.q}
-                className="group rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_14px_30px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_20px_40px_rgba(15,23,42,0.1)] open:border-indigo-200"
+                className="site-surface-card site-surface-card-hover group rounded-2xl p-6 transition open:border-indigo-200"
               >
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-base font-semibold text-primary">
                   <span className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-200/75 bg-indigo-50 text-indigo-600">
+                    <span className="site-icon-plate mt-0.5 h-7 w-7 shrink-0 rounded-lg">
                       <CircleHelp className="h-4 w-4" />
                     </span>
                     <span>{faq.q}</span>
                   </span>
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-200/75 bg-indigo-50 text-indigo-600">
+                  <span className="site-icon-plate h-7 w-7 shrink-0 rounded-lg">
                     <Plus className="h-4 w-4 transition-transform duration-200 group-open:rotate-45" />
                   </span>
                 </summary>
@@ -160,7 +160,7 @@ export default function OwnersFaq(props: { locale: AppLocale }) {
               </details>
             ))}
 
-            <div className="rounded-2xl border border-indigo-100/90 bg-white/88 p-5 shadow-[0_14px_30px_rgba(15,23,42,0.07)]">
+            <div className="site-surface-card rounded-2xl p-5">
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 <FileText className="h-4 w-4 text-indigo-600" />
                 {copy.legalTitle}

@@ -22,14 +22,14 @@ const COPY = {
   en: {
     backHome: "Back to home",
     termsPrefix: "By continuing, you agree to our",
-    terms: "Terms",
+    terms: "Terms & Conditions",
     and: "and",
     privacy: "Privacy Policy",
   },
   ar: {
     backHome: "العودة للرئيسية",
     termsPrefix: "بالمتابعة، فإنك توافق على",
-    terms: "الشروط",
+    terms: "الشروط والأحكام",
     and: "و",
     privacy: "سياسة الخصوصية",
   },
@@ -66,25 +66,25 @@ export function AuthCard({
     <main className="mx-auto flex min-h-dvh w-full items-start justify-center px-4 pb-10 pt-10 sm:px-6 lg:min-h-screen lg:items-center lg:px-8 lg:py-10">
       <div className={`w-full ${widthClass(width)}`}>
         <div className="relative">
-          <div className="rounded-3xl border border-white/20 bg-white/95 p-6 shadow-[0_28px_80px_rgba(5,10,28,0.34)] backdrop-blur-xl sm:p-8">
+          <div className="site-surface-card rounded-3xl p-6 shadow-[0_28px_80px_rgba(5,10,28,0.24)] backdrop-blur-xl sm:p-8">
             <header className="mb-6">
               {eyebrow ? (
-                <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-slate-800">
-                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                <div className="site-chip inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
                   {eyebrow}
                 </div>
               ) : null}
 
-              <h1 className="mt-3 text-[30px] font-semibold leading-[1.1] tracking-[-0.01em] text-slate-900 sm:text-3xl sm:leading-tight">
+              <h1 className="mt-3 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] text-primary sm:text-[2.1rem] sm:leading-tight">
                 {title}
               </h1>
 
-              <p className="mt-2 text-[15px] leading-[1.6] text-slate-600">
+              <p className="mt-2 text-[15px] leading-[1.62] text-secondary/86">
                 {subtitle}
               </p>
 
               {showBackHome ? (
-                <div className="mt-3 text-xs text-slate-600">
+                <div className="mt-3 text-xs text-secondary/78">
                   <Link href="/" className="font-semibold text-indigo-700 hover:underline">
                     {copy.backHome}
                   </Link>
@@ -97,13 +97,13 @@ export function AuthCard({
 
           {footnote ? <div className="mt-4">{footnote}</div> : null}
 
-          <div className="mt-4 text-center text-[11px] leading-relaxed text-slate-600">
+          <div className="mt-4 text-center text-[11px] leading-relaxed text-secondary/72">
             {copy.termsPrefix}{" "}
-            <Link href="/terms" className="font-semibold text-slate-700 hover:text-slate-900">
+            <Link href="/terms" className="font-semibold text-primary hover:text-indigo-800">
               {copy.terms}
             </Link>{" "}
             {copy.and}{" "}
-            <Link href="/privacy" className="font-semibold text-slate-700 hover:text-slate-900">
+            <Link href="/privacy" className="font-semibold text-primary hover:text-indigo-800">
               {copy.privacy}
             </Link>
             .

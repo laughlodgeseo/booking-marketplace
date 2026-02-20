@@ -16,8 +16,8 @@ type PricingFaqCopy = {
 const COPY: Record<AppLocale, PricingFaqCopy> = {
   en: {
     eyebrow: "FAQs",
-    title: "Common pricing and policy questions",
-    subtitle: "Quick clarity on totals, fees, and cancellation-linked outcomes.",
+    title: "Common questions on pricing and policy behavior",
+    subtitle: "Quick clarity on totals, fees, and cancellation-linked outcomes before checkout.",
     needHelp: "Need booking-specific pricing help?",
     contactTeam: "Contact our team",
     faqs: [
@@ -49,8 +49,8 @@ const COPY: Record<AppLocale, PricingFaqCopy> = {
   },
   ar: {
     eyebrow: "الأسئلة الشائعة",
-    title: "أسئلة شائعة حول التسعير والسياسات",
-    subtitle: "توضيح سريع للإجماليات والرسوم والنتائج المرتبطة بالإلغاء.",
+    title: "أسئلة شائعة حول التسعير وسلوك السياسات",
+    subtitle: "توضيح سريع للإجماليات والرسوم ونتائج الإلغاء قبل الدفع.",
     needHelp: "هل تحتاج مساعدة تسعير مرتبطة بحجز محدد؟",
     contactTeam: "تواصل مع فريقنا",
     faqs: [
@@ -98,16 +98,16 @@ export default function PricingFaq(props: { locale: AppLocale }) {
           {copy.faqs.map((faq) => (
             <details
               key={faq.q}
-              className="group rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_14px_30px_rgba(15,23,42,0.07)] open:border-indigo-200"
+              className="site-surface-card group rounded-2xl p-6 open:border-indigo-200"
             >
               <summary className="flex cursor-pointer list-none items-start justify-between gap-3 text-base font-semibold text-primary">
                 <span className="flex items-start gap-3">
-                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-200/75 bg-indigo-50 text-indigo-600">
+                  <span className="site-icon-plate mt-0.5 h-7 w-7 shrink-0 rounded-lg">
                     <CircleHelp className="h-4 w-4" />
                   </span>
                   <span>{faq.q}</span>
                 </span>
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-200/75 bg-indigo-50 text-indigo-600">
+                <span className="site-icon-plate h-7 w-7 shrink-0 rounded-lg">
                   <Plus className="h-4 w-4 transition-transform duration-200 group-open:rotate-45" />
                 </span>
               </summary>

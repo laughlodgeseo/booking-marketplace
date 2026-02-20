@@ -22,9 +22,9 @@ function readRole(raw: string | null): AuthRoleUi {
 const COPY = {
   en: {
     titleLogin: "Welcome back",
-    titleSignup: "Create your account",
-    subtitleLogin: "Choose how you want to continue.",
-    subtitleSignup: "Choose an account type to get started.",
+    titleSignup: "Create your secure account",
+    subtitleLogin: "Select your role to continue securely.",
+    subtitleSignup: "Select an account type to begin onboarding.",
     eyebrow: "Account access",
     footnoteLoginPrefix: "New here?",
     footnoteLoginAction: "Create an account",
@@ -33,19 +33,19 @@ const COPY = {
     tabLogin: "Log in",
     tabSignup: "Sign up",
     customer: "Customer",
-    customerDesc: "Book stays, manage trips, request refunds.",
+    customerDesc: "Book stays, manage trips, and track refunds.",
     vendor: "Vendor",
-    vendorDesc: "List homes, manage availability, handle bookings.",
-    continueLogin: "Continue to login",
-    continueSignup: "Continue to sign up",
+    vendorDesc: "List homes, manage availability, and operate reservations.",
+    continueLogin: "Continue to sign in",
+    continueSignup: "Continue to account setup",
     loadingTitle: "Loading access",
     loadingSubtitle: "Preparing account gateway...",
   },
   ar: {
     titleLogin: "مرحباً بعودتك",
-    titleSignup: "أنشئ حسابك",
-    subtitleLogin: "اختر طريقة المتابعة المناسبة لك.",
-    subtitleSignup: "اختر نوع الحساب للبدء.",
+    titleSignup: "أنشئ حسابك الآمن",
+    subtitleLogin: "اختر دورك للمتابعة بشكل آمن.",
+    subtitleSignup: "اختر نوع الحساب لبدء التسجيل.",
     eyebrow: "وصول الحساب",
     footnoteLoginPrefix: "جديد هنا؟",
     footnoteLoginAction: "أنشئ حساباً",
@@ -54,11 +54,11 @@ const COPY = {
     tabLogin: "تسجيل الدخول",
     tabSignup: "إنشاء حساب",
     customer: "عميل",
-    customerDesc: "احجز الإقامات، وأدر الرحلات، واطلب الاسترداد.",
+    customerDesc: "احجز الإقامات وأدر الرحلات وتابع طلبات الاسترداد.",
     vendor: "مزوّد",
-    vendorDesc: "أضف الوحدات، وأدر التوافر، وتعامل مع الحجوزات.",
+    vendorDesc: "أضف الوحدات وأدر التوافر ونفّذ الحجوزات تشغيلياً.",
     continueLogin: "المتابعة إلى تسجيل الدخول",
-    continueSignup: "المتابعة إلى إنشاء الحساب",
+    continueSignup: "المتابعة إلى إعداد الحساب",
     loadingTitle: "جارٍ تحميل الوصول",
     loadingSubtitle: "يتم تجهيز بوابة الحساب...",
   },
@@ -79,6 +79,7 @@ function AuthGatewayContent() {
   const title = mode === "login" ? copy.titleLogin : copy.titleSignup;
   const subtitle =
     mode === "login" ? copy.subtitleLogin : copy.subtitleSignup;
+  const arrowClass = locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100";
 
   function go() {
     const qs = new URLSearchParams({ role });
@@ -171,10 +172,10 @@ function AuthGatewayContent() {
           type="button"
           onClick={go}
           whileTap={{ scale: 0.98 }}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#4F46E5] px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.32)] hover:bg-[#4338CA] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30"
+          className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30"
         >
           {mode === "login" ? copy.continueLogin : copy.continueSignup}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className={arrowClass} />
         </motion.button>
       </div>
     </AuthCard>
@@ -226,7 +227,7 @@ function RoleCard(props: {
           className={[
             "mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl",
             props.active
-              ? "bg-[#4F46E5] text-white"
+              ? "bg-white text-indigo-700 ring-1 ring-indigo-300/70"
               : "bg-dark-1/5 text-primary",
           ].join(" ")}
         >

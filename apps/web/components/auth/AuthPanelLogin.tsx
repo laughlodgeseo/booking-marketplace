@@ -17,13 +17,13 @@ interface AuthPanelLoginProps {
 }
 
 const INPUT_CLASS =
-  "h-12 w-full rounded-[12px] border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-slate-400 focus-visible:border-indigo-400 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
+  "h-12 w-full rounded-[12px] border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.74))] px-3.5 text-[16px] text-primary shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-secondary/55 focus-visible:border-indigo-400 focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
 
 const COPY = {
   en: {
     roleVendor: "Vendor",
     roleCustomer: "Customer",
-    roleSignIn: (roleLabel: string) => `${roleLabel} sign in`,
+    roleSignIn: (roleLabel: string) => `${roleLabel} portal sign in`,
     switchRole: "Switch role",
     email: "Email",
     password: "Password",
@@ -32,7 +32,7 @@ const COPY = {
     hidePassword: "Hide password",
     showPassword: "Show password",
     signingIn: "Signing in...",
-    signIn: "Sign in",
+    signIn: "Sign in securely",
     forgotPassword: "Forgot password?",
     createAccount: "Create account",
     loginFailed: "Login failed",
@@ -40,7 +40,7 @@ const COPY = {
   ar: {
     roleVendor: "مزوّد",
     roleCustomer: "عميل",
-    roleSignIn: (roleLabel: string) => `تسجيل دخول ${roleLabel}`,
+    roleSignIn: (roleLabel: string) => `تسجيل دخول بوابة ${roleLabel}`,
     switchRole: "تبديل الدور",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
@@ -49,7 +49,7 @@ const COPY = {
     hidePassword: "إخفاء كلمة المرور",
     showPassword: "إظهار كلمة المرور",
     signingIn: "جارٍ تسجيل الدخول...",
-    signIn: "تسجيل الدخول",
+    signIn: "تسجيل دخول آمن",
     forgotPassword: "نسيت كلمة المرور؟",
     createAccount: "إنشاء حساب",
     loginFailed: "فشل تسجيل الدخول",
@@ -70,6 +70,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
 
   const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
   const roleIcon = role === "vendor" ? <Building2 className="h-4 w-4" /> : <User2 className="h-4 w-4" />;
+  const arrowClass = locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100";
 
   const qsGateway = useMemo(() => {
     const qs = new URLSearchParams({ mode: "login", role });
@@ -105,7 +106,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900">
+        <div className="site-chip inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold">
           <span className="text-indigo-600">{roleIcon}</span>
           {copy.roleSignIn(roleLabel)}
         </div>
@@ -143,7 +144,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
-              className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
+              className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-secondary/70 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
               aria-label={showPassword ? copy.hidePassword : copy.showPassword}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -168,10 +169,10 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#2F3EA3] px-5 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(47,62,163,0.30)] transition-colors duration-150 hover:bg-[#27358F] disabled:cursor-not-allowed disabled:opacity-65 lg:h-auto lg:py-3.5"
+          className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-65 lg:h-auto lg:py-3.5"
         >
           {loading ? copy.signingIn : copy.signIn}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className={arrowClass} />
         </button>
 
         <div className="mt-1 flex items-center justify-between text-xs">

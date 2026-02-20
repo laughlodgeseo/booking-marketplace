@@ -28,7 +28,7 @@ const COPY = {
     fallbackSubtitle: "Preparing verification...",
     fallbackEyebrow: "Security",
     title: "Verify your email",
-    subtitle: "Enter the 6-digit code we sent to your inbox",
+    subtitle: "Enter the 6-digit verification code sent to your inbox",
     eyebrow: "Security",
     alreadyVerified: "Already verified?",
     goToLogin: "Go to login",
@@ -38,7 +38,7 @@ const COPY = {
     enterSixDigits: "Enter the 6-digit code.",
     sendingCode: "Sending verification code...",
     sentCode: "Verification code sent. Check your email.",
-    sendCodeFailed: "Failed to request verification code.",
+    sendCodeFailed: "Unable to request verification code.",
     verifyingCode: "Verifying code...",
     verifiedSuccess: "Email verified successfully.",
     invalidCode: "Invalid or expired code.",
@@ -46,7 +46,7 @@ const COPY = {
     resentSuccess: "A new code has been sent.",
     resendFailed: "Failed to resend code.",
     verifying: "Verifying...",
-    verifyEmail: "Verify email",
+    verifyEmail: "Verify email securely",
     resendIn: (seconds: number) => `Resend in ${seconds}s`,
     resendCode: "Resend code",
   },
@@ -55,7 +55,7 @@ const COPY = {
     fallbackSubtitle: "يتم تجهيز التحقق...",
     fallbackEyebrow: "الأمان",
     title: "تحقق من بريدك الإلكتروني",
-    subtitle: "أدخل رمز التحقق المكوّن من 6 أرقام الذي أرسلناه إلى بريدك",
+    subtitle: "أدخل رمز التحقق المكوّن من 6 أرقام والمُرسل إلى بريدك الإلكتروني",
     eyebrow: "الأمان",
     alreadyVerified: "تم التحقق بالفعل؟",
     goToLogin: "انتقل إلى تسجيل الدخول",
@@ -73,7 +73,7 @@ const COPY = {
     resentSuccess: "تم إرسال رمز جديد.",
     resendFailed: "تعذر إعادة إرسال الرمز.",
     verifying: "جارٍ التحقق...",
-    verifyEmail: "تحقق من البريد الإلكتروني",
+    verifyEmail: "تحقق من البريد الإلكتروني بأمان",
     resendIn: (seconds: number) => `إعادة الإرسال خلال ${seconds}ث`,
     resendCode: "إعادة إرسال الرمز",
   },
@@ -140,7 +140,7 @@ function VerifyEmailContent() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [copy.sendCodeFailed, copy.sentCode]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -218,7 +218,7 @@ function VerifyEmailContent() {
             pattern="[0-9]*"
             autoComplete="one-time-code"
             placeholder={copy.codePlaceholder}
-            className="premium-input h-12 w-full rounded-2xl px-4 text-center text-[16px] font-semibold tracking-[0.3em] text-primary shadow-sm outline-none placeholder:text-muted"
+            className="h-12 w-full rounded-2xl border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.74))] px-4 text-center text-[16px] font-semibold tracking-[0.3em] text-primary shadow-sm outline-none placeholder:text-muted focus:border-indigo-300 focus:ring-4 focus:ring-indigo-200/30"
           />
         </label>
 
@@ -237,7 +237,7 @@ function VerifyEmailContent() {
         <button
           type="submit"
           disabled={busy !== null || otp.length !== 6}
-          className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-text-invert shadow-brand-soft hover:bg-brand-hover disabled:opacity-60"
+          className="site-cta-primary inline-flex h-11 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold text-text-invert disabled:opacity-60"
         >
           {busy === "verifying" ? copy.verifying : copy.verifyEmail}
         </button>
@@ -246,7 +246,7 @@ function VerifyEmailContent() {
           type="button"
           onClick={() => void resend()}
           disabled={busy !== null || cooldown > 0}
-          className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-line/80 bg-surface px-5 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+          className="site-cta-muted inline-flex h-11 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold disabled:opacity-60"
         >
           {cooldown > 0 ? copy.resendIn(cooldown) : copy.resendCode}
         </button>

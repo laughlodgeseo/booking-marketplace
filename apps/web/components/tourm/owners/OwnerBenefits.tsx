@@ -22,7 +22,7 @@ type OwnerBenefitsCopy = {
 const COPY: Record<AppLocale, OwnerBenefitsCopy> = {
   en: {
     eyebrow: "Benefits",
-    title: "Portfolio benefits designed for premium short-stay ownership",
+    title: "Portfolio advantages built for premium short-stay ownership",
     subtitle:
       "From revenue governance to quality controls, each layer is built to improve owner confidence and guest consistency at scale.",
     cta: "Match benefits to programs",
@@ -68,7 +68,7 @@ const COPY: Record<AppLocale, OwnerBenefitsCopy> = {
   },
   ar: {
     eyebrow: "المزايا",
-    title: "مزايا محفظة مصممة لملكية الإقامات القصيرة الراقية",
+    title: "مزايا محفظة مصممة لملكية الإقامات القصيرة المتميزة",
     subtitle:
       "من حوكمة الإيراد إلى ضوابط الجودة، كل طبقة مصممة لرفع ثقة المالك واستقرار تجربة الضيف على نطاق أوسع.",
     cta: "طابق المزايا مع البرامج",
@@ -122,7 +122,7 @@ function BenefitCard(props: {
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]",
+        "site-surface-card site-surface-card-hover group relative overflow-hidden rounded-2xl p-6",
         props.featured ? "lg:p-7" : "",
       ].join(" ")}
     >
@@ -131,7 +131,7 @@ function BenefitCard(props: {
       </div>
 
       <div className="relative flex items-start justify-between gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-xl border border-indigo-200/80 bg-indigo-50 text-indigo-600">
+        <span className="site-icon-plate h-11 w-11">
           <props.benefit.Icon className="h-5 w-5" />
         </span>
         <span className="h-2.5 w-2.5 rounded-full bg-indigo-300/70 opacity-0 transition group-hover:opacity-100" />
@@ -163,10 +163,10 @@ export default function OwnerBenefits(props: { locale: AppLocale }) {
 
           <Link
             href="/owners#owner-programs"
-            className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:bg-indigo-50"
+            className="site-cta-muted inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
           >
             {copy.cta}
-            <ArrowRight className="h-4 w-4 text-indigo-600" />
+            <ArrowRight className={props.locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-600" : "h-4 w-4 text-indigo-600"} />
           </Link>
         </div>
 

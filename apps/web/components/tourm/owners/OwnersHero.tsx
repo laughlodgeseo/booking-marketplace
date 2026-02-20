@@ -34,10 +34,10 @@ type OwnersHeroCopy = {
 const COPY: Record<AppLocale, OwnersHeroCopy> = {
   en: {
     eyebrow: "For owners",
-    title: "Run your short-stay asset with hotel-grade operating discipline",
+    title: "Operate your short-stay asset with hospitality-grade discipline",
     description:
-      "We combine distribution, booking controls, and on-ground operations so your property performs consistently in a competitive Dubai market. You choose your management depth, we execute to a defined service standard.",
-    signupCta: "Sign up as vendor",
+      "We align distribution, booking controls, and on-ground execution so your property performs consistently in Dubai’s competitive short-stay market. You choose the management depth, we execute against defined standards.",
+    signupCta: "Start vendor onboarding",
     consultCta: "Book owner consultation",
     comparePrograms: "Compare programs",
     viewServices: "View service scope",
@@ -84,10 +84,10 @@ const COPY: Record<AppLocale, OwnersHeroCopy> = {
   },
   ar: {
     eyebrow: "للملاك",
-    title: "أدر عقارك قصير الإقامة بانضباط تشغيلي بمعيار فندقي",
+    title: "شغّل عقارك قصير الإقامة بانضباط تشغيلي بمعيار ضيافة احترافي",
     description:
-      "نجمع بين التوزيع وضوابط الحجز والتنفيذ الميداني لضمان أداء ثابت لعقارك في سوق دبي التنافسي. أنت تختار مستوى الإدارة، ونحن ننفذ وفق معيار خدمة واضح.",
-    signupCta: "التسجيل كمورّد",
+      "ننسق بين التوزيع وضوابط الحجز والتنفيذ الميداني لضمان أداء ثابت لعقارك في سوق دبي التنافسي. أنت تحدد عمق الإدارة ونحن ننفذ وفق معايير تشغيل واضحة.",
+    signupCta: "ابدأ تسجيل المورّد",
     consultCta: "احجز استشارة للمالك",
     comparePrograms: "قارن البرامج",
     viewServices: "اطّلع على نطاق الخدمات",
@@ -135,6 +135,7 @@ const COPY: Record<AppLocale, OwnersHeroCopy> = {
 
 export default function OwnersHero(props: { locale: AppLocale }) {
   const copy = COPY[props.locale];
+  const arrowClass = props.locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
   const heroImages = {
     main: "/images/owners/hero-4k/main_business_bay-4k.webp",
     skyline: "/images/owners/hero-4k/support_dubai_skyline-4k.webp",
@@ -181,14 +182,14 @@ export default function OwnersHero(props: { locale: AppLocale }) {
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
               href="/signup?role=vendor"
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-300/80 bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(79,70,229,0.32)] transition hover:-translate-y-0.5 hover:bg-indigo-700"
+              className="site-cta-primary inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5"
             >
               {copy.signupCta}
-              <ArrowRight className="h-4 w-4 text-white/92" />
+              <ArrowRight className={arrowClass} />
             </Link>
             <Link
               href="/contact"
-              className="rounded-xl border border-line/80 bg-white/78 px-5 py-3 text-sm font-semibold text-primary shadow-[0_10px_26px_rgba(11,15,25,0.08)] transition hover:bg-white"
+              className="site-cta-muted rounded-xl px-5 py-3 text-sm font-semibold shadow-[0_10px_26px_rgba(11,15,25,0.08)] transition"
             >
               {copy.consultCta}
             </Link>
@@ -208,8 +209,8 @@ export default function OwnersHero(props: { locale: AppLocale }) {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
-          <article className="rounded-3xl border border-indigo-100/90 bg-white/86 p-6 shadow-[0_18px_46px_rgba(15,23,42,0.10)] backdrop-blur">
-            <div className="relative overflow-hidden rounded-2xl border border-indigo-100/80 bg-white">
+          <article className="site-surface-card rounded-3xl p-6 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.94),rgba(240,233,220,0.74))]">
               <div className="relative aspect-[16/10] w-full">
                 <Image
                   src={heroImages.main}
@@ -232,7 +233,10 @@ export default function OwnersHero(props: { locale: AppLocale }) {
 
             <div className="mt-4 grid grid-cols-3 gap-3">
               {supportImages.map((image) => (
-                <div key={image.key} className="overflow-hidden rounded-xl border border-indigo-100/80 bg-white">
+                <div
+                  key={image.key}
+                  className="overflow-hidden rounded-xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.80))]"
+                >
                   <div className="relative aspect-[4/3] w-full">
                     <Image
                       src={image.src}
@@ -242,13 +246,15 @@ export default function OwnersHero(props: { locale: AppLocale }) {
                       className="object-cover"
                     />
                   </div>
-                  <div className="bg-white/94 px-2 py-1.5 text-center text-[11px] font-semibold text-primary/88">{image.label}</div>
+                  <div className="bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.92))] px-2 py-1.5 text-center text-[11px] font-semibold text-primary/88">
+                    {image.label}
+                  </div>
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="rounded-3xl border border-indigo-100/90 bg-white/86 p-6 shadow-[0_18px_46px_rgba(15,23,42,0.10)] backdrop-blur">
+          <article className="site-surface-card rounded-3xl p-6 backdrop-blur">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">{copy.prioritiesEyebrow}</p>
             <p className="mt-2 text-sm font-semibold text-primary sm:text-base">{copy.prioritiesTitle}</p>
 
@@ -256,7 +262,7 @@ export default function OwnersHero(props: { locale: AppLocale }) {
               {copy.highlights.map((item) => (
                 <div key={item.title} className="rounded-2xl border border-indigo-100/85 bg-indigo-50/42 p-4">
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-indigo-200/80 bg-white">
+                    <span className="site-icon-plate mt-0.5 h-8 w-8 shrink-0">
                       <item.Icon className="h-4 w-4 text-indigo-600" />
                     </span>
                     <div>

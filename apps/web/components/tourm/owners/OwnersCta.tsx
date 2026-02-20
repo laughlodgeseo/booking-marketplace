@@ -21,7 +21,7 @@ type OwnersCtaCopy = {
 const COPY: Record<AppLocale, OwnersCtaCopy> = {
   en: {
     eyebrow: "Final step",
-    title: "Start owner onboarding with a vendor account",
+    title: "Start owner onboarding through a vendor account",
     subtitle:
       "Move from evaluation to execution with a structured onboarding path that defines ownership model, operating standards, and launch timeline.",
     signupCta: "Sign up as vendor",
@@ -58,7 +58,7 @@ const COPY: Record<AppLocale, OwnersCtaCopy> = {
   },
   ar: {
     eyebrow: "الخطوة الأخيرة",
-    title: "ابدأ تسجيل المالك عبر حساب مورّد",
+    title: "ابدأ تسجيل المالك من خلال حساب مورّد",
     subtitle:
       "انتقل من التقييم إلى التنفيذ عبر مسار تسجيل منظم يحدد نموذج الملكية ومعايير التشغيل وجدول الإطلاق.",
     signupCta: "التسجيل كمورّد",
@@ -97,11 +97,12 @@ const COPY: Record<AppLocale, OwnersCtaCopy> = {
 
 export default function OwnersCta(props: { locale: AppLocale }) {
   const copy = COPY[props.locale];
+  const arrowClass = props.locale === "ar" ? "h-4 w-4 text-indigo-700 rotate-180" : "h-4 w-4 text-indigo-700";
 
   return (
     <section className="relative w-full pb-16 pt-8 sm:pb-20 sm:pt-10">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-[2rem] border border-indigo-300/60 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-700 text-white shadow-[0_26px_72px_rgba(67,56,202,0.34)]">
+        <div className="site-dark-card relative overflow-hidden rounded-[2rem] text-white">
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.8)_0.5px,transparent_0.5px)] [background-size:4px_4px]" />
           <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-[1fr_1fr] lg:items-start">
             <div>
@@ -115,7 +116,7 @@ export default function OwnersCta(props: { locale: AppLocale }) {
                   className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-indigo-700 shadow-[0_14px_30px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:bg-indigo-50"
                 >
                   {copy.signupCta}
-                  <ArrowRight className="h-4 w-4 text-indigo-700" />
+                  <ArrowRight className={arrowClass} />
                 </Link>
                 <Link
                   href="/contact"
@@ -143,8 +144,8 @@ export default function OwnersCta(props: { locale: AppLocale }) {
                 <ul className="mt-4 space-y-3">
                   {copy.nextSteps.map((step) => (
                     <li key={step.title} className="flex gap-3 text-sm text-white/88">
-                      <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-white/30 bg-white/12">
-                        <step.Icon className="h-3.5 w-3.5 text-white" />
+                      <span className="site-icon-plate-light mt-0.5 h-6 w-6 shrink-0 rounded-lg">
+                        <step.Icon className="h-3.5 w-3.5" />
                       </span>
                       <span>
                         <span className="font-semibold text-white">{step.title}: </span>
@@ -160,8 +161,8 @@ export default function OwnersCta(props: { locale: AppLocale }) {
                 <ul className="mt-4 space-y-2">
                   {copy.deliverables.map((item) => (
                     <li key={item} className="flex gap-3 text-sm text-white/88">
-                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-white/16">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                      <span className="site-icon-plate-light mt-0.5 h-5 w-5 shrink-0 rounded-md">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                       </span>
                       <span>{item}</span>
                     </li>

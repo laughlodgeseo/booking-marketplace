@@ -90,11 +90,11 @@ export default function WhyChooseUs({
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-14">
           <div className="lg:col-span-5">
-            <p className="text-[11px] uppercase tracking-[0.26em] text-neutral-500">WHY US</p>
-            <h2 className="mt-3 max-w-[18ch] text-[30px] font-semibold leading-[1.05] tracking-[-0.02em] text-neutral-900 md:max-w-[22ch] md:text-[40px] lg:max-w-[26ch]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-neutral-500">WHY US</p>
+            <h2 className="mt-3 max-w-[18ch] text-3xl font-semibold leading-[1.05] tracking-[-0.02em] text-neutral-900 md:max-w-[22ch] md:text-[2.55rem] lg:max-w-[24ch]">
               {title}
             </h2>
-            <p className="mt-4 max-w-[52ch] text-[15px] leading-6 text-neutral-600">{subtitle}</p>
+            <p className="mt-4 max-w-[54ch] text-base leading-relaxed text-neutral-700 sm:text-[1.05rem]">{subtitle}</p>
             <div className="mt-6 h-px w-20 bg-gradient-to-r from-indigo-500/35 via-cyan-500/20 to-transparent" />
 
             <div className="mt-8 lg:hidden">
@@ -125,10 +125,10 @@ export default function WhyChooseUs({
                       <CheckCircle2 className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[14px] font-semibold leading-tight text-neutral-900">
+                      <p className="text-base font-semibold leading-tight text-neutral-900 sm:text-[1.05rem]">
                         {r.title}
                       </p>
-                      <p className="mt-1 text-[13px] leading-5 text-neutral-600">{r.desc}</p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-neutral-700 sm:text-[0.95rem]">{r.desc}</p>
                     </div>
                   </div>
                 </motion.article>

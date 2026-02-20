@@ -27,13 +27,13 @@ interface AuthPanelSignupProps {
 const DRAFT_KEY = "ll_signup_profile_draft_v1";
 
 const INPUT_CLASS =
-  "h-12 w-full rounded-[12px] border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-slate-400 focus-visible:border-indigo-400 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
+  "h-12 w-full rounded-[12px] border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.74))] px-3.5 text-[16px] text-primary shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-secondary/55 focus-visible:border-indigo-400 focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
 
 const COPY = {
   en: {
     roleVendor: "Vendor",
     roleCustomer: "Customer",
-    roleSignUp: (roleLabel: string) => `${roleLabel} sign up`,
+    roleSignUp: (roleLabel: string) => `${roleLabel} account setup`,
     signIn: "Sign in",
     switchRole: "Switch role",
     firstName: "First name",
@@ -52,8 +52,8 @@ const COPY = {
     hidePassword: "Hide password",
     showPassword: "Show password",
     creatingAccount: "Creating account...",
-    createAccount: "Create account",
-    profileInfoHint: "We use this profile information for booking communication and account security.",
+    createAccount: "Create secure account",
+    profileInfoHint: "These profile details are used for booking communication, verification, and account security.",
     signupFailed: "Signup failed",
     validation: {
       emailRequired: "Email is required.",
@@ -69,7 +69,7 @@ const COPY = {
   ar: {
     roleVendor: "مزوّد",
     roleCustomer: "عميل",
-    roleSignUp: (roleLabel: string) => `إنشاء حساب ${roleLabel}`,
+    roleSignUp: (roleLabel: string) => `إعداد حساب ${roleLabel}`,
     signIn: "تسجيل الدخول",
     switchRole: "تبديل الدور",
     firstName: "الاسم الأول",
@@ -88,8 +88,8 @@ const COPY = {
     hidePassword: "إخفاء كلمة المرور",
     showPassword: "إظهار كلمة المرور",
     creatingAccount: "جارٍ إنشاء الحساب...",
-    createAccount: "إنشاء حساب",
-    profileInfoHint: "نستخدم معلومات الملف للتواصل الخاص بالحجز وتعزيز أمان الحساب.",
+    createAccount: "إنشاء حساب آمن",
+    profileInfoHint: "تُستخدم هذه البيانات للتواصل المرتبط بالحجز والتحقق وتعزيز أمان الحساب.",
     signupFailed: "تعذر إنشاء الحساب",
     validation: {
       emailRequired: "البريد الإلكتروني مطلوب.",
@@ -108,6 +108,7 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
   const router = useRouter();
   const locale = normalizeLocale(useLocale());
   const copy = COPY[locale];
+  const arrowClass = locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100";
 
   const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
   const roleIcon = role === "vendor" ? <Building2 className="h-4 w-4" /> : <User2 className="h-4 w-4" />;
@@ -213,7 +214,7 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900">
+        <div className="site-chip inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold">
           <span className="text-indigo-600">{roleIcon}</span>
           {copy.roleSignUp(roleLabel)}
         </div>
@@ -296,10 +297,10 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#2F3EA3] px-5 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(47,62,163,0.30)] transition-colors duration-150 hover:bg-[#27358F] disabled:cursor-not-allowed disabled:opacity-65 lg:h-auto lg:py-3.5"
+          className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-65 lg:h-auto lg:py-3.5"
         >
           {loading ? copy.creatingAccount : copy.createAccount}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className={arrowClass} />
         </button>
 
         <p className="pt-0.5 text-center text-[11px] text-slate-500">
@@ -363,7 +364,7 @@ function PasswordInput(props: {
       <button
         type="button"
         onClick={props.onToggle}
-        className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
+        className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-secondary/70 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
         aria-label={props.show ? props.hideLabel : props.showLabel}
       >
         {props.show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

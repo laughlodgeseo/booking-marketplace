@@ -19,7 +19,7 @@ type PricingCtaCopy = {
 const COPY: Record<AppLocale, PricingCtaCopy> = {
   en: {
     eyebrow: "Ready to book",
-    title: "Explore dates and view real quote totals",
+    title: "Select dates and review real quote totals",
     body:
       "Browse properties, select dates, and review a clear quote before checkout. If anything is unclear, our team can walk you through each line item.",
     browseStays: "Browse stays",
@@ -40,7 +40,7 @@ const COPY: Record<AppLocale, PricingCtaCopy> = {
   },
   ar: {
     eyebrow: "جاهز للحجز",
-    title: "استكشف التواريخ واطّلع على إجماليات عرض السعر الفعلية",
+    title: "اختر التواريخ وراجع إجماليات عرض السعر الفعلية",
     body:
       "تصفح العقارات وحدد التواريخ وراجع عرض سعر واضح قبل الإتمام. إذا احتجت توضيحاً، يمكن لفريقنا شرح كل بند بالتفصيل.",
     browseStays: "تصفح الإقامات",
@@ -66,7 +66,7 @@ export default function PricingCta(props: { locale: AppLocale }) {
   return (
     <section className="relative w-full pb-16 pt-6 sm:pb-20">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-[2rem] border border-indigo-300/60 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-700 text-white shadow-[0_26px_72px_rgba(67,56,202,0.34)]">
+        <div className="site-dark-card overflow-hidden rounded-[2rem] text-white">
           <div className="grid gap-8 p-8 sm:p-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.eyebrow}</p>
@@ -96,8 +96,8 @@ export default function PricingCta(props: { locale: AppLocale }) {
                 <ul className="mt-4 space-y-2">
                   {copy.expectItems.map((item) => (
                     <li key={item} className="flex gap-3 text-sm text-white/88">
-                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-white/16">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                      <span className="site-icon-plate-light mt-0.5 h-5 w-5 shrink-0 rounded-md">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                       </span>
                       <span>{item}</span>
                     </li>
@@ -107,8 +107,8 @@ export default function PricingCta(props: { locale: AppLocale }) {
 
               <div className="rounded-2xl border border-white/28 bg-white/12 p-6 backdrop-blur">
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/30 bg-white/12">
-                    <WalletCards className="h-4 w-4 text-white" />
+                  <span className="site-icon-plate-light mt-0.5 h-9 w-9">
+                    <WalletCards className="h-4 w-4" />
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-white">{copy.paymentConfidenceTitle}</p>
@@ -117,8 +117,8 @@ export default function PricingCta(props: { locale: AppLocale }) {
                 </div>
 
                 <div className="mt-4 flex items-start gap-3">
-                  <span className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/30 bg-white/12">
-                    <ShieldCheck className="h-4 w-4 text-white" />
+                  <span className="site-icon-plate-light mt-0.5 h-9 w-9">
+                    <ShieldCheck className="h-4 w-4" />
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-white">{copy.policyConsistencyTitle}</p>

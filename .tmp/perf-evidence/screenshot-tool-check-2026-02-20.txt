@@ -1,0 +1,1 @@
+no supported screenshot tool found (scrot, gnome-screenshot, or import)

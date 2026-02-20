@@ -14,7 +14,7 @@ interface AuthPanelForgotProps {
 }
 
 const INPUT_CLASS =
-  "h-12 w-full rounded-[12px] border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-slate-400 focus-visible:border-indigo-400 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
+  "h-12 w-full rounded-[12px] border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.74))] px-3.5 text-[16px] text-primary shadow-[0_2px_8px_rgba(15,23,42,0.06)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-secondary/55 focus-visible:border-indigo-400 focus-visible:ring-4 focus-visible:ring-indigo-300/25 sm:px-4 lg:h-auto lg:py-3 lg:text-[14px]";
 
 const COPY = {
   en: {
@@ -23,11 +23,11 @@ const COPY = {
       `If an account exists for ${email}, you will receive password reset instructions shortly.`,
     debugHint: (error: string) => `Note: if no email arrives, check your spam folder. (Debug: ${error})`,
     backToLogin: "Back to login",
-    intro: "Enter your email and we will send reset instructions.",
+    intro: "Enter your account email and we will send secure reset instructions.",
     email: "Email",
     emailPlaceholder: "you@example.com",
     sending: "Sending...",
-    sendInstructions: "Send reset instructions",
+    sendInstructions: "Send secure reset link",
   },
   ar: {
     requestFailed: "تعذر إرسال الطلب",
@@ -35,17 +35,19 @@ const COPY = {
       `إذا كان هناك حساب مرتبط بـ ${email} فستصلك تعليمات إعادة التعيين قريباً.`,
     debugHint: (error: string) => `ملاحظة: إذا لم تصلك رسالة، تحقق من البريد غير الهام. (تفاصيل: ${error})`,
     backToLogin: "العودة لتسجيل الدخول",
-    intro: "أدخل بريدك الإلكتروني وسنرسل تعليمات إعادة التعيين.",
+    intro: "أدخل بريد حسابك الإلكتروني وسنرسل تعليمات إعادة تعيين آمنة.",
     email: "البريد الإلكتروني",
     emailPlaceholder: "you@example.com",
     sending: "جارٍ الإرسال...",
-    sendInstructions: "إرسال تعليمات إعادة التعيين",
+    sendInstructions: "إرسال رابط إعادة تعيين آمن",
   },
 } as const;
 
 export function AuthPanelForgot({ role, nextPath }: AuthPanelForgotProps) {
   const locale = normalizeLocale(useLocale());
   const copy = COPY[locale];
+  const primaryButtonClass =
+    "site-cta-primary inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold text-white transition-colors duration-150 lg:h-auto lg:py-3.5";
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -95,7 +97,7 @@ export function AuthPanelForgot({ role, nextPath }: AuthPanelForgotProps) {
 
             <Link
               href={loginHref}
-              className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[#2F3EA3] px-5 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(47,62,163,0.30)] transition-colors duration-150 hover:bg-[#27358F] lg:h-auto lg:py-3.5"
+              className={primaryButtonClass}
             >
               {copy.backToLogin}
             </Link>
@@ -129,7 +131,7 @@ export function AuthPanelForgot({ role, nextPath }: AuthPanelForgotProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[#2F3EA3] px-5 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(47,62,163,0.30)] transition-colors duration-150 hover:bg-[#27358F] disabled:cursor-not-allowed disabled:opacity-65 lg:h-auto lg:py-3.5"
+              className={`${primaryButtonClass} disabled:cursor-not-allowed disabled:opacity-65`}
             >
               {submitting ? copy.sending : copy.sendInstructions}
             </button>

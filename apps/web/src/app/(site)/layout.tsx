@@ -5,7 +5,7 @@ import Preloader from "@/components/tourm/Preloader";
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--site-bg)]">
+    <div className="site-shell min-h-screen bg-[var(--site-bg)]">
       <Preloader />
       {/* anchor for footer "Back to top" */}
       <div id="top" />

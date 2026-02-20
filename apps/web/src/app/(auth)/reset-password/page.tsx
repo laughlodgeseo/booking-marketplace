@@ -13,28 +13,28 @@ const COPY = {
     loadingTitle: "Loading reset form",
     loadingSubtitle: "Preparing password reset...",
     title: "Set a new password",
-    subtitle: "Use your reset token to create a new password",
+    subtitle: "Use your reset token to set a new secure password",
     updated: "Your password has been updated.",
-    continueToLogin: "Continue to login",
+    continueToLogin: "Continue to sign in",
     tokenPlaceholder: "Reset token",
     passwordPlaceholder: "New password",
     updateFailed: "Reset failed",
     updating: "Updating...",
-    updatePassword: "Update password",
+    updatePassword: "Update password securely",
     backToLogin: "Back to login",
   },
   ar: {
     loadingTitle: "جارٍ تحميل نموذج إعادة التعيين",
     loadingSubtitle: "يتم تجهيز إعادة تعيين كلمة المرور...",
     title: "تعيين كلمة مرور جديدة",
-    subtitle: "استخدم رمز إعادة التعيين لإنشاء كلمة مرور جديدة",
+    subtitle: "استخدم رمز إعادة التعيين لإعداد كلمة مرور جديدة وآمنة",
     updated: "تم تحديث كلمة المرور بنجاح.",
     continueToLogin: "المتابعة إلى تسجيل الدخول",
     tokenPlaceholder: "رمز إعادة التعيين",
     passwordPlaceholder: "كلمة المرور الجديدة",
     updateFailed: "فشلت إعادة التعيين",
     updating: "جارٍ التحديث...",
-    updatePassword: "تحديث كلمة المرور",
+    updatePassword: "تحديث كلمة المرور بأمان",
     backToLogin: "العودة إلى تسجيل الدخول",
   },
 } as const;
@@ -94,7 +94,7 @@ function ResetPasswordContent() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="h-11 w-full rounded-xl bg-brand text-sm font-medium text-text-invert shadow-brand-soft hover:bg-brand-hover"
+            className="site-cta-primary h-11 w-full rounded-xl text-sm font-semibold text-text-invert"
           >
             {copy.continueToLogin}
           </button>
@@ -107,7 +107,7 @@ function ResetPasswordContent() {
             placeholder={copy.tokenPlaceholder}
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            className="premium-input h-12 w-full rounded-xl px-4 text-[16px] focus:outline-none"
+            className="h-12 w-full rounded-xl border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.74))] px-4 text-[16px] text-primary shadow-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-200/30"
           />
 
           <input
@@ -117,7 +117,7 @@ function ResetPasswordContent() {
             placeholder={copy.passwordPlaceholder}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="premium-input h-12 w-full rounded-xl px-4 text-[16px] focus:outline-none"
+            className="h-12 w-full rounded-xl border border-indigo-100/85 bg-[linear-gradient(180deg,rgba(248,242,232,0.95),rgba(240,233,220,0.74))] px-4 text-[16px] text-primary shadow-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-200/30"
           />
 
           {error ? <p className="text-sm text-danger">{error}</p> : null}
@@ -125,7 +125,7 @@ function ResetPasswordContent() {
           <button
             type="submit"
             disabled={submitting}
-            className="h-11 w-full rounded-xl bg-brand text-sm font-medium text-text-invert shadow-brand-soft hover:bg-brand-hover disabled:opacity-60"
+            className="site-cta-primary h-11 w-full rounded-xl text-sm font-semibold text-text-invert disabled:opacity-60"
           >
             {submitting ? copy.updating : copy.updatePassword}
           </button>

@@ -31,12 +31,12 @@ type OwnerProgramsCopy = {
 const COPY: Record<AppLocale, OwnerProgramsCopy> = {
   en: {
     eyebrow: "Programs",
-    title: "Choose the operating depth that matches your ownership strategy",
+    title: "Select the operating depth that fits your ownership strategy",
     subtitle:
       "Program architecture is designed around measurable execution standards, transparent responsibility, and scalable delivery.",
     reviewCapabilities: "Review service capabilities",
     discussProgram: "Discuss this program",
-    vendorSignup: "Vendor sign up",
+    vendorSignup: "Start vendor onboarding",
     recommended: "Recommended",
     idealForPrefix: "Ideal for",
     controlLevelLabel: "Control level",
@@ -89,11 +89,11 @@ const COPY: Record<AppLocale, OwnerProgramsCopy> = {
   },
   ar: {
     eyebrow: "البرامج",
-    title: "اختر عمق التشغيل المناسب لاستراتيجية ملكيتك",
+    title: "اختر عمق التشغيل الأنسب لاستراتيجية ملكيتك",
     subtitle: "هيكل البرامج مصمم حول معايير تنفيذ قابلة للقياس ومسؤوليات واضحة وتسليم قابل للتوسع.",
     reviewCapabilities: "راجع قدرات الخدمات",
     discussProgram: "ناقش هذا البرنامج",
-    vendorSignup: "تسجيل مورّد",
+    vendorSignup: "ابدأ تسجيل المورّد",
     recommended: "موصى به",
     idealForPrefix: "مناسب لـ",
     controlLevelLabel: "مستوى التحكم",
@@ -157,7 +157,7 @@ function ProgramCard(props: {
       className={
         emphasized
           ? "relative overflow-hidden rounded-2xl border border-indigo-300/65 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-700 p-6 text-white shadow-[0_26px_54px_rgba(67,56,202,0.34)]"
-          : "group relative overflow-hidden rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]"
+          : "site-surface-card site-surface-card-hover group relative overflow-hidden rounded-2xl p-6"
       }
     >
       {!emphasized ? (
@@ -172,7 +172,7 @@ function ProgramCard(props: {
           <span
             className={[
               "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border",
-              emphasized ? "border-white/35 bg-white/12 text-white" : "border-indigo-200/80 bg-indigo-50/80 text-indigo-600",
+              emphasized ? "border-white/35 bg-white/92 text-indigo-700" : "site-icon-plate text-indigo-600",
             ].join(" ")}
           >
             <props.program.Icon className="h-5 w-5" />
@@ -202,8 +202,13 @@ function ProgramCard(props: {
       <ul className="mt-6 space-y-2">
         {props.program.highlights.slice(0, 7).map((item) => (
           <li key={item} className={["flex gap-3 text-sm", emphasized ? "text-white/88" : "text-secondary/84"].join(" ")}>
-            <span className={["mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg", emphasized ? "bg-white/14" : "bg-indigo-100"].join(" ")}>
-              <CheckCircle2 className={["h-3.5 w-3.5", emphasized ? "text-white" : "text-indigo-600"].join(" ")} />
+            <span
+              className={[
+                "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg",
+                emphasized ? "bg-white/92" : "bg-indigo-100",
+              ].join(" ")}
+            >
+              <CheckCircle2 className={["h-3.5 w-3.5", emphasized ? "text-indigo-700" : "text-indigo-600"].join(" ")} />
             </span>
             <span>{item}</span>
           </li>
@@ -215,11 +220,11 @@ function ProgramCard(props: {
           href="/contact"
           className={[
             "inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition",
-            emphasized ? "bg-white text-indigo-700 hover:bg-indigo-50" : "border border-indigo-300/80 bg-indigo-600 text-white hover:bg-indigo-700",
+            emphasized ? "bg-white text-indigo-700 hover:bg-indigo-50" : "site-cta-primary text-white",
           ].join(" ")}
         >
           {props.copy.discussProgram}
-          <ArrowRight className={["h-4 w-4", emphasized ? "text-indigo-700" : "text-white/90"].join(" ")} />
+          <ArrowRight className={["h-4 w-4", emphasized ? "text-indigo-700" : "text-indigo-100"].join(" ")} />
         </Link>
 
         <Link
@@ -228,7 +233,7 @@ function ProgramCard(props: {
             "inline-flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition",
             emphasized
               ? "border border-white/35 bg-transparent text-white hover:bg-white/12"
-              : "border border-line/80 bg-surface/70 text-primary hover:bg-accent-soft/55",
+              : "site-cta-muted",
           ].join(" ")}
         >
           {props.copy.vendorSignup}
@@ -253,10 +258,10 @@ export default function OwnerPrograms(props: { locale: AppLocale }) {
 
           <Link
             href="/services"
-            className="inline-flex items-center gap-2 rounded-xl border border-line/80 bg-surface/70 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-surface"
+            className="site-cta-muted inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition"
           >
             {copy.reviewCapabilities}
-            <ArrowRight className="h-4 w-4 text-indigo-600" />
+            <ArrowRight className={props.locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-600" : "h-4 w-4 text-indigo-600"} />
           </Link>
         </div>
 
@@ -266,7 +271,7 @@ export default function OwnerPrograms(props: { locale: AppLocale }) {
           ))}
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-indigo-100/85 bg-white/84 shadow-[0_14px_34px_rgba(15,23,42,0.07)]">
+        <div className="site-surface-card mt-8 overflow-hidden rounded-2xl">
           <div className="grid gap-0 md:grid-cols-3">
             {copy.programs.map((program, idx) => (
               <div

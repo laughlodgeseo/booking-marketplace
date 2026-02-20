@@ -45,17 +45,17 @@ type ContactFormCopy = {
 const COPY: Record<AppLocale, ContactFormCopy> = {
   en: {
     sectionEyebrow: "Message us",
-    sectionTitle: "Send details once and let us route it correctly",
-    sectionBody: "Add enough context in your first message so we can respond quickly with accurate next steps.",
+    sectionTitle: "Submit one brief and get the right team assigned",
+    sectionBody: "Provide clear context in your first message so we can return with precise next steps and timelines.",
     includeDetailsTitle: "Include these details for faster response",
     includeDetails: [
       "Booking inquiry: travel dates, guest count, and property link",
       "Owner inquiry: area, unit type, and preferred management model",
       "Support inquiry: booking ID and a clear issue summary",
     ],
-    sentTitle: "Message sent successfully",
+    sentTitle: "Message submitted successfully",
     sentBody:
-      "Thank you. Our team will review and respond as soon as possible. For urgent matters, call +971 50 234 8756.",
+      "Our team has received your request and will respond shortly. For urgent support, call +971 50 234 8756.",
     sendAnother: "Send another message",
     labels: {
       name: "Name",
@@ -68,7 +68,7 @@ const COPY: Record<AppLocale, ContactFormCopy> = {
       name: "Your name",
       email: "you@example.com",
       phone: "+971...",
-      message: "Tell us what you need help with.",
+      message: "Share your requirement, timeline, and any booking or property reference.",
     },
     topics: [
       { value: "BOOKING", label: "Booking inquiry" },
@@ -78,21 +78,21 @@ const COPY: Record<AppLocale, ContactFormCopy> = {
     ],
     sending: "Sending...",
     sendMessage: "Send message",
-    submitNote: "By sending this message, you agree that we may contact you regarding your inquiry.",
+    submitNote: "By submitting this form, you authorize us to contact you regarding your request.",
     fallbackError: "Failed to send message",
   },
   ar: {
     sectionEyebrow: "راسلنا",
-    sectionTitle: "أرسل التفاصيل مرة واحدة وسنتولى توجيهها بدقة",
-    sectionBody: "أضف سياقاً كافياً في رسالتك الأولى لنرد بسرعة وبخطوات تالية واضحة.",
+    sectionTitle: "أرسل طلباً واحداً وسنتولى توجيهه للفريق المناسب",
+    sectionBody: "قدّم سياقاً واضحاً من الرسالة الأولى لنزوّدك بخطوات تالية دقيقة ضمن إطار زمني مناسب.",
     includeDetailsTitle: "أضف هذه المعلومات لتسريع الاستجابة",
     includeDetails: [
       "استفسار حجز: تواريخ السفر وعدد الضيوف ورابط العقار",
       "استفسار مالك: المنطقة ونوع الوحدة ونموذج الإدارة المفضل",
       "استفسار دعم: رقم الحجز وملخص واضح للمشكلة",
     ],
-    sentTitle: "تم إرسال الرسالة بنجاح",
-    sentBody: "شكراً لك. سيقوم فريقنا بالمراجعة والرد في أقرب وقت. للحالات العاجلة اتصل على +971 50 234 8756.",
+    sentTitle: "تم استلام رسالتك بنجاح",
+    sentBody: "تم تسجيل طلبك وسيتواصل فريقنا معك قريباً. للحالات العاجلة اتصل على +971 50 234 8756.",
     sendAnother: "إرسال رسالة أخرى",
     labels: {
       name: "الاسم",
@@ -105,7 +105,7 @@ const COPY: Record<AppLocale, ContactFormCopy> = {
       name: "اسمك",
       email: "you@example.com",
       phone: "+971...",
-      message: "أخبرنا بما تحتاج إليه.",
+      message: "اشرح طلبك والجدول الزمني وأي مرجع حجز أو عقار مرتبط.",
     },
     topics: [
       { value: "BOOKING", label: "استفسار حجز" },
@@ -115,13 +115,13 @@ const COPY: Record<AppLocale, ContactFormCopy> = {
     ],
     sending: "جارٍ الإرسال...",
     sendMessage: "إرسال الرسالة",
-    submitNote: "بإرسال هذه الرسالة، فإنك توافق على أن نتواصل معك بخصوص استفسارك.",
+    submitNote: "بإرسال هذا النموذج، فإنك تفوضنا بالتواصل معك بخصوص طلبك.",
     fallbackError: "تعذر إرسال الرسالة",
   },
 };
 
 const INPUT_CLASS =
-  "mt-2 w-full rounded-2xl border border-indigo-100 bg-white px-4 py-3 text-sm text-primary shadow-[0_8px_22px_rgba(15,23,42,0.06)] outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-200/30 placeholder:text-secondary/45";
+  "mt-2 w-full rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.68))] px-4 py-3 text-sm text-primary shadow-[0_8px_22px_rgba(15,23,42,0.06)] outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-200/30 placeholder:text-secondary/45";
 
 export default function ContactForm(props: { locale: AppLocale }) {
   const copy = COPY[props.locale];
@@ -163,7 +163,7 @@ export default function ContactForm(props: { locale: AppLocale }) {
     }
   }
 
-  const arrowClass = props.locale === "ar" ? "h-4 w-4 rotate-180" : "h-4 w-4";
+  const arrowClass = props.locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
 
   return (
     <section id="contact-form" className="relative w-full scroll-mt-24 py-14 sm:py-18">
@@ -174,12 +174,12 @@ export default function ContactForm(props: { locale: AppLocale }) {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.sectionTitle}</h2>
             <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.sectionBody}</p>
 
-            <div className="mt-6 rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)]">
+            <div className="site-surface-card rounded-2xl p-6">
               <p className="text-sm font-semibold text-primary">{copy.includeDetailsTitle}</p>
               <ul className="mt-4 space-y-2">
                 {copy.includeDetails.map((item) => (
                   <li key={item} className="flex gap-3 text-sm text-secondary/84">
-                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-lg bg-indigo-100">
+                    <span className="mt-0.5 site-icon-plate h-5 w-5 shrink-0 rounded-lg">
                       <CheckCircle2 className="h-3.5 w-3.5 text-indigo-600" />
                     </span>
                     <span>{item}</span>
@@ -189,9 +189,9 @@ export default function ContactForm(props: { locale: AppLocale }) {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-indigo-100/90 bg-white/88 p-6 shadow-[0_18px_42px_rgba(15,23,42,0.10)] sm:p-8">
+          <div className="site-surface-card rounded-[2rem] p-6 sm:p-8">
             {state === "sent" ? (
-              <div className="rounded-2xl border border-indigo-200/85 bg-indigo-50/65 p-6">
+              <div className="rounded-2xl border border-indigo-200/80 bg-indigo-50/58 p-6">
                 <p className="text-lg font-semibold text-primary">{copy.sentTitle}</p>
                 <p className="mt-2 text-sm text-secondary/82">{copy.sentBody}</p>
                 <button
@@ -205,7 +205,7 @@ export default function ContactForm(props: { locale: AppLocale }) {
                     setTopic("BOOKING");
                     setMessage("");
                   }}
-                  className="mt-6 rounded-2xl border border-indigo-200/85 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:bg-indigo-50"
+                  className="site-cta-muted mt-6 rounded-2xl px-4 py-3 text-sm font-semibold transition"
                 >
                   {copy.sendAnother}
                 </button>
@@ -282,7 +282,7 @@ export default function ContactForm(props: { locale: AppLocale }) {
                   className={[
                     "inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition",
                     canSend
-                      ? "border border-indigo-300/80 bg-indigo-600 text-white hover:bg-indigo-700"
+                      ? "site-cta-primary text-white"
                       : "cursor-not-allowed border border-indigo-200 bg-indigo-100/70 text-indigo-300",
                   ].join(" ")}
                 >
