@@ -205,7 +205,10 @@ function matchesFilter(
 
 function setupSearchService(
   properties: TestProperty[],
-  options?: { rate?: number; quoteCurrency?: 'AED' | 'USD' | 'SAR' | 'EUR' | 'GBP' },
+  options?: {
+    rate?: number;
+    quoteCurrency?: 'AED' | 'USD' | 'SAR' | 'EUR' | 'GBP';
+  },
 ) {
   const property = {
     count: jest.fn().mockImplementation(({ where }) => {

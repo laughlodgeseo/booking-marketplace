@@ -93,7 +93,9 @@ export class PropertiesService {
     const limit = input.limit ?? 12;
     const skip = (page - 1) * limit;
     const locale = this.resolveLocale(context?.locale);
-    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const displayCurrency = this.resolveDisplayCurrency(
+      context?.displayCurrency,
+    );
     const fx = await this.fxRates.resolveRate(displayCurrency);
 
     const where: Prisma.PropertyWhereInput = {
@@ -176,8 +178,8 @@ export class PropertiesService {
       total,
       totalPages: Math.ceil(total / limit),
       items: items.map((p) => {
-        const localized = this.pickTranslation(p.translations, locale);
-        const { translations: _translations, ...rest } = p;
+        const { translations, ...rest } = p;
+        const localized = this.pickTranslation(translations, locale);
         const basePriceDisplay = this.toDisplayAmount(p.basePrice, fx.rate);
         const cleaningFeeDisplay = this.toDisplayAmount(p.cleaningFee, fx.rate);
         return {
@@ -208,7 +210,9 @@ export class PropertiesService {
 
   async bySlug(slug: string, context?: RequestContext) {
     const locale = this.resolveLocale(context?.locale);
-    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const displayCurrency = this.resolveDisplayCurrency(
+      context?.displayCurrency,
+    );
     const fx = await this.fxRates.resolveRate(displayCurrency);
     // ✅ Public safety: only show PUBLISHED listings
     const property = await this.prisma.property.findFirst({
@@ -366,7 +370,10 @@ export class PropertiesService {
     });
 
     const basePriceDisplay = this.toDisplayAmount(property.basePrice, fx.rate);
-    const cleaningFeeDisplay = this.toDisplayAmount(property.cleaningFee, fx.rate);
+    const cleaningFeeDisplay = this.toDisplayAmount(
+      property.cleaningFee,
+      fx.rate,
+    );
 
     return {
       ...property,

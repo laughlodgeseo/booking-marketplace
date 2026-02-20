@@ -53,7 +53,7 @@ describe('FxRatesService SAR fallback', () => {
     const latestAsOf = new Date('2026-02-20T00:00:00.000Z');
     const usdAsOf = new Date('2026-02-19T00:00:00.000Z');
 
-    const findFirst = jest.fn(async (args?: FxRateFindFirstArgs) => {
+    const findFirst = jest.fn((args?: FxRateFindFirstArgs) => {
       const quoteCurrency = args?.where?.quoteCurrency;
       if (quoteCurrency === 'USD') {
         return {

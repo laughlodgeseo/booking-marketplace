@@ -157,9 +157,11 @@ export class FxRatesService implements OnModuleDestroy {
     };
   }
 
-  private async findLatestQuoteRate(
-    quoteCurrency: FxQuoteCurrency,
-  ): Promise<{ rate: number; asOfDate: string | null; provider: string | null } | null> {
+  private async findLatestQuoteRate(quoteCurrency: FxQuoteCurrency): Promise<{
+    rate: number;
+    asOfDate: string | null;
+    provider: string | null;
+  } | null> {
     const row = await this.prisma.fxRate.findFirst({
       where: {
         baseCurrency: 'AED',
@@ -380,9 +382,7 @@ export class FxRatesService implements OnModuleDestroy {
     });
   }
 
-  async resolveRate(
-    quoteCurrency: DisplayCurrency,
-  ): Promise<FxRateResolution> {
+  async resolveRate(quoteCurrency: DisplayCurrency): Promise<FxRateResolution> {
     if (quoteCurrency === 'AED') {
       return {
         baseCurrency: 'AED',

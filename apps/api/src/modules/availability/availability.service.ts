@@ -570,7 +570,8 @@ export class AvailabilityService {
     const cleaningFeeAed = property.cleaningFee ?? 0;
     const serviceFeeAed = 0;
     const taxesAed = 0;
-    const totalAed = nightlySubtotalAed + cleaningFeeAed + serviceFeeAed + taxesAed;
+    const totalAed =
+      nightlySubtotalAed + cleaningFeeAed + serviceFeeAed + taxesAed;
 
     const nightlySubtotal = this.toDisplayAmount(nightlySubtotalAed, fx.rate);
     const cleaningFee = this.toDisplayAmount(cleaningFeeAed, fx.rate);
@@ -625,12 +626,16 @@ export class AvailabilityService {
     context?: QuoteContext,
   ) {
     // 1) Quote first (source of truth)
-    const quote = await this.quote(propertyId, {
-      checkIn: dto.checkIn,
-      checkOut: dto.checkOut,
-      guests: dto.guests ?? null,
-      currency: dto.currency,
-    }, context);
+    const quote = await this.quote(
+      propertyId,
+      {
+        checkIn: dto.checkIn,
+        checkOut: dto.checkOut,
+        guests: dto.guests ?? null,
+        currency: dto.currency,
+      },
+      context,
+    );
 
     if (!quote.canBook) {
       return {
@@ -647,8 +652,7 @@ export class AvailabilityService {
       totalAed?: number;
     };
     const fxRate = typeof quote.fxRate === 'number' ? quote.fxRate : 1;
-    const fxAsOfDate =
-      typeof quote.fxAsOf === 'string' ? quote.fxAsOf : null;
+    const fxAsOfDate = typeof quote.fxAsOf === 'string' ? quote.fxAsOf : null;
     const fxProvider =
       typeof quote.fxProvider === 'string' ? quote.fxProvider : null;
 

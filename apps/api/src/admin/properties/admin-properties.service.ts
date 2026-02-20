@@ -194,7 +194,8 @@ export class AdminPropertiesService {
             },
             update: {
               title,
-              description: this.normalizeTranslationString(ar.description) ?? null,
+              description:
+                this.normalizeTranslationString(ar.description) ?? null,
               areaLabel: this.normalizeTranslationString(ar.areaLabel) ?? null,
               tagline: this.normalizeTranslationString(ar.tagline) ?? null,
             },
@@ -202,7 +203,8 @@ export class AdminPropertiesService {
               propertyId,
               locale: LocaleCode.ar,
               title,
-              description: this.normalizeTranslationString(ar.description) ?? null,
+              description:
+                this.normalizeTranslationString(ar.description) ?? null,
               areaLabel: this.normalizeTranslationString(ar.areaLabel) ?? null,
               tagline: this.normalizeTranslationString(ar.tagline) ?? null,
             },

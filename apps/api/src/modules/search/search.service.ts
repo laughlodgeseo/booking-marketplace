@@ -524,7 +524,9 @@ export class SearchService {
     context?: SearchContext,
   ): Promise<SearchPropertiesResult> {
     const locale = this.resolveLocale(context?.locale);
-    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const displayCurrency = this.resolveDisplayCurrency(
+      context?.displayCurrency,
+    );
     const fx = await this.fxRates.resolveRate(displayCurrency);
     const page = q.page ?? 1;
     const limit = q.limit ?? q.pageSize ?? 20;
@@ -727,7 +729,9 @@ export class SearchService {
     q: SearchMapQuery,
     context?: SearchContext,
   ): Promise<SearchMapResult> {
-    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const displayCurrency = this.resolveDisplayCurrency(
+      context?.displayCurrency,
+    );
     const fx = await this.fxRates.resolveRate(displayCurrency);
     // Map endpoints often need bigger limits than cards.
     // Still enforce safety to avoid insane payloads.
@@ -792,7 +796,9 @@ export class SearchService {
     q: SearchMapViewportQuery,
     context?: SearchContext,
   ): Promise<SearchMapViewportResult> {
-    const displayCurrency = this.resolveDisplayCurrency(context?.displayCurrency);
+    const displayCurrency = this.resolveDisplayCurrency(
+      context?.displayCurrency,
+    );
     const fx = await this.fxRates.resolveRate(displayCurrency);
     this.validateViewportBounds(q);
 

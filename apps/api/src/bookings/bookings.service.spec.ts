@@ -134,14 +134,35 @@ describe('BookingsService critical paths', () => {
       fxProvider: 'provider:test',
     };
 
-    const bookingCreate = jest.fn().mockResolvedValue({
-      id: 'booking_fx_1',
-      totalAmount: 32712,
-      currency: 'USD',
-      totalAmountAed: 120000,
-      displayTotalAmount: 32712,
-      displayCurrency: 'USD',
-    });
+    type BookingCreateArgs = {
+      data: {
+        totalAmount: number;
+        currency: string;
+        totalAmountAed: number;
+        displayTotalAmount: number;
+        displayCurrency: string;
+      };
+    };
+
+    type BookingCreateResult = {
+      id: string;
+      totalAmount: number;
+      currency: string;
+      totalAmountAed: number;
+      displayTotalAmount: number;
+      displayCurrency: string;
+    };
+
+    const bookingCreate = jest
+      .fn<Promise<BookingCreateResult>, [BookingCreateArgs]>()
+      .mockResolvedValue({
+        id: 'booking_fx_1',
+        totalAmount: 32712,
+        currency: 'USD',
+        totalAmountAed: 120000,
+        displayTotalAmount: 32712,
+        displayCurrency: 'USD',
+      });
 
     const prismaMock = {
       booking: { findFirst: jest.fn().mockResolvedValue(null) },
@@ -199,17 +220,14 @@ describe('BookingsService critical paths', () => {
 
     expect(result.ok).toBe(true);
     expect(result.reused).toBe(false);
-    expect(bookingCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          totalAmount: 32712,
-          currency: 'USD',
-          totalAmountAed: 120000,
-          displayTotalAmount: 32712,
-          displayCurrency: 'USD',
-        }),
-      }),
-    );
+    const [createArgs] = bookingCreate.mock.calls[0];
+    expect(createArgs.data).toMatchObject({
+      totalAmount: 32712,
+      currency: 'USD',
+      totalAmountAed: 120000,
+      displayTotalAmount: 32712,
+      displayCurrency: 'USD',
+    });
   });
 
   it('creates SYSTEM cancellation snapshot for auto-expiry and is idempotent on rerun', async () => {
