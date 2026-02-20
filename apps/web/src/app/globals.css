@@ -138,15 +138,15 @@ body {
 }
 
 .font-heading {
-  font-family: var(--font-display), var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--font-display), var(--font-latin), "Cormorant Garamond", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .font-arabic-locale {
-  font-family: var(--font-arabic), "Noto Kufi Arabic", "Cairo", "Segoe UI", sans-serif !important;
+  font-family: var(--font-arabic), "Tajawal", "Noto Sans Arabic", "Segoe UI", sans-serif !important;
 }
 
 html[dir="rtl"] .font-heading {
-  font-family: var(--font-arabic), "Noto Kufi Arabic", "Cairo", "Segoe UI", sans-serif;
+  font-family: var(--font-arabic-display), var(--font-arabic), "Noto Naskh Arabic", "Tajawal", "Segoe UI", sans-serif !important;
 }
 
 html[dir="rtl"] body {
@@ -271,7 +271,8 @@ textarea {
   html:not([dir="rtl"]) .auth-shell h1,
   html:not([dir="rtl"]) .auth-shell h2,
   html:not([dir="rtl"]) .auth-shell h3 {
-    font-family: var(--font-display), var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--font-display), var(--font-latin), "Cormorant Garamond", "Avenir Next", "Segoe UI", sans-serif;
+    font-weight: 600;
   }
 
   .site-shell p,
@@ -282,6 +283,14 @@ textarea {
   html[dir="rtl"] .site-shell h1,
   html[dir="rtl"] .site-shell h2,
   html[dir="rtl"] .site-shell h3 {
+    font-family: var(--font-arabic-display), var(--font-arabic), "Noto Naskh Arabic", "Tajawal", "Segoe UI", sans-serif !important;
+    letter-spacing: 0;
+  }
+
+  html[dir="rtl"] .auth-shell h1,
+  html[dir="rtl"] .auth-shell h2,
+  html[dir="rtl"] .auth-shell h3 {
+    font-family: var(--font-arabic-display), var(--font-arabic), "Noto Naskh Arabic", "Tajawal", "Segoe UI", sans-serif !important;
     letter-spacing: 0;
   }
 

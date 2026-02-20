@@ -71,12 +71,20 @@ export default {
         heading: [
           "var(--font-display)",
           "var(--font-latin)",
-          '"Manrope"',
+          '"Cormorant Garamond"',
           '"Avenir Next"',
           '"Segoe UI"',
           "sans-serif",
         ],
-        sans: ['"Manrope"', "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: [
+          "var(--font-latin)",
+          '"Manrope"',
+          '"Avenir Next"',
+          '"Segoe UI"',
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       borderRadius: {
         "4xl": "2rem",

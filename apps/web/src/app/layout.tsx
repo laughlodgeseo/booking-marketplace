@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
-import { Manrope, Sora } from "next/font/google";
+import {
+  Cormorant_Garamond,
+  Manrope,
+  Noto_Naskh_Arabic,
+  Tajawal,
+} from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import Providers from "./providers";
@@ -9,11 +13,18 @@ import { directionForLocale } from "@/lib/i18n/config";
 import { getLocaleMessages } from "@/lib/i18n/messages";
 import { getRequestLocale } from "@/lib/i18n/server";
 
-const arabicFont = Cairo({
+const arabicFont = Tajawal({
   subsets: ["arabic"],
   variable: "--font-arabic",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "700"],
+});
+
+const arabicDisplayFont = Noto_Naskh_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-arabic-display",
+  display: "swap",
+  weight: ["500", "600", "700"],
 });
 
 const latinFont = Manrope({
@@ -23,7 +34,7 @@ const latinFont = Manrope({
   weight: ["400", "500", "600", "700"],
 });
 
-const displayFont = Sora({
+const displayFont = Cormorant_Garamond({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
@@ -75,6 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         className={[
           "font-site min-h-screen bg-[var(--site-bg)]",
           arabicFont.variable,
+          arabicDisplayFont.variable,
           latinFont.variable,
           displayFont.variable,
           locale === "ar" ? "font-arabic-locale" : "",
