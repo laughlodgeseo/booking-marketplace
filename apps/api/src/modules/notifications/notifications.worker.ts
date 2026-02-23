@@ -383,12 +383,12 @@ export class NotificationsWorker implements OnModuleInit {
   }
 
   private smtpConfig(): SmtpConfig {
-    const host = (process.env.SMTP_HOST || '').trim();
-    const portRaw = (process.env.SMTP_PORT || '').trim();
+    const host = this.readEnv('SMTP_HOST');
+    const portRaw = this.readEnv('SMTP_PORT');
     const port = Number(portRaw || '587');
 
     // SSL on 465 is mandatory for cPanel SMTP.
-    const secureFlag = (process.env.SMTP_SECURE || '').trim().toLowerCase();
+    const secureFlag = this.readEnv('SMTP_SECURE').toLowerCase();
     const secureFromEnv =
       secureFlag === 'true' || secureFlag === '1' || secureFlag === 'yes';
     const secure = port === 465 ? true : secureFromEnv;
@@ -397,13 +397,13 @@ export class NotificationsWorker implements OnModuleInit {
         ? false
         : this.readBooleanEnv('SMTP_REQUIRE_TLS', !secure);
 
-    const user = (process.env.SMTP_USER || '').trim();
-    const pass = (process.env.SMTP_PASS || '').trim();
+    const user = this.readEnv('SMTP_USER');
+    const pass = this.readEnv('SMTP_PASS');
     const from =
-      (process.env.SMTP_FROM || '').trim() ||
-      (process.env.SMTP_FROM_EMAIL || '').trim() ||
+      this.readEnv('SMTP_FROM') ||
+      this.readEnv('SMTP_FROM_EMAIL') ||
       'RentPropertyUAE <booking@rentpropertyuae.com>';
-    const replyTo = (process.env.SMTP_REPLY_TO || '').trim() || undefined;
+    const replyTo = this.readEnv('SMTP_REPLY_TO') || undefined;
 
     const configured =
       Boolean(host) &&
@@ -515,18 +515,33 @@ export class NotificationsWorker implements OnModuleInit {
   }
 
   private readPositiveInt(key: string, fallback: number): number {
-    const raw = (process.env[key] || '').trim();
+    const raw = this.readEnv(key);
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) return fallback;
     return Math.trunc(value);
   }
 
   private readBooleanEnv(key: string, fallback: boolean): boolean {
-    const raw = (process.env[key] || '').trim().toLowerCase();
+    const raw = this.readEnv(key).toLowerCase();
     if (!raw) return fallback;
     if (raw === '1' || raw === 'true' || raw === 'yes') return true;
     if (raw === '0' || raw === 'false' || raw === 'no') return false;
     return fallback;
+  }
+
+  private readEnv(key: string): string {
+    const raw = (process.env[key] || '').trim();
+    if (raw.length >= 2) {
+      const first = raw[0];
+      const last = raw[raw.length - 1];
+      if (
+        (first === '"' && last === '"') ||
+        (first === "'" && last === "'")
+      ) {
+        return raw.slice(1, -1).trim();
+      }
+    }
+    return raw;
   }
 
   private computeBackoffMs(attempt: number): number {

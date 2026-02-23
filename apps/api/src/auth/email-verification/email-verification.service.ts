@@ -56,13 +56,12 @@ export class EmailVerificationService {
   }
 
   private smtpConfigured(): boolean {
-    const host = (process.env.SMTP_HOST || '').trim();
-    const port = Number.parseInt((process.env.SMTP_PORT || '').trim(), 10);
-    const user = (process.env.SMTP_USER || '').trim();
-    const pass = (process.env.SMTP_PASS || '').trim();
+    const host = this.readEnv('SMTP_HOST');
+    const port = Number.parseInt(this.readEnv('SMTP_PORT'), 10);
+    const user = this.readEnv('SMTP_USER');
+    const pass = this.readEnv('SMTP_PASS');
     const from =
-      (process.env.SMTP_FROM || '').trim() ||
-      (process.env.SMTP_FROM_EMAIL || '').trim();
+      this.readEnv('SMTP_FROM') || this.readEnv('SMTP_FROM_EMAIL');
 
     return (
       Boolean(host) &&
@@ -72,6 +71,21 @@ export class EmailVerificationService {
       Boolean(pass) &&
       Boolean(from)
     );
+  }
+
+  private readEnv(key: string): string {
+    const raw = (process.env[key] || '').trim();
+    if (raw.length >= 2) {
+      const first = raw[0];
+      const last = raw[raw.length - 1];
+      if (
+        (first === '"' && last === '"') ||
+        (first === "'" && last === "'")
+      ) {
+        return raw.slice(1, -1).trim();
+      }
+    }
+    return raw;
   }
 
   private generateOtp(): string {
