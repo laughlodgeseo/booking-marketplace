@@ -350,7 +350,8 @@ export class NotificationsWorker implements OnModuleInit {
     if (smtp.port !== 465 || !smtp.secure) return false;
 
     const record = this.toRecord(err);
-    const code = typeof record.code === 'string' ? record.code.toUpperCase() : '';
+    const code =
+      typeof record.code === 'string' ? record.code.toUpperCase() : '';
     const message = this.errMessage(err).toLowerCase();
 
     return (
@@ -395,9 +396,7 @@ export class NotificationsWorker implements OnModuleInit {
     // Port 587 is submission + STARTTLS in practice; force non-implicit TLS there.
     const secure = port === 465 ? true : port === 587 ? false : secureFromEnv;
     const requireTls =
-      port === 465
-        ? false
-        : this.readBooleanEnv('SMTP_REQUIRE_TLS', !secure);
+      port === 465 ? false : this.readBooleanEnv('SMTP_REQUIRE_TLS', !secure);
 
     const user = this.readEnv('SMTP_USER');
     const pass = this.readEnv('SMTP_PASS');
@@ -549,10 +548,7 @@ export class NotificationsWorker implements OnModuleInit {
     if (raw.length >= 2) {
       const first = raw[0];
       const last = raw[raw.length - 1];
-      if (
-        (first === '"' && last === '"') ||
-        (first === "'" && last === "'")
-      ) {
+      if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
         return raw.slice(1, -1).trim();
       }
     }

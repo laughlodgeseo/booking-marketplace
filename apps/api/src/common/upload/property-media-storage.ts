@@ -68,13 +68,13 @@ function cloudinarySignature(
   apiSecret: string,
 ): string {
   const serialized = Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== '',
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
-  return createHash('sha1')
-    .update(`${serialized}${apiSecret}`)
-    .digest('hex');
+  return createHash('sha1').update(`${serialized}${apiSecret}`).digest('hex');
 }
 
 function localPropertyImageUrl(file: Express.Multer.File): string {
@@ -178,9 +178,10 @@ export async function resolvePropertyImageUrl(
     );
   }
 
-  const payload = (await response.json().catch(() => null)) as
-    | { secure_url?: unknown; url?: unknown }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    secure_url?: unknown;
+    url?: unknown;
+  } | null;
 
   const secureUrl =
     typeof payload?.secure_url === 'string' && payload.secure_url.trim()

@@ -60,8 +60,7 @@ export class EmailVerificationService {
     const port = Number.parseInt(this.readEnv('SMTP_PORT'), 10);
     const user = this.readEnv('SMTP_USER');
     const pass = this.readEnv('SMTP_PASS');
-    const from =
-      this.readEnv('SMTP_FROM') || this.readEnv('SMTP_FROM_EMAIL');
+    const from = this.readEnv('SMTP_FROM') || this.readEnv('SMTP_FROM_EMAIL');
 
     return (
       Boolean(host) &&
@@ -78,10 +77,7 @@ export class EmailVerificationService {
     if (raw.length >= 2) {
       const first = raw[0];
       const last = raw[raw.length - 1];
-      if (
-        (first === '"' && last === '"') ||
-        (first === "'" && last === "'")
-      ) {
+      if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
         return raw.slice(1, -1).trim();
       }
     }
