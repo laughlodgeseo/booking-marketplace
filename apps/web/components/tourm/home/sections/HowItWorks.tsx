@@ -132,17 +132,20 @@ export default function HowItWorks({
           const section = sectionRef.current;
           const viewport = viewportRef.current;
           const track = trackRef.current;
-          if (!section || !viewport || !track) return;
+          if (!section || !viewport || !track) {
+            setGsapMode(false);
+            return;
+          }
 
           const shiftDistance = () => {
-            const styles = window.getComputedStyle(viewport);
-            const leftPad = Number.parseFloat(styles.paddingLeft || "0");
-            const rightPad = Number.parseFloat(styles.paddingRight || "0");
-            const visibleWidth = viewport.clientWidth - leftPad - rightPad;
+            const visibleWidth = viewport.clientWidth;
             return Math.max(0, track.scrollWidth - visibleWidth);
           };
-          if (shiftDistance() < 48) {
+
+          const initialShift = shiftDistance();
+          if (initialShift < 48) {
             setGsapMode(false);
+            gsap.set(track, { clearProps: "transform" });
             return;
           }
 
@@ -152,13 +155,14 @@ export default function HowItWorks({
             track,
             { x: 0 },
             {
-              x: () => -shiftDistance(),
+              x: () => (isRtl ? shiftDistance() : -shiftDistance()),
               ease: "none",
               scrollTrigger: {
-                trigger: viewport,
-                start: "center center",
-                end: () => `+=${Math.max(window.innerHeight * 1.2, shiftDistance() + window.innerHeight * 0.72)}`,
-                pin: true,
+                trigger: section,
+                start: "top center",
+                end: () =>
+                  `+=${Math.max(window.innerHeight * 1.1, shiftDistance() + window.innerHeight * 0.75)}`,
+                pin: viewport,
                 scrub: 1,
                 anticipatePin: 1,
                 invalidateOnRefresh: true,
@@ -170,7 +174,7 @@ export default function HowItWorks({
           cards.forEach((card) => {
             gsap.fromTo(
               card,
-              { autoAlpha: 0.32, x: 72, y: 0, scale: 0.94 },
+              { autoAlpha: 0.32, x: isRtl ? -72 : 72, y: 0, scale: 0.94 },
               {
                 autoAlpha: 1,
                 x: 0,
@@ -188,6 +192,8 @@ export default function HowItWorks({
             );
           });
 
+          requestAnimationFrame(() => ScrollTrigger.refresh());
+
           return () => {
             horizontalTween.kill();
             gsap.set(track, { clearProps: "transform" });
@@ -199,6 +205,10 @@ export default function HowItWorks({
 
         mm.add("(max-width: 767px), (prefers-reduced-motion: reduce)", () => {
           setGsapMode(false);
+          const track = trackRef.current;
+          if (track) {
+            gsap.set(track, { clearProps: "transform" });
+          }
         });
       } catch {
         if (mounted) {
