@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        // Keep local route handlers (`/api/auth/me`, `/api/public/fx-rates`) intact.
+        source: "/api/:path((?!auth/me|public/fx-rates).*)",
+        destination: `${apiOrigin}/api/:path`,
+      },
+      {
         source: "/uploads/:path*",
         destination: `${apiOrigin}/uploads/:path*`,
       },
