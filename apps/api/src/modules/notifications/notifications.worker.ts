@@ -18,6 +18,7 @@ type SmtpConfig = {
   host: string;
   port: number;
   secure: boolean;
+  requireTls: boolean;
   user: string;
   pass: string;
   from: string;
@@ -248,7 +249,6 @@ export class NotificationsWorker implements OnModuleInit {
       );
     }
 
-    const transporter = this.getTransporter(smtp);
     const payloadBrand = this.getNested(input.payload, 'brand');
     const brandOverrides = this.isObject(payloadBrand) ? payloadBrand : {};
     const resolvedBrandLogo = this.resolveBrandLogo();
@@ -274,29 +274,104 @@ export class NotificationsWorker implements OnModuleInit {
     const startedAt = Date.now();
 
     try {
-      const rawInfo: unknown = await transporter.sendMail(message);
-      const info = this.toRecord(rawInfo);
-      const latencyMs = Date.now() - startedAt;
-      const messageId = info.messageId;
-      const smtpResponse = info.response;
-      return {
+      return await this.sendViaSmtp({
+        smtp,
+        message,
         to,
         attempt: input.attempt,
-        latencyMs,
-        messageId:
-          typeof messageId === 'string' && messageId.trim() ? messageId : null,
-        smtpResponse:
-          typeof smtpResponse === 'string' && smtpResponse.trim()
-            ? smtpResponse
-            : null,
-      };
+        startedAt,
+      });
     } catch (err: unknown) {
+      if (this.shouldFallbackToSubmissionPort(err, smtp)) {
+        const fallbackSmtp = this.buildSubmissionFallbackSmtp(smtp);
+        this.logger.warn(
+          `Primary SMTP connection timed out on ${smtp.host}:${smtp.port}. Retrying once via ${fallbackSmtp.host}:${fallbackSmtp.port}.`,
+        );
+
+        try {
+          return await this.sendViaSmtp({
+            smtp: fallbackSmtp,
+            message,
+            to,
+            attempt: input.attempt,
+            startedAt,
+          });
+        } catch (fallbackErr: unknown) {
+          const fallbackContext: DeliveryErrorContext = {
+            to,
+            latencyMs: Date.now() - startedAt,
+          };
+          throw this.withDeliveryContext(fallbackErr, fallbackContext);
+        }
+      }
+
       const context: DeliveryErrorContext = {
         to,
         latencyMs: Date.now() - startedAt,
       };
       throw this.withDeliveryContext(err, context);
     }
+  }
+
+  private async sendViaSmtp(input: {
+    smtp: SmtpConfig;
+    message: SendMailOptions;
+    to: string;
+    attempt: number;
+    startedAt: number;
+  }): Promise<DeliveryResult> {
+    const transporter = this.getTransporter(input.smtp);
+    const rawInfo: unknown = await transporter.sendMail(input.message);
+    const info = this.toRecord(rawInfo);
+    const latencyMs = Date.now() - input.startedAt;
+    const messageId = info.messageId;
+    const smtpResponse = info.response;
+
+    return {
+      to: input.to,
+      attempt: input.attempt,
+      latencyMs,
+      messageId:
+        typeof messageId === 'string' && messageId.trim() ? messageId : null,
+      smtpResponse:
+        typeof smtpResponse === 'string' && smtpResponse.trim()
+          ? smtpResponse
+          : null,
+    };
+  }
+
+  private shouldFallbackToSubmissionPort(
+    err: unknown,
+    smtp: SmtpConfig,
+  ): boolean {
+    const fallbackEnabled = this.readBooleanEnv('SMTP_FALLBACK_TO_587', true);
+    if (!fallbackEnabled) return false;
+    if (smtp.port !== 465 || !smtp.secure) return false;
+
+    const record = this.toRecord(err);
+    const code = typeof record.code === 'string' ? record.code.toUpperCase() : '';
+    const message = this.errMessage(err).toLowerCase();
+
+    return (
+      code === 'ETIMEDOUT' ||
+      code === 'ECONNECTION' ||
+      code === 'ESOCKET' ||
+      code === 'EHOSTUNREACH' ||
+      code === 'ECONNREFUSED' ||
+      message.includes('timeout')
+    );
+  }
+
+  private buildSubmissionFallbackSmtp(primary: SmtpConfig): SmtpConfig {
+    const fallbackPort = this.readPositiveInt('SMTP_FALLBACK_PORT', 587);
+    const fallbackSecure = fallbackPort === 465;
+
+    return {
+      ...primary,
+      port: fallbackPort,
+      secure: fallbackSecure,
+      requireTls: fallbackSecure ? false : true,
+    };
   }
 
   private async lookupUserEmail(userId: string): Promise<string | null> {
@@ -317,6 +392,10 @@ export class NotificationsWorker implements OnModuleInit {
     const secureFromEnv =
       secureFlag === 'true' || secureFlag === '1' || secureFlag === 'yes';
     const secure = port === 465 ? true : secureFromEnv;
+    const requireTls =
+      port === 465
+        ? false
+        : this.readBooleanEnv('SMTP_REQUIRE_TLS', !secure);
 
     const user = (process.env.SMTP_USER || '').trim();
     const pass = (process.env.SMTP_PASS || '').trim();
@@ -339,6 +418,7 @@ export class NotificationsWorker implements OnModuleInit {
       host,
       port,
       secure,
+      requireTls,
       user,
       pass,
       from,
@@ -361,6 +441,7 @@ export class NotificationsWorker implements OnModuleInit {
       smtp.host,
       String(smtp.port),
       String(smtp.secure),
+      String(smtp.requireTls),
       smtp.user,
       smtp.from,
       smtp.replyTo ?? '',
@@ -381,6 +462,7 @@ export class NotificationsWorker implements OnModuleInit {
       host: smtp.host,
       port: smtp.port,
       secure: smtp.secure,
+      requireTLS: smtp.requireTls,
       auth: { user: smtp.user, pass: smtp.pass },
       pool: true,
       maxConnections: smtp.maxConnections,
@@ -437,6 +519,14 @@ export class NotificationsWorker implements OnModuleInit {
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) return fallback;
     return Math.trunc(value);
+  }
+
+  private readBooleanEnv(key: string, fallback: boolean): boolean {
+    const raw = (process.env[key] || '').trim().toLowerCase();
+    if (!raw) return fallback;
+    if (raw === '1' || raw === 'true' || raw === 'yes') return true;
+    if (raw === '0' || raw === 'false' || raw === 'no') return false;
+    return fallback;
   }
 
   private computeBackoffMs(attempt: number): number {
