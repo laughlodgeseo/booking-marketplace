@@ -125,28 +125,45 @@ export class EmailVerificationService {
     throw new BadRequestException('Invalid or expired code');
   }
 
+  private normalizeEmail(email: string | undefined): string | null {
+    if (typeof email !== 'string') return null;
+    const normalized = email.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+  }
+
   /**
-   * Request OTP for currently authenticated user.
+   * Request OTP for authenticated user OR public resend flow by email.
    * HARDENING:
-   * - Silent success if already verified (no leakage)
+   * - Silent success for unknown/verified accounts in public flow (no leakage)
    * - Resend cooldown (silent ok:true if within cooldown)
    * - Throttle max per window (silent ok:true if exceeded)
    * - Invalidates previous unused OTPs (already did)
    * - Never returns OTP or expiry details to client
    */
-  async requestOtp(input: { userId: string; emailOverride?: string }) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: input.userId },
-      select: { id: true, email: true, isEmailVerified: true },
-    });
+  async requestOtp(input: { userId?: string; email?: string }) {
+    const requestedEmail = this.normalizeEmail(input.email);
 
-    if (!user) throw new BadRequestException('User not found');
+    const user = input.userId
+      ? await this.prisma.user.findUnique({
+          where: { id: input.userId },
+          select: { id: true, email: true, isEmailVerified: true },
+        })
+      : requestedEmail
+        ? await this.prisma.user.findUnique({
+            where: { email: requestedEmail },
+            select: { id: true, email: true, isEmailVerified: true },
+          })
+        : null;
+
+    if (!user) {
+      // Public endpoint must not leak account existence.
+      if (!input.userId) return { ok: true };
+      throw new BadRequestException('User not found');
+    }
 
     // No leakage: do not tell client they are already verified.
     if (user.isEmailVerified) return { ok: true };
 
-    // V1 hardening: only verify the user's current email.
-    // Ignore overrides to prevent validating a different email address silently.
     const email = user.email.trim().toLowerCase();
     if (!email) throw new BadRequestException('Email not found');
 

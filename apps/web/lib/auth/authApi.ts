@@ -107,12 +107,18 @@ export async function resetPassword(payload: ResetPasswordPayload): Promise<{ ok
   return unwrap(res);
 }
 
-export async function requestEmailVerificationOtp(): Promise<{ ok: true }> {
+export async function requestEmailVerificationOtp(email?: string): Promise<{ ok: true }> {
+  const normalizedEmail =
+    typeof email === "string" && email.trim()
+      ? email.trim().toLowerCase()
+      : undefined;
+
   const res = await apiFetch<{ ok: true }>("/auth/email-verification/request", {
     method: "POST",
     credentials: "include",
     cache: "no-store",
-    body: {},
+    auth: "none",
+    body: normalizedEmail ? { email: normalizedEmail } : {},
   });
   return unwrap(res);
 }

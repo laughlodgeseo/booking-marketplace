@@ -1,11 +1,15 @@
-import { IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsOptional } from 'class-validator';
 
 export class RequestEmailVerificationDto {
   /**
-   * Optional: if you later support verifying a different email.
-   * For V1 we default to user's current email.
+   * For public resend flow (logged out users), email is required by UI and
+   * handled with generic responses to avoid account enumeration.
    */
   @IsOptional()
-  @IsString()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : undefined,
+  )
+  @IsEmail()
   email?: string;
 }

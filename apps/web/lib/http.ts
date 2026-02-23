@@ -93,6 +93,42 @@ function shouldDebugRequest(path: string): boolean {
   return p.includes("/auth/login") || p.includes("/calendar");
 }
 
+function resolveRequestUrl(path: string): URL {
+  const raw = apiUrl(path);
+  if (/^https?:\/\//i.test(raw)) {
+    return new URL(raw);
+  }
+  if (typeof window !== "undefined") {
+    return new URL(raw, window.location.origin);
+  }
+  throw new Error(`Relative API URL cannot be resolved on server: ${raw}`);
+}
+
+function maybeRedirectToLoginOnAuthFailure(path: string): void {
+  if (typeof window === "undefined") return;
+
+  const requestPath = path.toLowerCase();
+  if (requestPath.includes("/auth/")) return;
+
+  const currentPath = window.location.pathname.toLowerCase();
+  if (
+    currentPath.startsWith("/login") ||
+    currentPath.startsWith("/auth") ||
+    currentPath.startsWith("/verify-email")
+  ) {
+    return;
+  }
+
+  const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const query = new URLSearchParams();
+  if (next && next !== "/") {
+    query.set("next", next);
+  }
+
+  const target = query.toString() ? `/login?${query.toString()}` : "/login";
+  window.location.assign(target);
+}
+
 function canTryRefresh(path: string, authMode: "auto" | "none"): boolean {
   if (authMode !== "auto") return false;
   const p = path.toLowerCase();
@@ -175,7 +211,7 @@ export async function apiFetch<T>(
 
   let url: URL;
   try {
-    url = new URL(apiUrl(path));
+    url = resolveRequestUrl(path);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Invalid URL";
     return { ok: false, status: 0, message: msg };
@@ -196,14 +232,19 @@ export async function apiFetch<T>(
     ...(opts?.headers ?? {}),
   };
 
-  // attach Authorization by default (unless disabled)
   const authMode = opts?.auth ?? "auto";
+  const accessToken = authMode === "auto" ? getAccessToken() : null;
+
+  // attach Authorization by default (unless disabled)
   if (authMode === "auto") {
-    const token = getAccessToken();
-    if (token && !headers.Authorization) {
-      headers.Authorization = `Bearer ${token}`;
+    if (accessToken && !headers.Authorization) {
+      headers.Authorization = `Bearer ${accessToken}`;
     }
   }
+
+  const hadBearerToken =
+    typeof headers.Authorization === "string" &&
+    headers.Authorization.trim().length > 0;
 
   let body: BodyInit | undefined = undefined;
 
@@ -247,7 +288,9 @@ export async function apiFetch<T>(
     console.info(`[apiFetch] ${method} ${url.toString()} -> ${status}`);
   }
 
+  let refreshAttempted = false;
   if (status === 401 && canTryRefresh(path, authMode)) {
+    refreshAttempted = true;
     const nextToken = await refreshAccessToken(debugLog);
     if (nextToken) {
       const retryHeaders: Record<string, string> = {
@@ -276,6 +319,11 @@ export async function apiFetch<T>(
     console.info(
       `[apiFetch] ${method} ${url.toString()} -> retry status ${finalStatus}`
     );
+  }
+
+  if (finalStatus === 401 && refreshAttempted && hadBearerToken) {
+    clearAccessToken();
+    maybeRedirectToLoginOnAuthFailure(path);
   }
 
   if (!res.ok) {

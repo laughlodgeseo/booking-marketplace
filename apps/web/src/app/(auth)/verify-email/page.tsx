@@ -124,7 +124,7 @@ function VerifyEmailContent() {
       setBusy("sending");
       setError(null);
       try {
-        await requestEmailVerificationOtp();
+        await requestEmailVerificationOtp(email || undefined);
         if (!alive) return;
         setOk(copy.sentCode);
       } catch (err) {
@@ -140,7 +140,7 @@ function VerifyEmailContent() {
     return () => {
       alive = false;
     };
-  }, [copy.sendCodeFailed, copy.sentCode]);
+  }, [copy.sendCodeFailed, copy.sentCode, email]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -179,7 +179,7 @@ function VerifyEmailContent() {
     setError(null);
     setOk(null);
     try {
-      await requestEmailVerificationOtp();
+      await requestEmailVerificationOtp(email || undefined);
       setOk(copy.resentSuccess);
       setCooldown(60);
     } catch (err) {

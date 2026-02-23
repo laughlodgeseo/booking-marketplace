@@ -12,7 +12,11 @@ type AccessUser = {
   role?: string;
 };
 
-type AccessRequest = Omit<Request, 'user'> & {
+type MaybeAccessRequest = Omit<Request, 'user'> & {
+  user?: AccessUser;
+};
+
+type GuardedAccessRequest = Omit<Request, 'user'> & {
   user: AccessUser;
 };
 
@@ -21,23 +25,24 @@ export class EmailVerificationController {
   constructor(private readonly svc: EmailVerificationService) {}
 
   @Post('request')
-  @UseGuards(JwtAccessGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async request(
-    @Req() req: AccessRequest,
+    @Req() req: MaybeAccessRequest,
     @Body() dto: RequestEmailVerificationDto,
   ) {
-    void dto;
-    // V1 hardening: service ignores email override and only uses user's canonical email.
     return this.svc.requestOtp({
-      userId: req.user.id,
+      userId: req.user?.id,
+      email: dto.email,
     });
   }
 
   @Post('verify')
   @UseGuards(JwtAccessGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  async verify(@Req() req: AccessRequest, @Body() dto: VerifyEmailOtpDto) {
+  async verify(
+    @Req() req: GuardedAccessRequest,
+    @Body() dto: VerifyEmailOtpDto,
+  ) {
     return this.svc.verifyOtp({
       userId: req.user.id,
       otp: dto.otp,

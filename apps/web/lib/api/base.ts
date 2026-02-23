@@ -58,6 +58,25 @@ function normalizeBasePath(pathname: string): string {
   return path || "/";
 }
 
+function readBooleanEnv(value: string | undefined, fallback: boolean): boolean {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (normalized === "1" || normalized === "true" || normalized === "yes") {
+    return true;
+  }
+  if (normalized === "0" || normalized === "false" || normalized === "no") {
+    return false;
+  }
+  return fallback;
+}
+
+function shouldUseSameOriginApiInBrowser(): boolean {
+  if (typeof window === "undefined") return false;
+  // Default ON so browser requests go through Next rewrites (/api -> backend),
+  // making auth cookies first-party and more reliable across browsers.
+  return readBooleanEnv(process.env.NEXT_PUBLIC_API_USE_PROXY, true);
+}
+
 function readApiBaseFromEnv(): string | null {
   const raw = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
   if (!raw) return null;
@@ -115,6 +134,9 @@ export function apiOrigin(): string {
 }
 
 export function apiBaseUrl(): string {
+  if (shouldUseSameOriginApiInBrowser()) {
+    return DEFAULT_API_BASE_PATH;
+  }
   const fromBase = readApiBaseFromEnv();
   if (fromBase) return fromBase;
   return `${apiOrigin()}${DEFAULT_API_BASE_PATH}`;
