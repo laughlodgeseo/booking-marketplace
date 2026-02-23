@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Post,
   Req,
   Res,
@@ -58,6 +59,8 @@ type RegisterResult = {
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly auth: AuthService,
     private readonly emailVerification: EmailVerificationService,
@@ -106,7 +109,13 @@ export class AuthController {
 
     const userId = result.user.id;
     if (userId) {
-      this.emailVerification.requestOtp({ userId }).catch(() => undefined);
+      this.emailVerification.requestOtp({ userId }).catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : 'Unknown OTP dispatch error';
+        this.logger.warn(
+          `OTP dispatch queue failed for userId=${userId}: ${message}`,
+        );
+      });
     }
 
     return result;

@@ -84,6 +84,7 @@ export class NotificationsWorker implements OnModuleInit {
 
   onModuleInit() {
     this.warnOnInsecureLogoUrl();
+    this.warnOnMissingSmtpConfig();
   }
 
   @Cron('*/5 * * * * *') // every 5 seconds
@@ -243,7 +244,7 @@ export class NotificationsWorker implements OnModuleInit {
     const smtp = this.smtpConfig();
     if (!smtp.configured) {
       throw new Error(
-        'SMTP not configured. Required env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM',
+        'SMTP not configured. Required env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM (or SMTP_FROM_EMAIL)',
       );
     }
 
@@ -321,6 +322,7 @@ export class NotificationsWorker implements OnModuleInit {
     const pass = (process.env.SMTP_PASS || '').trim();
     const from =
       (process.env.SMTP_FROM || '').trim() ||
+      (process.env.SMTP_FROM_EMAIL || '').trim() ||
       'RentPropertyUAE <booking@rentpropertyuae.com>';
     const replyTo = (process.env.SMTP_REPLY_TO || '').trim() || undefined;
 
@@ -417,6 +419,17 @@ export class NotificationsWorker implements OnModuleInit {
         'BRAND_LOGO_URL should use HTTPS (or cid: for inline assets) to avoid blocked images in email clients.',
       );
     }
+  }
+
+  private warnOnMissingSmtpConfig() {
+    const smtp = this.smtpConfig();
+    if (smtp.configured) {
+      return;
+    }
+
+    this.logger.error(
+      'SMTP is not configured. Email notifications (including verification OTP) will fail until SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM/SMTP_FROM_EMAIL are set.',
+    );
   }
 
   private readPositiveInt(key: string, fallback: number): number {

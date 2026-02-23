@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../../modules/prisma/prisma.service';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
 import { NotificationType } from '@prisma/client';
@@ -48,6 +52,25 @@ export class EmailVerificationService {
     // Pepper should be stable per environment; set in .env for production.
     return (
       process.env.EMAIL_OTP_PEPPER || process.env.JWT_SECRET || 'dev-otp-pepper'
+    );
+  }
+
+  private smtpConfigured(): boolean {
+    const host = (process.env.SMTP_HOST || '').trim();
+    const port = Number.parseInt((process.env.SMTP_PORT || '').trim(), 10);
+    const user = (process.env.SMTP_USER || '').trim();
+    const pass = (process.env.SMTP_PASS || '').trim();
+    const from =
+      (process.env.SMTP_FROM || '').trim() ||
+      (process.env.SMTP_FROM_EMAIL || '').trim();
+
+    return (
+      Boolean(host) &&
+      Number.isFinite(port) &&
+      port > 0 &&
+      Boolean(user) &&
+      Boolean(pass) &&
+      Boolean(from)
     );
   }
 
@@ -117,6 +140,12 @@ export class EmailVerificationService {
     const email = user.email.trim().toLowerCase();
     if (!email) throw new BadRequestException('Email not found');
 
+    if (!this.smtpConfigured()) {
+      throw new ServiceUnavailableException(
+        'Email delivery is temporarily unavailable. Please try again shortly.',
+      );
+    }
+
     const now = new Date();
 
     // Resend cooldown check (silent ok:true)
@@ -181,12 +210,14 @@ export class EmailVerificationService {
     // Do not return otp to client.
     await this.notifications.emit({
       type: NotificationType.EMAIL_VERIFICATION_OTP,
-      entityType: 'user',
-      entityId: user.id,
+      // Use token id to avoid notification idempotency collisions for repeated OTP requests.
+      entityType: 'email_verification_token',
+      entityId: token.id,
       recipientUserId: user.id,
       payload: {
         email,
         otp,
+        tokenId: token.id,
         expiresAt: token.expiresAt.toISOString(),
       },
     });

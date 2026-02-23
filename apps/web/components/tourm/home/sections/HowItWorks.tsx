@@ -129,10 +129,9 @@ export default function HowItWorks({
         mediaMatcher = mm;
 
         mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
-          const section = sectionRef.current;
           const viewport = viewportRef.current;
           const track = trackRef.current;
-          if (!section || !viewport || !track) {
+          if (!viewport || !track) {
             setGsapMode(false);
             return;
           }
@@ -153,16 +152,16 @@ export default function HowItWorks({
 
           const horizontalTween = gsap.fromTo(
             track,
-            { x: 0 },
+            { x: () => (isRtl ? -shiftDistance() : 0) },
             {
-              x: () => (isRtl ? shiftDistance() : -shiftDistance()),
+              x: () => (isRtl ? 0 : -shiftDistance()),
               ease: "none",
               scrollTrigger: {
-                trigger: section,
-                start: "top center",
+                trigger: viewport,
+                start: "center center",
                 end: () =>
-                  `+=${Math.max(window.innerHeight * 1.1, shiftDistance() + window.innerHeight * 0.75)}`,
-                pin: viewport,
+                  `+=${Math.max(window.innerHeight * 1.2, shiftDistance() + window.innerHeight * 0.72)}`,
+                pin: true,
                 scrub: 1,
                 anticipatePin: 1,
                 invalidateOnRefresh: true,
@@ -184,8 +183,8 @@ export default function HowItWorks({
                 scrollTrigger: {
                   trigger: card,
                   containerAnimation: horizontalTween,
-                  start: "left 88%",
-                  end: "left 40%",
+                  start: isRtl ? "right 88%" : "left 88%",
+                  end: isRtl ? "right 40%" : "left 40%",
                   scrub: true,
                 },
               },
@@ -263,14 +262,13 @@ export default function HowItWorks({
 
           <div
             ref={viewportRef}
-            dir="ltr"
             className={[
               "relative w-screen max-w-none snap-x snap-mandatory touch-pan-x overscroll-x-contain",
               gsapMode ? "overflow-hidden" : "no-scrollbar overflow-x-auto",
             ].join(" ")}
             style={{ marginLeft: "calc(50% - 50vw)" }}
           >
-            <div ref={trackRef} className="flex w-max gap-5">
+            <div ref={trackRef} className={`flex w-max gap-5 ${isRtl ? "flex-row-reverse" : ""}`}>
               <div aria-hidden className="h-px shrink-0" style={{ width: `${edgeInset}px` }} />
               {list.map((s, idx) => {
                 const Icon = ICONS[idx % ICONS.length]?.Icon ?? Sparkles;
