@@ -20,6 +20,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../modules/prisma/prisma.service';
 import { PROPERTY_IMAGES_DIR } from '../../common/upload/storage-paths';
+import { resolvePropertyImageUrl } from '../../common/upload/property-media-storage';
 import { AdminCreatePropertyDto } from './dto/admin-create-property.dto';
 import { AdminUpdatePropertyDto } from './dto/admin-update-property.dto';
 import {
@@ -539,6 +540,18 @@ export class AdminPropertiesService {
   ) {
     if (!file) throw new BadRequestException('File upload failed.');
     await this.mustFindProperty(propertyId);
+    let mediaUrl: string;
+    try {
+      mediaUrl = await resolvePropertyImageUrl({
+        file,
+        propertyId,
+        scope: 'admin',
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown media upload error';
+      throw new BadRequestException(`Media upload failed: ${message}`);
+    }
 
     const last = await this.prisma.media.findFirst({
       where: { propertyId },
@@ -549,7 +562,7 @@ export class AdminPropertiesService {
     return this.prisma.media.create({
       data: {
         propertyId,
-        url: `/uploads/properties/images/${file.filename}`,
+        url: mediaUrl,
         sortOrder: last ? last.sortOrder + 1 : 0,
         category: 'OTHER',
       },

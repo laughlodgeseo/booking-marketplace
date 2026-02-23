@@ -1,16 +1,5 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
-import { join } from 'path';
 import { PropertyMediaCategory, PropertyStatus } from '@prisma/client';
-import { API_ROOT_DIR } from '../../../src/common/upload/storage-paths';
-
-const ASSETS_DIR = join(API_ROOT_DIR, 'prisma', 'seed', 'assets');
-const SEED_UPLOAD_PROPERTIES_DIR = join(
-  API_ROOT_DIR,
-  'uploads',
-  'seed',
-  'properties',
-);
 
 const UNSPLASH_PARAMS = '?auto=format&fit=crop&w=1600&h=1067&q=82&fm=jpg';
 
@@ -90,9 +79,6 @@ const CATEGORY_IMAGE_SOURCES: Record<PropertyMediaCategory, string[]> = {
   OTHER: INTERIOR_LIVING,
 };
 
-const EMBEDDED_FALLBACK_JPEG_BASE64 =
-  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAgP/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCkAAH/2Q==';
-
 type MediaSeedRow = {
   id: string;
   url: string;
@@ -160,85 +146,6 @@ function stableUuid(value: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
-function isJpeg(bytes: Buffer): boolean {
-  return (
-    bytes.byteLength >= 4 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes[2] === 0xff
-  );
-}
-
-function isPng(bytes: Buffer): boolean {
-  return (
-    bytes.byteLength >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a
-  );
-}
-
-function isGif(bytes: Buffer): boolean {
-  return (
-    bytes.byteLength >= 6 &&
-    bytes.toString('ascii', 0, 6).startsWith('GIF8')
-  );
-}
-
-function isWebp(bytes: Buffer): boolean {
-  return (
-    bytes.byteLength >= 12 &&
-    bytes.toString('ascii', 0, 4) === 'RIFF' &&
-    bytes.toString('ascii', 8, 12) === 'WEBP'
-  );
-}
-
-function looksLikeHtml(bytes: Buffer): boolean {
-  const preview = bytes.toString('utf8', 0, Math.min(512, bytes.byteLength));
-  const normalized = preview.toLowerCase();
-  return (
-    normalized.includes('<!doctype html') ||
-    normalized.includes('<html') ||
-    normalized.includes('<body') ||
-    normalized.includes('application error')
-  );
-}
-
-function isValidImageBuffer(bytes: Buffer, contentType?: string | null): boolean {
-  if (bytes.byteLength < 128) {
-    return false;
-  }
-
-  if (looksLikeHtml(bytes)) {
-    return false;
-  }
-
-  const hasKnownSignature =
-    isJpeg(bytes) || isPng(bytes) || isGif(bytes) || isWebp(bytes);
-  if (!hasKnownSignature) {
-    return false;
-  }
-
-  if (!contentType) {
-    return true;
-  }
-
-  return contentType.toLowerCase().startsWith('image/');
-}
-
-function isValidCachedImage(path: string): boolean {
-  try {
-    return isValidImageBuffer(readFileSync(path));
-  } catch {
-    return false;
-  }
-}
-
 function pickCategoryPlan(status: PropertyStatus, targetCount: number) {
   if (status === PropertyStatus.PUBLISHED) {
     const categories = [...REQUIRED_PUBLISHED_CATEGORIES];
@@ -263,67 +170,6 @@ function pickCategoryPlan(status: PropertyStatus, targetCount: number) {
   return categories.slice(0, targetCount);
 }
 
-async function ensureAssetImage(
-  category: PropertyMediaCategory,
-  variant: number,
-): Promise<string> {
-  mkdirSync(ASSETS_DIR, { recursive: true });
-
-  const assetName = `${category.toLowerCase()}-${variant}.jpg`;
-  const assetPath = join(ASSETS_DIR, assetName);
-  if (existsSync(assetPath)) {
-    if (isValidCachedImage(assetPath)) {
-      return assetPath;
-    }
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[demo-seed] Removing invalid cached image asset ${assetName} before refresh.`,
-    );
-  }
-
-  const sourcePool = CATEGORY_IMAGE_SOURCES[category] ?? CATEGORY_IMAGE_SOURCES.OTHER;
-  const startAt = hashToInt(`${category}:${variant}`) % sourcePool.length;
-
-  let lastError: string | null = null;
-  for (let offset = 0; offset < sourcePool.length; offset += 1) {
-    const url = sourcePool[(startAt + offset) % sourcePool.length];
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'booking-marketplace-demo-seeder/1.0',
-          Accept: 'image/jpeg,image/*;q=0.9,*/*;q=0.1',
-        },
-        signal: AbortSignal.timeout(12_000),
-      });
-
-      if (!response.ok) {
-        lastError = `Image source returned ${response.status} for ${url}`;
-        continue;
-      }
-
-      const contentType = response.headers.get('content-type');
-      const bytes = Buffer.from(await response.arrayBuffer());
-      if (!isValidImageBuffer(bytes, contentType)) {
-        lastError = `Non-image payload received from ${url}`;
-        continue;
-      }
-
-      writeFileSync(assetPath, bytes);
-      return assetPath;
-    } catch (error) {
-      lastError = error instanceof Error ? `${error.name}: ${error.message}` : 'unknown fetch error';
-    }
-  }
-
-  const fallback = Buffer.from(EMBEDDED_FALLBACK_JPEG_BASE64, 'base64');
-  writeFileSync(assetPath, fallback);
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[demo-seed] All image sources failed for ${category} variant ${variant}; using embedded fallback. Last error: ${lastError ?? 'unknown error'}`,
-  );
-  return assetPath;
-}
-
 function mediaAltText(
   category: PropertyMediaCategory,
   propertyTitle: string,
@@ -339,22 +185,18 @@ export async function buildPropertyMediaRows(
   const categories = pickCategoryPlan(params.status, params.targetCount);
   const rows: MediaSeedRow[] = [];
 
-  const propertyDir = join(SEED_UPLOAD_PROPERTIES_DIR, params.propertyId);
-  mkdirSync(propertyDir, { recursive: true });
-
   for (let i = 0; i < categories.length; i += 1) {
     const category = categories[i];
-    const variant = hashToInt(`${params.propertyId}:${category}:${i}`) % 4;
-    const assetPath = await ensureAssetImage(category, variant);
-
     const mediaId = stableUuid(`demo-media:${params.propertyId}:${i}:${category}`);
-    const fileName = `${mediaId}.jpg`;
-    const destinationPath = join(propertyDir, fileName);
-    copyFileSync(assetPath, destinationPath);
+    const sourcePool = CATEGORY_IMAGE_SOURCES[category] ?? CATEGORY_IMAGE_SOURCES.OTHER;
+    const sourceIndex =
+      hashToInt(`${params.propertyId}:${category}:${i}:remote`) %
+      sourcePool.length;
+    const sourceUrl = sourcePool[sourceIndex] ?? sourcePool[0];
 
     rows.push({
       id: mediaId,
-      url: `/uploads/seed/properties/${params.propertyId}/${fileName}`,
+      url: sourceUrl,
       alt: mediaAltText(category, params.propertyTitle, i),
       sortOrder: i,
       category,

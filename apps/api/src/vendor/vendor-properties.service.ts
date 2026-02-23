@@ -23,6 +23,7 @@ import {
   PROPERTY_DOCUMENTS_LEGACY_DIR,
   PROPERTY_IMAGES_DIR,
 } from '../common/upload/storage-paths';
+import { resolvePropertyImageUrl } from '../common/upload/property-media-storage';
 import {
   CreatePropertyDto,
   UpdatePropertyDto,
@@ -967,6 +968,18 @@ export class VendorPropertiesService {
     file: Express.Multer.File,
   ) {
     await this.assertOwnership(vendorUserId, propertyId);
+    let mediaUrl: string;
+    try {
+      mediaUrl = await resolvePropertyImageUrl({
+        file,
+        propertyId,
+        scope: 'vendor',
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown media upload error';
+      throw new BadRequestException(`Media upload failed: ${message}`);
+    }
 
     const last = await this.prisma.media.findFirst({
       where: { propertyId },
@@ -977,7 +990,7 @@ export class VendorPropertiesService {
     const created = await this.prisma.media.create({
       data: {
         propertyId,
-        url: `/uploads/properties/images/${file.filename}`,
+        url: mediaUrl,
         sortOrder: last ? last.sortOrder + 1 : 0,
         category: PropertyMediaCategory.OTHER,
       },
