@@ -125,13 +125,19 @@ export default function Footer() {
             <div className="mt-7 flex items-center justify-center gap-2">
               {[
                 { Icon: Instagram, href: "#", label: "Instagram" },
-                { Icon: Facebook, href: "#", label: "Facebook" },
+                {
+                  Icon: Facebook,
+                  href: "https://www.facebook.com/share/1AUcwAKBcX/",
+                  label: "Facebook",
+                },
                 { Icon: Linkedin, href: "#", label: "LinkedIn" },
               ].map(({ Icon, href, label }) => (
                 <a
                   key={label}
                   href={href}
                   aria-label={label}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
                   className="grid h-10 w-10 place-items-center rounded-xl border border-white/30 bg-white/12 text-white transition hover:bg-white/24"
                 >
                   <Icon className="h-5 w-5" />
