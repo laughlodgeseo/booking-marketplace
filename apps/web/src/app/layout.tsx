@@ -12,6 +12,7 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { directionForLocale } from "@/lib/i18n/config";
 import { getLocaleMessages } from "@/lib/i18n/messages";
 import { getRequestLocale } from "@/lib/i18n/server";
+import RouteScrollReset from "@/components/site/RouteScrollReset";
 
 const arabicFont = Tajawal({
   subsets: ["arabic"],
@@ -95,7 +96,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <RouteScrollReset />
+              {children}
+            </AuthProvider>
           </Providers>
         </NextIntlClientProvider>
       </body>

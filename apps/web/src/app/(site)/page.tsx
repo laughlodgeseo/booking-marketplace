@@ -617,7 +617,7 @@ export default async function HomePage() {
           title={copy.owner.title}
           subtitle={copy.owner.subtitle}
           bullets={copy.owner.bullets}
-          imageUrl="https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=2400&q=90"
+          imageUrl="/images/owners/hero-src/support_luxury_interior.jpg"
         />
       </div>
 
