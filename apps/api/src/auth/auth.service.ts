@@ -59,8 +59,8 @@ export class AuthService {
   }
 
   private accessExpiresSeconds(): number {
-    const raw = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
-    return parseDurationToSeconds(raw, 15 * 60);
+    const raw = process.env.JWT_ACCESS_EXPIRES_IN || '40m';
+    return parseDurationToSeconds(raw, 40 * 60);
   }
 
   private refreshExpiresDays(): number {

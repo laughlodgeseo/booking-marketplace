@@ -83,6 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={dir}>
       <body
+        suppressHydrationWarning
         className={[
           "font-site min-h-screen bg-[var(--site-bg)]",
           arabicFont.variable,

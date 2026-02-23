@@ -1,4 +1,8 @@
-import { getAccessToken } from "@/lib/auth/tokenStore";
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from "@/lib/auth/tokenStore";
 import { apiUrl } from "@/lib/api/base";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -20,6 +24,9 @@ export type HttpResult<T> = HttpOk<T> | HttpError;
 
 type Json = object | unknown[] | string | number | boolean | null;
 type ResponseType = "json" | "text" | "blob";
+type RefreshPayload = { accessToken?: unknown };
+
+let refreshInFlight: Promise<string | null> | null = null;
 
 function isJsonResponse(res: Response): boolean {
   const ct = res.headers.get("content-type") ?? "";
@@ -84,6 +91,68 @@ function pickMessageFromJson(j: unknown): string | null {
 function shouldDebugRequest(path: string): boolean {
   const p = path.toLowerCase();
   return p.includes("/auth/login") || p.includes("/calendar");
+}
+
+function canTryRefresh(path: string, authMode: "auto" | "none"): boolean {
+  if (authMode !== "auto") return false;
+  const p = path.toLowerCase();
+  if (!p.includes("/auth/")) return true;
+  return !p.includes("/auth/refresh") && !p.includes("/auth/login");
+}
+
+async function refreshAccessToken(debugLog: boolean): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    let refreshUrl: string;
+    try {
+      refreshUrl = apiUrl("/auth/refresh");
+    } catch {
+      clearAccessToken();
+      return null;
+    }
+
+    try {
+      const res = await fetch(refreshUrl, {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) {
+        clearAccessToken();
+        return null;
+      }
+
+      const json = (await res.json().catch(() => null)) as RefreshPayload | null;
+      const accessToken =
+        typeof json?.accessToken === "string" && json.accessToken.trim()
+          ? json.accessToken.trim()
+          : null;
+
+      if (!accessToken) {
+        clearAccessToken();
+        return null;
+      }
+
+      setAccessToken(accessToken);
+      if (debugLog) {
+        console.info("[apiFetch] access token refreshed");
+      }
+      return accessToken;
+    } catch {
+      clearAccessToken();
+      return null;
+    }
+  })();
+
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
+  }
 }
 
 export async function apiFetch<T>(
@@ -178,8 +247,39 @@ export async function apiFetch<T>(
     console.info(`[apiFetch] ${method} ${url.toString()} -> ${status}`);
   }
 
+  if (status === 401 && canTryRefresh(path, authMode)) {
+    const nextToken = await refreshAccessToken(debugLog);
+    if (nextToken) {
+      const retryHeaders: Record<string, string> = {
+        ...headers,
+        Authorization: `Bearer ${nextToken}`,
+      };
+
+      try {
+        res = await fetch(url.toString(), {
+          method,
+          headers: retryHeaders,
+          body,
+          credentials,
+          cache: opts?.cache,
+          next: opts?.next,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Network error";
+        return { ok: false, status: 0, message: msg };
+      }
+    }
+  }
+
+  const finalStatus = res.status;
+  if (debugLog && finalStatus !== status) {
+    console.info(
+      `[apiFetch] ${method} ${url.toString()} -> retry status ${finalStatus}`
+    );
+  }
+
   if (!res.ok) {
-    let message = `Request failed (${status})`;
+    let message = `Request failed (${finalStatus})`;
     let details: unknown = undefined;
 
     if (isJsonResponse(res)) {
@@ -199,30 +299,30 @@ export async function apiFetch<T>(
       }
     }
 
-    return { ok: false, status, message, details };
+    return { ok: false, status: finalStatus, message, details };
   }
 
-  if (status === 204) {
-    return { ok: true, status, data: undefined as T };
+  if (finalStatus === 204) {
+    return { ok: true, status: finalStatus, data: undefined as T };
   }
 
   const rt = opts?.responseType;
 
   if (rt === "blob") {
     const data = (await res.blob()) as unknown as T;
-    return { ok: true, status, data };
+    return { ok: true, status: finalStatus, data };
   }
 
   if (rt === "text") {
     const text = (await res.text()) as unknown as T;
-    return { ok: true, status, data: text };
+    return { ok: true, status: finalStatus, data: text };
   }
 
   if (isJsonResponse(res)) {
     const data = (await res.json()) as T;
-    return { ok: true, status, data };
+    return { ok: true, status: finalStatus, data };
   }
 
   const text = (await res.text()) as unknown as T;
-  return { ok: true, status, data: text };
+  return { ok: true, status: finalStatus, data: text };
 }

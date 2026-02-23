@@ -63,6 +63,18 @@ export async function me(): Promise<AuthMeResponse> {
   return unwrap(res);
 }
 
+export async function refreshAccessToken(): Promise<AuthResponse> {
+  const res = await apiFetch<AuthResponse>("/auth/refresh", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    auth: "none",
+  });
+  const data = unwrap(res);
+  setAccessToken(data.accessToken);
+  return data;
+}
+
 export async function logout(): Promise<{ ok: true }> {
   const res = await apiFetch<{ ok: true }>("/auth/logout", {
     method: "POST",

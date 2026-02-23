@@ -10,7 +10,11 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthUser, UserRole } from "@/lib/auth/auth.types";
-import { me as apiMe, logout as apiLogout } from "@/lib/auth/authApi";
+import {
+  me as apiMe,
+  logout as apiLogout,
+  refreshAccessToken as apiRefreshAccessToken,
+} from "@/lib/auth/authApi";
 import { getAccessToken } from "@/lib/auth/tokenStore";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous" | "error";
@@ -52,8 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (!getAccessToken()) {
-      setState({ status: "anonymous", user: null, errorMessage: null });
-      return;
+      try {
+        await apiRefreshAccessToken();
+      } catch {
+        setState({ status: "anonymous", user: null, errorMessage: null });
+        return;
+      }
     }
 
     setState((s) => ({ ...s, status: "loading", errorMessage: null }));
@@ -64,8 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Auth check failed";
       if (isUnauthorizedMessage(message)) {
-        setState({ status: "anonymous", user: null, errorMessage: null });
-        return;
+        try {
+          await apiRefreshAccessToken();
+          const res = await apiMe();
+          setState({ status: "authenticated", user: res.user, errorMessage: null });
+          return;
+        } catch {
+          setState({ status: "anonymous", user: null, errorMessage: null });
+          return;
+        }
       }
       setState({ status: "error", user: null, errorMessage: message });
     }
@@ -80,10 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!getAccessToken()) {
-      setState({ status: "anonymous", user: null, errorMessage: null });
-      return;
-    }
     void refresh();
   }, [refresh]);
 
