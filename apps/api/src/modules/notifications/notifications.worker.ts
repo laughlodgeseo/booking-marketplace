@@ -86,6 +86,7 @@ export class NotificationsWorker implements OnModuleInit {
   onModuleInit() {
     this.warnOnInsecureLogoUrl();
     this.warnOnMissingSmtpConfig();
+    this.warnOnSmtpModeMismatch();
   }
 
   @Cron('*/5 * * * * *') // every 5 seconds
@@ -391,7 +392,8 @@ export class NotificationsWorker implements OnModuleInit {
     const secureFlag = this.readEnv('SMTP_SECURE').toLowerCase();
     const secureFromEnv =
       secureFlag === 'true' || secureFlag === '1' || secureFlag === 'yes';
-    const secure = port === 465 ? true : secureFromEnv;
+    // Port 587 is submission + STARTTLS in practice; force non-implicit TLS there.
+    const secure = port === 465 ? true : port === 587 ? false : secureFromEnv;
     const requireTls =
       port === 465
         ? false
@@ -512,6 +514,19 @@ export class NotificationsWorker implements OnModuleInit {
     this.logger.error(
       'SMTP is not configured. Email notifications (including verification OTP) will fail until SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM/SMTP_FROM_EMAIL are set.',
     );
+  }
+
+  private warnOnSmtpModeMismatch() {
+    const port = Number(this.readEnv('SMTP_PORT') || '587');
+    const secureFlag = this.readEnv('SMTP_SECURE').toLowerCase();
+    const secureRequested =
+      secureFlag === 'true' || secureFlag === '1' || secureFlag === 'yes';
+
+    if (port === 587 && secureRequested) {
+      this.logger.warn(
+        'SMTP_PORT=587 with SMTP_SECURE=true is not compatible with STARTTLS submission mode. Runtime will force secure=false and requireTLS=true.',
+      );
+    }
   }
 
   private readPositiveInt(key: string, fallback: number): number {
