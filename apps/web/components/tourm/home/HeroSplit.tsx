@@ -46,7 +46,7 @@ const HERO_CONTENT = {
 } as const;
 
 const COLLAGE_IMAGES = {
-  main: "/images/home/hero-main.webp",
+  main: "/hero.webp",
   topAccent: "/images/home/hero-top-accent.webp",
   bottomSupport: "/images/home/hero-bottom-support.webp",
   microInterior: "/images/home/interior-suite.webp",
@@ -177,12 +177,13 @@ export default function HeroSplit(props: HeroSplitProps) {
             {...reveal(0.34, reduceMotion)}
             className="mt-6 lg:hidden"
           >
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-[0_24px_54px_rgba(11,15,25,0.2)]">
+            <div className="relative h-[clamp(260px,75vw,560px)] w-full overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-[0_24px_54px_rgba(11,15,25,0.2)]">
               <Image
                 src={mainImageSrc}
-                alt="Dubai skyline with luxury towers"
+                alt="Rent Property UAE"
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1023px) 90vw, 1px"
+                sizes="100vw"
+                quality={70}
                 className="object-cover"
                 priority
               />

@@ -506,7 +506,7 @@ export default async function HomePage() {
             titleTop={copy.hero.titleTop}
             titleEmphasis={copy.hero.titleEmphasis}
             subtitle={copy.hero.subtitle}
-            heroImageUrl="/images/home/hero-main.webp"
+            heroImageUrl="/hero.webp"
             primaryCtaHref="/properties"
             primaryCtaLabel={copy.hero.primaryCtaLabel}
             secondaryCtaHref="/owners"
