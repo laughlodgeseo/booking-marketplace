@@ -12,7 +12,7 @@ import { LOCALE_COOKIE_NAME, normalizeLocale, type AppLocale } from "@/lib/i18n/
 export const metadata: Metadata = {
   title: "Services | Laugh & Lodge",
   description:
-    "Operator-grade hospitality services with booking-linked workflows, quality controls, and owner program support.",
+    "Simple, premium hospitality services with clear workflows, quality checks, and owner support.",
 };
 
 type ContextCard = {
@@ -44,25 +44,25 @@ const COPY: Record<AppLocale, ServicesPageCopy> = {
     ],
     ownerPrograms: "Owner programs",
     pricing: "Pricing",
-    bookConsult: "Book a consult",
-    contextEyebrow: "Dubai operating context",
-    contextTitle: "Service design aligned to real short-stay market demands",
+    bookConsult: "Book a call",
+    contextEyebrow: "Dubai market fit",
+    contextTitle: "Built for real short-stay operations in Dubai",
     contextDesc:
-      "We structure workflows for high turnover frequency, guest expectation consistency, and property-level accountability. The goal is not activity volume, but reliable outcomes.",
+      "Our workflows are built for high turnover and premium guest expectations. The goal is simple: reliable quality every stay.",
     contextCards: [
       {
-        title: "Operational clarity",
-        desc: "Responsibility and escalation paths are explicit for each service layer.",
+        title: "Clear responsibilities",
+        desc: "Every service layer has clear owners and escalation paths.",
         Icon: Building2,
       },
       {
-        title: "Quality controls",
-        desc: "Readiness checks and inspection gates reduce arrival-day defects.",
+        title: "Quality checks",
+        desc: "Readiness checks reduce arrival-day issues.",
         Icon: ShieldCheck,
       },
       {
-        title: "Audit confidence",
-        desc: "Task progress and exceptions are tracked for owner visibility and review.",
+        title: "24/7 support visibility",
+        desc: "Task progress and urgent guest issues are tracked in real time.",
         Icon: BadgeCheck,
       },
     ],

@@ -80,7 +80,7 @@ export default async function CheckoutPage(props: PageProps) {
               <p className="mt-1 text-xs text-secondary">
                 {isAr
                   ? "الحجز المؤقت يمنع التداخل، والحجز النهائي مرتبط بالدفع ومؤكد عبر Webhook."
-                  : "Frank Porter–style: hold prevents double-booking, booking is payment-gated and webhook-confirmed."}
+                  : "A hold prevents double booking. Final confirmation is done through verified payment webhooks."}
               </p>
             </div>
 

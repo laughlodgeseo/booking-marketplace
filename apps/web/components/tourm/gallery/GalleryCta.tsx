@@ -21,7 +21,7 @@ export default function GalleryCta() {
                 Ready to check availability?
               </h3>
               <p className="mt-3 text-sm text-white/84 sm:text-base">
-                Pick dates, get a backend-calculated quote, and reserve safely with inventory holds.
+                Pick dates, get a clear quote, and reserve safely with inventory holds.
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
@@ -44,10 +44,10 @@ export default function GalleryCta() {
               <p className="text-sm font-extrabold text-primary">What you get</p>
               <ul className="mt-4 space-y-2">
                 {[
-                  "Date-aware availability search",
-                  "Transparent quote breakdown",
-                  "Inventory-safe reserve holds",
-                  "Policy-driven cancellations",
+                  "Live availability by date",
+                  "Clear quote breakdown",
+                  "Safe inventory holds",
+                  "Clear cancellation policies",
                 ].map((b) => (
                   <li key={b} className="flex gap-3 text-sm text-secondary/82">
                     <span className="mt-1 inline-block h-2 w-2 rounded-full bg-brand/60" />

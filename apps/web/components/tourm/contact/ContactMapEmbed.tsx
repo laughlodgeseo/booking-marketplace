@@ -22,11 +22,11 @@ const COPY: Record<AppLocale, ContactMapCopy> = {
     sectionEyebrow: "Coverage",
     title: "Dubai-focused operations with UAE-wide owner onboarding",
     body:
-      "We support guests and owners across key Dubai communities and selected UAE markets. Share your location and asset profile so we can confirm scope quickly.",
+      "We support guests and owners across Dubai and selected UAE areas. Share your location and property profile so we can confirm scope quickly.",
     primaryMarketTitle: "Primary market",
     primaryMarketBody: "Dubai short-stay and holiday-home operations.",
     onboardingTitle: "Owner onboarding",
-    onboardingBody: "Program evaluation for qualifying assets across UAE areas.",
+    onboardingBody: "Program evaluation for qualifying properties across UAE areas.",
     quickContactTitle: "Quick contact",
     quickContactBody: "+971 50 234 8756 | Info@rentpropertyuae.com",
     startVendor: "Start vendor onboarding",

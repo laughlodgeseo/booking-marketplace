@@ -53,13 +53,13 @@ const PROPERTY_PAGE_COPY = {
     loadError: "Could not load property:",
     guestFallback: "Guest",
     aboutFallback:
-      "Operator-managed vacation home with hotel-grade cleaning, verified availability, and responsive guest support.",
+      "Premium managed vacation home with hotel-style cleaning, verified availability, and fast support.",
     areaFallback: "Located in a connected urban neighborhood.",
-    areaMapKnown: "Map pin shows neighborhood-level context before booking confirmation.",
-    areaMapUnknown: "Exact map pin is shared once location details are published for this stay.",
+    areaMapKnown: "Map pin shows area-level location before booking confirmation.",
+    areaMapUnknown: "Exact map location is shared once this stay's location details are published.",
     areaAccess:
-      "Nearby access to dining, essentials, and transport varies by time and season.",
-    schemaFallback: "Operator-managed vacation stay with verified availability.",
+      "Nearby dining, essentials, and transport can vary by time and season.",
+    schemaFallback: "Managed vacation stay with verified availability.",
     heroTag: "Stay",
     subtitleFallback: "Premium serviced stay with operator support and verified availability.",
     verifiedReviewsSuffix: "verified reviews",
@@ -86,13 +86,13 @@ const PROPERTY_PAGE_COPY = {
       "Late check-out can be requested, subject to availability.",
     ],
     thingsCancelLines: [
-      "Final cancellation terms are shown before payment in checkout.",
-      "Any applicable fees are included in the quote breakdown before you reserve.",
+      "Final cancellation terms are shown before payment at checkout.",
+      "Any applicable fees are included in the quote before you reserve.",
     ],
     thingsSafetyLines: [
-      "Availability is validated in real time before holds and bookings are created.",
-      "Operator support is available for stay-related access and issue resolution.",
-      "Cleaning and turnover standards follow operator-managed workflows.",
+      "Availability is checked live before holds and bookings are created.",
+      "24/7 support is available for stay-related access and issue resolution.",
+      "Cleaning and turnover follow managed workflow standards.",
     ],
     fallbackRules: {
       quietHours: "Please respect quiet hours in the building/community.",

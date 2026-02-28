@@ -11,7 +11,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 export const metadata: Metadata = {
   title: "Contact Us | Laugh & Lodge",
   description:
-    "Contact Laugh & Lodge Vacation Homes Rental LLC for guest bookings, owner onboarding, and operations support in Dubai and UAE.",
+    "Contact Laugh & Lodge for bookings, owner onboarding, and operations support in Dubai and UAE.",
 };
 
 const COPY = {
@@ -23,7 +23,7 @@ const COPY = {
       { label: "Coverage map", href: "#contact-coverage" },
       { label: "FAQ", href: "#contact-faq" },
     ],
-    vendorSignup: "Start vendor onboarding",
+    vendorSignup: "Start owner onboarding",
     ownerPrograms: "Owner programs",
   },
   ar: {

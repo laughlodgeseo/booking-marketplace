@@ -25,35 +25,35 @@ type ServicesHeroCopy = {
 const COPY: Record<AppLocale, ServicesHeroCopy> = {
   en: {
     eyebrow: "Operator services",
-    title: "Hospitality operations engineered for predictable guest outcomes",
+    title: "Premium service operations made simple",
     description:
-      "We run service delivery with defined standards, SLA expectations, and escalation logic. From pre-arrival readiness to post-checkout recovery, workflows are linked to booking lifecycle events so quality is consistent even during high-turnover periods.",
+      "From pre-arrival setup to post-checkout tasks, we run every service step with clear standards. This keeps guest experience consistent, even in busy periods.",
     exploreCta: "Explore capabilities",
     bookOpsCallCta: "Book an operations call",
-    comparePrograms: "Compare owner programs",
-    reviewPricing: "Review pricing model",
+    comparePrograms: "See owner programs",
+    reviewPricing: "See pricing",
     requestScope: "Request a custom scope",
     modelEyebrow: "Operating model",
-    modelTitle: "Service delivery aligned to reservation milestones",
+    modelTitle: "Service delivery tied to booking milestones",
     highlights: [
       {
-        title: "Booking-synced execution",
-        desc: "Cleaning, inspections, and readiness tasks trigger from reservation-state events.",
+        title: "Booking-linked tasks",
+        desc: "Cleaning and inspection tasks trigger automatically from booking events.",
         Icon: ClipboardCheck,
       },
       {
-        title: "Turnover reliability",
-        desc: "Fast same-day transitions with standardized checklists and completion evidence.",
+        title: "Fast turnover",
+        desc: "Same-day changeovers with clear checklists and completion tracking.",
         Icon: Clock3,
       },
       {
-        title: "Quality governance",
-        desc: "Repeatable QA checkpoints reduce guest issues and protect review quality.",
+        title: "Quality checks",
+        desc: "Repeatable checkpoints reduce guest issues and protect reviews.",
         Icon: ShieldCheck,
       },
       {
-        title: "Audit-ready operations",
-        desc: "Assignment changes and status transitions are visible to owners and operations leads.",
+        title: "Clear visibility",
+        desc: "Owners can see assignments, progress, and status changes at any time.",
         Icon: BadgeCheck,
       },
     ],

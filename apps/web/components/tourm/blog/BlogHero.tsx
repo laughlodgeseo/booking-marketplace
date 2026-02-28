@@ -13,10 +13,10 @@ export default function BlogHero() {
             Blog
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Travel tips, area guides, and hosting insights
+            Simple travel tips, area guides, and hosting insights
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-white/84 sm:text-base">
-            Original content only. No copied template text — aligned with our Dubai & UAE stays and operations.
+            Practical content based on real Dubai and UAE stay operations.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">

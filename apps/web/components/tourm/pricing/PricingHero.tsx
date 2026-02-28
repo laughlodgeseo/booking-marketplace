@@ -21,26 +21,26 @@ type PricingHeroCopy = {
 const COPY: Record<AppLocale, PricingHeroCopy> = {
   en: {
     eyebrow: "Pricing",
-    title: "Pricing clarity engineered before every checkout",
+    title: "Clear pricing before every checkout",
     body:
-      "Nightly rates, service components, and policy-linked outcomes are shown in one structure. Server-side quote controls keep totals consistent from listing to payment.",
+      "Nightly rates, fees, and policy notes are shown clearly before you pay.",
     browseStays: "Browse available stays",
     pricingTeam: "Talk to pricing team",
     principlesEyebrow: "Pricing principles",
     principles: [
       {
-        title: "No hidden charge model",
-        detail: "All known fees are surfaced before payment confirmation.",
+        title: "No hidden fees",
+        detail: "Known fees are shown before payment confirmation.",
         Icon: ReceiptText,
       },
       {
-        title: "Policy-backed outcomes",
-        detail: "Cancellation and refund outcomes follow defined rule windows.",
+        title: "Policy-based outcomes",
+        detail: "Cancellation and refund outcomes follow clear policy windows.",
         Icon: ShieldCheck,
       },
       {
-        title: "Audit consistency",
-        detail: "Quote and payment events stay aligned through backend state controls.",
+        title: "Consistent totals",
+        detail: "Quote and payment totals stay aligned through backend controls.",
         Icon: BadgeCheck,
       },
     ],

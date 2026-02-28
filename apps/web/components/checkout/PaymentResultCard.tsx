@@ -24,8 +24,8 @@ const COPY = {
     },
     subline: {
       success:
-        "Your booking will be confirmed once the provider webhook is verified by the backend.",
-      cancelled: "No worries - you can retry payment while the booking is still pending.",
+        "Your booking is confirmed after the payment provider webhook is verified by our backend.",
+      cancelled: "You can retry payment while the booking is still pending.",
       failed: "If your booking is still pending and not expired, you can retry payment.",
     },
     status: {
@@ -46,10 +46,10 @@ const COPY = {
     viewBookings: "View my bookings",
     notePrefix: "Note:",
     noteBody:
-      "bookings become CONFIRMED only via verified provider webhooks.",
+      "bookings become confirmed only through verified provider webhooks.",
     continueBrowsing: "Continue browsing",
     unknown: "—",
-    refreshError: "Failed to refresh",
+    refreshError: "Could not refresh",
   },
   ar: {
     sectionLabel: "الدفع",

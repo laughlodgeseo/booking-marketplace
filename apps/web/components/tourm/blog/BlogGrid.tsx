@@ -54,7 +54,7 @@ export default function BlogGrid() {
             Fresh reads
           </h2>
           <p className="mt-2 text-sm text-secondary/75 sm:text-base">
-            Practical notes on booking operations, area planning, and guest experience standards.
+            Easy reads on booking, locations, and better guest experience.
           </p>
         </div>
 

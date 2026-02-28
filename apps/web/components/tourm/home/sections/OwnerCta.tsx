@@ -12,12 +12,12 @@ const COPY = {
     eyebrow: "For owners",
     ownerServices: "Explore owner services",
     talkTeam: "Talk to our team",
-    opsTitle: "Operator-grade management, not just a listing.",
+    opsTitle: "Full operations support, not just a listing.",
     opsBody:
-      "After booking confirmation, ops tasks (cleaning, inspection, linen, restock) are auto-created by the platform.",
+      "After each confirmation, tasks like cleaning, inspection, linen, and restock are created automatically.",
     imageAlt: "Owner services",
-    imageTitle: "Managed stays, better reviews, higher occupancy.",
-    imageBody: "We operate your property like a hotel and keep you in control.",
+    imageTitle: "Managed stays, better reviews, stronger occupancy.",
+    imageBody: "We run your property with premium standards while you stay in control.",
     tags: ["Cleaning", "Inspection", "Linen", "Restock"],
   },
   ar: {

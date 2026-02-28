@@ -364,7 +364,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Curated living room moments",
     area: "Downtown Dubai",
     description:
-      "Generous lounges with natural light, balanced circulation, and premium textures designed for high-comfort guest stays.",
+      "Spacious lounges with natural light and premium finishes for comfortable stays.",
     category: "LIVING_ROOM",
     cover: LIVING_ROOM_IMAGES[0],
     gallery: LIVING_ROOM_IMAGES,
@@ -375,7 +375,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Calm and restorative bedrooms",
     area: "Dubai Marina",
     description:
-      "Sleep-first bedroom suites with layered linens, blackout control, and quiet palettes that support short and extended stays.",
+      "Calm bedroom suites with quality linens and blackout comfort for restful stays.",
     category: "BEDROOM",
     cover: BEDROOM_IMAGES[0],
     gallery: BEDROOM_IMAGES,
@@ -386,7 +386,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Kitchens built for longer stays",
     area: "City Walk",
     description:
-      "Functional kitchen and dining environments tuned for families, remote workers, and guests who prefer home-style routines.",
+      "Functional kitchens and dining spaces for families, remote workers, and longer stays.",
     category: "KITCHEN_DINING",
     cover: KITCHEN_DINING_IMAGES[0],
     gallery: KITCHEN_DINING_IMAGES,
@@ -397,7 +397,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Spa-forward bathrooms",
     area: "Business Bay",
     description:
-      "Clean-lined bathrooms with premium fixtures, layered lighting, and layouts engineered for comfort and easy turnover.",
+      "Modern bathrooms with premium fixtures, soft lighting, and comfort-focused layouts.",
     category: "BATHROOM",
     cover: BATHROOM_IMAGES[0],
     gallery: BATHROOM_IMAGES,
@@ -408,7 +408,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Balconies with skyline rhythm",
     area: "JBR",
     description:
-      "View-led balconies and terraces that elevate morning coffee, evening downtime, and city-facing guest experiences.",
+      "Balconies and terraces with skyline views for relaxed mornings and evenings.",
     category: "BALCONY_VIEW",
     cover: BALCONY_IMAGES[0],
     gallery: BALCONY_IMAGES,
@@ -419,7 +419,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Pool and amenity experiences",
     area: "Palm Jumeirah",
     description:
-      "Resort-like pool decks and building amenities with polished finishes, comfortable lounge zones, and premium atmosphere.",
+      "Resort-style pool decks and building amenities with comfortable lounge spaces.",
     category: "POOL_AMENITIES",
     cover: POOL_IMAGES[0],
     gallery: POOL_IMAGES,
@@ -430,7 +430,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     title: "Neighborhood scenes around each stay",
     area: "DIFC & Downtown",
     description:
-      "Street-level context around our stays, including walkability, dining, waterfront routes, and day-to-night urban energy.",
+      "Neighborhood context around our stays, including walkability, dining, and waterfront routes.",
     category: "NEIGHBORHOOD",
     cover: NEIGHBORHOOD_IMAGES[0],
     gallery: NEIGHBORHOOD_IMAGES,

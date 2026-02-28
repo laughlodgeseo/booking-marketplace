@@ -27,9 +27,9 @@ type ServicePlansCopy = {
 const COPY: Record<AppLocale, ServicePlansCopy> = {
   en: {
     eyebrow: "Programs",
-    title: "Delivery models matched to owner operating style",
+    title: "Service models for every owner style",
     subtitle:
-      "Choose the operating model that matches your team capacity, control preference, and portfolio goals. Scope can be defined per property.",
+      "Choose the model that fits your time, control preference, and growth goals. Scope can be set per property.",
     pricingOverviewCta: "Pricing overview",
     discussProgramCta: "Discuss this program",
     compareOwnerProgramsCta: "Compare owner programs",
@@ -39,26 +39,26 @@ const COPY: Record<AppLocale, ServicePlansCopy> = {
       {
         name: "Listing-only",
         tagline:
-          "You keep execution in-house while we provide distribution, booking safeguards, and operating visibility.",
-        idealFor: "Owners with an internal operations team and existing SOPs.",
+          "You keep daily operations in-house. We provide listing, booking safety, and channel support.",
+        idealFor: "Owners with an internal operations team.",
         highlights: [
-          "Search and demand exposure",
-          "Calendar discipline and inventory protection",
-          "Policy-led booking states and controls",
-          "Core onboarding and operating guidance",
+          "Channel exposure and demand visibility",
+          "Calendar protection and inventory safety",
+          "Policy-led booking controls",
+          "Basic onboarding and guidance",
         ],
         Icon: Building2,
       },
       {
         name: "Semi-managed",
         tagline:
-          "Shared execution model where we coordinate operationally critical workflows and escalations.",
-        idealFor: "Owners who want performance without giving up full control.",
+          "Shared model where we coordinate critical workflows and escalations.",
+        idealFor: "Owners who want better performance without full handover.",
         highlights: [
-          "Turnover coordination and task orchestration",
+          "Turnover coordination and task flow",
           "Inspection checkpoints and readiness standards",
-          "Operational visibility with escalation routing",
-          "Flexible ownership split by property",
+          "Operational visibility and escalation routing",
+          "Flexible responsibility split",
         ],
         Icon: Layers3,
         emphasis: true,
@@ -66,13 +66,13 @@ const COPY: Record<AppLocale, ServicePlansCopy> = {
       {
         name: "Managed",
         tagline:
-          "End-to-end operator execution across housekeeping, readiness, maintenance, and guest issue workflows.",
-        idealFor: "Owners prioritizing consistency, review quality, and scale.",
+          "End-to-end execution across housekeeping, readiness, maintenance, and guest support.",
+        idealFor: "Owners who want full support and consistent quality.",
         highlights: [
-          "Booking-driven operational workflow execution",
+          "Booking-driven operations lifecycle",
           "Inspection standards and readiness controls",
           "Maintenance request and work-order lifecycle",
-          "Program governance with consistent service quality",
+          "Consistent service governance across properties",
         ],
         Icon: Sparkles,
       },

@@ -388,7 +388,7 @@
   "propertiesPage": {
     "eyebrow": "Stays",
     "title": "Stays in Dubai & UAE",
-    "subtitle": "Date-aware availability search powered by our booking engine - no stale inventory, no surprises.",
+    "subtitle": "Search live availability by dates, guests, and location with clear pricing.",
     "listErrorTitle": "We're having trouble loading this",
     "listErrorMessage": "Could not load properties right now.",
     "listErrorRetry": "Retry listings"
@@ -407,7 +407,7 @@
     "mapPins": "{count} pins",
     "retryPins": "Retry pins",
     "noPins": "No pins in this viewport. Pan or zoom out to discover nearby stays.",
-    "pinsFootnote": "Pins update when you pan/zoom. Results remain server-driven for pricing + availability truth."
+    "pinsFootnote": "Pins update when you pan or zoom. Pricing and availability are always server-driven."
   },
   "quotePanel": {
     "dates": "Dates",
@@ -419,7 +419,7 @@
     "dateRange": "{checkIn} -> {checkOut}",
     "getQuote": "Get quote",
     "gettingQuote": "Getting quote...",
-    "reserve": "Reserve (hold inventory)",
+    "reserve": "Reserve (hold dates)",
     "creatingHold": "Creating hold...",
     "availabilityTitle": "Check availability",
     "availabilitySubtitle": "Select dates and guests to get an exact total.",
@@ -427,11 +427,11 @@
   },
   "checkout": {
     "title": "Checkout",
-    "subtitle": "Convert your hold into a booking. Booking becomes CONFIRMED only after verified payment events.",
+    "subtitle": "Convert your hold into a booking. Confirmation happens only after verified payment events.",
     "backProperty": "Back to property",
     "browseStays": "Browse stays",
     "flowTitle": "Your reservation flow",
-    "flowSubtitle": "Hold prevents double-booking, booking is payment-gated and webhook-confirmed.",
+    "flowSubtitle": "A hold prevents double booking. Confirmation depends on verified payment webhooks.",
     "step1": "Hold created",
     "step1Detail": "Inventory is reserved temporarily.",
     "step2": "Create booking",
@@ -439,9 +439,9 @@
     "step3": "Hosted payment",
     "step3Detail": "Webhooks confirm booking.",
     "importantLabel": "Important:",
-    "importantBody": "if payment fails or expires, the booking may be cancelled automatically and availability is released safely.",
+    "importantBody": "If payment fails or expires, the booking may cancel automatically and dates are released safely.",
     "noHoldTitle": "No hold found",
-    "noHoldBody": "This page requires holdId. Go back to the property, select dates, and click Reserve (hold inventory)."
+    "noHoldBody": "This page requires holdId. Go back to the property, select dates, and click Reserve (hold dates)."
   },
   "propertyCard": {
     "defaultTitle": "Stay",

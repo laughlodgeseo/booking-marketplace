@@ -16,14 +16,14 @@ type PricingFaqCopy = {
 const COPY: Record<AppLocale, PricingFaqCopy> = {
   en: {
     eyebrow: "FAQs",
-    title: "Common questions on pricing and policy behavior",
-    subtitle: "Quick clarity on totals, fees, and cancellation-linked outcomes before checkout.",
+    title: "Common pricing questions",
+    subtitle: "Quick answers on totals, fees, and cancellation outcomes.",
     needHelp: "Need booking-specific pricing help?",
     contactTeam: "Contact our team",
     faqs: [
       {
         q: "Can the total change after I reserve?",
-        a: "Confirmed reservations use server-side state and pricing logic, so the charged amount follows the confirmed quote context.",
+        a: "Confirmed reservations use server-side pricing, so charged amounts follow the approved quote context.",
       },
       {
         q: "Is cleaning charged per night or per booking?",
@@ -31,19 +31,19 @@ const COPY: Record<AppLocale, PricingFaqCopy> = {
       },
       {
         q: "Will I see cancellation terms before paying?",
-        a: "Yes. Cancellation context is shown before payment so guests can review outcome windows in advance.",
+        a: "Yes. Cancellation terms are shown before payment so you can review them clearly.",
       },
       {
         q: "Do you include local or regulatory fee components?",
-        a: "Where applicable, local fee components are presented as part of the quote structure before checkout.",
+        a: "Yes, when applicable they are shown in the quote before checkout.",
       },
       {
         q: "How are refunds calculated if I cancel?",
-        a: "Refund outcomes are policy-window based and applied through backend rules to keep calculations consistent.",
+        a: "Refunds follow policy windows and backend rules for consistent calculations.",
       },
       {
         q: "What if I need manual clarification on a quote?",
-        a: "Our team can explain line items and policy implications before you commit payment.",
+        a: "Our team can explain line items and policy impact before you pay.",
       },
     ],
   },

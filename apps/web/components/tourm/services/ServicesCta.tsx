@@ -25,37 +25,37 @@ type ServicesCtaCopy = {
 const COPY: Record<AppLocale, ServicesCtaCopy> = {
   en: {
     eyebrow: "Next step",
-    title: "Build a service program tailored to your property operations",
+    title: "Build the right service plan for your property",
     subtitle:
-      "Share your goals, operating constraints, and preferred level of involvement. We'll return a practical service scope, timeline, and recommended delivery model.",
+      "Share your goals and preferred involvement level. We will suggest a clear scope, timeline, and recommended model.",
     consultationCta: "Start with a consultation",
     ownerProgramsCta: "Owner programs",
-    viewPricingCta: "View pricing model",
+    viewPricingCta: "View pricing",
     compareModelsCta: "Compare delivery models",
     nextStepsTitle: "What happens after you contact us",
     receiveTitle: "What you receive",
     nextSteps: [
       {
         title: "Discovery call",
-        detail: "30-minute discussion on goals, property profile, and current operating model.",
+        detail: "A quick call to understand your goals, property type, and current setup.",
         Icon: PhoneCall,
       },
       {
         title: "Scope definition",
-        detail: "We propose service boundaries, responsibilities, SLAs, and escalation flows.",
+        detail: "We define service boundaries, responsibilities, and support flow.",
         Icon: ClipboardList,
       },
       {
         title: "Program launch plan",
-        detail: "Onboarding milestones, readiness checkpoints, and rollout sequence by property.",
+        detail: "You get onboarding milestones and go-live checkpoints.",
         Icon: CalendarCheck2,
       },
     ],
     deliverables: [
-      "Service scope mapped by property and owner program",
-      "Clear ownership model for each operational workflow",
-      "Timeline with launch milestones and checkpoints",
-      "Commercial recommendation aligned to your portfolio goals",
+      "Service scope by property",
+      "Clear ownership model for each workflow",
+      "Launch timeline with checkpoints",
+      "Commercial recommendation based on your goals",
     ],
   },
   ar: {

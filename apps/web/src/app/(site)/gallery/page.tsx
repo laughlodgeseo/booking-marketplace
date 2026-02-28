@@ -6,7 +6,7 @@ import GalleryCta from "@/components/tourm/gallery/GalleryCta";
 
 export const metadata: Metadata = {
   title: "Gallery | Laugh & Lodge",
-  description: "A visual preview of our serviced apartments and vacation homes in Dubai & UAE.",
+  description: "A visual preview of our serviced apartments and vacation homes in Dubai and UAE.",
 };
 
 export default function GalleryPage() {

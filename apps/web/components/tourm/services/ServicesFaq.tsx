@@ -18,41 +18,41 @@ type ServicesFaqCopy = {
 const COPY: Record<AppLocale, ServicesFaqCopy> = {
   en: {
     eyebrow: "FAQs",
-    title: "Questions owners ask before choosing a service model",
+    title: "Common questions before choosing a service model",
     subtitle:
-      "Direct answers on scope, accountability, and how operational workflows integrate with booking controls.",
-    needAnswerLabel: "Need a property-specific answer?",
+      "Simple answers on scope, responsibilities, and booking-linked operations.",
+    needAnswerLabel: "Need property-specific advice?",
     speakOpsCta: "Speak with operations",
     orLabel: "or",
     compareProgramsCta: "compare owner programs",
     faqs: [
       {
-        q: "Are these services operational or only advisory?",
-        a: "Operational. Service delivery is tied to booking events and tracked through task status, ownership, timestamps, and exception handling.",
+        q: "Are these services real operations or only advice?",
+        a: "They are real operations. Tasks are linked to booking events and tracked with clear status updates.",
       },
       {
-        q: "Do all properties need the same service scope?",
-        a: "No. Scope is configured per property and owner program. You can run different models across your portfolio based on strategy and team capacity.",
+        q: "Do all properties need the same scope?",
+        a: "No. Scope is set per property and per owner program.",
       },
       {
-        q: "How is cleaning and turnover scheduling triggered?",
-        a: "Turnover workflows are created from confirmed reservation timelines and tracked through assignment, completion, and readiness checkpoints.",
+        q: "How are cleaning and turnovers scheduled?",
+        a: "They are triggered from confirmed booking timelines and tracked until completion.",
       },
       {
-        q: "How are maintenance requests handled?",
-        a: "Maintenance follows a structured request-to-work-order flow with prioritization, ownership, status tracking, and audit logs for accountability.",
+        q: "How is maintenance handled?",
+        a: "It follows a clear request-to-work-order flow with priority, ownership, and status tracking.",
       },
       {
-        q: "Do workflows support guest identity and check-in readiness requirements?",
-        a: "Yes. Check-in readiness can include identity and policy checkpoints so guest arrival is operationally controlled and documented.",
+        q: "Do you support ID checks and check-in readiness?",
+        a: "Yes. Check-in readiness can include ID and policy checks before guest arrival.",
       },
       {
-        q: "Can owners move between listing-only, semi-managed, and managed?",
-        a: "Yes. Programs are designed to evolve with performance goals, operational maturity, and portfolio growth.",
+        q: "Can owners move between plans later?",
+        a: "Yes. You can move between listing-only, semi-managed, and managed as your needs change.",
       },
       {
-        q: "Does service configuration affect booking confirmation integrity?",
-        a: "Booking confirmation remains policy-driven and payment-validated. Service workflows execute after reservation milestones and do not bypass booking controls.",
+        q: "Can service setup affect booking confirmation?",
+        a: "No. Booking confirmation remains payment-validated and policy-driven.",
       },
     ],
   },

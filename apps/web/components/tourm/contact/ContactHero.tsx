@@ -22,26 +22,26 @@ type ContactHeroCopy = {
 const COPY: Record<AppLocale, ContactHeroCopy> = {
   en: {
     eyebrow: "Contact",
-    title: "Reach guest, owner, and operations teams in one place",
+    title: "Contact guest, owner, and operations teams in one place",
     body:
-      "From guest booking questions to owner onboarding and operational escalations, every inquiry is routed with clear ownership and response standards.",
+      "From booking help to owner onboarding, your message goes to the right team quickly.",
     browseStays: "Browse stays",
     vendorSignup: "Start vendor onboarding",
     routingEyebrow: "Support routing",
     routingItems: [
       {
         title: "Guest booking support",
-        detail: "Availability checks, quote breakdowns, and pre-arrival guidance.",
+        detail: "Availability checks, quotes, and pre-arrival help.",
         Icon: Plane,
       },
       {
         title: "Owner onboarding",
-        detail: "Program-fit review, onboarding scope, and commercial alignment.",
+        detail: "Program advice, onboarding scope, and commercial details.",
         Icon: HousePlus,
       },
       {
         title: "Operational escalation",
-        detail: "Post-booking issues resolved through structured support workflows.",
+        detail: "Fast help for post-booking operational issues.",
         Icon: Headset,
       },
     ],

@@ -13,7 +13,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Stays | Laugh & Lodge",
-  description: "Find serviced apartments and vacation homes with operator-grade hospitality.",
+  description: "Find serviced apartments and vacation homes with premium hospitality support.",
 };
 
 type PageProps = {
@@ -71,7 +71,7 @@ export default async function PropertiesPage(props: PageProps) {
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(listJsonLd)}
       </script>
-      <section className="relative overflow-hidden bg-indigo-600 text-white">
+      <section className="relative overflow-x-hidden bg-indigo-600 text-white">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:34px_34px]" />
         </div>

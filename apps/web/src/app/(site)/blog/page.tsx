@@ -6,7 +6,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Blog | Laugh & Lodge",
-  description: "Travel tips, area guides, and hosting insights for Dubai & UAE stays.",
+  description: "Simple travel tips, area guides, and hosting insights for Dubai and UAE stays.",
 };
 
 const COPY = {

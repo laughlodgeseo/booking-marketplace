@@ -26,7 +26,7 @@ const ICONS: ReadonlyArray<ServiceIcon> = [
 const COPY = {
   en: {
     eyebrow: "Operator services",
-    capabilitySuffix: "core service capabilities",
+    capabilitySuffix: "core service areas",
     cta: "Explore services",
   },
   ar: {

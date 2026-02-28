@@ -6,7 +6,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 export const metadata: Metadata = {
   title: "About | Laugh & Lodge",
   description:
-    "Learn how Laugh & Lodge Vacation Homes Rental LLC delivers operator-grade short-stay experiences for guests and owners in Dubai and UAE.",
+    "Learn how Laugh & Lodge delivers premium short-stay experiences for guests and owners in Dubai and UAE.",
 };
 
 type Pillar = {
@@ -45,15 +45,15 @@ type AboutCopy = {
 const COPY: Record<"en" | "ar", AboutCopy> = {
   en: {
     heroEyebrow: "About",
-    heroTitle: "Operator-grade hospitality for guests and property owners",
+    heroTitle: "Premium hospitality for guests and property owners",
     heroBody:
-      "Laugh & Lodge Vacation Homes Rental LLC is built on a simple principle: short-stay success requires both strong demand and disciplined operations. We combine platform controls with execution standards to deliver dependable outcomes.",
+      "Laugh & Lodge Vacation Homes Rental LLC is built on a simple idea: great stays need strong demand and reliable operations. We combine smart platform tools with on-ground service standards.",
     exploreStays: "Explore stays",
     ownerPrograms: "Owner programs",
     operateEyebrow: "How we operate",
-    operateTitle: "Built to perform in a fast-moving short-stay market",
+    operateTitle: "Built for Dubai's fast short-stay market",
     operateBody:
-      "We focus on repeatable execution standards, transparent owner communication, and policy-safe booking operations.",
+      "We focus on clear standards, transparent owner updates, and policy-based booking operations.",
     companyDetails: "Company details",
     labels: {
       registeredName: "Registered name",
@@ -71,33 +71,33 @@ const COPY: Record<"en" | "ar", AboutCopy> = {
     },
     pillars: [
       {
-        title: "Operational excellence",
-        desc: "Service delivery is driven by clear workflows, readiness checks, and escalation logic.",
+        title: "Reliable operations",
+        desc: "Service delivery follows clear workflows, readiness checks, and escalation rules.",
         Icon: BadgeCheck,
       },
       {
         title: "Owner transparency",
-        desc: "Programs are built around clear responsibilities, commercial clarity, and reporting discipline.",
+        desc: "Programs are built with clear responsibilities, clear terms, and easy reporting.",
         Icon: Building2,
       },
       {
         title: "Guest consistency",
-        desc: "We focus on reliable stay quality across booking, check-in, support, and checkout.",
+        desc: "We protect stay quality from booking to check-out.",
         Icon: Users,
       },
       {
-        title: "Compliance mindset",
-        desc: "Operating practices are aligned with local short-stay expectations and responsible hosting standards.",
+        title: "Compliance-first mindset",
+        desc: "Operations align with local short-stay rules and responsible hosting standards.",
         Icon: ShieldCheck,
       },
       {
         title: "Market intelligence",
-        desc: "Pricing and positioning are shaped by seasonality, demand signals, and location context.",
+        desc: "Pricing and positioning are guided by season, demand, and location trends.",
         Icon: Sparkles,
       },
       {
-        title: "Dubai-rooted execution",
-        desc: "Built for the pace and expectations of the Dubai short-stay market with UAE expansion readiness.",
+        title: "Dubai-rooted delivery",
+        desc: "Built for Dubai standards with readiness for UAE growth.",
         Icon: MapPin,
       },
     ],

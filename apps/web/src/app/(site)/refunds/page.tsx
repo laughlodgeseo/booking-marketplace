@@ -5,7 +5,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Refund Policy | Laugh & Lodge",
-  description: "Refund policy for reservations booked through Laugh & Lodge.",
+  description: "Simple refund policy for reservations booked through Laugh & Lodge.",
 };
 
 type LegalSection = {
@@ -31,46 +31,46 @@ const COPY: Record<"en" | "ar", RefundCopy> = {
     legalEyebrow: "Legal",
     title: "Refund Policy",
     effectiveDate: "February 19, 2026",
-    heroBody: "Refund processing follows policy-window eligibility and payment-state controls to protect consistency.",
+    heroBody: "Refund processing follows policy windows and payment status controls.",
     cancellationPolicy: "Cancellation Policy",
     termsAndConditions: "Terms and Conditions",
-    note: "Refund timing depends on provider and bank processing cycles even after approval is recorded.",
+    note: "Refund timing depends on provider and bank processing cycles, even after approval.",
     contactRefundSupport: "Contact refund support",
     reviewCancellation: "Review cancellation policy",
     sections: [
       {
         title: "1. Refund Eligibility",
         body: [
-          "Refund outcomes depend on the booking-specific cancellation policy, timing of the cancellation request, and payment status.",
-          "Some reservations may be fully refundable, partially refundable, or non-refundable based on policy context.",
+          "Refund outcomes depend on the booking cancellation policy, cancellation timing, and payment status.",
+          "Some reservations may be fully refundable, partially refundable, or non-refundable.",
         ],
       },
       {
         title: "2. Refund Calculation Logic",
         body: [
-          "Refund amounts are derived from policy-window outcomes and reservation data, then applied through backend processing workflows.",
-          "Applicable charges, penalties, or retained components are reflected according to policy conditions.",
+          "Refund amounts are calculated from policy windows and reservation data through backend workflows.",
+          "Any charges, penalties, or retained amounts follow policy conditions.",
         ],
       },
       {
         title: "3. Processing Timeline",
         body: [
-          "Once approved, refund settlement timing depends on payment provider and banking channels.",
+          "Once approved, settlement timing depends on payment provider and banking channels.",
           "Processing visibility may vary by payment method and issuer.",
         ],
       },
       {
         title: "4. Duplicate and Fraud Prevention",
         body: [
-          "Refund workflows use state controls to reduce duplicate processing and inconsistent outcomes.",
+          "Refund workflows use status controls to reduce duplicate processing and inconsistent outcomes.",
           "Disputed or suspicious activity may be reviewed before final release.",
         ],
       },
       {
         title: "5. Support and Disputes",
         body: [
-          "If you believe a refund outcome is incorrect, contact support with booking reference details and relevant context.",
-          "All refund-related communications should be made through official support channels for traceability.",
+          "If you believe a refund outcome is incorrect, contact support with booking details and relevant context.",
+          "Use official support channels for all refund-related communication.",
         ],
       },
     ],

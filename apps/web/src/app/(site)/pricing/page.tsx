@@ -10,7 +10,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Pricing | Laugh & Lodge",
-  description: "Transparent short-stay pricing with clear fee logic, policy-backed outcomes, and checkout clarity.",
+  description: "Clear short-stay pricing with transparent fees and simple checkout rules.",
 };
 
 const COPY = {
@@ -23,7 +23,7 @@ const COPY = {
     ],
     browseStays: "Browse stays",
     cancellationPolicy: "Cancellation policy",
-    pricingQuestions: "Talk to pricing specialist",
+    pricingQuestions: "Talk to pricing team",
   },
   ar: {
     jumpTo: "تنقل إلى",

@@ -30,20 +30,20 @@ type PricingBreakdownCopy = {
 const COPY: Record<AppLocale, PricingBreakdownCopy> = {
   en: {
     sectionEyebrow: "Breakdown",
-    sectionTitle: "Example quote layout before payment confirmation",
+    sectionTitle: "Sample quote before payment",
     sectionBody:
-      "This sample shows how totals are explained. Final values always depend on selected dates, property rules, and applicable policy components.",
+      "This sample shows how totals are displayed. Final values depend on dates, property rules, and policy terms.",
     includeTitle: "What we show before checkout",
     includeItems: [
-      "Per-night total aligned with chosen stay dates",
-      "Applicable service and preparation components",
-      "Policy-linked notes before payment authorization",
+      "Per-night total for selected dates",
+      "Service and preparation components",
+      "Policy notes before payment",
       "Final payable total with clear line items",
     ],
     cancellationPolicy: "Cancellation policy",
     refundPolicy: "Refund policy",
     sampleQuoteTitle: "Sample quote",
-    sampleQuoteNote: "Illustration only. Real totals are generated server-side from reservation and policy data.",
+    sampleQuoteNote: "Example only. Real totals are generated server-side from booking and policy data.",
     lineLabels: {
       cleaning: "Cleaning and turnover",
       serviceFee: "Service fee",
@@ -52,7 +52,7 @@ const COPY: Record<AppLocale, PricingBreakdownCopy> = {
     },
     estimatedTotal: "Estimated total",
     baseLabel: "Base",
-    policyNote: "Policy window outcomes can change payable or refundable amounts depending on cancellation timing.",
+    policyNote: "Policy windows can change payable and refundable amounts based on cancellation timing.",
     askDetails: "Ask about pricing details",
   },
   ar: {

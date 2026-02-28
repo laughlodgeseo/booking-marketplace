@@ -178,7 +178,7 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
               </>
             ) : (
               <>
-                This will convert your <span className="font-semibold">ACTIVE</span> hold into a booking. Inventory
+                This will convert your <span className="font-semibold">active</span> hold into a booking. Inventory
                 safety rules are enforced by the backend.
               </>
             )}

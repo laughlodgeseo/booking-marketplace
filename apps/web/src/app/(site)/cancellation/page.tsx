@@ -5,7 +5,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Cancellation Policy | Laugh & Lodge",
-  description: "Cancellation policy for stays booked through Laugh & Lodge.",
+  description: "Simple cancellation policy for stays booked through Laugh & Lodge.",
 };
 
 type LegalSection = {
@@ -31,47 +31,47 @@ const COPY: Record<"en" | "ar", CancellationCopy> = {
     legalEyebrow: "Legal",
     title: "Cancellation Policy",
     effectiveDate: "February 19, 2026",
-    heroBody: "Cancellation outcomes are policy-window based and enforced through booking-state controls.",
+    heroBody: "Cancellation outcomes depend on policy windows and booking status.",
     refundsPolicy: "Refund Policy",
     termsAndConditions: "Terms and Conditions",
     note:
-      "Always review the cancellation terms shown in your booking context before payment. Policy windows can materially change refundable outcomes.",
+      "Please review cancellation terms before payment. Policy windows can change refund eligibility.",
     reviewRefundPolicy: "Review refund policy",
     contactSupport: "Contact support",
     sections: [
       {
         title: "1. Policy Basis",
         body: [
-          "Each reservation is associated with a cancellation policy context that determines allowed cancellation timing and resulting charges or refunds.",
-          "Policy rules are bound to reservation state and timing data for consistency and auditability.",
+          "Each reservation has a cancellation policy that defines timing, charges, and refunds.",
+          "Policy rules depend on booking state and time details.",
         ],
       },
       {
         title: "2. Cancellation Windows",
         body: [
-          "Some bookings may allow full or partial refunds before a cutoff window and reduced or zero refunds after that window.",
-          "The applicable window depends on reservation policy settings, property terms, and booking timing.",
+          "Some bookings allow full or partial refunds before a cutoff time, and lower or no refunds after it.",
+          "The exact window depends on reservation policy, property terms, and booking timing.",
         ],
       },
       {
         title: "3. How to Cancel",
         body: [
-          "Guests should submit cancellation requests through their account booking area or approved support channels.",
-          "Cancellation eligibility and resulting outcomes are calculated against the booking-specific policy context.",
+          "Guests should cancel through their account booking area or approved support channels.",
+          "Eligibility and outcomes are calculated based on the booking-specific policy.",
         ],
       },
       {
         title: "4. No-Show and Late Cancellation",
         body: [
-          "No-show or late cancellation outcomes follow the policy attached to the reservation and may incur partial or full booking charges.",
-          "Final treatment is based on policy rules in effect for that booking.",
+          "No-show or late cancellation outcomes follow the reservation policy and may include partial or full charges.",
+          "Final outcomes are based on the policy rules attached to that booking.",
         ],
       },
       {
         title: "5. Operational Exception Handling",
         body: [
-          "If exceptional situations occur, support teams may review context and apply decisions within policy and legal constraints.",
-          "Any approved exceptions are documented for accountability.",
+          "In exceptional situations, support teams may review context within policy and legal limits.",
+          "Any approved exception is documented for accountability.",
         ],
       },
     ],

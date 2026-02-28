@@ -21,35 +21,35 @@ type PricingCardsCopy = {
 const COPY: Record<AppLocale, PricingCardsCopy> = {
   en: {
     sectionEyebrow: "Pricing model",
-    sectionTitle: "How your final total is built before payment",
+    sectionTitle: "How your total is built before payment",
     sectionBody:
-      "We separate pricing components clearly so guests can make informed booking decisions and owners can trust commercial transparency.",
+      "We show each pricing component clearly so guests and owners understand the final total.",
     coreLabel: "Core",
     cards: [
       {
         title: "Nightly rate logic",
-        desc: "Base stay cost reflects date-specific demand, seasonality, and stay duration patterns.",
+        desc: "Base stay cost reflects selected dates, demand, and stay duration.",
         bullets: [
-          "Date-aware rate presentation",
-          "Demand-sensitive pricing windows",
-          "Displayed per-night with quote alignment",
+          "Date-aware nightly rates",
+          "Demand-based pricing windows",
+          "Per-night view aligned with your quote",
         ],
         Icon: MoonStar,
         emphasis: true,
       },
       {
         title: "Operational and service fees",
-        desc: "Applicable service fees are surfaced clearly so guests understand what supports stay delivery.",
+        desc: "Service fees are shown clearly so guests understand what they pay for.",
         bullets: [
           "Cleaning and turnover preparation",
-          "Operational readiness support",
+          "Operational support",
           "Shown before checkout confirmation",
         ],
         Icon: ReceiptText,
       },
       {
         title: "Policy and regulatory components",
-        desc: "Policy-window outcomes and local fee components are applied where relevant and disclosed transparently.",
+        desc: "Policy windows and local fee components are applied when relevant and shown clearly.",
         bullets: [
           "Cancellation-rule windows by booking",
           "Regulatory or tourism components where applicable",
@@ -59,9 +59,9 @@ const COPY: Record<AppLocale, PricingCardsCopy> = {
       },
       {
         title: "Checkout confidence",
-        desc: "Totals are presented with clear breakdown context before payment execution.",
+        desc: "Totals are shown with full breakdown before payment starts.",
         bullets: [
-          "No hidden-charge design approach",
+          "No hidden-fee approach",
           "Policy summary before commit",
           "State-safe booking and payment flow",
         ],

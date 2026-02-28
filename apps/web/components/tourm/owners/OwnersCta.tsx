@@ -21,39 +21,39 @@ type OwnersCtaCopy = {
 const COPY: Record<AppLocale, OwnersCtaCopy> = {
   en: {
     eyebrow: "Final step",
-    title: "Start owner onboarding through a vendor account",
+    title: "Start owner onboarding in minutes",
     subtitle:
-      "Move from evaluation to execution with a structured onboarding path that defines ownership model, operating standards, and launch timeline.",
+      "Move from interest to launch with a clear onboarding path, clear timeline, and full support.",
     signupCta: "Sign up as vendor",
     onboardingTeamCta: "Talk to onboarding team",
-    fitTitle: "Program-fit recommendation",
-    fitBody: "Model matched to ownership goals and asset profile.",
-    readinessTitle: "Launch readiness governance",
-    readinessBody: "Scope and standards aligned before first booking.",
+    fitTitle: "Best-fit program",
+    fitBody: "We match your property with the right service model.",
+    readinessTitle: "Launch readiness",
+    readinessBody: "Everything is aligned before your first booking.",
     nextStepsTitle: "Next steps after sign-up",
     expectedTitle: "What you can expect",
     nextSteps: [
       {
         title: "Create vendor account",
-        detail: "Secure profile setup to start owner onboarding and document exchange.",
+        detail: "Set up your account to begin onboarding and document sharing.",
         Icon: UserRoundPlus,
       },
       {
         title: "Submit asset profile",
-        detail: "Share unit details, location, and preferred operating depth for scope assessment.",
+        detail: "Share your unit details, location, and preferred service level.",
         Icon: ClipboardCheck,
       },
       {
         title: "Confirm launch plan",
-        detail: "Align on service scope, timeline, standards, and commercial model before go-live.",
+        detail: "Confirm scope, timeline, and commercial terms before go-live.",
         Icon: CalendarCheck2,
       },
     ],
     deliverables: [
-      "Clear onboarding milestones and owner responsibilities",
-      "Program recommendation based on property profile",
-      "Operational standard framework before launch",
-      "Commercial transparency before commitment",
+      "Clear milestones and owner responsibilities",
+      "Program recommendation based on your property",
+      "Operational standards before launch",
+      "Commercial clarity before you commit",
     ],
   },
   ar: {

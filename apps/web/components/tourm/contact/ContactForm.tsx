@@ -45,8 +45,8 @@ type ContactFormCopy = {
 const COPY: Record<AppLocale, ContactFormCopy> = {
   en: {
     sectionEyebrow: "Message us",
-    sectionTitle: "Submit one brief and get the right team assigned",
-    sectionBody: "Provide clear context in your first message so we can return with precise next steps and timelines.",
+    sectionTitle: "Send one message and reach the right team",
+    sectionBody: "Share clear details so we can reply with the right next steps quickly.",
     includeDetailsTitle: "Include these details for faster response",
     includeDetails: [
       "Booking inquiry: travel dates, guest count, and property link",
@@ -55,7 +55,7 @@ const COPY: Record<AppLocale, ContactFormCopy> = {
     ],
     sentTitle: "Message submitted successfully",
     sentBody:
-      "Our team has received your request and will respond shortly. For urgent support, call +971 50 234 8756.",
+      "Our team received your request and will reply shortly. For urgent support, call +971 50 234 8756.",
     sendAnother: "Send another message",
     labels: {
       name: "Name",

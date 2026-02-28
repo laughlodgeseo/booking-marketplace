@@ -5,7 +5,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | Laugh & Lodge",
-  description: "Terms and conditions for using Laugh & Lodge services.",
+  description: "Simple terms and conditions for using Laugh & Lodge services.",
 };
 
 type LegalSection = {
@@ -32,18 +32,18 @@ const COPY: Record<"en" | "ar", TermsCopy> = {
     title: "Terms & Conditions",
     effectiveDate: "February 19, 2026",
     heroBody:
-      "These terms govern how guests, owners, and users interact with our website, booking flows, and related service operations.",
+      "These terms explain how guests, owners, and users interact with our website and booking services.",
     privacyPolicy: "Privacy Policy",
     cancellationPolicy: "Cancellation Policy",
     note:
-      "These terms should be read with our Privacy, Cancellation, and Refund policies, which form part of the user-facing policy framework.",
+      "Please read these terms with our Privacy, Cancellation, and Refund policies.",
     contactSupport: "Contact support team",
     reviewPrivacy: "Review Privacy Policy",
     sections: [
       {
         title: "1. Acceptance of Terms",
         body: [
-          "By accessing this website, creating an account, submitting booking requests, or interacting with our services, you agree to these Terms and Conditions.",
+          "By using this website, creating an account, or submitting booking requests, you agree to these Terms and Conditions.",
           "If you do not agree, you should discontinue use of the platform and associated services.",
         ],
       },
@@ -57,43 +57,43 @@ const COPY: Record<"en" | "ar", TermsCopy> = {
       {
         title: "3. Booking and Payment",
         body: [
-          "Booking creation and confirmation are controlled through backend state logic and payment event validation.",
-          "Displayed quotes and totals are subject to policy rules, availability status, and applicable charges disclosed before payment.",
+          "Booking creation and confirmation are controlled through backend status logic and payment event validation.",
+          "Displayed quotes and totals follow policy rules, availability status, and charges shown before payment.",
         ],
       },
       {
         title: "4. Guest Responsibilities",
         body: [
           "Guests must comply with house rules, building policies, occupancy limits, and local laws.",
-          "Damage, excessive cleaning, unauthorized occupancy, or prohibited activity may result in penalties or additional charges as applicable.",
+          "Damage, excessive cleaning, unauthorized occupancy, or prohibited activity may result in penalties or extra charges.",
         ],
       },
       {
         title: "5. Owner and Vendor Participation",
         body: [
           "Owners or vendors using onboarding or program channels must provide accurate property and contact details.",
-          "Service scope, responsibilities, and commercial terms are governed by applicable agreements and approved operational frameworks.",
+          "Service scope, responsibilities, and commercial terms are governed by applicable agreements.",
         ],
       },
       {
         title: "6. Cancellation and Refund Rules",
         body: [
-          "Cancellation and refund outcomes are determined by the booking-specific policy window and timing context.",
+          "Cancellation and refund outcomes are determined by booking-specific policy windows and timing.",
           "For details, see the dedicated Cancellation and Refund policy pages.",
         ],
       },
       {
         title: "7. Limitation and Service Changes",
         body: [
-          "We may update, suspend, or refine platform functionality, pricing presentation, and operational processes as needed.",
+          "We may update, suspend, or improve platform functionality, pricing presentation, and operations as needed.",
           "Nothing in these terms limits rights that cannot be limited under applicable law.",
         ],
       },
       {
         title: "8. Governing Framework",
         body: [
-          "These terms are intended to operate under applicable UAE legal and regulatory frameworks relevant to service delivery.",
-          "Any formal dispute handling process will follow applicable contractual and legal channels.",
+          "These terms operate under applicable UAE legal and regulatory frameworks.",
+          "Any formal dispute process follows applicable contractual and legal channels.",
         ],
       },
     ],

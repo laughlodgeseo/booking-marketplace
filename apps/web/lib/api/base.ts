@@ -138,7 +138,13 @@ export function apiBaseUrl(): string {
     return DEFAULT_API_BASE_PATH;
   }
   const fromBase = readApiBaseFromEnv();
-  if (fromBase) return fromBase;
+  if (fromBase) {
+    if (/^https?:\/\//i.test(fromBase)) return fromBase;
+    if (typeof window !== "undefined") return fromBase;
+
+    // Server-side fetch requires absolute URLs.
+    return `${apiOrigin()}${fromBase.startsWith("/") ? fromBase : `/${fromBase}`}`;
+  }
   return `${apiOrigin()}${DEFAULT_API_BASE_PATH}`;
 }
 

@@ -23,14 +23,14 @@ type ContactCardsCopy = {
 const COPY: Record<AppLocale, ContactCardsCopy> = {
   en: {
     sectionEyebrow: "Contact channels",
-    sectionTitle: "Use dedicated channels for faster resolution",
+    sectionTitle: "Use the right channel for faster support",
     sectionBody:
-      "Guest, owner, and operational requests are handled by separate teams so each inquiry reaches the right workflow immediately.",
+      "Guest, owner, and operations requests are handled by different teams for faster responses.",
     routedNote: "Automatically routed to the relevant operations desk",
     cards: [
       {
         title: "Guest booking support",
-        desc: "For reservations, quote clarifications, and stay-related assistance.",
+        desc: "For reservations, quote questions, and stay support.",
         lines: [
           {
             label: "Email",
@@ -47,7 +47,7 @@ const COPY: Record<AppLocale, ContactCardsCopy> = {
       },
       {
         title: "Owner onboarding",
-        desc: "For listing setup, program evaluation, and owner commercial queries.",
+        desc: "For listing setup, program planning, and commercial questions.",
         lines: [
           {
             label: "Email",
@@ -64,7 +64,7 @@ const COPY: Record<AppLocale, ContactCardsCopy> = {
       },
       {
         title: "Company details",
-        desc: "For trust, compliance checks, and formal communication references.",
+        desc: "For trust checks, verification, and formal communication.",
         lines: [
           {
             label: "Legal name",
@@ -80,7 +80,7 @@ const COPY: Record<AppLocale, ContactCardsCopy> = {
       },
       {
         title: "Urgent phone channel",
-        desc: "For time-sensitive booking matters during active guest journeys.",
+        desc: "For urgent booking matters during active stays.",
         lines: [
           {
             label: "Direct call",
@@ -89,7 +89,7 @@ const COPY: Record<AppLocale, ContactCardsCopy> = {
           },
           {
             label: "WhatsApp-ready",
-            value: "Use same number for quick response",
+            value: "Use the same number for WhatsApp",
           },
         ],
         Icon: Phone,

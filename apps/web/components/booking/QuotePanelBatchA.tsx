@@ -28,10 +28,10 @@ const COPY = {
     nights: "nights",
     getQuote: "Get quote",
     gettingQuote: "Getting quote...",
-    reserveHold: "Reserve (hold inventory)",
+    reserveHold: "Reserve (hold dates)",
     creatingHold: "Creating hold...",
     holdNote:
-      "Hold prevents double-booking. Booking becomes CONFIRMED only after verified payment events.",
+      "A hold protects your dates from double booking. Confirmation happens after verified payment events.",
     viewQuote: "View quote",
     checkAvailability: "Check availability",
     closeBookingPanel: "Close booking panel",

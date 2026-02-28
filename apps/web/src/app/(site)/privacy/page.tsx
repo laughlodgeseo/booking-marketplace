@@ -5,7 +5,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | Laugh & Lodge",
-  description: "Privacy policy for Laugh & Lodge Vacation Homes Rental LLC.",
+  description: "Simple privacy policy for Laugh & Lodge Vacation Homes Rental LLC.",
 };
 
 type LegalSection = {
@@ -32,67 +32,67 @@ const COPY: Record<"en" | "ar", PrivacyCopy> = {
     title: "Privacy Policy",
     effectiveDate: "February 19, 2026",
     heroBody:
-      "This policy explains how we handle personal data with security, accountability, and operational necessity in mind.",
+      "This policy explains how we collect, use, and protect personal data.",
     termsAndConditions: "Terms and Conditions",
     privacyRequestContact: "Privacy request contact",
     requestNote:
-      "If you need a data-access, correction, or deletion request, please email Info@rentpropertyuae.com with your identity details and request scope.",
+      "For data access, correction, or deletion requests, email Info@rentpropertyuae.com with your identity details and request scope.",
     contactPrivacy: "Contact for privacy requests",
     readTerms: "Read Terms and Conditions",
     sections: [
       {
         title: "1. Scope",
         body: [
-          "This Privacy Policy explains how Laugh & Lodge Vacation Homes Rental LLC collects, uses, stores, and protects personal data when you use our website, booking flows, or owner onboarding channels.",
-          "This policy applies to guest inquiries, reservations, account usage, and owner-related contact submissions.",
+          "This Privacy Policy explains how Laugh & Lodge Vacation Homes Rental LLC collects, uses, stores, and protects personal data.",
+          "It applies to guest inquiries, reservations, account usage, and owner contact submissions.",
         ],
       },
       {
         title: "2. Data We Collect",
         body: [
-          "We may collect identity and contact data (for example: name, email, phone), reservation data (travel dates, guest count, property reference), and communication content submitted through contact forms or support channels.",
-          "Payment information is processed through relevant payment providers; we do not publish or expose full sensitive payment credentials in customer-facing systems.",
+          "We may collect identity and contact data (name, email, phone), reservation data (travel dates, guest count, property reference), and message content from forms or support channels.",
+          "Payment information is processed by payment providers; we do not expose full sensitive payment details in customer-facing systems.",
         ],
       },
       {
         title: "3. How We Use Data",
         body: [
-          "Personal data is used to process bookings, manage guest and owner support, enforce platform policies, prevent fraud or misuse, and improve service quality.",
-          "We may also use operational metadata to monitor system reliability, booking integrity, and support performance.",
+          "Personal data is used to process bookings, manage support, apply policies, prevent misuse, and improve service quality.",
+          "We may also use operational metadata to monitor reliability and support performance.",
         ],
       },
       {
         title: "4. Legal Basis and Legitimate Use",
         body: [
-          "Data is processed where required for contract performance, legitimate business operations, compliance obligations, and customer support delivery.",
-          "Where consent is required for a specific activity, we request consent through appropriate product or communication touchpoints.",
+          "Data is processed for contract delivery, legitimate business operations, compliance needs, and customer support.",
+          "Where consent is required, we ask for it through relevant product or communication channels.",
         ],
       },
       {
         title: "5. Data Sharing",
         body: [
-          "We may share limited relevant data with service providers and partners involved in booking, payment, communication, hosting, analytics, and operational execution.",
+          "We may share limited relevant data with providers and partners involved in booking, payment, communication, analytics, and operations.",
           "We do not sell personal data as a standalone commercial product.",
         ],
       },
       {
         title: "6. Retention and Security",
         body: [
-          "Data is retained only as long as required for service delivery, policy enforcement, legal obligations, and legitimate dispute or audit needs.",
-          "We maintain technical and organizational safeguards designed to reduce unauthorized access, alteration, disclosure, or loss.",
+          "Data is kept only as long as needed for service delivery, policy enforcement, legal obligations, and audit needs.",
+          "We use technical and organizational safeguards to reduce unauthorized access, alteration, disclosure, or loss.",
         ],
       },
       {
         title: "7. Your Rights and Requests",
         body: [
-          "Subject to applicable law, you may request access, correction, or deletion of personal data held by us, and you may request clarification on how your data is used.",
+          "Subject to applicable law, you may request access, correction, or deletion of your personal data.",
           "To submit a privacy request, contact us using the details in the Contact section below.",
         ],
       },
       {
         title: "8. Cookies and Tracking",
         body: [
-          "We may use cookies or similar technologies for authentication, session continuity, security hardening, and service analytics.",
+          "We may use cookies or similar technologies for authentication, session continuity, security, and analytics.",
           "You can manage certain cookie settings through your browser controls.",
         ],
       },

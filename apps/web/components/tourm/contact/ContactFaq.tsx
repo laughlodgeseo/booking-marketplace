@@ -16,8 +16,8 @@ type ContactFaqCopy = {
 const COPY: Record<AppLocale, ContactFaqCopy> = {
   en: {
     eyebrow: "FAQs",
-    title: "Frequently asked support and onboarding questions",
-    subtitle: "Quick clarity for guests, owners, and partners before they reach out.",
+    title: "Common support and onboarding questions",
+    subtitle: "Quick answers for guests, owners, and partners.",
     needOnboarding: "Need owner onboarding directly?",
     signupVendor: "Sign up as vendor",
     faqs: [
@@ -27,7 +27,7 @@ const COPY: Record<AppLocale, ContactFaqCopy> = {
       },
       {
         q: "I am an owner. What is the fastest way to start?",
-        a: "Create a vendor account and share your property profile. Our onboarding team will guide next steps.",
+        a: "Create a vendor account and share your property profile. Our onboarding team will guide you.",
       },
       {
         q: "Do you provide support after booking confirmation?",
@@ -35,15 +35,15 @@ const COPY: Record<AppLocale, ContactFaqCopy> = {
       },
       {
         q: "How quickly do you respond?",
-        a: "Most inquiries are handled within one business day, with urgent booking requests prioritized.",
+        a: "Most inquiries are answered within one business day. Urgent booking requests are prioritized.",
       },
       {
         q: "Can I request a custom owner operating model?",
-        a: "Yes. We can scope listing-only, semi-managed, or managed execution by property.",
+        a: "Yes. We can set listing-only, semi-managed, or fully managed scope by property.",
       },
       {
         q: "Do you support compliance or business verification checks?",
-        a: "Yes. We can provide company identity details for standard trust and verification workflows.",
+        a: "Yes. We can provide company details for standard trust and verification checks.",
       },
     ],
   },

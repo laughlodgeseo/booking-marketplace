@@ -10,8 +10,7 @@ export function HoldExpiredCard(props: { propertyId?: string | null; propertySlu
       <div className="text-sm font-semibold text-danger">Your hold expired</div>
 
       <p className="mt-2 text-sm leading-6 text-danger/90">
-        The payment window ended, so the hold was released and the dates are no longer reserved. This is a safety feature
-        to prevent stale holds and double-booking.
+        The payment window ended, so the hold was released and these dates are no longer reserved.
       </p>
 
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-danger/90">

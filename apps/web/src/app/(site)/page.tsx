@@ -24,10 +24,10 @@ const FaqSection = dynamic(() => import("@/components/tourm/home/sections/FaqSec
 const HOME_COPY = {
   en: {
     featured: {
-      title: "Editor's picks with live, bookable inventory",
+      title: "Featured stays with live availability",
       subtitle:
-        "Every featured stay is synced in real time with our search and booking engine, so rates and availability stay accurate from discovery to checkout.",
-      errorTitle: "Featured stays couldn’t load right now.",
+        "Every featured stay is synced in real time, so prices and availability stay accurate from search to checkout.",
+      errorTitle: "Featured stays could not load right now.",
       errorBody: "You can still browse all listings.",
       browse: "Browse stays",
     },
@@ -35,174 +35,174 @@ const HOME_COPY = {
       titleTop: "Where every Dubai stay",
       titleEmphasis: "feels professionally hosted.",
       subtitle:
-        "Instant confirmation, transparent pricing, and hotel-grade hosting backed by a real concierge team, 24/7.",
+        "Fast booking, clear pricing, and hotel-style hosting with real 24/7 support.",
       primaryCtaLabel: "Explore stays",
       secondaryCtaLabel: "List your property",
     },
     areas: {
       title: "Browse Dubai's top neighborhoods",
       subtitle:
-        "Start in high-demand districts, then narrow by dates, budget, amenities, and map view to find the right stay faster.",
+        "Start with popular areas, then filter by dates, budget, amenities, and map to find the right stay faster.",
     },
     why: {
       titleA: "Hotel-grade operations,",
       titleB: "home-style comfort",
       subtitle:
-        "We operate homes like a boutique hotel with verified availability, transparent totals, and on-ground support that keeps every stay smooth.",
+        "We run homes like a boutique hotel with verified availability, clear totals, and local support.",
       reasons: [
         {
           title: "Live availability & instant holds",
-          desc: "Dates are verified against live calendars. When you reserve, we place a timed hold to prevent double-booking.",
+          desc: "Dates are checked against live calendars. A timed hold protects your selected dates.",
         },
         {
           title: "Transparent totals",
-          desc: "Clear breakdowns at every step with nightly rate, fees, and taxes, so totals stay consistent at checkout.",
+          desc: "See nightly rate, fees, and taxes clearly so totals stay consistent at checkout.",
         },
         {
           title: "Operator-managed quality",
-          desc: "Hotel-grade cleaning, linen, inspections, and restocks are automatically scheduled when a booking is confirmed.",
+          desc: "Cleaning, linen, inspections, and restocks are scheduled automatically after confirmation.",
         },
         {
-          title: "Policy-driven changes",
-          desc: "Cancellations and refunds follow clear rules with consistent outcomes for guests and owners.",
+          title: "Clear policy rules",
+          desc: "Cancellations and refunds follow clear rules with consistent outcomes.",
         },
       ],
       stats: [
-        { label: "Inventory safety", value: "Lock-safe" },
+        { label: "Inventory safety", value: "Protected" },
         { label: "Ops automation", value: "Built-in" },
-        { label: "Pricing clarity", value: "Transparent" },
-        { label: "Support", value: "Always-on" },
+        { label: "Pricing clarity", value: "Clear" },
+        { label: "Support", value: "24/7" },
       ],
     },
     assurance: {
       eyebrow: "Booking Assurance",
-      title: "Enterprise-grade inventory integrity for every reservation",
+      title: "Reliable inventory control for every reservation",
       body:
-        "Our booking orchestration validates live availability, applies atomic reservation holds, and enforces policy-aware checkout transitions, so quotes and confirmations remain accurate from discovery through payment.",
-      cta: "Explore verified inventory",
+        "Our system checks live availability, places secure reservation holds, and applies policy rules so quotes and confirmations stay accurate.",
+      cta: "Explore available stays",
     },
     how: {
-      title: "Enterprise booking flow from discovery to post-stay",
+      title: "How booking works from search to check-out",
       subtitle:
-        "Every stage is governed by live inventory checks, policy validation, and operations automation, so reservations stay accurate and execution-ready at scale.",
+        "Each step uses live checks and clear policies to keep your reservation accurate and safe.",
       steps: [
         {
           step: "1",
-          title: "Demand capture and inventory match",
-          desc: "Guests search by location, dates, occupancy, and amenities while the engine returns only actively bookable inventory.",
+          title: "Search and match",
+          desc: "Search by location, dates, guests, and amenities. We show only bookable stays.",
         },
         {
           step: "2",
-          title: "Real-time pricing intelligence",
-          desc: "Nightly rates, fees, taxes, and restrictions are calculated server-side to produce a policy-compliant quote.",
+          title: "Real-time quote",
+          desc: "Nightly rates, fees, and taxes are calculated on the server for a clear quote.",
         },
         {
           step: "3",
-          title: "Reservation hold control",
-          desc: "A time-boxed hold secures inventory during checkout and prevents race conditions or double allocation.",
+          title: "Safe reservation hold",
+          desc: "A timed hold secures the dates during checkout and prevents double booking.",
         },
         {
           step: "4",
-          title: "Identity and policy validation",
-          desc: "Guest details, stay policies, and cancellation terms are validated before the booking can be committed.",
+          title: "Details and policy check",
+          desc: "Guest details and policy terms are checked before booking is finalized.",
         },
         {
           step: "5",
-          title: "Payment authorization and booking commit",
-          desc: "Verified payment events trigger atomic booking confirmation and synchronized calendar state updates.",
+          title: "Payment and confirmation",
+          desc: "Verified payment events confirm your booking and update calendar status.",
         },
         {
           step: "6",
-          title: "Pre-arrival operations dispatch",
-          desc: "Cleaning, linen, inspection, and access-prep tasks are automatically created in the operations queue.",
+          title: "Pre-arrival prep",
+          desc: "Cleaning, linen, inspection, and access-prep tasks are created automatically.",
         },
         {
           step: "7",
-          title: "In-stay service monitoring",
-          desc: "Support requests and maintenance escalations route to accountable teams with clear status visibility.",
+          title: "In-stay support",
+          desc: "Support and maintenance requests are routed to the right team with clear tracking.",
         },
         {
           step: "8",
-          title: "Checkout reconciliation and quality loop",
-          desc: "Post-stay checks, incident logs, and guest feedback are captured to continuously improve execution standards.",
+          title: "Checkout and quality review",
+          desc: "Post-stay checks and guest feedback are used to keep service quality high.",
         },
       ],
     },
     services: {
-      title: "Operator services built for consistent guest readiness",
+      title: "Services built for consistent guest readiness",
       subtitle:
-        "Each service is mapped to booking states, staffing queues, and quality controls so execution remains predictable at scale.",
+        "Each service is linked to booking stages and quality controls to keep execution consistent.",
       items: [
         {
-          title: "Cleaning orchestration",
-          desc: "Turnover jobs are auto-created from booking events and routed by check-in urgency.",
-          note: "Includes staffing assignment and completion tracking.",
+          title: "Cleaning workflow",
+          desc: "Turnover tasks are auto-created from booking events.",
+          note: "Includes assignment and completion tracking.",
         },
         {
           title: "Quality inspection",
-          desc: "Standardized QA checklists verify unit readiness before guest access details are released.",
-          note: "Issue flags escalate instantly to accountable teams.",
+          desc: "Standard checklists verify unit readiness before guest arrival.",
+          note: "Issues are escalated instantly.",
         },
         {
-          title: "Linen logistics",
-          desc: "Linen cycles are planned around turnover windows to maintain consistent presentation standards.",
-          note: "Inventory sync prevents last-minute shortages.",
+          title: "Linen management",
+          desc: "Linen cycles are planned around turnover windows.",
+          note: "Inventory sync helps prevent shortages.",
         },
         {
           title: "Restock control",
-          desc: "Essential amenities are replenished using occupancy patterns and stay-duration forecasts.",
-          note: "Low-stock alerts trigger resupply tasks early.",
+          desc: "Essentials are replenished based on occupancy and stay duration.",
+          note: "Low-stock alerts trigger early resupply tasks.",
         },
       ],
     },
     owner: {
-      title: "Turn your property into a professionally operated revenue asset.",
+      title: "Turn your property into a premium, revenue-ready stay.",
       subtitle:
-        "Our owner program combines pricing strategy, compliance controls, and end-to-end hospitality operations with measurable service standards.",
+        "Our owner program combines smart pricing, compliance support, and full operations with clear standards.",
       bullets: [
-        "Full-service and hybrid operating models aligned to your asset strategy",
-        "Dynamic pricing, channel distribution, and occupancy optimization",
-        "Automated turnover workflows: cleaning, inspection, linen, and restock",
-        "Policy-governed booking, cancellation, and financial audit trails",
-        "Owner reporting focused on operational and revenue performance",
+        "Full-service and hybrid models to match your strategy",
+        "Dynamic pricing and channel distribution",
+        "Automated turnover tasks: cleaning, inspection, linen, and restock",
+        "Policy-based booking and cancellation flow",
+        "Owner reporting focused on operations and revenue",
       ],
     },
     faq: {
       title: "Answers before you book",
       subtitle:
-        "Quick clarity on inventory, pricing, confirmations, and operations without surprises.",
+        "Simple answers on availability, pricing, booking, and support.",
       items: [
         {
           q: "Is availability real-time?",
-          a: "Yes. Search and quote are validated against the same inventory logic that manages holds and bookings.",
+          a: "Yes. Search and quote both use the same live inventory logic.",
         },
         {
           q: "Do you show total price breakdowns?",
-          a: "We aim for transparent pricing. Nightly rates and fees are computed server-side and shown clearly.",
+          a: "Yes. Nightly rates and fees are calculated server-side and shown clearly.",
         },
         {
           q: "How do reservations avoid double-booking?",
-          a: "We use short holds and overlap protection so two guests can’t book the same dates concurrently.",
+          a: "We use timed holds and overlap protection to prevent double booking.",
         },
         {
           q: "What happens after a booking is confirmed?",
-          a: "Operational tasks (cleaning, inspection, linen, and restock) are created so the stay is prepared to standard.",
+          a: "Preparation tasks are created automatically so the stay is ready on time.",
         },
         {
           q: "Can I cancel my booking?",
-          a: "Cancellations follow policy windows with penalties and refund logic handled by backend rules.",
+          a: "Yes. Cancellations follow policy windows and backend refund rules.",
         },
         {
           q: "Do you support owners with full management?",
-          a: "Yes. We support managed and semi-managed programs with real operational workflows.",
+          a: "Yes. We offer both managed and semi-managed owner programs.",
         },
         {
           q: "Is payment confirmation done on the frontend?",
-          a: "No. Confirmations are backend-driven based on verified payment events (webhook-confirmed).",
+          a: "No. Confirmation is backend-driven after verified payment events.",
         },
         {
           q: "Can I contact support?",
-          a: "Yes. You can reach our team via the Contact page for booking help or owner onboarding.",
+          a: "Yes. Contact us any time for booking help or owner onboarding.",
         },
       ],
     },

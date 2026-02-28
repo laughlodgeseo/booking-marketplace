@@ -18,28 +18,28 @@ const TRUST_FEATURES: Record<"en" | "ar", ReadonlyArray<TrustFeature>> = {
   en: [
     {
       title: "Verified availability",
-      body: "Availability is checked live so the dates you pick match real inventory, not estimates.",
+      body: "Availability is checked live so your selected dates match real inventory.",
       href: "/properties",
       cta: "Browse stays",
       icon: ShieldCheck,
     },
     {
       title: "Upfront totals",
-      body: "See the full total clearly with nightly rate, fees, and taxes and no last-minute add-ons.",
+      body: "See the full total with nightly rate, fees, and taxes before you pay.",
       href: "/pricing",
       cta: "See pricing",
       icon: Receipt,
     },
     {
       title: "Operator-managed quality",
-      body: "Hotel-grade cleaning, linen, inspections, and on-stay support handled through real operations.",
+      body: "Cleaning, linen, inspections, and support are handled through real operations.",
       href: "/services",
       cta: "Our services",
       icon: Sparkles,
     },
     {
       title: "Clear policies",
-      body: "Straightforward cancellation and refund rules with consistent outcomes for guests and owners.",
+      body: "Simple cancellation and refund rules with consistent outcomes.",
       href: "/contact",
       cta: "Learn more",
       icon: ClipboardCheck,
@@ -92,7 +92,7 @@ export default function TrustFeaturesList() {
       <p className="mt-4 max-w-[52ch] text-[15px] leading-6 text-neutral-600">
         {locale === "ar"
           ? "توافر مباشر وإجماليات واضحة ووحدات تُدار باحتراف لتجربة إقامة سلسة بلا مفاجآت."
-          : "Live availability, clear totals, and professionally managed homes designed for smooth stays, not surprises."}
+          : "Live availability, clear totals, and professionally managed homes for smooth stays."}
       </p>
       <div className="mt-6 h-px w-20 bg-black/10" />
 

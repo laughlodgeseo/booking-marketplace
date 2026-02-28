@@ -80,17 +80,17 @@ export default async function GalleryDetailPage(props: PageProps) {
             {
               icon: Sparkles,
               title: "Premium finishes",
-              copy: "Composed materials and lighting designed for repeatable guest comfort.",
+              copy: "Carefully selected materials and lighting for comfortable stays.",
             },
             {
               icon: CheckCircle2,
               title: "Verified availability",
-              copy: "Visuals map to real inventory with date-aware booking confidence.",
+              copy: "These visuals match real inventory on our booking platform.",
             },
             {
               icon: Building2,
               title: "Operator-ready stays",
-              copy: "Layouts selected for easy turnovers and consistent hosting standards.",
+              copy: "Layouts are designed for easy turnovers and consistent standards.",
             },
           ],
           searchArea: "Search this area",

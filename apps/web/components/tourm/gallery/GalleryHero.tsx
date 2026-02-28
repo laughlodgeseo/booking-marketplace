@@ -18,8 +18,8 @@ export default function GalleryHero() {
             A closer look at our stays
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-white/84 sm:text-base">
-            Explore interiors, views, and the details that make a stay feel effortless.
-            Our listings are backed by inventory-safe booking logic — the visuals match real availability.
+            Explore interiors, views, and details that make each stay feel premium and comfortable.
+            Photos match real availability on our platform.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">

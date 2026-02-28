@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowRight, Building2, CalendarClock, ShieldCheck, Workflow } from "lucide-react";
+import { ArrowRight, BadgePercent, Building2, CalendarClock, ShieldCheck, WalletCards, Workflow } from "lucide-react";
 import OwnersHero from "@/components/tourm/owners/OwnersHero";
 import OwnerBenefits from "@/components/tourm/owners/OwnerBenefits";
 import OwnerPrograms from "@/components/tourm/owners/OwnerPrograms";
@@ -13,13 +13,19 @@ import { LOCALE_COOKIE_NAME, normalizeLocale, type AppLocale } from "@/lib/i18n/
 export const metadata: Metadata = {
   title: "For Owners | Laugh & Lodge",
   description:
-    "Owner programs for Dubai and UAE short-stay assets with booking-safe operations, service standards, and performance accountability.",
+    "Owner programs in Dubai with clear pricing, reliable operations, and premium guest support.",
 };
 
 type ControlPoint = {
   title: string;
   value: string;
   note: string;
+  Icon: React.ComponentType<{ className?: string }>;
+};
+
+type CommercialPoint = {
+  title: string;
+  desc: string;
   Icon: React.ComponentType<{ className?: string }>;
 };
 
@@ -35,6 +41,9 @@ type OwnersPageCopy = {
   startOnboarding: string;
   reviewCommercial: string;
   controlPoints: ControlPoint[];
+  commercialEyebrow: string;
+  commercialTitle: string;
+  commercialPoints: CommercialPoint[];
 };
 
 const COPY: Record<AppLocale, OwnersPageCopy> = {
@@ -47,38 +56,52 @@ const COPY: Record<AppLocale, OwnersPageCopy> = {
       { label: "FAQ", href: "#owner-faq" },
     ],
     vendorSignup: "Start vendor onboarding",
-    serviceScope: "Service scope",
-    bookConsultation: "Book consultation",
-    ownerProposition: "Owner proposition",
-    propositionTitle: "Owner-first growth with disciplined operations",
+    serviceScope: "See services",
+    bookConsultation: "Book a call",
+    ownerProposition: "Owner value",
+    propositionTitle: "Grow your property with simple, premium operations",
     propositionDesc:
-      "Get measurable execution standards, transparent accountability, and scalable delivery built for portfolio performance and stronger guest outcomes.",
-    startOnboarding: "Open onboarding",
-    reviewCommercial: "Review commercial structure",
+      "Get clear standards, full visibility, and reliable service that improves guest experience and owner confidence.",
+    startOnboarding: "Start onboarding",
+    reviewCommercial: "See pricing",
     controlPoints: [
       {
-        title: "Execution model",
-        value: "SLA-backed",
-        note: "Task ownership and escalation paths are explicit.",
+        title: "Operating model",
+        value: "Clearly managed",
+        note: "Task ownership and escalation paths are always clear.",
         Icon: Workflow,
       },
       {
         title: "Risk control",
-        value: "Policy-safe",
-        note: "Reservation and cancellation logic stays rule-driven.",
+        value: "Rule-based",
+        note: "Booking and cancellation decisions follow clear policy rules.",
         Icon: ShieldCheck,
       },
       {
-        title: "Readiness cadence",
+        title: "Readiness flow",
         value: "Turnover-first",
-        note: "Arrival quality is protected with readiness checkpoints.",
+        note: "Quality checkpoints protect every guest arrival.",
         Icon: CalendarClock,
       },
       {
         title: "Portfolio fit",
         value: "1 to multi-unit",
-        note: "Program depth can scale by property and ownership style.",
+        note: "Service depth can scale by property and owner preference.",
         Icon: Building2,
+      },
+    ],
+    commercialEyebrow: "Commercial terms",
+    commercialTitle: "Simple and clear commercial model",
+    commercialPoints: [
+      {
+        title: "18% service fee",
+        desc: "We charge 18% per booking, and this includes platform support and full service operations.",
+        Icon: BadgePercent,
+      },
+      {
+        title: "Fast payout",
+        desc: "You are paid per booking within 24 hours after customer check-in.",
+        Icon: WalletCards,
       },
     ],
   },
@@ -123,6 +146,20 @@ const COPY: Record<AppLocale, OwnersPageCopy> = {
         value: "من وحدة إلى عدة وحدات",
         note: "يمكن توسيع عمق البرنامج حسب العقار وأسلوب الملكية.",
         Icon: Building2,
+      },
+    ],
+    commercialEyebrow: "الشروط التجارية",
+    commercialTitle: "نموذج تجاري واضح وبسيط",
+    commercialPoints: [
+      {
+        title: "رسوم خدمة 18%",
+        desc: "نفرض 18% لكل حجز وتشمل دعم المنصة والخدمات التشغيلية.",
+        Icon: BadgePercent,
+      },
+      {
+        title: "تحويل سريع للمستحقات",
+        desc: "يتم الدفع لكل حجز خلال 24 ساعة من تسجيل وصول العميل.",
+        Icon: WalletCards,
       },
     ],
   },
@@ -207,6 +244,30 @@ export default async function OwnersPage() {
                 <p className="mt-2 text-sm text-secondary/82">{point.note}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-2 pt-2 sm:pb-4">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="site-surface-card rounded-3xl p-6 sm:p-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/72">{copy.commercialEyebrow}</p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-primary sm:text-2xl">{copy.commercialTitle}</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {copy.commercialPoints.map((item) => (
+                <article key={item.title} className="rounded-2xl border border-indigo-100/80 bg-indigo-50/45 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="site-icon-plate h-9 w-9">
+                      <item.Icon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-primary">{item.title}</p>
+                      <p className="mt-1 text-sm text-secondary/82">{item.desc}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </section>

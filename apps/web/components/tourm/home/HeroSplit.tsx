@@ -22,15 +22,15 @@ const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const HERO_CONTENT = {
   en: {
-    eyebrow: "Dubai premium stays, operated like a hotel",
+    eyebrow: "Dubai premium stays with hotel-style operations",
     headlineTop: "Where every Dubai stay",
     headlineEmphasis: "feels professionally hosted.",
     subcopy:
-      "Instant confirmation, transparent pricing, and hotel-grade hosting backed by a real concierge team, 24/7.",
+      "Fast confirmation, clear pricing, and premium hosting with real 24/7 support.",
     primaryCta: "Explore stays",
     secondaryCta: "List your property",
     collageBadge: "Verified availability",
-    concierge: "24/7 concierge",
+    concierge: "24/7 guest support",
   },
   ar: {
     eyebrow: "إقامات دبي الفاخرة بإدارة تشغيلية احترافية",

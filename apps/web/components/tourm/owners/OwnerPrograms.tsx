@@ -31,10 +31,10 @@ type OwnerProgramsCopy = {
 const COPY: Record<AppLocale, OwnerProgramsCopy> = {
   en: {
     eyebrow: "Programs",
-    title: "Select the operating depth that fits your ownership strategy",
+    title: "Choose the level of support you want",
     subtitle:
-      "Program architecture is designed around measurable execution standards, transparent responsibility, and scalable delivery.",
-    reviewCapabilities: "Review service capabilities",
+      "Pick a model that matches your time, team size, and business goals.",
+    reviewCapabilities: "See service details",
     discussProgram: "Discuss this program",
     vendorSignup: "Start vendor onboarding",
     recommended: "Recommended",
@@ -44,13 +44,13 @@ const COPY: Record<AppLocale, OwnerProgramsCopy> = {
     programs: [
       {
         name: "Listing-only",
-        tagline: "You control operations in-house while we provide booking controls, visibility, and distribution support.",
-        idealFor: "Owners with an internal operations team and established SOPs.",
+        tagline: "You handle daily operations. We provide listings, bookings, and channel support.",
+        idealFor: "Owners who already have an internal operations team.",
         highlights: [
-          "Search and demand visibility",
-          "Calendar safety and availability discipline",
-          "Policy-based booking and cancellation framework",
-          "Clear payout and reservation reporting",
+          "Listing exposure across channels",
+          "Calendar and availability protection",
+          "Booking and cancellation policy support",
+          "Clear booking and payout reports",
         ],
         controlLevel: "High owner control",
         opsCoverage: "Platform + distribution",
@@ -58,13 +58,13 @@ const COPY: Record<AppLocale, OwnerProgramsCopy> = {
       },
       {
         name: "Semi-managed",
-        tagline: "Shared operating model where we coordinate critical workflows while you retain strategic control.",
-        idealFor: "Owners seeking stronger performance without full delegation.",
+        tagline: "A shared model. We run key tasks while you keep strategic control.",
+        idealFor: "Owners who want better performance without full handover.",
         highlights: [
-          "Turnover and readiness workflow coordination",
-          "Inspection checkpoints and exception handling",
-          "Service-level visibility and escalation routing",
-          "Flexible split of responsibilities by property",
+          "Turnover and readiness coordination",
+          "Inspection checks and issue handling",
+          "Clear visibility and escalation paths",
+          "Flexible task split by property",
         ],
         controlLevel: "Shared control",
         opsCoverage: "Core workflows co-managed",
@@ -73,13 +73,13 @@ const COPY: Record<AppLocale, OwnerProgramsCopy> = {
       },
       {
         name: "Managed",
-        tagline: "End-to-end execution across housekeeping, inspections, maintenance, and guest issue management.",
-        idealFor: "Owners focused on consistency, scale, and minimal day-to-day involvement.",
+        tagline: "We manage everything from cleaning to maintenance and guest issues.",
+        idealFor: "Owners who want full support and minimal daily workload.",
         highlights: [
-          "Booking-driven operations lifecycle execution",
-          "Readiness and quality standards governance",
-          "Maintenance workflow ownership and closure",
-          "Consistent delivery model across multiple assets",
+          "End-to-end operations after each booking",
+          "Readiness and quality checks",
+          "Full maintenance handling",
+          "Consistent service across multiple properties",
         ],
         controlLevel: "Low owner overhead",
         opsCoverage: "Full operations coverage",

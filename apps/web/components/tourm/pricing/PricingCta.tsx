@@ -21,7 +21,7 @@ const COPY: Record<AppLocale, PricingCtaCopy> = {
     eyebrow: "Ready to book",
     title: "Select dates and review real quote totals",
     body:
-      "Browse properties, select dates, and review a clear quote before checkout. If anything is unclear, our team can walk you through each line item.",
+      "Browse properties, select dates, and review a clear quote before checkout. If anything is unclear, we can explain each line item.",
     browseStays: "Browse stays",
     askQuestion: "Ask a pricing question",
     expectTitle: "What you can expect",
@@ -29,14 +29,14 @@ const COPY: Record<AppLocale, PricingCtaCopy> = {
       "Clear totals before payment authorization",
       "Policy-linked cancellation transparency",
       "Server-side quote consistency",
-      "Support channel for manual clarification",
+      "Support channel for quick clarification",
     ],
     paymentConfidenceTitle: "Payment confidence",
     paymentConfidenceBody:
-      "Charge attempts and booking confirmation states are synchronized so payment outcomes stay controlled.",
+      "Payment attempts and booking status are synchronized to keep outcomes reliable.",
     policyConsistencyTitle: "Policy consistency",
     policyConsistencyBody:
-      "Cancellation and refund outcomes follow stored rule windows, not ad-hoc manual decisions.",
+      "Cancellation and refund outcomes follow fixed policy windows, not ad-hoc decisions.",
   },
   ar: {
     eyebrow: "جاهز للحجز",
