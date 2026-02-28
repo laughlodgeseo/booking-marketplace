@@ -1,5 +1,6 @@
 export type PublicEnv = {
   googleMapsApiKey: string | null;
+  googleMapsMapId: string | null;
 };
 
 function optionalNonEmpty(value: string | undefined): string | null {
@@ -9,4 +10,5 @@ function optionalNonEmpty(value: string | undefined): string | null {
 
 export const ENV: PublicEnv = {
   googleMapsApiKey: optionalNonEmpty(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY),
+  googleMapsMapId: optionalNonEmpty(process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID),
 };

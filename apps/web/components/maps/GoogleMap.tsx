@@ -7,9 +7,19 @@ import type { MapPoint } from "@/lib/types/search";
 type LatLng = { lat: number; lng: number };
 type ViewportBounds = { north: number; south: number; east: number; west: number };
 
+type MapMarkerHandle = {
+  clear: () => void;
+};
+
 type MapHandle = {
   map: google.maps.Map;
-  markers: google.maps.Marker[];
+  markers: MapMarkerHandle[];
+};
+
+type GoogleMapsWithMarkerLib = typeof google.maps & {
+  marker?: {
+    AdvancedMarkerElement?: typeof google.maps.marker.AdvancedMarkerElement;
+  };
 };
 
 let _mapsInitPromise: Promise<void> | null = null;
@@ -42,6 +52,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
       key: apiKey,
       v: "weekly",
       libraries: "marker",
+      loading: "async",
     });
 
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
@@ -55,8 +66,8 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   return _mapsInitPromise;
 }
 
-function clearMarkers(markers: google.maps.Marker[]) {
-  for (const m of markers) m.setMap(null);
+function clearMarkers(markers: MapMarkerHandle[]) {
+  for (const m of markers) m.clear();
   markers.length = 0;
 }
 
@@ -70,6 +81,21 @@ function formatMoney(amount: number, currency: string): string {
   } catch {
     return `${currency} ${amount.toLocaleString()}`;
   }
+}
+
+function createPricePill(text: string): HTMLDivElement {
+  const el = document.createElement("div");
+  el.textContent = text;
+  el.style.background = "#111827";
+  el.style.color = "#ffffff";
+  el.style.fontSize = "12px";
+  el.style.fontWeight = "600";
+  el.style.padding = "5px 8px";
+  el.style.borderRadius = "999px";
+  el.style.boxShadow = "0 8px 18px rgba(0,0,0,0.22)";
+  el.style.border = "1px solid rgba(255,255,255,0.35)";
+  el.style.whiteSpace = "nowrap";
+  return el;
 }
 
 export default function GoogleMap(props: {
@@ -100,6 +126,7 @@ export default function GoogleMap(props: {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const apiKey = ENV.googleMapsApiKey;
+  const mapIdRef = useRef<string | null>(ENV.googleMapsMapId);
   const safeClassName = className ?? "h-[520px] w-full rounded-2xl";
 
   const canInit = useMemo(() => Boolean(apiKey && apiKey.trim().length > 0), [apiKey]);
@@ -130,6 +157,7 @@ export default function GoogleMap(props: {
           disableDefaultUI: true,
           clickableIcons: false,
           gestureHandling: "greedy",
+          ...(mapIdRef.current ? { mapId: mapIdRef.current } : {}),
         });
 
         handleRef.current = { map, markers: [] };
@@ -160,27 +188,63 @@ export default function GoogleMap(props: {
 
     clearMarkers(h.markers);
 
+    const mapId = mapIdRef.current;
+    const mapsWithMarkerLib = google.maps as GoogleMapsWithMarkerLib;
+    const AdvancedMarkerCtor = mapId ? mapsWithMarkerLib.marker?.AdvancedMarkerElement : undefined;
+
     for (const p of points) {
+      const position = { lat: p.lat, lng: p.lng };
+      const slug = p.slug;
+      const priceText =
+        typeof p.priceFrom === "number"
+          ? formatMoney(p.priceFrom, p.currency)
+          : `${p.currency} --`;
+
+      if (AdvancedMarkerCtor) {
+        const content = createPricePill(priceText);
+        const marker = new AdvancedMarkerCtor({
+          map: h.map,
+          position,
+          title: p.title,
+          content,
+        });
+
+        let clickListener: google.maps.MapsEventListener | null = null;
+        if (onMarkerClick && slug && typeof marker.addListener === "function") {
+          clickListener = marker.addListener("gmp-click", () => onMarkerClick(slug));
+        }
+
+        h.markers.push({
+          clear: () => {
+            clickListener?.remove();
+            marker.map = null;
+          },
+        });
+        continue;
+      }
+
       const marker = new google.maps.Marker({
         map: h.map,
-        position: { lat: p.lat, lng: p.lng },
+        position,
         title: p.title,
         label: {
-          text:
-            typeof p.priceFrom === "number"
-              ? formatMoney(p.priceFrom, p.currency)
-              : `${p.currency} --`,
+          text: priceText,
           fontSize: "12px",
           fontWeight: "600",
         },
       });
 
-      const slug = p.slug;
-      if (onMarkerClick && slug) {
-        marker.addListener("click", () => onMarkerClick?.(slug));
-      }
+      const clickListener =
+        onMarkerClick && slug
+          ? marker.addListener("click", () => onMarkerClick(slug))
+          : null;
 
-      h.markers.push(marker);
+      h.markers.push({
+        clear: () => {
+          clickListener?.remove();
+          marker.setMap(null);
+        },
+      });
     }
   }, [onMarkerClick, points, ready]);
 
@@ -241,8 +305,9 @@ export default function GoogleMap(props: {
             <div className="font-semibold">Google Maps failed to load</div>
             <div className="mt-2 break-words text-xs text-danger/90">{errorMsg}</div>
             <div className="mt-3 text-xs text-danger/80">
-              Check: billing enabled, key restrictions include <code>http://localhost:3000/*</code>,
-              and Maps JavaScript API is enabled.
+              Check: billing enabled, Maps JavaScript API is enabled, and key referrers include
+              <code>http://localhost:3000/*</code>, <code>https://rentpropertyuae.com/*</code>,
+              and <code>https://www.rentpropertyuae.com/*</code>.
             </div>
           </div>
         </div>

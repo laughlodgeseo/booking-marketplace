@@ -17,10 +17,23 @@ type PickerChange = {
   address: string | null;
 };
 
+type MarkerHandle = {
+  setPosition: (point: LatLng) => void;
+  getPosition: () => google.maps.LatLng | null;
+  setMap: (map: google.maps.Map | null) => void;
+  addDragEndListener: (handler: () => void) => google.maps.MapsEventListener | null;
+};
+
 type MapHandle = {
   map: google.maps.Map;
-  marker: google.maps.Marker;
+  marker: MarkerHandle;
   geocoder: google.maps.Geocoder;
+};
+
+type GoogleMapsWithMarkerLib = typeof google.maps & {
+  marker?: {
+    AdvancedMarkerElement?: typeof google.maps.marker.AdvancedMarkerElement;
+  };
 };
 
 let mapsPromise: Promise<void> | null = null;
@@ -50,6 +63,7 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
       key: apiKey,
       v: "weekly",
       libraries: "marker",
+      loading: "async",
     });
 
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
@@ -59,6 +73,52 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
   });
 
   return mapsPromise;
+}
+
+function createPickerMarker(map: google.maps.Map, position: LatLng, mapId: string | null): MarkerHandle {
+  const mapsWithMarkerLib = google.maps as GoogleMapsWithMarkerLib;
+  const AdvancedMarkerCtor = mapId ? mapsWithMarkerLib.marker?.AdvancedMarkerElement : undefined;
+
+  if (AdvancedMarkerCtor) {
+    const marker = new AdvancedMarkerCtor({
+      map,
+      position,
+      gmpDraggable: true,
+    });
+
+    return {
+      setPosition: (point) => {
+        marker.position = point;
+      },
+      getPosition: () => {
+        const pos = marker.position;
+        if (!pos) return null;
+        if (typeof (pos as google.maps.LatLng).lat === "function") return pos as google.maps.LatLng;
+        const literal = pos as google.maps.LatLngLiteral;
+        return new google.maps.LatLng(literal.lat, literal.lng);
+      },
+      setMap: (nextMap) => {
+        marker.map = nextMap;
+      },
+      addDragEndListener: (handler) =>
+        typeof marker.addListener === "function"
+          ? marker.addListener("dragend", handler)
+          : null,
+    };
+  }
+
+  const marker = new google.maps.Marker({
+    map,
+    position,
+    draggable: true,
+  });
+
+  return {
+    setPosition: (point) => marker.setPosition(point),
+    getPosition: () => marker.getPosition() ?? null,
+    setMap: (nextMap) => marker.setMap(nextMap),
+    addDragEndListener: (handler) => marker.addListener("dragend", handler),
+  };
 }
 
 async function reverseGeocode(geocoder: google.maps.Geocoder, point: LatLng): Promise<string | null> {
@@ -83,6 +143,7 @@ export function PortalMapPicker(props: {
   const onChangeRef = useRef(props.onChange);
 
   const apiKey = ENV.googleMapsApiKey;
+  const mapIdRef = useRef<string | null>(ENV.googleMapsMapId);
   const fallbackCenter = useMemo<LatLng>(() => ({ lat: 25.2048, lng: 55.2708 }), []);
 
   const selected = useMemo<LatLng>(() => {
@@ -113,13 +174,10 @@ export function PortalMapPicker(props: {
             disableDefaultUI: false,
             clickableIcons: false,
             gestureHandling: "greedy",
+            ...(mapIdRef.current ? { mapId: mapIdRef.current } : {}),
           });
 
-          const marker = new google.maps.Marker({
-            map,
-            position: selected,
-            draggable: true,
-          });
+          const marker = createPickerMarker(map, selected, mapIdRef.current);
 
           const geocoder = new google.maps.Geocoder();
 
@@ -139,7 +197,7 @@ export function PortalMapPicker(props: {
             void applySelection({ lat: point.lat(), lng: point.lng() });
           });
 
-          marker.addListener("dragend", () => {
+          marker.addDragEndListener(() => {
             if (props.disabled) return;
             const pos = marker.getPosition();
             if (!pos) return;
