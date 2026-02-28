@@ -193,7 +193,7 @@ function MapPlane({ reduce }: { reduce: boolean }) {
       >
         <ImageTile
           label="Premium interiors"
-          src="https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=70"
+          src="/images/auth/premium-interiors.webp"
         />
       </motion.div>
 
@@ -204,7 +204,7 @@ function MapPlane({ reduce }: { reduce: boolean }) {
       >
         <ImageTile
           label="Verified homes"
-          src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=70"
+          src="/images/auth/verified-homes.webp"
         />
       </motion.div>
 

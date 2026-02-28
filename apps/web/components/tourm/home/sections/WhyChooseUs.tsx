@@ -62,9 +62,9 @@ const BADGE_CARD_VARIANTS: Variants = {
 };
 
 const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1400&q=85",
-  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1400&q=80",
+  "/images/home/why-a.webp",
+  "/images/home/why-b.webp",
+  "/images/home/dubai-skyline.webp",
 ] as const;
 
 const FALLBACK_HORIZONTAL_IMAGE = "/auth-scene/interior-suite.webp";

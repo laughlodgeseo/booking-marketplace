@@ -18,15 +18,15 @@ interface AuthBlobImageProps {
 
 const IMAGE_BY_PANEL: Record<AuthFlowPanel, BlobImageAsset> = {
   login: {
-    src: "/areas/dubai-marina.jpg",
+    src: "/areas/dubai-marina.webp",
     alt: "Dubai Marina skyline at sunset",
   },
   signup: {
-    src: "/areas/downtown-dubai.jpg",
+    src: "/areas/downtown-dubai.webp",
     alt: "Downtown Dubai skyline with modern towers",
   },
   forgot: {
-    src: "/areas/business-bay.jpg",
+    src: "/areas/business-bay.webp",
     alt: "Dubai Business Bay waterfront skyline",
   },
 };

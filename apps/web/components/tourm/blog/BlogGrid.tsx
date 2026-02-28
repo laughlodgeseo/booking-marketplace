@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BLOG_POSTS, type BlogPost } from "@/lib/content/blog-posts";
 import Clamp from "@/components/ui/Clamp";
@@ -9,11 +10,12 @@ function PostCard({ p }: { p: BlogPost }) {
       className="premium-card premium-card-tinted premium-card-hover card-accent-left group overflow-hidden rounded-2xl"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={p.coverUrl}
           alt={p.title}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           loading="lazy"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-dark-1/55 via-dark-2/10 to-transparent" />

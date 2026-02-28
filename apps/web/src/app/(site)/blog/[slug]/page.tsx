@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BLOG_POSTS } from "@/lib/content/blog-posts";
@@ -50,9 +51,15 @@ export default async function BlogPostPage(props: PageProps) {
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-primary sm:text-4xl">{post.title}</h1>
         <p className="mt-3 text-sm leading-relaxed text-secondary/80 sm:text-base">{post.excerpt}</p>
 
-        <div className="mt-8 overflow-hidden rounded-[2rem] border border-line/70 bg-surface shadow-card">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.coverUrl} alt={post.title} className="h-full w-full object-cover" />
+        <div className="relative mt-8 overflow-hidden rounded-[2rem] border border-line/70 bg-surface shadow-card">
+          <Image
+            src={post.coverUrl}
+            alt={post.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 720px"
+            className="object-cover"
+            priority
+          />
         </div>
 
         <div className="premium-card premium-card-tinted mt-8 rounded-3xl p-6 sm:p-8">

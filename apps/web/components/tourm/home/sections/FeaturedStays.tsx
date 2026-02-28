@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { SearchPropertyCard } from "@/lib/api/publicTypes";
 import { useCurrency } from "@/lib/currency/CurrencyProvider";
@@ -54,11 +55,12 @@ function FeaturedCard({ item }: { item: SearchPropertyCard }) {
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={img}
             alt={title}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
             loading="lazy"
           />
         ) : (

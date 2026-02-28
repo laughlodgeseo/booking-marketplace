@@ -45,7 +45,7 @@ export const GALLERY_CATEGORY_ORDER: GalleryCategory[] = [
 ];
 
 function unsplash(photoId: string): string {
-  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=2400&q=80`;
+  return `/images/gallery/${photoId}.webp`;
 }
 
 function image(id: string, photoId: string, alt: string): GalleryImage {

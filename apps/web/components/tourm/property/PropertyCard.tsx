@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { SearchResponse } from "@/lib/types/search";
 
@@ -29,11 +30,12 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={img}
             alt={item.coverImage?.alt ?? title}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.06]"
             loading="lazy"
           />
         ) : (

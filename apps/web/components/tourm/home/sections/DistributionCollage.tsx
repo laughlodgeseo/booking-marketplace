@@ -2,15 +2,15 @@ import Image from "next/image";
 
 const COLLAGE_IMAGES = {
   topLeft: {
-    src: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=2400&q=84",
+    src: "/images/home/dist-top-left.webp",
     alt: "Modern neutral-toned luxury living interior with no people",
   },
   bottomLeft: {
-    src: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=2400&q=84",
+    src: "/images/home/dist-bottom-left.webp",
     alt: "Clean bedroom suite interior with natural light and no people",
   },
   circleRight: {
-    src: "/areas/downtown-dubai.jpg",
+    src: "/areas/downtown-dubai.webp",
     alt: "Downtown Dubai skyline with centered Burj Khalifa and no people",
   },
 };

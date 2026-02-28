@@ -46,14 +46,10 @@ const HERO_CONTENT = {
 } as const;
 
 const COLLAGE_IMAGES = {
-  main:
-    "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=3200&q=92",
-  topAccent:
-    "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=2400",
-  bottomSupport:
-    "https://images.pexels.com/photos/29493117/pexels-photo-29493117.jpeg?auto=compress&cs=tinysrgb&w=2400",
-  microInterior:
-    "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=2000&q=90",
+  main: "/images/home/hero-main.webp",
+  topAccent: "/images/home/hero-top-accent.webp",
+  bottomSupport: "/images/home/hero-bottom-support.webp",
+  microInterior: "/images/home/interior-suite.webp",
 } as const;
 
 function safeHref(v: string | undefined, fallback: string): string {

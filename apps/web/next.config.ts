@@ -48,9 +48,8 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    // Deliberate strategy (P2): keep passthrough while API/CDN media domains are finalized.
-    // This avoids runtime breakage for mixed media origins during release hardening.
-    unoptimized: true,
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60,
     qualities: [75, 90, 92, 100],
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },

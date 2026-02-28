@@ -9,6 +9,7 @@ import { fetchFeaturedStays } from "@/lib/api/publicSearch";
 import { parseSupportedCurrency } from "@/lib/currency/currency";
 import type { AppLocale } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
+import SofaLottieDeferred from "@/components/tourm/home/sections/SofaLottieDeferred";
 
 const FeaturedSpotlight = dynamic(() => import("@/components/tourm/home/sections/FeaturedSpotlight"));
 const AreasSlider = dynamic(() => import("@/components/tourm/home/sections/AreasSlider"));
@@ -16,7 +17,6 @@ const PartnerDistributionStrip = dynamic(() => import("@/components/tourm/home/s
 const WhyChooseUs = dynamic(() => import("@/components/tourm/home/sections/WhyChooseUs"));
 const OwnerCta = dynamic(() => import("@/components/tourm/home/sections/OwnerCta"));
 const TrustOperationsSection = dynamic(() => import("@/components/tourm/home/sections/TrustOperationsSection"));
-const SofaLottieAnimation = dynamic(() => import("@/components/tourm/home/sections/SofaLottieAnimation"));
 const HowItWorks = dynamic(() => import("@/components/tourm/home/sections/HowItWorks"));
 const ServicesPreview = dynamic(() => import("@/components/tourm/home/sections/ServicesPreview"));
 const FaqSection = dynamic(() => import("@/components/tourm/home/sections/FaqSection"));
@@ -207,15 +207,15 @@ const HOME_COPY = {
       ],
     },
     areasList: [
-      { title: "Dubai Marina", q: "Dubai Marina", hint: "Walkable • Waterfront", imageUrl: "/areas/dubai-marina.jpg" },
-      { title: "Downtown Dubai", q: "Downtown Dubai", hint: "Burj Khalifa • Dubai Mall", imageUrl: "/areas/downtown-dubai.jpg" },
-      { title: "Palm Jumeirah", q: "Palm Jumeirah", hint: "Beach • Resort vibe", imageUrl: "/areas/palm-jumeirah.jpg" },
-      { title: "JBR", q: "JBR", hint: "Beachfront • Dining", imageUrl: "/areas/jbr.jpg" },
-      { title: "Business Bay", q: "Business Bay", hint: "Central • Canal", imageUrl: "/areas/business-bay.jpg" },
-      { title: "Bluewaters Island", q: "Bluewaters Island", hint: "Ain Dubai • Sea views", imageUrl: "/areas/bluewaters-island.jpg" },
-      { title: "Dubai Creek Harbour", q: "Dubai Creek Harbour", hint: "Creekfront • Skyline", imageUrl: "/areas/dubai-creek-harbour.jpg" },
-      { title: "DIFC", q: "DIFC", hint: "Financial core • Fine dining", imageUrl: "/areas/difc.jpg" },
-      { title: "City Walk", q: "City Walk", hint: "Lifestyle district • Dining", imageUrl: "/areas/city-walk.jpg" },
+      { title: "Dubai Marina", q: "Dubai Marina", hint: "Walkable • Waterfront", imageUrl: "/areas/dubai-marina.webp" },
+      { title: "Downtown Dubai", q: "Downtown Dubai", hint: "Burj Khalifa • Dubai Mall", imageUrl: "/areas/downtown-dubai.webp" },
+      { title: "Palm Jumeirah", q: "Palm Jumeirah", hint: "Beach • Resort vibe", imageUrl: "/areas/palm-jumeirah.webp" },
+      { title: "JBR", q: "JBR", hint: "Beachfront • Dining", imageUrl: "/areas/jbr.webp" },
+      { title: "Business Bay", q: "Business Bay", hint: "Central • Canal", imageUrl: "/areas/business-bay.webp" },
+      { title: "Bluewaters Island", q: "Bluewaters Island", hint: "Ain Dubai • Sea views", imageUrl: "/areas/bluewaters-island.webp" },
+      { title: "Dubai Creek Harbour", q: "Dubai Creek Harbour", hint: "Creekfront • Skyline", imageUrl: "/areas/dubai-creek-harbour.webp" },
+      { title: "DIFC", q: "DIFC", hint: "Financial core • Fine dining", imageUrl: "/areas/difc.webp" },
+      { title: "City Walk", q: "City Walk", hint: "Lifestyle district • Dining", imageUrl: "/areas/city-walk.webp" },
     ],
   },
   ar: {
@@ -403,15 +403,15 @@ const HOME_COPY = {
       ],
     },
     areasList: [
-      { title: "دبي مارينا", q: "Dubai Marina", hint: "مشي سهل • واجهة بحرية", imageUrl: "/areas/dubai-marina.jpg" },
-      { title: "وسط مدينة دبي", q: "Downtown Dubai", hint: "برج خليفة • دبي مول", imageUrl: "/areas/downtown-dubai.jpg" },
-      { title: "نخلة جميرا", q: "Palm Jumeirah", hint: "شاطئ • أجواء منتجعية", imageUrl: "/areas/palm-jumeirah.jpg" },
-      { title: "جميرا بيتش ريزيدنس", q: "JBR", hint: "واجهة بحرية • مطاعم", imageUrl: "/areas/jbr.jpg" },
-      { title: "الخليج التجاري", q: "Business Bay", hint: "موقع مركزي • قناة", imageUrl: "/areas/business-bay.jpg" },
-      { title: "جزيرة بلوواترز", q: "Bluewaters Island", hint: "عين دبي • إطلالات بحرية", imageUrl: "/areas/bluewaters-island.jpg" },
-      { title: "خور دبي هاربر", q: "Dubai Creek Harbour", hint: "واجهة خور • أفق المدينة", imageUrl: "/areas/dubai-creek-harbour.jpg" },
-      { title: "مركز دبي المالي العالمي", q: "DIFC", hint: "قلب مالي • مطاعم راقية", imageUrl: "/areas/difc.jpg" },
-      { title: "سيتي ووك", q: "City Walk", hint: "وجهة حياة • مطاعم", imageUrl: "/areas/city-walk.jpg" },
+      { title: "دبي مارينا", q: "Dubai Marina", hint: "مشي سهل • واجهة بحرية", imageUrl: "/areas/dubai-marina.webp" },
+      { title: "وسط مدينة دبي", q: "Downtown Dubai", hint: "برج خليفة • دبي مول", imageUrl: "/areas/downtown-dubai.webp" },
+      { title: "نخلة جميرا", q: "Palm Jumeirah", hint: "شاطئ • أجواء منتجعية", imageUrl: "/areas/palm-jumeirah.webp" },
+      { title: "جميرا بيتش ريزيدنس", q: "JBR", hint: "واجهة بحرية • مطاعم", imageUrl: "/areas/jbr.webp" },
+      { title: "الخليج التجاري", q: "Business Bay", hint: "موقع مركزي • قناة", imageUrl: "/areas/business-bay.webp" },
+      { title: "جزيرة بلوواترز", q: "Bluewaters Island", hint: "عين دبي • إطلالات بحرية", imageUrl: "/areas/bluewaters-island.webp" },
+      { title: "خور دبي هاربر", q: "Dubai Creek Harbour", hint: "واجهة خور • أفق المدينة", imageUrl: "/areas/dubai-creek-harbour.webp" },
+      { title: "مركز دبي المالي العالمي", q: "DIFC", hint: "قلب مالي • مطاعم راقية", imageUrl: "/areas/difc.webp" },
+      { title: "سيتي ووك", q: "City Walk", hint: "وجهة حياة • مطاعم", imageUrl: "/areas/city-walk.webp" },
     ],
   },
 } as const;
@@ -506,7 +506,7 @@ export default async function HomePage() {
             titleTop={copy.hero.titleTop}
             titleEmphasis={copy.hero.titleEmphasis}
             subtitle={copy.hero.subtitle}
-            heroImageUrl="https://images.pexels.com/photos/3787839/pexels-photo-3787839.jpeg"
+            heroImageUrl="/images/home/hero-main.webp"
             primaryCtaHref="/properties"
             primaryCtaLabel={copy.hero.primaryCtaLabel}
             secondaryCtaHref="/owners"
@@ -552,9 +552,9 @@ export default async function HomePage() {
           reasons={[...copy.why.reasons]}
           stats={[...copy.why.stats]}
           images={{
-            a: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1800&q=85",
-            b: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1400&q=80",
-            c: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1400&q=80",
+            a: "/images/home/why-a.webp",
+            b: "/images/home/why-b.webp",
+            c: "/images/home/dubai-skyline.webp",
             d: "/auth-scene/interior-suite.webp",
           }}
         />
@@ -563,7 +563,7 @@ export default async function HomePage() {
       <section className="relative my-4 overflow-hidden py-16 sm:my-6 sm:py-20 lg:py-24">
         <div aria-hidden className="absolute inset-0 bg-[linear-gradient(135deg,#edf0ff_0%,#c7d2fe_48%,#d8e7ff_100%)]" />
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-58">
-          <SofaLottieAnimation className="scale-[1.04]" />
+          <SofaLottieDeferred className="scale-[1.04]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_26%,rgba(99,102,241,0.28),transparent_52%),radial-gradient(circle_at_82%_72%,rgba(79,70,229,0.36),transparent_48%)]" />
         </div>
         <div
@@ -617,7 +617,7 @@ export default async function HomePage() {
           title={copy.owner.title}
           subtitle={copy.owner.subtitle}
           bullets={copy.owner.bullets}
-          imageUrl="/images/owners/hero-src/support_luxury_interior.jpg"
+          imageUrl="/images/owners/hero-src/support_luxury_interior.webp"
         />
       </div>
 

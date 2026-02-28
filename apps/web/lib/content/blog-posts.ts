@@ -16,8 +16,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "A simple guide to choosing Downtown, Marina, Business Bay, and more.",
     dateLabel: "Area Guide",
     tag: "Area Guide",
-    coverUrl:
-      "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1800&q=80",
+    coverUrl: "/images/blog/best-areas.webp",
     body: [
       "Downtown Dubai is great if you want quick access to landmarks, shopping, and city life.",
       "Dubai Marina is ideal for walkability, waterfront dining, and lively evenings.",
@@ -32,8 +31,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "From cleaning to inspections, this is how we keep standards steady for every stay.",
     dateLabel: "Operations",
     tag: "Hospitality",
-    coverUrl:
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1800&q=80",
+    coverUrl: "/images/blog/stays-consistent.webp",
     body: [
       "Every confirmed booking triggers cleaning and quality checks.",
       "Turnover readiness follows a clear workflow, not ad-hoc tasks.",
@@ -48,8 +46,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "Why our booking flow prevents double booking and keeps totals consistent.",
     dateLabel: "Product",
     tag: "Booking",
-    coverUrl:
-      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1800&q=80",
+    coverUrl: "/images/blog/booking-flow.webp",
     body: [
       "Search results are date-aware and checked against live availability before quote generation.",
       "Reservation holds are short and explicit to reduce booking conflicts.",
