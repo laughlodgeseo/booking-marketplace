@@ -510,7 +510,6 @@ export default function AreasSlider({ title, subtitle, areas }: Props) {
                           fill
                           sizes="(max-width: 639px) 246px, (max-width: 1023px) 360px, 472px"
                           className="object-cover"
-                          priority={s.off === 0}
                         />
                       ) : (
                         <div className="h-full w-full bg-gradient-to-br from-warm-alt to-warm-alt" />

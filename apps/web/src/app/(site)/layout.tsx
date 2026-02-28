@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import FloatingHeader from "@/components/site/FloatingHeader";
 import Footer from "@/components/site/Footer";
-import Preloader from "@/components/tourm/Preloader";
+import PreloaderGate from "@/components/tourm/PreloaderGate";
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="site-shell min-h-screen bg-[var(--site-bg)]">
-      <Preloader />
+      <PreloaderGate />
       {/* anchor for footer "Back to top" */}
       <div id="top" />
       <FloatingHeader />

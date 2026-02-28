@@ -548,7 +548,6 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                           fill
                           sizes="(max-width: 639px) 84vw, (max-width: 1023px) 60vw, 1px"
                           className="object-cover"
-                          priority={idx === 0}
                         />
                       ) : (
                         <div className="h-full w-full bg-gradient-to-br from-warm-alt to-surface" />
@@ -716,7 +715,6 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                         fill
                         sizes="(max-width: 639px) 194px, (max-width: 1023px) 286px, (max-width: 1439px) 412px, 438px"
                         className="object-cover"
-                        priority={slot.off === 0}
                       />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-warm-alt to-surface" />

@@ -214,7 +214,6 @@ export default function HeroSplit(props: HeroSplitProps) {
                       fill
                       sizes="(min-width: 1280px) 50rem, (min-width: 1024px) 66vw, (min-width: 768px) 72vw, 90vw"
                       className="object-cover transition duration-1000 group-hover:scale-[1.02]"
-                      priority
                     />
                   </motion.div>
 
