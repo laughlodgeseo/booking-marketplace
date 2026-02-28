@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 type MaybeConnection = {
   effectiveType?: string;
@@ -38,10 +38,9 @@ function shouldEnablePreloader(): boolean {
 }
 
 export default function PreloaderGate() {
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    setEnabled(shouldEnablePreloader());
+  const enabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return shouldEnablePreloader();
   }, []);
 
   if (!enabled) return null;
