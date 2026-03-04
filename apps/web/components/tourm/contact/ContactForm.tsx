@@ -42,6 +42,8 @@ type ContactFormCopy = {
   fallbackError: string;
 };
 
+const MIN_MESSAGE_LENGTH = 2;
+
 const COPY: Record<AppLocale, ContactFormCopy> = {
   en: {
     sectionEyebrow: "Message us",
@@ -138,7 +140,7 @@ export default function ContactForm(props: { locale: AppLocale }) {
     if (state !== "idle") return false;
     if (name.trim().length < 2) return false;
     if (!email.includes("@")) return false;
-    if (message.trim().length < 12) return false;
+    if (message.trim().length < MIN_MESSAGE_LENGTH) return false;
     return true;
   }, [email, message, name, state]);
 

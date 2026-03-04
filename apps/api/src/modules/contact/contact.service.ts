@@ -20,6 +20,8 @@ function isLikelyEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+const MIN_MESSAGE_LENGTH = 2;
+
 @Injectable()
 export class ContactService {
   private readonly logger = new Logger(ContactService.name);
@@ -193,8 +195,10 @@ export class ContactService {
     if (!isLikelyEmail(email)) {
       throw new BadRequestException('Invalid email address.');
     }
-    if (message.length < 10) {
-      throw new BadRequestException('Message must be at least 10 characters.');
+    if (message.length < MIN_MESSAGE_LENGTH) {
+      throw new BadRequestException(
+        `Message must be at least ${MIN_MESSAGE_LENGTH} characters.`,
+      );
     }
 
     const created = await this.prisma.contactSubmission.create({
