@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -21,6 +22,8 @@ function isLikelyEmail(value: string): boolean {
 
 @Injectable()
 export class ContactService {
+  private readonly logger = new Logger(ContactService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private getRecipients(topic: ContactSubmissionTopic): string[] {
@@ -49,10 +52,20 @@ export class ContactService {
     const port = Number.parseInt(portRaw, 10);
     const secure =
       secureRaw === '1' || secureRaw === 'true' || secureRaw === 'yes';
+    const connectionTimeout =
+      Number.parseInt((process.env.SMTP_CONNECTION_TIMEOUT_MS || '').trim(), 10) ||
+      15000;
+    const greetingTimeout =
+      Number.parseInt((process.env.SMTP_GREETING_TIMEOUT_MS || '').trim(), 10) ||
+      15000;
+    const socketTimeout =
+      Number.parseInt((process.env.SMTP_SOCKET_TIMEOUT_MS || '').trim(), 10) ||
+      20000;
 
     const configured =
       host.length > 0 &&
       Number.isFinite(port) &&
+      port > 0 &&
       user.length > 0 &&
       pass.length > 0;
 
@@ -65,6 +78,9 @@ export class ContactService {
       pass,
       from,
       replyTo,
+      connectionTimeout,
+      greetingTimeout,
+      socketTimeout,
     };
   }
 
@@ -94,6 +110,9 @@ export class ContactService {
       pool: true,
       maxConnections: 2,
       maxMessages: 20,
+      connectionTimeout: smtp.connectionTimeout,
+      greetingTimeout: smtp.greetingTimeout,
+      socketTimeout: smtp.socketTimeout,
     });
 
     const subject = `[Contact] ${input.topic} inquiry from ${input.name}`;
@@ -134,6 +153,25 @@ export class ContactService {
     });
 
     return { sent: true, skipped: false, recipients };
+  }
+
+  private dispatchSubmissionEmail(input: {
+    submissionId: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    topic: ContactSubmissionTopic;
+    message: string;
+    createdAtIso: string;
+  }) {
+    // Do not block the public request on SMTP latency/failures.
+    void this.sendSubmissionEmail(input).catch((error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : 'email_delivery_failed';
+      this.logger.warn(
+        `Failed to dispatch contact submission email for ${input.submissionId}: ${message}`,
+      );
+    });
   }
 
   async createSubmission(input: {
@@ -180,7 +218,7 @@ export class ContactService {
       },
     });
 
-    const emailResult = await this.sendSubmissionEmail({
+    this.dispatchSubmissionEmail({
       submissionId: created.id,
       name: created.name,
       email: created.email,
@@ -188,17 +226,13 @@ export class ContactService {
       topic: created.topic,
       message: created.message,
       createdAtIso: created.createdAt.toISOString(),
-    }).catch((error: unknown) => {
-      const messageText =
-        error instanceof Error ? error.message : 'email_delivery_failed';
-      return { sent: false, skipped: false, error: messageText };
     });
 
     return {
       id: created.id,
       status: created.status,
       createdAt: created.createdAt.toISOString(),
-      emailDispatch: emailResult,
+      emailDispatch: { queued: true },
     };
   }
 
