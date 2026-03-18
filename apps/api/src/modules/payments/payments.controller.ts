@@ -12,6 +12,7 @@ import { PaymentsService } from './payments.service';
 import { AuthorizePaymentDto } from './dto/authorize-payment.dto';
 import { CapturePaymentDto } from './dto/capture-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -31,7 +32,23 @@ export class PaymentsController {
     return this.payments.authorize({
       actor: { id: user.id, role: user.role },
       bookingId: dto.bookingId,
-      provider: dto.provider ?? PaymentProvider.MANUAL,
+      provider: dto.provider ?? PaymentProvider.STRIPE,
+      idempotencyKey,
+    });
+  }
+
+  @Post('create-intent')
+  @Roles(UserRole.CUSTOMER)
+  createIntent(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreatePaymentIntentDto,
+    @Headers('idempotency-key') idempotencyKeyHeader?: string,
+  ) {
+    const idempotencyKey = (idempotencyKeyHeader ?? '').trim() || null;
+
+    return this.payments.createStripeIntent({
+      actor: { id: user.id, role: user.role },
+      bookingId: dto.bookingId,
       idempotencyKey,
     });
   }

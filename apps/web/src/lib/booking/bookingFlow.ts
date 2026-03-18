@@ -1,16 +1,38 @@
 import { apiFetch } from "@/lib/apiFetch";
 
+export type QuoteBreakdown = {
+  nights: number;
+  basePricePerNight: number;
+  nightlySubtotal: number;
+  baseAmount: number;
+  cleaningFee: number;
+  serviceFee: number;
+  taxes: number;
+  total: number;
+  basePricePerNightAed: number;
+  nightlySubtotalAed: number;
+  baseAmountAed: number;
+  cleaningFeeAed: number;
+  serviceFeeAed: number;
+  taxesAed: number;
+  totalAed: number;
+};
+
 export type Quote = {
   ok: true;
+  canBook: boolean;
+  reasons: string[];
   propertyId: string;
   checkIn: string;
   checkOut: string;
   nights: number;
+  minNightsRequired?: number;
   currency: string;
   fxRate: number;
   fxAsOf: string | null;
   totalAmount: number; // display currency total
   totalAmountAed: number;
+  breakdown: QuoteBreakdown;
 };
 
 type QuoteApiResponse = {
@@ -24,8 +46,22 @@ type QuoteApiResponse = {
   currency: string;
   fxRate?: number;
   fxAsOf?: string | null;
+  minNightsRequired?: number;
   breakdown?: {
+    nights?: number;
+    basePricePerNight?: number;
+    nightlySubtotal?: number;
+    baseAmount?: number;
+    cleaningFee?: number;
+    serviceFee?: number;
+    taxes?: number;
     total?: number;
+    basePricePerNightAed?: number;
+    nightlySubtotalAed?: number;
+    baseAmountAed?: number;
+    cleaningFeeAed?: number;
+    serviceFeeAed?: number;
+    taxesAed?: number;
     totalAed?: number;
   };
 };
@@ -71,6 +107,10 @@ export type QuoteInput = {
   currency?: string;
 };
 
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 export async function quoteProperty(propertyId: string, input: QuoteInput): Promise<Quote> {
   const res = await apiFetch<QuoteApiResponse>(`/properties/${propertyId}/quote`, {
     method: "POST",
@@ -81,6 +121,8 @@ export async function quoteProperty(propertyId: string, input: QuoteInput): Prom
   if (!res.ok) throw new Error(res.message);
 
   const d = res.data;
+  const reasons = Array.isArray(d.reasons) ? d.reasons.filter((x): x is string => typeof x === "string") : [];
+  const canBook = d.canBook !== false;
 
   const total = d.breakdown?.total;
   if (typeof total !== "number") throw new Error("Invalid quote: breakdown.total missing");
@@ -91,18 +133,56 @@ export async function quoteProperty(propertyId: string, input: QuoteInput): Prom
       : d.currency === "AED"
         ? total
         : Math.round(total / fxRate);
+  const nights = numberOr(d.nights, 0);
+  const nightlySubtotal = numberOr(d.breakdown?.nightlySubtotal, total);
+  const breakdown: QuoteBreakdown = {
+    nights: numberOr(d.breakdown?.nights, nights),
+    basePricePerNight: numberOr(d.breakdown?.basePricePerNight, Math.round(nightlySubtotal / Math.max(1, nights))),
+    nightlySubtotal,
+    baseAmount: numberOr(d.breakdown?.baseAmount, nightlySubtotal),
+    cleaningFee: numberOr(d.breakdown?.cleaningFee, 0),
+    serviceFee: numberOr(d.breakdown?.serviceFee, 0),
+    taxes: numberOr(d.breakdown?.taxes, 0),
+    total,
+    basePricePerNightAed: numberOr(
+      d.breakdown?.basePricePerNightAed,
+      d.currency === "AED"
+        ? numberOr(d.breakdown?.basePricePerNight, Math.round(nightlySubtotal / Math.max(1, nights)))
+        : Math.round(numberOr(d.breakdown?.basePricePerNight, Math.round(nightlySubtotal / Math.max(1, nights))) / fxRate),
+    ),
+    nightlySubtotalAed: numberOr(d.breakdown?.nightlySubtotalAed, d.currency === "AED" ? nightlySubtotal : Math.round(nightlySubtotal / fxRate)),
+    baseAmountAed: numberOr(d.breakdown?.baseAmountAed, d.currency === "AED" ? numberOr(d.breakdown?.baseAmount, nightlySubtotal) : Math.round(numberOr(d.breakdown?.baseAmount, nightlySubtotal) / fxRate)),
+    cleaningFeeAed: numberOr(
+      d.breakdown?.cleaningFeeAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.cleaningFee, 0) : Math.round(numberOr(d.breakdown?.cleaningFee, 0) / fxRate),
+    ),
+    serviceFeeAed: numberOr(
+      d.breakdown?.serviceFeeAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.serviceFee, 0) : Math.round(numberOr(d.breakdown?.serviceFee, 0) / fxRate),
+    ),
+    taxesAed: numberOr(
+      d.breakdown?.taxesAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.taxes, 0) : Math.round(numberOr(d.breakdown?.taxes, 0) / fxRate),
+    ),
+    totalAed,
+  };
 
   return {
     ok: true,
+    canBook,
+    reasons,
     propertyId: d.propertyId ?? propertyId,
     checkIn: d.checkIn,
     checkOut: d.checkOut,
-    nights: d.nights,
+    nights,
+    minNightsRequired:
+      typeof d.minNightsRequired === "number" ? d.minNightsRequired : undefined,
     currency: d.currency,
     fxRate,
     fxAsOf: typeof d.fxAsOf === "string" ? d.fxAsOf : null,
     totalAmount: total,
     totalAmountAed: totalAed,
+    breakdown,
   };
 }
 
@@ -143,15 +223,56 @@ export async function reserveHold(propertyId: string, input: QuoteInput): Promis
     holdExpiresAt: d.hold.expiresAt,
     quote: {
       ok: true,
+      canBook: true,
+      reasons: [],
       propertyId: q.propertyId ?? propertyId,
       checkIn: q.checkIn,
       checkOut: q.checkOut,
       nights: q.nights,
+      minNightsRequired:
+        typeof q.minNightsRequired === "number" ? q.minNightsRequired : undefined,
       currency: q.currency,
       fxRate,
       fxAsOf: typeof q.fxAsOf === "string" ? q.fxAsOf : null,
       totalAmount: total,
       totalAmountAed: totalAed,
+      breakdown: {
+        nights: numberOr(q.breakdown?.nights, q.nights),
+        basePricePerNight: numberOr(q.breakdown?.basePricePerNight, Math.round(total / Math.max(1, q.nights))),
+        nightlySubtotal: numberOr(q.breakdown?.nightlySubtotal, total),
+        baseAmount: numberOr(q.breakdown?.baseAmount, numberOr(q.breakdown?.nightlySubtotal, total)),
+        cleaningFee: numberOr(q.breakdown?.cleaningFee, 0),
+        serviceFee: numberOr(q.breakdown?.serviceFee, 0),
+        taxes: numberOr(q.breakdown?.taxes, 0),
+        total,
+        basePricePerNightAed: numberOr(
+          q.breakdown?.basePricePerNightAed,
+          q.currency === "AED"
+            ? numberOr(q.breakdown?.basePricePerNight, Math.round(total / Math.max(1, q.nights)))
+            : Math.round(numberOr(q.breakdown?.basePricePerNight, Math.round(total / Math.max(1, q.nights))) / fxRate),
+        ),
+        nightlySubtotalAed: numberOr(
+          q.breakdown?.nightlySubtotalAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.nightlySubtotal, total) : Math.round(numberOr(q.breakdown?.nightlySubtotal, total) / fxRate),
+        ),
+        baseAmountAed: numberOr(
+          q.breakdown?.baseAmountAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.baseAmount, numberOr(q.breakdown?.nightlySubtotal, total)) : Math.round(numberOr(q.breakdown?.baseAmount, numberOr(q.breakdown?.nightlySubtotal, total)) / fxRate),
+        ),
+        cleaningFeeAed: numberOr(
+          q.breakdown?.cleaningFeeAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.cleaningFee, 0) : Math.round(numberOr(q.breakdown?.cleaningFee, 0) / fxRate),
+        ),
+        serviceFeeAed: numberOr(
+          q.breakdown?.serviceFeeAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.serviceFee, 0) : Math.round(numberOr(q.breakdown?.serviceFee, 0) / fxRate),
+        ),
+        taxesAed: numberOr(
+          q.breakdown?.taxesAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.taxes, 0) : Math.round(numberOr(q.breakdown?.taxes, 0) / fxRate),
+        ),
+        totalAed,
+      },
     },
   };
 }

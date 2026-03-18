@@ -1185,6 +1185,8 @@ model Payment {
   currency String @default("AED")
 
   providerRef String?
+  stripePaymentIntentId String?
+  rawPayloadJson         String?
 
   ledgerEntries LedgerEntry[] @relation("LedgerEntryPayment")
 
@@ -1196,6 +1198,7 @@ model Payment {
 
   @@index([status])
   @@index([provider])
+  @@unique([stripePaymentIntentId])
 }
 
 model PropertyAvailabilitySettings {

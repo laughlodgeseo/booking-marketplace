@@ -13,4 +13,4 @@ export type ManualRefs = {
   key?: string | null;
 };
 
-export const DEFAULT_PROVIDER: PaymentProvider = PaymentProvider.MANUAL;
+export const DEFAULT_PROVIDER: PaymentProvider = PaymentProvider.STRIPE;

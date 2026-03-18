@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/apiFetch";
 
-export type PaymentProvider = "MANUAL" | "STRIPE" | "TELR";
+export type PaymentProvider = "MANUAL" | "STRIPE";
 
 export type AuthorizePaymentResponse = {
   ok?: boolean;
@@ -8,10 +8,21 @@ export type AuthorizePaymentResponse = {
   bookingId?: string;
 
   clientSecret?: string;
+  publishableKey?: string;
   redirectUrl?: string;
 
   paymentId?: string;
   status?: string;
+};
+
+export type CreateStripeIntentResponse = {
+  ok?: boolean;
+  reused?: boolean;
+  provider?: PaymentProvider;
+  bookingId?: string;
+  clientSecret?: string;
+  publishableKey?: string;
+  payment?: unknown;
 };
 
 export type BookingListItem = {
@@ -101,6 +112,23 @@ export async function authorizePayment(input: {
   const res = await apiFetch<AuthorizePaymentResponse>(`/payments/authorize`, {
     method: "POST",
     body: input,
+    auth: "auto",
+  });
+  if (!res.ok) throw new Error(res.message);
+  return res.data;
+}
+
+export async function createStripePaymentIntent(input: {
+  bookingId: string;
+  idempotencyKey?: string | null;
+}): Promise<CreateStripeIntentResponse> {
+  const headers: Record<string, string> = {};
+  if (input.idempotencyKey) headers["idempotency-key"] = input.idempotencyKey;
+
+  const res = await apiFetch<CreateStripeIntentResponse>(`/payments/create-intent`, {
+    method: "POST",
+    body: { bookingId: input.bookingId },
+    headers,
     auth: "auto",
   });
   if (!res.ok) throw new Error(res.message);

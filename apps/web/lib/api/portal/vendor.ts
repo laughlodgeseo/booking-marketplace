@@ -176,7 +176,7 @@ export type VendorPropertyActivationInvoice = {
   amount: number;
   currency: string;
   status: "PENDING" | "PROCESSING" | "PAID" | "FAILED" | "CANCELLED";
-  provider: "STRIPE" | "TELR" | "MANUAL" | "OTHER";
+  provider: "STRIPE" | "MANUAL" | "OTHER";
   providerRef: string | null;
   createdAt: string;
   paidAt: string | null;

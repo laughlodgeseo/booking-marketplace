@@ -26,6 +26,19 @@ export default async function CheckoutPage(props: PageProps) {
   const guestsRaw = (sp.guests ?? "").trim();
   const guestsNum = Number(guestsRaw);
   const guestsSafe = Number.isFinite(guestsNum) && guestsNum >= 1 ? guestsNum : 2;
+  const checkIn = (sp.checkIn ?? "").trim();
+  const checkOut = (sp.checkOut ?? "").trim();
+  const hasStayDates = /^\d{4}-\d{2}-\d{2}$/.test(checkIn) && /^\d{4}-\d{2}-\d{2}$/.test(checkOut);
+  const nights = hasStayDates
+    ? Math.max(
+        1,
+        Math.round(
+          (new Date(`${checkOut}T00:00:00Z`).getTime() -
+            new Date(`${checkIn}T00:00:00Z`).getTime()) /
+            (24 * 60 * 60 * 1000),
+        ),
+      )
+    : null;
 
   const backToPropertyHref = slug ? `/properties/${encodeURIComponent(slug)}` : `/properties`;
 
@@ -103,28 +116,47 @@ export default async function CheckoutPage(props: PageProps) {
           <ol className="mt-5 grid gap-3 text-sm text-secondary sm:grid-cols-3">
             <li className="premium-card premium-card-tinted rounded-2xl p-4">
               <div className="text-xs font-semibold text-muted">{isAr ? "الخطوة 1" : "Step 1"}</div>
-              <div className="mt-1 font-semibold text-primary">{isAr ? "تم إنشاء الحجز المؤقت" : "Hold created"}</div>
+              <div className="mt-1 font-semibold text-primary">{isAr ? "تسجيل الدخول" : "Sign in"}</div>
               <div className="mt-1 text-xs text-secondary">
-                {isAr ? "تم حجز التوافر مؤقتاً." : "Inventory is reserved temporarily."}
+                {isAr ? "تحويلك لتسجيل الدخول يتم مع الحفاظ على تفاصيل الحجز." : "Login redirects keep your selected stay details."}
               </div>
             </li>
 
             <li className="premium-card premium-card-tinted rounded-2xl p-4">
               <div className="text-xs font-semibold text-muted">{isAr ? "الخطوة 2" : "Step 2"}</div>
-              <div className="mt-1 font-semibold text-primary">{isAr ? "إنشاء الحجز" : "Create booking"}</div>
+              <div className="mt-1 font-semibold text-primary">{isAr ? "إنشاء الحجز المؤقت" : "Create hold"}</div>
               <div className="mt-1 text-xs text-secondary">
-                {isAr ? "الحالة: بانتظار الدفع" : "Status: PENDING_PAYMENT"}
+                {isAr ? "منع الحجز المزدوج عبر تجميد المخزون." : "Inventory is safely locked to prevent double booking."}
               </div>
             </li>
 
             <li className="premium-card premium-card-tinted rounded-2xl p-4">
               <div className="text-xs font-semibold text-muted">{isAr ? "الخطوة 3" : "Step 3"}</div>
-              <div className="mt-1 font-semibold text-primary">{isAr ? "الدفع المستضاف" : "Hosted payment"}</div>
+              <div className="mt-1 font-semibold text-primary">{isAr ? "تأكيد ودفع" : "Confirm & pay"}</div>
               <div className="mt-1 text-xs text-secondary">
                 {isAr ? "يتم تأكيد الحجز عبر Webhook." : "Webhooks confirm booking."}
               </div>
             </li>
           </ol>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
+              <span className="font-semibold text-primary">{isAr ? "تاريخ الوصول:" : "Check-in:"}</span>{" "}
+              {hasStayDates ? checkIn : "—"}
+            </div>
+            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
+              <span className="font-semibold text-primary">{isAr ? "تاريخ المغادرة:" : "Check-out:"}</span>{" "}
+              {hasStayDates ? checkOut : "—"}
+            </div>
+            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
+              <span className="font-semibold text-primary">{isAr ? "الضيوف:" : "Guests:"}</span> {guestsSafe}
+              {typeof nights === "number" ? (
+                <span className="ml-1">
+                  • {nights} {isAr ? "ليالٍ" : "nights"}
+                </span>
+              ) : null}
+            </div>
+          </div>
 
           <div className="mt-5 rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
             <span className="font-semibold">{isAr ? "مهم:" : "Important:"}</span>{" "}

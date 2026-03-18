@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { createTranslator } from "next-intl";
 import UnifiedSearchBar from "@/components/search/UnifiedSearchBar";
-import FiltersBar from "@/components/search/FiltersBar";
 import PropertiesSearchShell from "@/components/search/properties/PropertiesSearchShell";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
 import { searchProperties } from "@/lib/api/search";
@@ -99,7 +98,6 @@ export default async function PropertiesPage(props: PageProps) {
             />
           </div>
 
-          <FiltersBar />
         </div>
       </section>
 

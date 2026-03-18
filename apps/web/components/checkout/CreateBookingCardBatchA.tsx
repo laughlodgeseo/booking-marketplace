@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import { createBookingFromHold } from "@/lib/api/bookings";
@@ -85,10 +86,20 @@ function extractBookingFromUnknown(x: unknown): { id: string; status: string } |
 export function CreateBookingCardBatchA(props: { propertyId: string; holdId: string; guests: number }) {
   const locale = normalizeLocale(useLocale());
   const isAr = locale === "ar";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const propertyId = (props.propertyId ?? "").trim();
   const holdId = (props.holdId ?? "").trim();
 
   const canCreate = useMemo(() => holdId.length > 0 && propertyId.length > 0, [holdId, propertyId]);
+  const loginHref = useMemo(() => {
+    const currentQuery = searchParams.toString();
+    const next = currentQuery ? `${pathname}?${currentQuery}` : pathname;
+    const qp = new URLSearchParams();
+    qp.set("role", "customer");
+    qp.set("next", next);
+    return `/login?${qp.toString()}`;
+  }, [pathname, searchParams]);
 
   const [view, setView] = useState<ViewState>({ kind: "idle" });
 
@@ -152,7 +163,7 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
         </p>
         <div className="mt-5">
           <Link
-            href="/login"
+            href={loginHref}
             className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
           >
             {isAr ? "الذهاب لتسجيل الدخول" : "Go to login"}

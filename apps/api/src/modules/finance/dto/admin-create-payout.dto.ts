@@ -7,7 +7,7 @@ export class AdminCreatePayoutDto {
     enum: PaymentProvider,
     default: PaymentProvider.MANUAL,
     description:
-      'Payout provider. V1 uses MANUAL; later can add bank/Telr/etc.',
+      'Payout provider. V1 uses MANUAL; later can add bank/etc.',
   })
   @IsOptional()
   @IsEnum(PaymentProvider)

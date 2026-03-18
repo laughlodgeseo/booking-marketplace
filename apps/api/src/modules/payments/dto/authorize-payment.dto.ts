@@ -10,8 +10,8 @@ export class AuthorizePaymentDto {
 
   @ApiPropertyOptional({
     enum: PaymentProvider,
-    default: PaymentProvider.TELR,
-    description: 'TELR is the only supported customer payment method.',
+    default: PaymentProvider.STRIPE,
+    description: 'STRIPE is the only supported customer payment method.',
   })
   @IsOptional()
   @IsEnum(PaymentProvider)

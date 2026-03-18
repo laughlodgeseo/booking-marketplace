@@ -4,10 +4,11 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   BookingStatus,
+  CancellationMode,
+  CancellationReason,
   CustomerDocumentStatus,
   CustomerDocumentType,
   LedgerDirection,
@@ -26,12 +27,10 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ManualPaymentsProvider } from './providers/manual.provider';
-import {
-  type TelrCreateSessionResult,
-  TelrPaymentsProvider,
-  type TelrVerifiedPayment,
-} from './providers/telr.provider';
+import { StripePaymentsProvider } from './providers/stripe.provider';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BookingsService } from '../../bookings/bookings.service';
+import type Stripe from 'stripe';
 
 type Actor = { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
 
@@ -41,7 +40,7 @@ type AuthorizeResult =
       reused: boolean;
       payment: unknown;
       provider: PaymentProvider;
-      telr: { redirectUrl: string };
+      stripe: { clientSecret: string; publishableKey: string };
     }
   | { ok: true; reused: boolean; payment: unknown; provider: PaymentProvider };
 
@@ -50,15 +49,16 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly manualProvider: ManualPaymentsProvider,
-    private readonly telrProvider: TelrPaymentsProvider,
+    private readonly stripeProvider: StripePaymentsProvider,
     private readonly notifications: NotificationsService,
+    private readonly bookings: BookingsService,
   ) {}
 
   /**
-   * TELR-only policy (customer-facing):
-   * - CUSTOMER payments must use TELR.
+   * STRIPE-only policy (customer-facing):
+   * - CUSTOMER payments must use STRIPE.
    * - MANUAL is allowed only for internal/dev/admin flows.
-   * - Booking becomes CONFIRMED only via verified Telr webhook + server-side check.
+   * - Booking becomes CONFIRMED only via Stripe webhooks.
    */
   async authorize(args: {
     actor: Actor;
@@ -66,33 +66,49 @@ export class PaymentsService {
     provider: PaymentProvider;
     idempotencyKey: string | null;
   }): Promise<AuthorizeResult> {
-    const requested = args.provider ?? PaymentProvider.TELR;
+    const requested = args.provider ?? PaymentProvider.STRIPE;
     const idempotencyKey = (args.idempotencyKey ?? '').trim() || null;
 
-    // ✅ Customer-facing: TELR only (ignore/deny other providers)
+    // ✅ Customer-facing: STRIPE only (ignore/deny other providers)
     const provider: PaymentProvider =
-      args.actor.role === 'CUSTOMER' ? PaymentProvider.TELR : requested;
+      args.actor.role === 'CUSTOMER' ? PaymentProvider.STRIPE : requested;
 
     if (
-      provider !== PaymentProvider.TELR &&
+      provider !== PaymentProvider.STRIPE &&
       provider !== PaymentProvider.MANUAL
     ) {
       throw new BadRequestException(`Provider ${provider} is not supported.`);
     }
 
-    if (args.actor.role === 'CUSTOMER' && provider !== PaymentProvider.TELR) {
+    if (args.actor.role === 'CUSTOMER' && provider !== PaymentProvider.STRIPE) {
       throw new BadRequestException(
-        'TELR is the only supported payment method.',
+        'STRIPE is the only supported payment method.',
       );
+    }
+
+    if (provider === PaymentProvider.STRIPE) {
+      const stripeIntent = await this.createStripeIntent({
+        actor: args.actor,
+        bookingId: args.bookingId,
+        idempotencyKey,
+      });
+
+      return {
+        ok: true,
+        reused: stripeIntent.reused,
+        payment: stripeIntent.payment,
+        provider: PaymentProvider.STRIPE,
+        stripe: {
+          clientSecret: stripeIntent.clientSecret,
+          publishableKey: stripeIntent.publishableKey,
+        },
+      };
     }
 
     return this.prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
         where: { id: args.bookingId },
-        include: {
-          payment: true,
-          customer: { select: { email: true, fullName: true } },
-        },
+        include: { payment: true },
       });
       if (!booking) throw new NotFoundException('Booking not found.');
 
@@ -145,7 +161,6 @@ export class PaymentsService {
           const refreshed = await tx.payment.findUnique({
             where: { id: payment.id },
           });
-          // In TELR authorize, redirectUrl is not persisted; the client can retry authorize if needed.
           return {
             ok: true,
             reused: true,
@@ -171,58 +186,18 @@ export class PaymentsService {
         return { ok: true, reused: true, payment, provider: payment.provider };
       }
 
-      if (provider === PaymentProvider.MANUAL) {
-        // Internal/dev flow only
-        const res = await this.manualProvider.authorize({
-          bookingId: booking.id,
-          amount: payment.amount,
-          currency: payment.currency,
-        });
-
-        const updated = await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: PaymentStatus.AUTHORIZED,
-            providerRef: res.providerRef,
-          },
-        });
-
-        await tx.paymentEvent.create({
-          data: {
-            paymentId: payment.id,
-            type: PaymentEventType.AUTHORIZE,
-            idempotencyKey,
-            providerRef: res.providerRef,
-          },
-        });
-
-        return { ok: true, reused: false, payment: updated, provider };
-      }
-
-      // ✅ TELR (hosted redirect): booking CONFIRMED only via verified webhook-check
-      const baseUrl = (process.env.PUBLIC_API_BASE_URL ?? '').trim();
-      if (!baseUrl) {
-        throw new BadRequestException(
-          'PUBLIC_API_BASE_URL is not configured (required for Telr return URLs).',
-        );
-      }
-
-      const session = await this.createTelrHostedSessionOrThrow({
+      // ✅ MANUAL (internal/dev flow only)
+      const res = await this.manualProvider.authorize({
         bookingId: booking.id,
-        amountMinor: payment.amount,
+        amount: payment.amount,
         currency: payment.currency,
-        description: `Booking ${booking.id}`,
-        returnUrl: `${baseUrl}/api/payments/return/telr`,
-        cancelUrl: `${baseUrl}/api/payments/cancel/telr`,
-        customerEmail: booking.customer.email ?? null,
-        customerName: booking.customer.fullName ?? null,
       });
 
       const updated = await tx.payment.update({
         where: { id: payment.id },
         data: {
-          status: PaymentStatus.REQUIRES_ACTION,
-          providerRef: session.providerRef,
+          status: PaymentStatus.AUTHORIZED,
+          providerRef: res.providerRef,
         },
       });
 
@@ -231,23 +206,182 @@ export class PaymentsService {
           paymentId: payment.id,
           type: PaymentEventType.AUTHORIZE,
           idempotencyKey,
-          providerRef: session.providerRef,
-          payloadJson: JSON.stringify({
-            kind: 'TELR_CREATE_SESSION',
-            bookingId: booking.id,
-            providerRef: session.providerRef,
-          }),
+          providerRef: res.providerRef,
         },
       });
 
+      return { ok: true, reused: false, payment: updated, provider };
+    });
+  }
+
+  async createStripeIntent(args: {
+    actor: Actor;
+    bookingId: string;
+    idempotencyKey: string | null;
+  }): Promise<{
+    ok: true;
+    reused: boolean;
+    payment: unknown;
+    provider: PaymentProvider;
+    clientSecret: string;
+    publishableKey: string;
+  }> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: args.bookingId },
+      include: { payment: true },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found.');
+
+    if (
+      args.actor.role === 'CUSTOMER' &&
+      booking.customerId !== args.actor.id
+    ) {
+      throw new ForbiddenException('You can only pay for your own booking.');
+    }
+
+    if (booking.status !== BookingStatus.PENDING_PAYMENT) {
+      throw new BadRequestException(
+        `Booking is not payable from status ${booking.status}.`,
+      );
+    }
+
+    const amount = Number(booking.totalAmount ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Invalid booking amount.');
+    }
+
+    const currency = (booking.currency ?? '').trim() || 'AED';
+    const publishableKey = (process.env.STRIPE_PUBLISHABLE_KEY ?? '').trim();
+    if (!publishableKey) {
+      throw new BadRequestException(
+        'STRIPE_PUBLISHABLE_KEY is not configured.',
+      );
+    }
+
+    if (booking.payment?.stripePaymentIntentId) {
+      const existingIntent = await this.stripeProvider.retrievePaymentIntent(
+        booking.payment.stripePaymentIntentId,
+      );
+      const clientSecret = existingIntent.client_secret;
+      if (!clientSecret) {
+        throw new BadRequestException(
+          'Stripe PaymentIntent is missing client_secret.',
+        );
+      }
+
       return {
         ok: true,
-        reused: false,
-        payment: updated,
-        provider: PaymentProvider.TELR,
-        telr: { redirectUrl: session.redirectUrl },
+        reused: true,
+        payment: booking.payment,
+        provider: PaymentProvider.STRIPE,
+        clientSecret,
+        publishableKey,
       };
+    }
+
+    const stripeIdempotencyKey = args.idempotencyKey
+      ? `booking:${booking.id}:${args.idempotencyKey}`
+      : `booking:${booking.id}`;
+
+    const stripeIntent = await this.stripeProvider.createPaymentIntent({
+      amount,
+      currency,
+      description: `Booking ${booking.id}`,
+      metadata: {
+        bookingId: booking.id,
+        userId: booking.customerId,
+      },
+      idempotencyKey: stripeIdempotencyKey,
     });
+
+    const clientSecret = stripeIntent.client_secret;
+    if (!clientSecret) {
+      throw new BadGatewayException(
+        'Stripe PaymentIntent did not return client_secret.',
+      );
+    }
+
+    const updated = await this.prisma.$transaction(
+      async (tx) => {
+        const latest = await tx.booking.findUnique({
+          where: { id: booking.id },
+          include: { payment: true },
+        });
+        if (!latest) throw new NotFoundException('Booking not found.');
+        if (latest.status !== BookingStatus.PENDING_PAYMENT) {
+          throw new BadRequestException(
+            `Booking is not payable from status ${latest.status}.`,
+          );
+        }
+
+        let payment =
+          latest.payment ??
+          (await tx.payment.create({
+            data: {
+              bookingId: latest.id,
+              provider: PaymentProvider.STRIPE,
+              status: PaymentStatus.REQUIRES_ACTION,
+              amount,
+              currency,
+            },
+          }));
+
+        const updatedPayment = await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            provider: PaymentProvider.STRIPE,
+            status: PaymentStatus.REQUIRES_ACTION,
+            amount,
+            currency,
+            providerRef: stripeIntent.id,
+            stripePaymentIntentId: stripeIntent.id,
+            rawPayloadJson: JSON.stringify(
+              this.redactStripePaymentIntent(stripeIntent),
+            ),
+          },
+        });
+
+        const eventKey = `stripe_pi:${stripeIntent.id}`;
+        const existingEvent = await tx.paymentEvent.findUnique({
+          where: {
+            uniq_payment_event_idempotency: {
+              paymentId: updatedPayment.id,
+              type: PaymentEventType.AUTHORIZE,
+              idempotencyKey: eventKey,
+            },
+          },
+        });
+
+        if (!existingEvent) {
+          await tx.paymentEvent.create({
+            data: {
+              paymentId: updatedPayment.id,
+              type: PaymentEventType.AUTHORIZE,
+              idempotencyKey: eventKey,
+              providerRef: stripeIntent.id,
+              payloadJson: JSON.stringify({
+                kind: 'STRIPE_CREATE_INTENT',
+                bookingId: latest.id,
+                paymentIntentId: stripeIntent.id,
+              }),
+            },
+          });
+        }
+
+        return updatedPayment;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    return {
+      ok: true,
+      reused: false,
+      payment: updated,
+      provider: PaymentProvider.STRIPE,
+      clientSecret,
+      publishableKey,
+    };
   }
 
   async capture(args: {
@@ -309,10 +443,10 @@ export class PaymentsService {
 
         const payment = booking.payment;
 
-        // ✅ Phase 0 rule: TELR is webhook-confirmed ONLY.
+        // ✅ Stripe is webhook-confirmed ONLY.
         if (payment.provider !== PaymentProvider.MANUAL) {
           throw new BadRequestException(
-            `Provider ${payment.provider} is webhook-confirmed. Use TELR webhook to confirm booking.`,
+            `Provider ${payment.provider} is webhook-confirmed. Use Stripe webhook to confirm booking.`,
           );
         }
 
@@ -524,6 +658,7 @@ export class PaymentsService {
       });
 
       let providerRefundRef: string | null = null;
+      let updatedRefund = refund;
 
       if (refund.provider === PaymentProvider.MANUAL) {
         const res = await this.manualProvider.refund({
@@ -533,17 +668,48 @@ export class PaymentsService {
           currency: refund.currency,
         });
         providerRefundRef = res.providerRefundRef;
+
+        updatedRefund = await tx.refund.update({
+          where: { id: refund.id },
+          data: { status: RefundStatus.SUCCEEDED, providerRefundRef },
+          include: {
+            payment: true,
+            booking: { select: { customerId: true, propertyId: true } },
+          },
+        });
+      } else if (refund.provider === PaymentProvider.STRIPE) {
+        const paymentIntentId = payment.stripePaymentIntentId;
+        if (!paymentIntentId) {
+          throw new BadRequestException(
+            'Stripe refund requires stripePaymentIntentId.',
+          );
+        }
+
+        const stripeRefund = await this.stripeProvider.createRefund({
+          paymentIntentId,
+          amount,
+          idempotencyKey: idempotencyKey ?? refund.id,
+          metadata: {
+            refundId: refund.id,
+            bookingId: refund.bookingId,
+            paymentId: payment.id,
+          },
+        });
+
+        providerRefundRef = stripeRefund.id;
+        updatedRefund = await tx.refund.update({
+          where: { id: refund.id },
+          data: { status: RefundStatus.PROCESSING, providerRefundRef },
+          include: {
+            payment: true,
+            booking: { select: { customerId: true, propertyId: true } },
+          },
+        });
       } else {
-        // TELR refunds will be enabled once your Telr account supports refund API access.
         throw new BadRequestException(
           `Provider ${refund.provider} refund execution not enabled yet.`,
         );
       }
-
-      const updatedRefund = await tx.refund.update({
-        where: { id: refund.id },
-        data: { status: RefundStatus.SUCCEEDED, providerRefundRef },
-      });
 
       await tx.paymentEvent.create({
         data: {
@@ -567,7 +733,11 @@ export class PaymentsService {
     });
 
     try {
-      if (result?.ok && result?.bookingCustomerId) {
+      if (
+        result?.ok &&
+        result?.bookingCustomerId &&
+        result?.refund?.status === RefundStatus.SUCCEEDED
+      ) {
         await this.notifications.emit({
           type: NotificationType.REFUND_PROCESSED,
           entityType: 'REFUND',
@@ -592,127 +762,25 @@ export class PaymentsService {
   }
 
   /**
-   * TELR webhook-driven confirmation (ONLY after verifying via Telr “check status”).
+   * STRIPE webhook-driven confirmation (payment_intent.succeeded).
    */
-  async handleTelrWebhookCaptured(args: {
-    bookingId: string;
-    providerRef: string;
-    webhookEventId: string;
-  }): Promise<{ ok: true; reused: boolean }> {
-    const verified = await this.telrProvider.verifyCapturedPayment({
-      providerRef: args.providerRef,
-    });
-
-    if (verified.bookingId !== args.bookingId) {
-      throw new BadRequestException(
-        'Telr verification cartid does not match bookingId.',
-      );
-    }
-
-    const txResult = await this.applyVerifiedTelrWebhookCapture({
-      bookingId: args.bookingId,
-      providerRef: args.providerRef,
-      webhookEventId: args.webhookEventId,
-      verified,
-    });
-
-    await this.emitConfirmedNotifications(
-      txResult.booking,
-      txResult.vendorId ?? null,
-      txResult.ops,
-    );
-
-    return { ok: true, reused: txResult.reused };
-  }
-
-  async handleTelrWebhookCapturedVerified(args: {
-    bookingId: string;
-    providerRef: string;
-    webhookEventId: string;
-    currency: string;
-    amountMinor: number;
-    statusCode?: string;
-    statusText?: string;
-  }): Promise<{ ok: true; reused: boolean }> {
-    const verified: TelrVerifiedPayment = {
-      ok: true,
-      providerRef: args.providerRef,
-      bookingId: args.bookingId,
-      statusCode: (args.statusCode ?? 'DEV_SIM').trim() || 'DEV_SIM',
-      statusText:
-        (args.statusText ?? 'DEV_SIMULATED').trim() || 'DEV_SIMULATED',
-      amountMinor: args.amountMinor,
-      currency: args.currency,
-    };
-
-    const txResult = await this.applyVerifiedTelrWebhookCapture({
-      bookingId: args.bookingId,
-      providerRef: args.providerRef,
-      webhookEventId: args.webhookEventId,
-      verified,
-    });
-
-    await this.emitConfirmedNotifications(
-      txResult.booking,
-      txResult.vendorId ?? null,
-      txResult.ops,
-    );
-
-    return { ok: true, reused: txResult.reused };
-  }
-
-  private async applyVerifiedTelrWebhookCapture(args: {
-    bookingId: string;
-    providerRef: string;
-    webhookEventId: string;
-    verified: TelrVerifiedPayment;
-  }) {
-    return this.prisma.$transaction(
+  async handleStripePaymentIntentSucceeded(args: {
+    eventId: string;
+    paymentIntent: Stripe.PaymentIntent;
+  }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    const txResult = await this.prisma.$transaction(
       async (tx) => {
-        const booking = await tx.booking.findUnique({
-          where: { id: args.bookingId },
-          include: {
-            payment: true,
-            property: { select: { vendorId: true } },
-          },
-        });
-        if (!booking) throw new NotFoundException('Booking not found.');
-        if (!booking.payment)
-          throw new BadRequestException('No payment exists for booking.');
+        const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
+        if (!ctx) return { ignored: true } as const;
 
-        const payment = booking.payment;
-
-        if (payment.provider !== PaymentProvider.TELR) {
-          throw new BadRequestException(
-            `Payment provider mismatch. Expected TELR, found ${payment.provider}.`,
-          );
-        }
-
-        if (payment.providerRef && payment.providerRef !== args.providerRef) {
-          throw new BadRequestException(
-            'providerRef mismatch for this booking/payment.',
-          );
-        }
-
-        if ((payment.currency ?? '').trim() !== args.verified.currency) {
-          throw new BadRequestException(
-            'Currency mismatch between payment and Telr verification.',
-          );
-        }
-
-        // ✅ Compare minor units exactly (DB uses Int minor units)
-        if (Number(payment.amount) !== Number(args.verified.amountMinor)) {
-          throw new BadRequestException(
-            'Amount mismatch between payment and Telr verification.',
-          );
-        }
+        const { booking, payment } = ctx;
 
         const existing = await tx.paymentEvent.findUnique({
           where: {
             uniq_payment_event_idempotency: {
               paymentId: payment.id,
               type: PaymentEventType.WEBHOOK,
-              idempotencyKey: args.webhookEventId,
+              idempotencyKey: args.eventId,
             },
           },
         });
@@ -734,23 +802,40 @@ export class PaymentsService {
             vendorId: booking.property.vendorId,
             ops,
             reused: true,
-          };
+          } as const;
         }
 
-        const alreadyCaptured = payment.status === PaymentStatus.CAPTURED;
-        const alreadyConfirmed = booking.status === BookingStatus.CONFIRMED;
+        const currency = this.normalizeCurrency(args.paymentIntent.currency);
+        const expectedCurrency = this.normalizeCurrency(
+          payment.currency ?? booking.currency,
+        );
 
-        if (!alreadyCaptured) {
-          await tx.payment.update({
-            where: { id: payment.id },
-            data: {
-              status: PaymentStatus.CAPTURED,
-              providerRef: args.providerRef,
-            },
-          });
+        if (expectedCurrency && currency && expectedCurrency !== currency) {
+          throw new BadRequestException(
+            'Currency mismatch between payment and Stripe PaymentIntent.',
+          );
         }
 
-        if (!alreadyConfirmed) {
+        if (Number(payment.amount) !== Number(args.paymentIntent.amount)) {
+          throw new BadRequestException(
+            'Amount mismatch between payment and Stripe PaymentIntent.',
+          );
+        }
+
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.CAPTURED,
+            provider: PaymentProvider.STRIPE,
+            providerRef: args.paymentIntent.id,
+            stripePaymentIntentId: args.paymentIntent.id,
+            rawPayloadJson: JSON.stringify(
+              this.redactStripePaymentIntent(args.paymentIntent),
+            ),
+          },
+        });
+
+        if (booking.status === BookingStatus.PENDING_PAYMENT) {
           await tx.booking.update({
             where: { id: booking.id },
             data: { status: BookingStatus.CONFIRMED },
@@ -761,15 +846,12 @@ export class PaymentsService {
           data: {
             paymentId: payment.id,
             type: PaymentEventType.WEBHOOK,
-            idempotencyKey: args.webhookEventId,
-            providerRef: args.providerRef,
+            idempotencyKey: args.eventId,
+            providerRef: args.paymentIntent.id,
             payloadJson: JSON.stringify({
-              kind: 'TELR_VERIFIED',
+              kind: 'STRIPE_PAYMENT_INTENT_SUCCEEDED',
               bookingId: booking.id,
-              telr: {
-                statusCode: args.verified.statusCode,
-                statusText: args.verified.statusText,
-              },
+              paymentIntentId: args.paymentIntent.id,
             }),
           },
         });
@@ -791,112 +873,491 @@ export class PaymentsService {
           vendorId: booking.property.vendorId,
           ops,
           reused: false,
-        };
+        } as const;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+
+    if ('ignored' in txResult && txResult.ignored) {
+      return { ok: true, reused: false, ignored: true };
+    }
+
+    await this.emitConfirmedNotifications(
+      txResult.booking,
+      txResult.vendorId ?? null,
+      txResult.ops,
+    );
+
+    return { ok: true, reused: txResult.reused };
   }
 
-  async handleWebhookPaymentFailed(args: {
-    provider: 'TELR';
-    bookingId: string;
-    providerRef: string;
-    webhookEventId: string;
-  }): Promise<{ ok: true }> {
-    await this.prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.findUnique({
-        where: { id: args.bookingId },
-        include: { payment: true },
-      });
-      if (!booking) throw new NotFoundException('Booking not found.');
-      if (!booking.payment)
-        throw new BadRequestException('No payment exists for booking.');
+  /**
+   * STRIPE webhook-driven failure (payment_intent.payment_failed).
+   */
+  async handleStripePaymentIntentFailed(args: {
+    eventId: string;
+    paymentIntent: Stripe.PaymentIntent;
+  }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    const txResult = await this.prisma.$transaction(async (tx) => {
+      const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
+      if (!ctx) return { ignored: true } as const;
 
-      const payment = booking.payment;
-
-      if (payment.provider !== PaymentProvider.TELR) return;
+      const { booking, payment } = ctx;
 
       const existing = await tx.paymentEvent.findUnique({
         where: {
           uniq_payment_event_idempotency: {
             paymentId: payment.id,
             type: PaymentEventType.WEBHOOK,
-            idempotencyKey: args.webhookEventId,
+            idempotencyKey: args.eventId,
           },
         },
       });
-      if (existing) return;
+
+      if (existing) {
+        return {
+          reused: true,
+          bookingId: booking.id,
+          customerId: booking.customerId,
+          bookingStatus: booking.status,
+        } as const;
+      }
 
       await tx.payment.update({
         where: { id: payment.id },
-        data: { status: PaymentStatus.FAILED },
+        data: {
+          status: PaymentStatus.FAILED,
+          provider: PaymentProvider.STRIPE,
+          providerRef: args.paymentIntent.id,
+          stripePaymentIntentId: args.paymentIntent.id,
+          rawPayloadJson: JSON.stringify(
+            this.redactStripePaymentIntent(args.paymentIntent),
+          ),
+        },
       });
 
       await tx.paymentEvent.create({
         data: {
           paymentId: payment.id,
           type: PaymentEventType.WEBHOOK,
-          idempotencyKey: args.webhookEventId,
-          providerRef: args.providerRef,
+          idempotencyKey: args.eventId,
+          providerRef: args.paymentIntent.id,
           payloadJson: JSON.stringify({
-            kind: 'TELR_FAILED',
+            kind: 'STRIPE_PAYMENT_INTENT_FAILED',
             bookingId: booking.id,
+            paymentIntentId: args.paymentIntent.id,
           }),
         },
       });
+
+      return {
+        reused: false,
+        bookingId: booking.id,
+        customerId: booking.customerId,
+        bookingStatus: booking.status,
+      } as const;
+    });
+
+    if ('ignored' in txResult && txResult.ignored) {
+      return { ok: true, reused: false, ignored: true };
+    }
+
+    if (!txResult.reused) {
+      if (txResult.bookingStatus === BookingStatus.PENDING_PAYMENT) {
+        try {
+          await this.bookings.cancelBooking({
+            bookingId: txResult.bookingId,
+            actorUser: { id: 'stripe-webhook', role: 'SYSTEM' },
+            dto: {
+              reason: CancellationReason.NO_PAYMENT,
+              mode: CancellationMode.SOFT,
+              notes: 'Stripe payment failed webhook.',
+            },
+          });
+        } catch {
+          // non-blocking
+        }
+      }
 
       try {
         await this.notifications.emit({
           type: NotificationType.PAYMENT_FAILED,
           entityType: 'BOOKING',
-          entityId: booking.id,
-          recipientUserId: booking.customerId,
-          payload: { bookingId: booking.id, provider: 'TELR' },
+          entityId: txResult.bookingId,
+          recipientUserId: txResult.customerId,
+          payload: { bookingId: txResult.bookingId, provider: 'STRIPE' },
         });
       } catch {
         // non-blocking
       }
-    });
+    }
 
-    return { ok: true };
+    return { ok: true, reused: txResult.reused };
   }
 
-  private async createTelrHostedSessionOrThrow(args: {
-    bookingId: string;
-    amountMinor: number;
-    currency: string;
-    description: string;
-    returnUrl: string;
-    cancelUrl: string;
-    customerEmail?: string | null;
-    customerName?: string | null;
-  }): Promise<TelrCreateSessionResult> {
-    try {
-      return await this.telrProvider.createHostedPaymentSession(args);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'TELR authorize failed.';
-      const lowered = message.toLowerCase();
+  /**
+   * STRIPE webhook-driven cancellation (payment_intent.canceled).
+   */
+  async handleStripePaymentIntentCanceled(args: {
+    eventId: string;
+    paymentIntent: Stripe.PaymentIntent;
+  }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    const txResult = await this.prisma.$transaction(async (tx) => {
+      const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
+      if (!ctx) return { ignored: true } as const;
 
-      const isConfigError =
-        lowered.includes('telr_store_id is not configured') ||
-        lowered.includes('telr_auth_key is not configured');
+      const { booking, payment } = ctx;
 
-      if (isConfigError) {
-        throw new ServiceUnavailableException({
-          ok: false,
-          code: 'TELR_NOT_CONFIGURED',
-          message:
-            'TELR is not configured. Please try another method or contact support.',
+      const existing = await tx.paymentEvent.findUnique({
+        where: {
+          uniq_payment_event_idempotency: {
+            paymentId: payment.id,
+            type: PaymentEventType.WEBHOOK,
+            idempotencyKey: args.eventId,
+          },
+        },
+      });
+
+      if (existing) {
+        return {
+          reused: true,
+          bookingId: booking.id,
+          customerId: booking.customerId,
+          bookingStatus: booking.status,
+        } as const;
+      }
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.FAILED,
+          provider: PaymentProvider.STRIPE,
+          providerRef: args.paymentIntent.id,
+          stripePaymentIntentId: args.paymentIntent.id,
+          rawPayloadJson: JSON.stringify(
+            this.redactStripePaymentIntent(args.paymentIntent),
+          ),
+        },
+      });
+
+      await tx.refund.updateMany({
+        where: {
+          paymentId: payment.id,
+          status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING] },
+        },
+        data: { status: RefundStatus.CANCELLED },
+      });
+
+      await tx.paymentEvent.create({
+        data: {
+          paymentId: payment.id,
+          type: PaymentEventType.WEBHOOK,
+          idempotencyKey: args.eventId,
+          providerRef: args.paymentIntent.id,
+          payloadJson: JSON.stringify({
+            kind: 'STRIPE_PAYMENT_INTENT_CANCELED',
+            bookingId: booking.id,
+            paymentIntentId: args.paymentIntent.id,
+          }),
+        },
+      });
+
+      return {
+        reused: false,
+        bookingId: booking.id,
+        customerId: booking.customerId,
+        bookingStatus: booking.status,
+      } as const;
+    });
+
+    if ('ignored' in txResult && txResult.ignored) {
+      return { ok: true, reused: false, ignored: true };
+    }
+
+    if (!txResult.reused) {
+      if (txResult.bookingStatus === BookingStatus.PENDING_PAYMENT) {
+        try {
+          await this.bookings.cancelBooking({
+            bookingId: txResult.bookingId,
+            actorUser: { id: 'stripe-webhook', role: 'SYSTEM' },
+            dto: {
+              reason: CancellationReason.AUTO_EXPIRED_UNPAID,
+              mode: CancellationMode.SOFT,
+              notes: 'Stripe payment canceled webhook.',
+            },
+          });
+        } catch {
+          // non-blocking
+        }
+      }
+
+      try {
+        await this.notifications.emit({
+          type: NotificationType.PAYMENT_FAILED,
+          entityType: 'BOOKING',
+          entityId: txResult.bookingId,
+          recipientUserId: txResult.customerId,
+          payload: { bookingId: txResult.bookingId, provider: 'STRIPE' },
+        });
+      } catch {
+        // non-blocking
+      }
+    }
+
+    return { ok: true, reused: txResult.reused };
+  }
+
+  /**
+   * STRIPE webhook-driven refund sync (charge.refunded).
+   */
+  async handleStripeChargeRefunded(args: {
+    eventId: string;
+    charge: Stripe.Charge;
+  }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    const paymentIntentId =
+      typeof args.charge.payment_intent === 'string'
+        ? args.charge.payment_intent
+        : args.charge.payment_intent?.id;
+
+    if (!paymentIntentId) {
+      return { ok: true, reused: false, ignored: true };
+    }
+
+    const txResult = await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.findUnique({
+        where: { stripePaymentIntentId: paymentIntentId },
+      });
+
+      if (!payment) return { ignored: true } as const;
+
+      const existing = await tx.paymentEvent.findUnique({
+        where: {
+          uniq_payment_event_idempotency: {
+            paymentId: payment.id,
+            type: PaymentEventType.WEBHOOK,
+            idempotencyKey: args.eventId,
+          },
+        },
+      });
+
+      if (existing) {
+        return { reused: true, refundIds: [] } as const;
+      }
+
+      const refundIds =
+        args.charge.refunds?.data?.map((refund) => refund.id) ?? [];
+
+      if (args.charge.refunded) {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.REFUNDED,
+            rawPayloadJson: JSON.stringify(args.charge),
+          },
         });
       }
 
-      throw new BadGatewayException({
-        ok: false,
-        code: 'TELR_PROVIDER_ERROR',
-        message: 'TELR authorize request failed. Please try again shortly.',
+      let matchedCount = 0;
+      if (refundIds.length > 0) {
+        const matched = await tx.refund.updateMany({
+          where: {
+            providerRefundRef: { in: refundIds },
+            status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING] },
+          },
+          data: { status: RefundStatus.SUCCEEDED },
+        });
+        matchedCount = matched.count;
+      }
+
+      let fallbackUpdatedId: string | null = null;
+      if (refundIds.length === 0 || matchedCount === 0) {
+        const fallback = await tx.refund.findFirst({
+          where: {
+            paymentId: payment.id,
+            status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING] },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (fallback) {
+          const fallbackRef =
+            refundIds[0] ?? fallback.providerRefundRef ?? args.charge.id;
+          await tx.refund.update({
+            where: { id: fallback.id },
+            data: {
+              status: RefundStatus.SUCCEEDED,
+              providerRefundRef: fallbackRef,
+            },
+          });
+          fallbackUpdatedId = fallback.id;
+        }
+      }
+
+      await tx.paymentEvent.create({
+        data: {
+          paymentId: payment.id,
+          type: PaymentEventType.WEBHOOK,
+          idempotencyKey: args.eventId,
+          providerRef: paymentIntentId,
+          payloadJson: JSON.stringify({
+            kind: 'STRIPE_CHARGE_REFUNDED',
+            paymentIntentId,
+            chargeId: args.charge.id,
+          }),
+        },
+      });
+
+      return { reused: false, refundIds, fallbackUpdatedId } as const;
+    });
+
+    if ('ignored' in txResult && txResult.ignored) {
+      return { ok: true, reused: false, ignored: true };
+    }
+
+    if (!txResult.reused) {
+      const refundsToNotify = await this.prisma.refund.findMany({
+        where: {
+          status: RefundStatus.SUCCEEDED,
+          OR: [
+            { providerRefundRef: { in: txResult.refundIds } },
+            ...(txResult.fallbackUpdatedId
+              ? [{ id: txResult.fallbackUpdatedId }]
+              : []),
+          ],
+        },
+        include: {
+          booking: { select: { customerId: true } },
+        },
+      });
+
+      for (const refund of refundsToNotify) {
+        if (!refund.booking?.customerId) continue;
+        try {
+          await this.notifications.emit({
+            type: NotificationType.REFUND_PROCESSED,
+            entityType: 'REFUND',
+            entityId: refund.id,
+            recipientUserId: refund.booking.customerId,
+            payload: {
+              refund: {
+                id: refund.id,
+                bookingId: refund.bookingId,
+                amount: refund.amount,
+                currency: refund.currency,
+                status: refund.status,
+              },
+            },
+          });
+        } catch {
+          // non-blocking
+        }
+      }
+    }
+
+    return { ok: true, reused: txResult.reused };
+  }
+
+  private normalizeCurrency(value?: string | null): string {
+    return (value ?? '').trim().toUpperCase();
+  }
+
+  private redactStripePaymentIntent(
+    paymentIntent: Stripe.PaymentIntent,
+  ): Stripe.PaymentIntent {
+    return { ...paymentIntent, client_secret: null };
+  }
+
+  private async resolveStripeContext(
+    tx: Prisma.TransactionClient,
+    paymentIntent: Stripe.PaymentIntent,
+  ): Promise<{
+    booking: {
+      id: string;
+      customerId: string;
+      propertyId: string;
+      checkIn: Date;
+      checkOut: Date;
+      totalAmount: number;
+      currency: string;
+      status: BookingStatus;
+      property: { vendorId: string };
+      payment: {
+        id: string;
+        status: PaymentStatus;
+        amount: number;
+        currency: string;
+        provider: PaymentProvider;
+        providerRef: string | null;
+        stripePaymentIntentId: string | null;
+      } | null;
+    };
+    payment: {
+      id: string;
+      status: PaymentStatus;
+      amount: number;
+      currency: string;
+      provider: PaymentProvider;
+      providerRef: string | null;
+      stripePaymentIntentId: string | null;
+    };
+  } | null> {
+    const paymentByIntent = await tx.payment.findUnique({
+      where: { stripePaymentIntentId: paymentIntent.id },
+      include: {
+        booking: {
+          include: {
+            payment: true,
+            property: { select: { vendorId: true } },
+          },
+        },
+      },
+    });
+
+    if (paymentByIntent?.booking) {
+      return { booking: paymentByIntent.booking, payment: paymentByIntent };
+    }
+
+    const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim();
+    if (!bookingId) return null;
+
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        payment: true,
+        property: { select: { vendorId: true } },
+      },
+    });
+    if (!booking) return null;
+
+    let payment = booking.payment;
+
+    if (payment?.stripePaymentIntentId) {
+      if (payment.stripePaymentIntentId !== paymentIntent.id) {
+        throw new BadRequestException(
+          'Stripe PaymentIntent does not match booking payment.',
+        );
+      }
+      return { booking, payment };
+    }
+
+    if (!payment) {
+      payment = await tx.payment.create({
+        data: {
+          bookingId: booking.id,
+          provider: PaymentProvider.STRIPE,
+          status: PaymentStatus.REQUIRES_ACTION,
+          amount: booking.totalAmount,
+          currency: booking.currency,
+          providerRef: paymentIntent.id,
+          stripePaymentIntentId: paymentIntent.id,
+          rawPayloadJson: JSON.stringify(
+            this.redactStripePaymentIntent(paymentIntent),
+          ),
+        },
       });
     }
+
+    return { booking, payment };
   }
 
   private async emitConfirmedNotifications(

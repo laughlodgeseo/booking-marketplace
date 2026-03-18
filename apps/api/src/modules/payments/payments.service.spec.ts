@@ -4,19 +4,21 @@ import {
   PaymentProvider,
   PaymentStatus,
 } from '@prisma/client';
+import type Stripe from 'stripe';
+
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ManualPaymentsProvider } from './providers/manual.provider';
-import { TelrPaymentsProvider } from './providers/telr.provider';
+import { StripePaymentsProvider } from './providers/stripe.provider';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BookingsService } from '../../bookings/bookings.service';
 
 describe('PaymentsService webhook idempotency', () => {
-  it('reuses duplicate TELR webhook capture event without double-apply', async () => {
+  it('reuses duplicate STRIPE payment_intent.succeeded event without double-apply', async () => {
     const bookingId = 'booking_webhook_1';
     const paymentId = 'payment_webhook_1';
-    const providerRef = 'TELR_REF_1';
-    const webhookEventId =
-      'telr:txn_webhook_1:paid:telr_ref_1:booking_webhook_1';
+    const paymentIntentId = 'pi_123';
+    const webhookEventId = 'evt_123';
 
     let bookingStatus: BookingStatus = BookingStatus.PENDING_PAYMENT;
     let paymentStatus: PaymentStatus = PaymentStatus.REQUIRES_ACTION;
@@ -34,40 +36,47 @@ describe('PaymentsService webhook idempotency', () => {
 
     const paymentEventCreate = jest.fn().mockImplementation(() => {
       eventExists = true;
-      return { id: 'evt_1' };
+      return { id: 'evt_local_1' };
     });
+
+    const bookingRecord = {
+      id: bookingId,
+      customerId: 'customer_1',
+      status: bookingStatus,
+      checkIn: new Date('2026-06-01T00:00:00.000Z'),
+      checkOut: new Date('2026-06-05T00:00:00.000Z'),
+      totalAmount: 1000,
+      currency: 'AED',
+      propertyId: 'property_1',
+      property: { vendorId: 'vendor_1' },
+      payment: {
+        id: paymentId,
+        provider: PaymentProvider.STRIPE,
+        providerRef: paymentIntentId,
+        stripePaymentIntentId: paymentIntentId,
+        status: paymentStatus,
+        amount: 1000,
+        currency: 'AED',
+      },
+    };
 
     const tx = {
       booking: {
-        findUnique: jest.fn().mockImplementation(() => ({
-          id: bookingId,
-          customerId: 'customer_1',
-          status: bookingStatus,
-          checkIn: new Date('2026-06-01T00:00:00.000Z'),
-          checkOut: new Date('2026-06-05T00:00:00.000Z'),
-          totalAmount: 1000,
-          currency: 'AED',
-          propertyId: 'property_1',
-          property: { vendorId: 'vendor_1' },
-          payment: {
-            id: paymentId,
-            provider: PaymentProvider.TELR,
-            providerRef,
-            status: paymentStatus,
-            amount: 1000,
-            currency: 'AED',
-          },
-        })),
+        findUnique: jest.fn().mockImplementation(() => bookingRecord),
         update: bookingUpdate,
       },
       payment: {
+        findUnique: jest.fn().mockImplementation(() => ({
+          ...bookingRecord.payment,
+          booking: bookingRecord,
+        })),
         update: paymentUpdate,
       },
       paymentEvent: {
         findUnique: jest.fn().mockImplementation(() => {
           if (!eventExists) return null;
           return {
-            id: 'evt_1',
+            id: 'evt_local_1',
             paymentId,
             type: PaymentEventType.WEBHOOK,
             idempotencyKey: webhookEventId,
@@ -92,10 +101,9 @@ describe('PaymentsService webhook idempotency', () => {
     const service = new PaymentsService(
       prisma,
       {} as ManualPaymentsProvider,
-      {} as TelrPaymentsProvider,
-      {
-        emit: jest.fn().mockResolvedValue(undefined),
-      } as unknown as NotificationsService,
+      {} as StripePaymentsProvider,
+      { emit: jest.fn().mockResolvedValue(undefined) } as unknown as NotificationsService,
+      {} as BookingsService,
     );
 
     jest
@@ -147,24 +155,21 @@ describe('PaymentsService webhook idempotency', () => {
       )
       .mockResolvedValue(undefined);
 
-    const first = await service.handleTelrWebhookCapturedVerified({
-      bookingId,
-      providerRef,
-      webhookEventId,
-      currency: 'AED',
-      amountMinor: 1000,
-      statusCode: '3',
-      statusText: 'paid',
+    const paymentIntent = {
+      id: paymentIntentId,
+      amount: 1000,
+      currency: 'aed',
+      metadata: { bookingId },
+    } as Stripe.PaymentIntent;
+
+    const first = await service.handleStripePaymentIntentSucceeded({
+      eventId: webhookEventId,
+      paymentIntent,
     });
 
-    const second = await service.handleTelrWebhookCapturedVerified({
-      bookingId,
-      providerRef,
-      webhookEventId,
-      currency: 'AED',
-      amountMinor: 1000,
-      statusCode: '3',
-      statusText: 'paid',
+    const second = await service.handleStripePaymentIntentSucceeded({
+      eventId: webhookEventId,
+      paymentIntent,
     });
 
     expect(first.ok).toBe(true);

@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, MapPin, Search, Users } from "lucide-react";
+import { CalendarDays, MapPin, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 import { createPortal } from "react-dom";
 import DateRangePicker, { type DateRangeValue, type DateSelectionPhase } from "@/components/booking/DateRangePicker";
 import DateRangePopover from "@/components/search/DateRangePopover";
-import SearchSquareButton from "@/components/search/SearchSquareButton";
+import FiltersBar from "@/components/search/FiltersBar";
 import { isValidIsoRange } from "@/lib/date-range";
 import { normalizeLocale } from "@/lib/i18n/config";
 
@@ -141,6 +141,7 @@ const UI_COPY = {
     checkOutLabel: "Check-out",
     guests: "Guests",
     searchStays: "Search stays",
+    filters: "Filters",
     clearDates: "Clear dates",
     popularLocations: "Popular locations in Dubai",
     suggestedLocations: "Suggested locations",
@@ -153,6 +154,7 @@ const UI_COPY = {
     checkOutLabel: "تاريخ المغادرة",
     guests: "الضيوف",
     searchStays: "ابحث عن إقامة",
+    filters: "فلترة",
     clearDates: "مسح التواريخ",
     popularLocations: "أماكن شائعة في دبي",
     suggestedLocations: "أماكن مقترحة",
@@ -207,6 +209,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     left: 0,
     width: 360,
   });
+  const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectionPhase, setSelectionPhase] = useState<DateSelectionPhase>("checkin");
   const locationRef = useRef<HTMLDivElement | null>(null);
@@ -223,9 +226,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     [draft.checkIn, draft.checkOut],
   );
 
-  const hasCompleteRange = isValidIsoRange(draft.checkIn, draft.checkOut);
   const hasAnyDate = Boolean(draft.checkIn || draft.checkOut);
   const normalizedLocation = normalize(draft.location);
+  const isMobileViewport = viewportWidth !== null ? viewportWidth < 768 : false;
 
   const filteredLocations = useMemo(() => {
     if (!normalizedLocation) return LOCATION_SUGGESTIONS;
@@ -238,6 +241,15 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
 
   const updateLocationPanelRect = useCallback(() => {
     if (typeof window === "undefined" || !locationRef.current) return;
+
+    if (window.innerWidth < 768) {
+      setLocationPanelRect({
+        top: 84,
+        left: 12,
+        width: Math.max(280, window.innerWidth - 24),
+      });
+      return;
+    }
 
     const rect = locationRef.current.getBoundingClientRect();
     const margin = 12;
@@ -254,9 +266,21 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateViewportWidth = () => setViewportWidth(window.innerWidth);
+    updateViewportWidth();
+    window.addEventListener("resize", updateViewportWidth);
+    return () => {
+      window.removeEventListener("resize", updateViewportWidth);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!locationOpen) return;
 
-    updateLocationPanelRect();
+    const raf = requestAnimationFrame(() => {
+      updateLocationPanelRect();
+    });
 
     function onViewportChange() {
       updateLocationPanelRect();
@@ -266,6 +290,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     window.addEventListener("scroll", onViewportChange, true);
 
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("scroll", onViewportChange, true);
     };
@@ -339,15 +364,27 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     setSelectionPhase("checkin");
   }
 
+  function adjustGuests(delta: number) {
+    setDraft((s) => ({
+      ...s,
+      guests: clampInt(s.guests + delta, 1, 16),
+    }));
+  }
+
   const highlightedLocationIndex =
     activeLocationIndex >= filteredLocations.length ? 0 : activeLocationIndex;
   const highlightedLocationOptionId =
     filteredLocations.length > 0 ? `location-option-${filteredLocations[highlightedLocationIndex]?.id}` : undefined;
+  const isPropertiesVariant = props.variant === "properties";
 
   const surfaceClass =
     props.variant === "home"
       ? "mx-auto w-full max-w-5xl rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.76))] px-3 py-3 shadow-[0_16px_34px_rgba(33,39,53,0.12)] backdrop-blur-sm md:h-[72px] md:px-4 md:py-2"
-      : "mx-auto w-full max-w-5xl rounded-2xl bg-white px-3 py-3 shadow-md md:h-[72px] md:px-4 md:py-2";
+      : "mx-auto w-full max-w-5xl rounded-[1.75rem] border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafbff_100%)] p-3 shadow-[0_18px_34px_rgba(15,23,42,0.08)]";
+
+  const sectionClass = isPropertiesVariant
+    ? "flex h-12 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 shadow-[0_3px_10px_rgba(15,23,42,0.05)] transition-all duration-300 focus-within:border-indigo-300 focus-within:shadow-[0_8px_20px_rgba(79,70,229,0.12)] md:h-[56px] md:rounded-xl md:border-none md:shadow-none md:focus-within:shadow-none"
+    : "flex h-12 items-center gap-2 rounded-xl bg-neutral-50 px-3 text-neutral-800 md:h-[56px] md:border-r md:border-neutral-200 md:rounded-none md:bg-transparent md:px-4";
 
   return (
     <motion.div
@@ -357,15 +394,21 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
     >
       <div className={surfaceClass}>
-        <div className="grid h-full gap-2 md:grid-cols-[1.2fr_0.95fr_0.95fr_0.6fr_auto] md:items-center md:gap-3">
+        <div
+          className={
+            isPropertiesVariant
+              ? "grid gap-2 md:grid-cols-[1.28fr_0.95fr_0.95fr_0.9fr_auto] md:items-center md:gap-2"
+              : "grid h-full gap-2 md:grid-cols-[1.2fr_0.95fr_0.95fr_0.6fr_auto] md:items-center md:gap-3"
+          }
+        >
           <div
             ref={locationRef}
             className={[
-              "relative flex h-12 items-center gap-2 px-3 text-neutral-800 transition-all duration-200",
+              "relative",
+              sectionClass,
               locationOpen
-                ? "rounded-2xl bg-white ring-1 ring-indigo-200/85 shadow-[0_14px_30px_rgba(15,23,42,0.12)] md:rounded-2xl md:border-transparent md:bg-white"
-                : "rounded-xl bg-neutral-50 md:rounded-none md:border-r md:border-neutral-200 md:bg-transparent",
-              "md:h-[56px] md:px-4",
+                ? "ring-1 ring-indigo-200/85 shadow-[0_14px_30px_rgba(15,23,42,0.12)] md:ring-0 md:shadow-none"
+                : "",
             ].join(" ")}
           >
             <MapPin className="h-4 w-4 text-neutral-500" />
@@ -443,7 +486,10 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
 
           <div
             ref={calendarTriggerRef}
-            className="flex h-12 items-center gap-2 rounded-xl bg-neutral-50 px-3 text-neutral-800 md:h-[56px] md:border-r md:border-neutral-200 md:rounded-none md:bg-transparent md:px-4"
+            className={[
+              sectionClass,
+              isPropertiesVariant ? "" : "text-neutral-800",
+            ].join(" ")}
           >
             <button
               type="button"
@@ -460,7 +506,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
             </button>
           </div>
 
-          <div className="flex h-12 items-center gap-2 rounded-xl bg-neutral-50 px-3 text-neutral-800 md:h-[56px] md:border-r md:border-neutral-200 md:rounded-none md:bg-transparent md:px-4">
+          <div className={sectionClass}>
             <button
               type="button"
               onClick={() => {
@@ -476,45 +522,73 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
             </button>
           </div>
 
-          <div className="flex h-12 items-center gap-2 rounded-xl bg-neutral-50 px-3 text-neutral-800 md:h-[56px] md:border-r md:border-neutral-200 md:rounded-none md:bg-transparent md:px-4">
-            <Users className="h-4 w-4 text-neutral-500" />
-            <input
-              type="number"
-              min={1}
-              max={16}
-              value={draft.guests}
-              onChange={(e) => setDraft((s) => ({ ...s, guests: Number(e.target.value) }))}
-              onFocus={() => setLocationOpen(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") pushSearch();
-              }}
-              placeholder={copy.guests}
-              className="w-full bg-transparent text-[16px] font-medium text-neutral-900 outline-none placeholder:text-neutral-400 md:text-sm"
-              aria-label={copy.guests}
-            />
+          <div className={sectionClass}>
+            <div className="grid w-full grid-cols-[2rem_1fr_2rem] items-center gap-2">
+              <button
+                type="button"
+                onClick={() => adjustGuests(-1)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-bold text-neutral-700 transition hover:bg-indigo-50"
+                aria-label="Decrease guests"
+              >
+                -
+              </button>
+              <div className="text-center text-sm font-semibold text-neutral-900">
+                <span>{draft.guests}</span>
+                <span className="ml-1 text-xs font-medium text-neutral-500">{copy.guests}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => adjustGuests(1)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-bold text-neutral-700 transition hover:bg-indigo-50"
+                aria-label="Increase guests"
+              >
+                +
+              </button>
+            </div>
           </div>
 
-          <div className="flex h-12 items-center md:h-[56px] md:justify-end md:pl-1">
+          <div
+            className={[
+              isPropertiesVariant
+                ? "grid h-12 grid-cols-2 gap-2 md:flex md:h-[56px] md:items-center md:justify-end md:pl-1"
+                : "flex h-12 items-center md:h-[56px] md:justify-end md:pl-1",
+            ].join(" ")}
+          >
+            {isPropertiesVariant ? (
+              <FiltersBar
+                label={copy.filters}
+                triggerClassName="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-900 transition duration-300 hover:-translate-y-[1px] hover:border-indigo-300 hover:bg-indigo-50 md:w-auto"
+              />
+            ) : null}
             <button
+              ref={searchButtonRef}
               type="button"
               onClick={() => {
                 setLocationOpen(false);
                 pushSearch();
               }}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 md:hidden"
+              className={[
+                "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700",
+                isPropertiesVariant ? "w-full md:w-auto" : "w-full md:hidden",
+              ].join(" ")}
             >
               <Search className="h-4 w-4" />
               {copy.searchStays}
             </button>
-            <SearchSquareButton
-              ref={searchButtonRef}
-              active={hasCompleteRange}
-              onClick={() => {
-                setLocationOpen(false);
-                pushSearch();
-              }}
-              className="hidden md:inline-flex"
-            />
+            {!isPropertiesVariant ? (
+              <button
+                ref={searchButtonRef}
+                type="button"
+                onClick={() => {
+                  setLocationOpen(false);
+                  pushSearch();
+                }}
+                className="hidden h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md transition hover:bg-indigo-700 md:inline-flex"
+                aria-label={copy.searchStays}
+              >
+                <Search className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -525,15 +599,24 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               {locationOpen ? (
                 <motion.div
                   ref={locationPopoverRef}
-                  className="fixed z-[10020] overflow-hidden rounded-[1.4rem] border border-neutral-200/90 bg-white p-2 shadow-[0_28px_68px_rgba(15,23,42,0.2)] ring-1 ring-indigo-100/70"
-                  style={{
-                    top: locationPanelRect.top,
-                    left: locationPanelRect.left,
-                    width: locationPanelRect.width,
-                  }}
-                  initial={{ opacity: 0, y: -8, scale: 0.985 }}
+                  className={[
+                    "fixed z-[10020] overflow-hidden border border-neutral-200/90 bg-white p-2 shadow-[0_28px_68px_rgba(15,23,42,0.2)] ring-1 ring-indigo-100/70",
+                    isMobileViewport
+                      ? "inset-x-3 top-[84px] max-h-[62dvh] rounded-[1.35rem]"
+                      : "rounded-[1.4rem]",
+                  ].join(" ")}
+                  style={
+                    isMobileViewport
+                      ? undefined
+                      : {
+                          top: locationPanelRect.top,
+                          left: locationPanelRect.left,
+                          width: locationPanelRect.width,
+                        }
+                  }
+                  initial={{ opacity: 0, y: isMobileViewport ? 8 : -8, scale: 0.985 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.985 }}
+                  exit={{ opacity: 0, y: isMobileViewport ? 8 : -6, scale: 0.985 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
