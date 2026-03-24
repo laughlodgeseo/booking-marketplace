@@ -10,10 +10,10 @@ export class StripePaymentsProvider {
     if (!key) throw new Error('STRIPE_SECRET_KEY is not configured.');
     if (!this.client) {
       const apiVersionRaw = (process.env.STRIPE_API_VERSION ?? '').trim();
-      const apiVersion = apiVersionRaw
-        ? (apiVersionRaw as Stripe.LatestApiVersion)
-        : undefined;
-      this.client = new Stripe(key, apiVersion ? { apiVersion } : undefined);
+      const apiVersion = (
+        apiVersionRaw || '2023-10-16'
+      ) as Stripe.LatestApiVersion;
+      this.client = new Stripe(key, { apiVersion });
     }
     return this.client;
   }
@@ -77,10 +77,6 @@ export class StripePaymentsProvider {
     const secret = (args.webhookSecret ?? '').trim();
     if (!secret) throw new Error('STRIPE_WEBHOOK_SECRET is not configured.');
 
-    return stripe.webhooks.constructEvent(
-      args.rawBody,
-      args.signature,
-      secret,
-    );
+    return stripe.webhooks.constructEvent(args.rawBody, args.signature, secret);
   }
 }

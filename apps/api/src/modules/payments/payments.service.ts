@@ -2,10 +2,14 @@ import {
   BadGatewayException,
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  InternalServerErrorException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BookingPaymentStatus,
   BookingStatus,
   CancellationMode,
   CancellationReason,
@@ -40,12 +44,25 @@ type AuthorizeResult =
       reused: boolean;
       payment: unknown;
       provider: PaymentProvider;
-      stripe: { clientSecret: string; publishableKey: string };
+      stripe: { clientSecret: string; publishableKey?: string };
     }
   | { ok: true; reused: boolean; payment: unknown; provider: PaymentProvider };
 
+type StripeWebhookBookingUpdateResult = {
+  ok: true;
+  reused: boolean;
+  ignored: boolean;
+  bookingId: string | null;
+  previousBookingStatus: BookingStatus | null;
+  nextBookingStatus: BookingStatus | null;
+  previousPaymentStatus: BookingPaymentStatus | null;
+  nextPaymentStatus: BookingPaymentStatus | null;
+};
+
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly manualProvider: ManualPaymentsProvider,
@@ -224,164 +241,300 @@ export class PaymentsService {
     payment: unknown;
     provider: PaymentProvider;
     clientSecret: string;
-    publishableKey: string;
+    publishableKey?: string;
   }> {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: args.bookingId },
-      include: { payment: true },
-    });
+    const cleanIdempotencyKey = (args.idempotencyKey ?? '').trim() || null;
+    this.logger.log(
+      `createStripeIntent request bookingId=${args.bookingId} actorId=${args.actor.id} actorRole=${args.actor.role} hasIdempotencyKey=${Boolean(cleanIdempotencyKey)}`,
+    );
 
-    if (!booking) throw new NotFoundException('Booking not found.');
+    try {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: args.bookingId },
+        include: { payment: true },
+      });
 
-    if (
-      args.actor.role === 'CUSTOMER' &&
-      booking.customerId !== args.actor.id
-    ) {
-      throw new ForbiddenException('You can only pay for your own booking.');
-    }
+      if (!booking) {
+        this.logger.warn(
+          `createStripeIntent validation_failed booking_not_found bookingId=${args.bookingId}`,
+        );
+        throw new NotFoundException('Booking not found.');
+      }
 
-    if (booking.status !== BookingStatus.PENDING_PAYMENT) {
-      throw new BadRequestException(
-        `Booking is not payable from status ${booking.status}.`,
-      );
-    }
+      if (
+        args.actor.role === 'CUSTOMER' &&
+        booking.customerId !== args.actor.id
+      ) {
+        this.logger.warn(
+          `createStripeIntent validation_failed ownership_mismatch bookingId=${booking.id} bookingCustomerId=${booking.customerId} actorId=${args.actor.id}`,
+        );
+        throw new ForbiddenException('You can only pay for your own booking.');
+      }
 
-    const amount = Number(booking.totalAmount ?? 0);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Invalid booking amount.');
-    }
-
-    const currency = (booking.currency ?? '').trim() || 'AED';
-    const publishableKey = (process.env.STRIPE_PUBLISHABLE_KEY ?? '').trim();
-    if (!publishableKey) {
-      throw new BadRequestException(
-        'STRIPE_PUBLISHABLE_KEY is not configured.',
-      );
-    }
-
-    if (booking.payment?.stripePaymentIntentId) {
-      const existingIntent = await this.stripeProvider.retrievePaymentIntent(
-        booking.payment.stripePaymentIntentId,
-      );
-      const clientSecret = existingIntent.client_secret;
-      if (!clientSecret) {
+      if (booking.status !== BookingStatus.PENDING_PAYMENT) {
+        this.logger.warn(
+          `createStripeIntent validation_failed non_payable bookingId=${booking.id} status=${booking.status}`,
+        );
         throw new BadRequestException(
-          'Stripe PaymentIntent is missing client_secret.',
+          `Booking is not payable from status ${booking.status}.`,
         );
       }
 
-      return {
-        ok: true,
-        reused: true,
-        payment: booking.payment,
-        provider: PaymentProvider.STRIPE,
-        clientSecret,
-        publishableKey,
-      };
-    }
+      const amount = Number(booking.totalAmount ?? 0);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        this.logger.warn(
+          `createStripeIntent validation_failed invalid_amount bookingId=${booking.id} amount=${booking.totalAmount}`,
+        );
+        throw new BadRequestException('Invalid booking amount.');
+      }
 
-    const stripeIdempotencyKey = args.idempotencyKey
-      ? `booking:${booking.id}:${args.idempotencyKey}`
-      : `booking:${booking.id}`;
+      const currency = (booking.currency ?? '').trim() || 'AED';
+      const publishableKey = (
+        process.env.STRIPE_PUBLISHABLE_KEY ??
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ??
+        ''
+      ).trim();
 
-    const stripeIntent = await this.stripeProvider.createPaymentIntent({
-      amount,
-      currency,
-      description: `Booking ${booking.id}`,
-      metadata: {
-        bookingId: booking.id,
-        userId: booking.customerId,
-      },
-      idempotencyKey: stripeIdempotencyKey,
-    });
+      if (booking.payment?.stripePaymentIntentId) {
+        this.logger.log(
+          `createStripeIntent reuse_existing bookingId=${booking.id} paymentIntentId=${booking.payment.stripePaymentIntentId}`,
+        );
 
-    const clientSecret = stripeIntent.client_secret;
-    if (!clientSecret) {
-      throw new BadGatewayException(
-        'Stripe PaymentIntent did not return client_secret.',
-      );
-    }
-
-    const updated = await this.prisma.$transaction(
-      async (tx) => {
-        const latest = await tx.booking.findUnique({
-          where: { id: booking.id },
-          include: { payment: true },
-        });
-        if (!latest) throw new NotFoundException('Booking not found.');
-        if (latest.status !== BookingStatus.PENDING_PAYMENT) {
-          throw new BadRequestException(
-            `Booking is not payable from status ${latest.status}.`,
+        let existingIntent: Stripe.PaymentIntent;
+        try {
+          existingIntent = await this.stripeProvider.retrievePaymentIntent(
+            booking.payment.stripePaymentIntentId,
+          );
+        } catch (error: unknown) {
+          const message = this.getStripeErrorMessage(
+            error,
+            'Failed to load Stripe payment session.',
+          );
+          this.logger.error(
+            `createStripeIntent stripe_retrieve_failed bookingId=${booking.id} paymentIntentId=${booking.payment.stripePaymentIntentId} message=${message}`,
+            error instanceof Error ? error.stack : undefined,
+          );
+          throw new BadGatewayException(message);
+        }
+        const clientSecret = existingIntent.client_secret;
+        if (!clientSecret) {
+          this.logger.error(
+            `createStripeIntent invalid_existing_intent bookingId=${booking.id} paymentIntentId=${existingIntent.id} missing=client_secret`,
+          );
+          throw new BadGatewayException(
+            'Stripe PaymentIntent is missing client_secret.',
           );
         }
 
-        let payment =
-          latest.payment ??
-          (await tx.payment.create({
-            data: {
-              bookingId: latest.id,
-              provider: PaymentProvider.STRIPE,
-              status: PaymentStatus.REQUIRES_ACTION,
-              amount,
-              currency,
-            },
-          }));
+        this.logger.log(
+          `createStripeIntent response_ready bookingId=${booking.id} paymentIntentId=${existingIntent.id} reused=true`,
+        );
+        return {
+          ok: true,
+          reused: true,
+          payment: booking.payment,
+          provider: PaymentProvider.STRIPE,
+          clientSecret,
+          ...(publishableKey ? { publishableKey } : {}),
+        };
+      }
 
-        const updatedPayment = await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            provider: PaymentProvider.STRIPE,
-            status: PaymentStatus.REQUIRES_ACTION,
-            amount,
-            currency,
-            providerRef: stripeIntent.id,
-            stripePaymentIntentId: stripeIntent.id,
-            rawPayloadJson: JSON.stringify(
-              this.redactStripePaymentIntent(stripeIntent),
-            ),
-          },
+      const stripeIdempotencyKey = cleanIdempotencyKey
+        ? `booking:${booking.id}:${cleanIdempotencyKey}`
+        : `booking:${booking.id}`;
+
+      const stripePayload = {
+        amount: this.toStripeMinorUnits(amount, currency),
+        currency,
+        description: `Booking ${booking.id}`,
+        metadata: {
+          bookingId: booking.id,
+          userId: booking.customerId,
+        },
+      };
+
+      this.logger.log(
+        `createStripeIntent stripe_create_call bookingId=${booking.id} amountMinor=${stripePayload.amount} currency=${stripePayload.currency} idempotencyKey=${stripeIdempotencyKey}`,
+      );
+
+      let stripeIntent: Stripe.PaymentIntent;
+      try {
+        stripeIntent = await this.stripeProvider.createPaymentIntent({
+          ...stripePayload,
+          idempotencyKey: stripeIdempotencyKey,
         });
+      } catch (error: unknown) {
+        const message = this.getStripeErrorMessage(
+          error,
+          'Failed to create Stripe payment session.',
+        );
+        const normalized = message.toLowerCase();
+        const looksLikeIdempotencyConflict =
+          normalized.includes('idempot') &&
+          (normalized.includes('same parameters') ||
+            normalized.includes('different') ||
+            normalized.includes('mismatch'));
 
-        const eventKey = `stripe_pi:${stripeIntent.id}`;
-        const existingEvent = await tx.paymentEvent.findUnique({
-          where: {
-            uniq_payment_event_idempotency: {
-              paymentId: updatedPayment.id,
-              type: PaymentEventType.AUTHORIZE,
-              idempotencyKey: eventKey,
-            },
-          },
-        });
+        this.logger.error(
+          `createStripeIntent stripe_create_failed bookingId=${booking.id} message=${message}`,
+          error instanceof Error ? error.stack : undefined,
+        );
 
-        if (!existingEvent) {
-          await tx.paymentEvent.create({
-            data: {
-              paymentId: updatedPayment.id,
-              type: PaymentEventType.AUTHORIZE,
-              idempotencyKey: eventKey,
-              providerRef: stripeIntent.id,
-              payloadJson: JSON.stringify({
-                kind: 'STRIPE_CREATE_INTENT',
-                bookingId: latest.id,
-                paymentIntentId: stripeIntent.id,
-              }),
-            },
-          });
+        if (looksLikeIdempotencyConflict) {
+          const retryIdempotencyKey = `${stripeIdempotencyKey}:retry:${Date.now()}`;
+          this.logger.warn(
+            `createStripeIntent stripe_idempotency_conflict bookingId=${booking.id} retryIdempotencyKey=${retryIdempotencyKey}`,
+          );
+          try {
+            stripeIntent = await this.stripeProvider.createPaymentIntent({
+              ...stripePayload,
+              idempotencyKey: retryIdempotencyKey,
+            });
+          } catch (retryError: unknown) {
+            const retryMessage = this.getStripeErrorMessage(
+              retryError,
+              'Failed to create Stripe payment session.',
+            );
+            this.logger.error(
+              `createStripeIntent stripe_retry_failed bookingId=${booking.id} message=${retryMessage}`,
+              retryError instanceof Error ? retryError.stack : undefined,
+            );
+            throw new BadGatewayException(retryMessage);
+          }
+        } else {
+          throw new BadGatewayException(message);
         }
+      }
 
-        return updatedPayment;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+      const clientSecret = stripeIntent.client_secret;
+      if (!clientSecret) {
+        this.logger.error(
+          `createStripeIntent stripe_invalid_response bookingId=${booking.id} paymentIntentId=${stripeIntent.id} missing=client_secret`,
+        );
+        throw new BadGatewayException(
+          'Stripe PaymentIntent did not return client_secret.',
+        );
+      }
 
-    return {
-      ok: true,
-      reused: false,
-      payment: updated,
-      provider: PaymentProvider.STRIPE,
-      clientSecret,
-      publishableKey,
-    };
+      let updated: unknown;
+      try {
+        updated = await this.prisma.$transaction(
+          async (tx) => {
+            const latest = await tx.booking.findUnique({
+              where: { id: booking.id },
+              include: { payment: true },
+            });
+            if (!latest) throw new NotFoundException('Booking not found.');
+            if (latest.status !== BookingStatus.PENDING_PAYMENT) {
+              throw new BadRequestException(
+                `Booking is not payable from status ${latest.status}.`,
+              );
+            }
+
+            const payment =
+              latest.payment ??
+              (await tx.payment.create({
+                data: {
+                  bookingId: latest.id,
+                  provider: PaymentProvider.STRIPE,
+                  status: PaymentStatus.REQUIRES_ACTION,
+                  amount,
+                  currency,
+                },
+              }));
+
+            const updatedPayment = await tx.payment.update({
+              where: { id: payment.id },
+              data: {
+                provider: PaymentProvider.STRIPE,
+                status: PaymentStatus.REQUIRES_ACTION,
+                amount,
+                currency,
+                providerRef: stripeIntent.id,
+                stripePaymentIntentId: stripeIntent.id,
+                rawPayloadJson: JSON.stringify(
+                  this.redactStripePaymentIntent(stripeIntent),
+                ),
+              },
+            });
+
+            const eventKey = `stripe_pi:${stripeIntent.id}`;
+            const existingEvent = await tx.paymentEvent.findUnique({
+              where: {
+                uniq_payment_event_idempotency: {
+                  paymentId: updatedPayment.id,
+                  type: PaymentEventType.AUTHORIZE,
+                  idempotencyKey: eventKey,
+                },
+              },
+            });
+
+            if (!existingEvent) {
+              await tx.paymentEvent.create({
+                data: {
+                  paymentId: updatedPayment.id,
+                  type: PaymentEventType.AUTHORIZE,
+                  idempotencyKey: eventKey,
+                  providerRef: stripeIntent.id,
+                  payloadJson: JSON.stringify({
+                    kind: 'STRIPE_CREATE_INTENT',
+                    bookingId: latest.id,
+                    paymentIntentId: stripeIntent.id,
+                  }),
+                },
+              });
+            }
+
+            return updatedPayment;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error: unknown) {
+        if (error instanceof HttpException) {
+          this.logger.warn(
+            `createStripeIntent persist_validation_failed bookingId=${booking.id} status=${error.getStatus()} message=${error.message}`,
+          );
+          throw error;
+        }
+        this.logger.error(
+          `createStripeIntent persist_failed bookingId=${booking.id} paymentIntentId=${stripeIntent.id} message=${this.getStripeErrorMessage(error, 'Failed to persist Stripe payment session.')}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+        throw new InternalServerErrorException(
+          'Failed to persist Stripe payment session.',
+        );
+      }
+
+      this.logger.log(
+        `createStripeIntent response_ready bookingId=${booking.id} paymentIntentId=${stripeIntent.id} reused=false`,
+      );
+      return {
+        ok: true,
+        reused: false,
+        payment: updated,
+        provider: PaymentProvider.STRIPE,
+        clientSecret,
+        ...(publishableKey ? { publishableKey } : {}),
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        this.logger.warn(
+          `createStripeIntent rejected bookingId=${args.bookingId} status=${error.getStatus()} message=${error.message}`,
+        );
+        throw error;
+      }
+      const message = this.getStripeErrorMessage(
+        error,
+        'Failed to initialize payment session.',
+      );
+      this.logger.error(
+        `createStripeIntent unexpected_failure bookingId=${args.bookingId} message=${message}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException(
+        'Failed to initialize payment session.',
+      );
+    }
   }
 
   async capture(args: {
@@ -389,6 +542,12 @@ export class PaymentsService {
     bookingId: string;
     idempotencyKey: string | null;
   }) {
+    if (args.actor.role === 'CUSTOMER') {
+      throw new BadRequestException(
+        'Booking confirmation is webhook-only. Frontend capture is disabled.',
+      );
+    }
+
     const idempotencyKey = (args.idempotencyKey ?? '').trim() || null;
 
     const ensureOpsTasks = async (
@@ -687,7 +846,7 @@ export class PaymentsService {
 
         const stripeRefund = await this.stripeProvider.createRefund({
           paymentIntentId,
-          amount,
+          amount: this.toStripeMinorUnits(amount, refund.currency),
           idempotencyKey: idempotencyKey ?? refund.id,
           metadata: {
             refundId: refund.id,
@@ -762,6 +921,439 @@ export class PaymentsService {
   }
 
   /**
+   * STRIPE webhook-driven confirmation (checkout.session.completed).
+   * Booking confirmation is webhook-only; frontend never confirms bookings.
+   */
+  async handleStripeCheckoutSessionCompleted(args: {
+    eventId: string;
+    session: Stripe.Checkout.Session;
+  }): Promise<StripeWebhookBookingUpdateResult> {
+    const bookingId = (args.session.metadata?.bookingId ?? '').trim() || null;
+    const paymentIntentId = this.readCheckoutSessionPaymentIntentId(
+      args.session,
+    );
+    const now = new Date();
+
+    try {
+      const txResult = await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.stripeWebhookEvent.findUnique({
+            where: { eventId: args.eventId },
+          });
+          if (existing) {
+            return {
+              ok: true,
+              reused: true,
+              ignored: true,
+              bookingId: existing.bookingId ?? bookingId,
+              previousBookingStatus: null,
+              nextBookingStatus: null,
+              previousPaymentStatus: null,
+              nextPaymentStatus: null,
+              booking: null,
+              vendorId: null,
+              ops: null,
+            } as const;
+          }
+
+          if (!bookingId) {
+            await tx.stripeWebhookEvent.create({
+              data: {
+                eventId: args.eventId,
+                type: 'checkout.session.completed',
+                bookingId: null,
+              },
+            });
+
+            return {
+              ok: true,
+              reused: false,
+              ignored: true,
+              bookingId: null,
+              previousBookingStatus: null,
+              nextBookingStatus: null,
+              previousPaymentStatus: null,
+              nextPaymentStatus: null,
+              booking: null,
+              vendorId: null,
+              ops: null,
+            } as const;
+          }
+
+          const booking = await tx.booking.findUnique({
+            where: { id: bookingId },
+            include: {
+              payment: true,
+              property: { select: { vendorId: true } },
+            },
+          });
+
+          if (!booking) {
+            await tx.stripeWebhookEvent.create({
+              data: {
+                eventId: args.eventId,
+                type: 'checkout.session.completed',
+                bookingId,
+              },
+            });
+
+            return {
+              ok: true,
+              reused: false,
+              ignored: true,
+              bookingId,
+              previousBookingStatus: null,
+              nextBookingStatus: null,
+              previousPaymentStatus: null,
+              nextPaymentStatus: null,
+              booking: null,
+              vendorId: null,
+              ops: null,
+            } as const;
+          }
+
+          const previousBookingStatus = booking.status;
+          const previousPaymentStatus = booking.paymentStatus;
+
+          if (args.session.payment_status !== 'paid') {
+            await tx.stripeWebhookEvent.create({
+              data: {
+                eventId: args.eventId,
+                type: 'checkout.session.completed',
+                bookingId: booking.id,
+              },
+            });
+
+            return {
+              ok: true,
+              reused: false,
+              ignored: true,
+              bookingId: booking.id,
+              previousBookingStatus,
+              nextBookingStatus: booking.status,
+              previousPaymentStatus,
+              nextPaymentStatus: booking.paymentStatus,
+              booking: null,
+              vendorId: null,
+              ops: null,
+            } as const;
+          }
+
+          const updatedBooking = await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              status: BookingStatus.CONFIRMED,
+              paymentStatus: BookingPaymentStatus.SUCCESS,
+              stripeSessionId: args.session.id,
+              confirmedAt: now,
+            },
+          });
+
+          const resolvedPaymentIntentId =
+            paymentIntentId ?? booking.payment?.stripePaymentIntentId ?? null;
+
+          const paymentData = {
+            provider: PaymentProvider.STRIPE,
+            status: PaymentStatus.CAPTURED,
+            amount: booking.totalAmount,
+            currency: booking.currency,
+            providerRef: args.session.id,
+            stripePaymentIntentId: resolvedPaymentIntentId,
+            rawPayloadJson: JSON.stringify(args.session),
+          };
+
+          const payment = booking.payment
+            ? await tx.payment.update({
+                where: { id: booking.payment.id },
+                data: paymentData,
+              })
+            : await tx.payment.create({
+                data: {
+                  bookingId: booking.id,
+                  ...paymentData,
+                },
+              });
+
+          await tx.paymentEvent.create({
+            data: {
+              paymentId: payment.id,
+              type: PaymentEventType.WEBHOOK,
+              idempotencyKey: args.eventId,
+              providerRef: args.session.id,
+              payloadJson: JSON.stringify({
+                kind: 'STRIPE_CHECKOUT_SESSION_COMPLETED',
+                bookingId: booking.id,
+                sessionId: args.session.id,
+                paymentIntentId,
+              }),
+            },
+          });
+
+          const ops = await this.ensureOpsTasksForConfirmedBooking(
+            tx,
+            booking.id,
+          );
+          await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
+          await this.ensureLedgerForCapturedBooking(tx, booking.id);
+
+          await tx.stripeWebhookEvent.create({
+            data: {
+              eventId: args.eventId,
+              type: 'checkout.session.completed',
+              bookingId: booking.id,
+            },
+          });
+
+          return {
+            ok: true,
+            reused: false,
+            ignored: false,
+            bookingId: booking.id,
+            previousBookingStatus,
+            nextBookingStatus: updatedBooking.status,
+            previousPaymentStatus,
+            nextPaymentStatus: updatedBooking.paymentStatus,
+            booking: updatedBooking,
+            vendorId: booking.property.vendorId,
+            ops,
+          } as const;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+
+      if (!txResult.reused && !txResult.ignored && txResult.booking) {
+        await this.emitConfirmedNotifications(
+          txResult.booking,
+          txResult.vendorId,
+          txResult.ops,
+        );
+      }
+
+      return {
+        ok: true,
+        reused: txResult.reused,
+        ignored: txResult.ignored,
+        bookingId: txResult.bookingId,
+        previousBookingStatus: txResult.previousBookingStatus,
+        nextBookingStatus: txResult.nextBookingStatus,
+        previousPaymentStatus: txResult.previousPaymentStatus,
+        nextPaymentStatus: txResult.nextPaymentStatus,
+      };
+    } catch (error) {
+      if (this.isDuplicateStripeWebhookEvent(error)) {
+        return {
+          ok: true,
+          reused: true,
+          ignored: true,
+          bookingId,
+          previousBookingStatus: null,
+          nextBookingStatus: null,
+          previousPaymentStatus: null,
+          nextPaymentStatus: null,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * STRIPE webhook-driven failure (payment_intent.payment_failed).
+   */
+  async handleStripePaymentIntentFailedByMetadata(args: {
+    eventId: string;
+    paymentIntent: Stripe.PaymentIntent;
+  }): Promise<StripeWebhookBookingUpdateResult> {
+    const bookingId =
+      (args.paymentIntent.metadata?.bookingId ?? '').trim() || null;
+
+    try {
+      const txResult = await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.stripeWebhookEvent.findUnique({
+            where: { eventId: args.eventId },
+          });
+          if (existing) {
+            return {
+              ok: true,
+              reused: true,
+              ignored: true,
+              bookingId: existing.bookingId ?? bookingId,
+              previousBookingStatus: null,
+              nextBookingStatus: null,
+              previousPaymentStatus: null,
+              nextPaymentStatus: null,
+              customerId: null,
+            } as const;
+          }
+
+          if (!bookingId) {
+            await tx.stripeWebhookEvent.create({
+              data: {
+                eventId: args.eventId,
+                type: 'payment_intent.payment_failed',
+                bookingId: null,
+              },
+            });
+
+            return {
+              ok: true,
+              reused: false,
+              ignored: true,
+              bookingId: null,
+              previousBookingStatus: null,
+              nextBookingStatus: null,
+              previousPaymentStatus: null,
+              nextPaymentStatus: null,
+              customerId: null,
+            } as const;
+          }
+
+          const booking = await tx.booking.findUnique({
+            where: { id: bookingId },
+            include: { payment: true },
+          });
+
+          if (!booking) {
+            await tx.stripeWebhookEvent.create({
+              data: {
+                eventId: args.eventId,
+                type: 'payment_intent.payment_failed',
+                bookingId,
+              },
+            });
+
+            return {
+              ok: true,
+              reused: false,
+              ignored: true,
+              bookingId,
+              previousBookingStatus: null,
+              nextBookingStatus: null,
+              previousPaymentStatus: null,
+              nextPaymentStatus: null,
+              customerId: null,
+            } as const;
+          }
+
+          const previousBookingStatus = booking.status;
+          const previousPaymentStatus = booking.paymentStatus;
+
+          const updatedBooking = await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              status: BookingStatus.FAILED,
+              paymentStatus: BookingPaymentStatus.FAILED,
+            },
+          });
+
+          const paymentData = {
+            provider: PaymentProvider.STRIPE,
+            status: PaymentStatus.FAILED,
+            amount: booking.totalAmount,
+            currency: booking.currency,
+            providerRef: args.paymentIntent.id,
+            stripePaymentIntentId: args.paymentIntent.id,
+            rawPayloadJson: JSON.stringify(
+              this.redactStripePaymentIntent(args.paymentIntent),
+            ),
+          };
+
+          const payment = booking.payment
+            ? await tx.payment.update({
+                where: { id: booking.payment.id },
+                data: paymentData,
+              })
+            : await tx.payment.create({
+                data: {
+                  bookingId: booking.id,
+                  ...paymentData,
+                },
+              });
+
+          await tx.paymentEvent.create({
+            data: {
+              paymentId: payment.id,
+              type: PaymentEventType.WEBHOOK,
+              idempotencyKey: args.eventId,
+              providerRef: args.paymentIntent.id,
+              payloadJson: JSON.stringify({
+                kind: 'STRIPE_PAYMENT_INTENT_FAILED',
+                bookingId: booking.id,
+                paymentIntentId: args.paymentIntent.id,
+              }),
+            },
+          });
+
+          await tx.stripeWebhookEvent.create({
+            data: {
+              eventId: args.eventId,
+              type: 'payment_intent.payment_failed',
+              bookingId: booking.id,
+            },
+          });
+
+          return {
+            ok: true,
+            reused: false,
+            ignored: false,
+            bookingId: booking.id,
+            previousBookingStatus,
+            nextBookingStatus: updatedBooking.status,
+            previousPaymentStatus,
+            nextPaymentStatus: updatedBooking.paymentStatus,
+            customerId: booking.customerId,
+          } as const;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+
+      if (!txResult.reused && !txResult.ignored && txResult.customerId) {
+        try {
+          await this.notifications.emit({
+            type: NotificationType.PAYMENT_FAILED,
+            entityType: 'BOOKING',
+            entityId: txResult.bookingId ?? 'unknown',
+            recipientUserId: txResult.customerId,
+            payload: {
+              bookingId: txResult.bookingId,
+              provider: 'STRIPE',
+            },
+          });
+        } catch {
+          // non-blocking
+        }
+      }
+
+      return {
+        ok: true,
+        reused: txResult.reused,
+        ignored: txResult.ignored,
+        bookingId: txResult.bookingId,
+        previousBookingStatus: txResult.previousBookingStatus,
+        nextBookingStatus: txResult.nextBookingStatus,
+        previousPaymentStatus: txResult.previousPaymentStatus,
+        nextPaymentStatus: txResult.nextPaymentStatus,
+      };
+    } catch (error) {
+      if (this.isDuplicateStripeWebhookEvent(error)) {
+        return {
+          ok: true,
+          reused: true,
+          ignored: true,
+          bookingId,
+          previousBookingStatus: null,
+          nextBookingStatus: null,
+          previousPaymentStatus: null,
+          nextPaymentStatus: null,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * STRIPE webhook-driven confirmation (payment_intent.succeeded).
    */
   async handleStripePaymentIntentSucceeded(args: {
@@ -816,7 +1408,14 @@ export class PaymentsService {
           );
         }
 
-        if (Number(payment.amount) !== Number(args.paymentIntent.amount)) {
+        const expectedStripeAmount = this.toStripeMinorUnits(
+          Number(payment.amount),
+          payment.currency ?? booking.currency,
+        );
+
+        if (
+          Number(expectedStripeAmount) !== Number(args.paymentIntent.amount)
+        ) {
           throw new BadRequestException(
             'Amount mismatch between payment and Stripe PaymentIntent.',
           );
@@ -990,6 +1589,81 @@ export class PaymentsService {
       } catch {
         // non-blocking
       }
+    }
+
+    return { ok: true, reused: txResult.reused };
+  }
+
+  /**
+   * STRIPE webhook-driven processing (payment_intent.processing).
+   * Keeps booking in PENDING_PAYMENT and records the webhook for idempotency.
+   */
+  async handleStripePaymentIntentProcessing(args: {
+    eventId: string;
+    paymentIntent: Stripe.PaymentIntent;
+  }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    const txResult = await this.prisma.$transaction(async (tx) => {
+      const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
+      if (!ctx) return { ignored: true } as const;
+
+      const { booking, payment } = ctx;
+
+      const existing = await tx.paymentEvent.findUnique({
+        where: {
+          uniq_payment_event_idempotency: {
+            paymentId: payment.id,
+            type: PaymentEventType.WEBHOOK,
+            idempotencyKey: args.eventId,
+          },
+        },
+      });
+
+      if (existing) {
+        return { reused: true } as const;
+      }
+
+      const immutableStatuses = new Set<PaymentStatus>([
+        PaymentStatus.CAPTURED,
+        PaymentStatus.REFUNDED,
+        PaymentStatus.FAILED,
+      ]);
+
+      const nextStatus = immutableStatuses.has(payment.status)
+        ? payment.status
+        : PaymentStatus.REQUIRES_ACTION;
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: nextStatus,
+          provider: PaymentProvider.STRIPE,
+          providerRef: args.paymentIntent.id,
+          stripePaymentIntentId: args.paymentIntent.id,
+          rawPayloadJson: JSON.stringify(
+            this.redactStripePaymentIntent(args.paymentIntent),
+          ),
+        },
+      });
+
+      await tx.paymentEvent.create({
+        data: {
+          paymentId: payment.id,
+          type: PaymentEventType.WEBHOOK,
+          idempotencyKey: args.eventId,
+          providerRef: args.paymentIntent.id,
+          payloadJson: JSON.stringify({
+            kind: 'STRIPE_PAYMENT_INTENT_PROCESSING',
+            bookingId: booking.id,
+            paymentIntentId: args.paymentIntent.id,
+          }),
+        },
+      });
+
+      return { reused: false } as const;
+    });
+
+    if ('ignored' in txResult && txResult.ignored) {
+      return { ok: true, reused: false, ignored: true };
     }
 
     return { ok: true, reused: txResult.reused };
@@ -1257,8 +1931,64 @@ export class PaymentsService {
     return { ok: true, reused: txResult.reused };
   }
 
+  private readCheckoutSessionPaymentIntentId(
+    session: Stripe.Checkout.Session,
+  ): string | null {
+    const raw = session.payment_intent;
+    if (typeof raw === 'string' && raw.trim()) return raw.trim();
+    if (raw && typeof raw === 'object' && 'id' in raw) {
+      const id = raw.id;
+      if (typeof id === 'string' && id.trim()) return id.trim();
+    }
+    return null;
+  }
+
+  private isDuplicateStripeWebhookEvent(error: unknown): boolean {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return false;
+    }
+    if (error.code !== 'P2002') return false;
+
+    const target = (error.meta as { target?: unknown } | undefined)?.target;
+    if (Array.isArray(target)) {
+      return target.some(
+        (entry) =>
+          typeof entry === 'string' &&
+          (entry === 'eventId' || entry.includes('StripeWebhookEvent_eventId')),
+      );
+    }
+    if (typeof target === 'string') {
+      return target.includes('eventId');
+    }
+
+    return true;
+  }
+
   private normalizeCurrency(value?: string | null): string {
     return (value ?? '').trim().toUpperCase();
+  }
+
+  private getStripeErrorMessage(error: unknown, fallback: string): string {
+    if (!error) return fallback;
+    if (error instanceof Error && error.message.trim()) return error.message;
+
+    if (typeof error === 'object') {
+      const maybeMessage = (error as { message?: unknown }).message;
+      if (typeof maybeMessage === 'string' && maybeMessage.trim()) {
+        return maybeMessage;
+      }
+    }
+
+    return fallback;
+  }
+
+  private toStripeMinorUnits(amount: number, currency: string): number {
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const normalized = this.normalizeCurrency(currency);
+    if (!normalized) return Math.trunc(Math.round(safeAmount * 100));
+    // NOTE: Assumes 2-decimal currencies (e.g. AED, USD).
+    // Extend if you support zero-decimal currencies.
+    return Math.trunc(Math.round(safeAmount * 100));
   }
 
   private redactStripePaymentIntent(

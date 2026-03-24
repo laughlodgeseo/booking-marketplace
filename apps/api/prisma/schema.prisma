@@ -43,8 +43,15 @@ enum PropertyStatus {
 enum BookingStatus {
   PENDING_PAYMENT
   CONFIRMED
+  FAILED
   CANCELLED
   COMPLETED
+}
+
+enum BookingPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 enum PaymentProvider {
@@ -1111,9 +1118,13 @@ model Booking {
   children Int @default(0)
 
   status BookingStatus @default(PENDING_PAYMENT)
+  paymentStatus BookingPaymentStatus @default(PENDING)
 
   totalAmount Int
   currency    String @default("AED")
+
+  stripeSessionId String?
+  confirmedAt     DateTime?
 
   // Canonical accounting amount (always AED) + display snapshot
   totalAmountAed     Int?
@@ -1314,6 +1325,19 @@ model PaymentEvent {
   @@unique([paymentId, type, idempotencyKey], name: "uniq_payment_event_idempotency", map: "uniq_payment_event_idempotency")
   @@index([paymentId])
   @@index([type])
+  @@index([createdAt])
+}
+
+model StripeWebhookEvent {
+  id String @id @default(cuid())
+
+  eventId String @unique
+  type    String
+  bookingId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([bookingId])
   @@index([createdAt])
 }
 

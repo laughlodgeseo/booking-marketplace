@@ -1,4 +1,13 @@
-import { Body, Controller, Headers, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Headers,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PaymentProvider, UserRole } from '@prisma/client';
 
@@ -7,12 +16,12 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../../auth/types/auth-user.type';
+import type { AuthRequest } from '../../auth/types/auth-request.type';
 
 import { PaymentsService } from './payments.service';
 import { AuthorizePaymentDto } from './dto/authorize-payment.dto';
 import { CapturePaymentDto } from './dto/capture-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
-import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -39,22 +48,42 @@ export class PaymentsController {
 
   @Post('create-intent')
   @Roles(UserRole.CUSTOMER)
-  createIntent(
-    @CurrentUser() user: AuthUser,
-    @Body() dto: CreatePaymentIntentDto,
+  async createIntent(
+    @Body() body: { bookingId?: string | null },
+    @Req() req: AuthRequest,
     @Headers('idempotency-key') idempotencyKeyHeader?: string,
   ) {
-    const idempotencyKey = (idempotencyKeyHeader ?? '').trim() || null;
+    const user = req.user;
 
-    return this.payments.createStripeIntent({
-      actor: { id: user.id, role: user.role },
-      bookingId: dto.bookingId,
-      idempotencyKey,
-    });
+    console.log('🔥 Create PaymentIntent called');
+    console.log('BODY:', body);
+
+    try {
+      if (!user) {
+        throw new UnauthorizedException('User not authenticated');
+      }
+
+      const bookingId =
+        typeof body?.bookingId === 'string' ? body.bookingId.trim() : '';
+      if (!bookingId) {
+        throw new BadRequestException('bookingId is required');
+      }
+
+      const idempotencyKey = (idempotencyKeyHeader ?? '').trim() || null;
+
+      return await this.payments.createStripeIntent({
+        actor: { id: user.id, role: user.role },
+        bookingId,
+        idempotencyKey,
+      });
+    } catch (err) {
+      console.error('❌ PaymentIntent Error:', err);
+      throw err;
+    }
   }
 
   @Post('capture')
-  @Roles(UserRole.CUSTOMER)
+  @Roles(UserRole.ADMIN)
   capture(
     @CurrentUser() user: AuthUser,
     @Body() dto: CapturePaymentDto,

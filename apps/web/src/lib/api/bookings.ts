@@ -22,13 +22,21 @@ function unwrap<T>(r: HttpResult<T>): T {
 
 /** Compatibility: create booking from hold */
 export async function createBookingFromHold(input: {
-  propertyId: string;
   holdId: string;
-  guests: number;
+  idempotencyKey?: string | null;
+  propertyId?: string;
+  guests?: number;
 }): Promise<{ ok: true; booking: Booking }> {
+  const headers: Record<string, string> = {};
+  if (input.idempotencyKey) headers["idempotency-key"] = input.idempotencyKey;
+
   const res = await apiFetch<CreateBookingApiResponse>(`/bookings`, {
     method: "POST",
-    body: input,
+    body: {
+      holdId: input.holdId,
+      idempotencyKey: input.idempotencyKey ?? undefined,
+    },
+    headers,
     auth: "auto",
   });
 
@@ -54,6 +62,30 @@ export type BookingListItem = {
 
   expiresAt?: string | null;
   createdAt?: string | null;
+};
+
+export type BookingDetail = {
+  id: string;
+  status: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+  nights: number;
+  totalAmount: number;
+  currency: string;
+  fxRate?: number | null;
+  expiresAt?: string | null;
+  property: {
+    id: string;
+    title: string;
+    slug: string | null;
+    city: string | null;
+    area: string | null;
+    basePrice?: number | null;
+    cleaningFee?: number | null;
+    coverUrl?: string | null;
+  };
 };
 
 export type UserBookingsResponse = {
@@ -94,6 +126,15 @@ export async function findUserBookingById(args: {
   }
 
   return null;
+}
+
+export async function getUserBookingDetail(args: { bookingId: string }): Promise<BookingDetail> {
+  const res = await apiFetch<BookingDetail>(`/portal/user/bookings/${args.bookingId}`, {
+    method: "GET",
+    auth: "auto",
+  });
+
+  return unwrap(res);
 }
 
 export async function cancelBooking(bookingId: string): Promise<{ ok: true; id?: string; status?: string }> {
@@ -157,5 +198,19 @@ export async function createStripePaymentIntent(input: {
     auth: "auto",
   });
 
-  return unwrap(res);
+  if (!res.ok) {
+    console.error("❌ Payment API error:", {
+      status: res.status,
+      message: res.message,
+      details: res.details,
+    });
+
+    if (res.status === 401) {
+      throw new Error("Unauthorized (401). Please sign in to continue payment.");
+    }
+
+    throw new Error(res.message || "Unable to start payment. Please try again or refresh.");
+  }
+
+  return res.data;
 }

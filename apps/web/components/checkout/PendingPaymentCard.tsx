@@ -1,28 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import {
-  Elements,
-  PaymentElement,
-  useElements,
-  useStripe,
-} from "@stripe/react-stripe-js";
-import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  CalendarDays,
   CreditCard,
-  LockKeyhole,
+  MapPin,
   ShieldCheck,
   Timer,
+  Users,
 } from "lucide-react";
 import { useBookingPoll } from "@/components/checkout/useBookingPoll";
+import CheckoutForm from "@/components/payment/CheckoutForm";
+import StripeProvider from "@/components/payment/StripeProvider";
 import {
   cancelBooking,
   createStripePaymentIntent,
   findUserBookingById,
+  getUserBookingDetail,
   type BookingListItem,
+  type BookingDetail,
 } from "@/lib/api/bookings";
 
 type ViewState =
@@ -37,15 +36,16 @@ type StripeIntentState =
   | {
       kind: "ready";
       clientSecret: string;
-      publishableKey: string;
+      publishableKey?: string | null;
       reused: boolean;
     }
   | { kind: "error"; message: string };
 
-type PaymentActionState =
+type DetailState =
   | { kind: "idle" }
-  | { kind: "processing" }
-  | { kind: "submitted" }
+  | { kind: "loading" }
+  | { kind: "ready"; detail: BookingDetail }
+  | { kind: "unauthorized" }
   | { kind: "error"; message: string };
 
 function classNames(...xs: Array<string | false | null | undefined>) {
@@ -63,6 +63,30 @@ function fmtDate(s: string | null | undefined): string {
   return d.toLocaleString();
 }
 
+function fmtShortDate(s: string | null | undefined): string {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return s;
+  }
+}
+
+function isoDay(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const match = s.match(/^\d{4}-\d{2}-\d{2}/);
+  if (match) return match[0];
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
 function fmtCountdown(ms: number): string {
   const sec = Math.ceil(ms / 1000);
   const m = Math.floor(sec / 60);
@@ -73,16 +97,22 @@ function fmtCountdown(ms: number): string {
 
 function moneyFromCents(cents?: number | null, currency?: string | null): string {
   if (cents == null || !currency) return "—";
-  const amount = cents / 100;
+  const amount = cents;
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: currency.toUpperCase() === "AED" ? 0 : 2,
     }).format(amount);
   } catch {
-    return `${amount.toFixed(2)} ${currency}`;
+    return `${amount.toFixed(currency.toUpperCase() === "AED" ? 0 : 2)} ${currency}`;
   }
+}
+
+function isUnauthorizedError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e ?? "");
+  const s = msg.toLowerCase();
+  return s.includes("unauthorized") || s.includes("401");
 }
 
 function getOrCreatePaymentIdempotencyKey(bookingId: string): string {
@@ -105,6 +135,15 @@ function getOrCreatePaymentIdempotencyKey(bookingId: string): string {
     // ignore
   }
   return v;
+}
+
+function clearPaymentIdempotencyKey(bookingId: string) {
+  const key = `payment:idemp:${bookingId}`;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -141,128 +180,6 @@ function StatusPill({ status }: { status: string }) {
     <span className="inline-flex items-center rounded-full border border-line/80 bg-surface/60 px-3 py-1.5 text-xs font-semibold text-secondary">
       {status || "—"}
     </span>
-  );
-}
-
-function StripeCheckoutForm(props: {
-  totalText: string;
-  disabled: boolean;
-  isTestMode: boolean;
-  bookingId: string;
-  onSubmitted: () => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [state, setState] = useState<PaymentActionState>({ kind: "idle" });
-
-  const returnUrl = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const url = new URL("/payment/return", window.location.origin);
-    if (props.bookingId) url.searchParams.set("bookingId", props.bookingId);
-    return url.toString();
-  }, [props.bookingId]);
-
-  const canSubmit =
-    !props.disabled &&
-    state.kind !== "processing" &&
-    state.kind !== "submitted" &&
-    Boolean(stripe && elements);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setState({ kind: "processing" });
-
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams: returnUrl ? { return_url: returnUrl } : undefined,
-      redirect: "if_required",
-    });
-
-    if (result.error) {
-      setState({ kind: "error", message: result.error.message ?? "Payment failed." });
-      return;
-    }
-
-    const intent = result.paymentIntent;
-    if (!intent) {
-      setState({ kind: "error", message: "Payment confirmation failed." });
-      return;
-    }
-
-    if (intent.status === "requires_payment_method") {
-      setState({ kind: "error", message: "Payment was not authorized. Try another method." });
-      return;
-    }
-
-    setState({ kind: "submitted" });
-    props.onSubmitted();
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xs font-semibold text-secondary">Total due</div>
-          <div className="mt-1 text-lg font-semibold text-primary">{props.totalText}</div>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-line/80 bg-surface/80 px-3 py-1 text-xs font-semibold text-secondary">
-          <LockKeyhole className="h-3.5 w-3.5" />
-          Encrypted
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-line/80 bg-surface/70 p-4">
-        <div className="flex items-center justify-between text-xs font-semibold text-secondary">
-          <span>Payment details</span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-line/80 bg-white/60 px-2 py-1 text-[10px] text-secondary">
-            Powered by Stripe
-          </span>
-        </div>
-        <div className="mt-3 rounded-xl border border-line/80 bg-white/70 px-3 py-3">
-          <PaymentElement
-            options={{
-              layout: "accordion",
-              fields: { billingDetails: { name: "auto" } },
-            }}
-          />
-        </div>
-      </div>
-
-      {state.kind === "error" ? (
-        <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-          <span className="font-semibold">Payment error:</span> {state.message}
-        </div>
-      ) : null}
-
-      {state.kind === "submitted" ? (
-        <div className="rounded-xl border border-success/30 bg-success/12 px-4 py-3 text-xs text-success">
-          <span className="font-semibold">Payment submitted.</span> We&apos;re verifying it with Stripe.
-        </div>
-      ) : null}
-
-      {props.isTestMode ? (
-        <div className="rounded-xl border border-line/80 bg-surface/70 px-4 py-3 text-[11px] text-secondary">
-          Test card: <span className="font-semibold">4242 4242 4242 4242</span> · any future date · any CVC
-        </div>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className={classNames(
-          "flex h-11 w-full items-center justify-center rounded-2xl text-sm font-semibold transition",
-          canSubmit ? "bg-brand text-accent-text hover:bg-brand-hover" : "bg-warm-alt text-muted",
-        )}
-      >
-        {state.kind === "processing" ? "Processing…" : state.kind === "submitted" ? "Submitted" : "Pay securely"}
-      </button>
-
-      <div className="text-[11px] text-secondary">
-        Payment confirmation is handled by the backend after Stripe webhook verification.
-      </div>
-    </form>
   );
 }
 
@@ -307,10 +224,22 @@ function HowConfirmationWorks() {
 
 export function PendingPaymentCard(props: { bookingId: string; status: string; subtitle?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [state, setState] = useState<ViewState>({ kind: "idle" });
   const [latest, setLatest] = useState<BookingListItem | null>(null);
   const [intentState, setIntentState] = useState<StripeIntentState>({ kind: "idle" });
+  const [detailState, setDetailState] = useState<DetailState>({ kind: "idle" });
   const intentOnceRef = useRef(false);
+
+  const loginHref = useMemo(() => {
+    const currentQuery = searchParams.toString();
+    const next = currentQuery ? `${pathname}?${currentQuery}` : pathname;
+    const qp = new URLSearchParams();
+    qp.set("role", "customer");
+    qp.set("next", next);
+    return `/login?${qp.toString()}`;
+  }, [pathname, searchParams]);
 
   const baseStatus = latest?.status ?? props.status;
   const isPendingForPolling = upper(baseStatus).includes("PENDING");
@@ -329,10 +258,14 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   const isCancelled = s.includes("CANCEL");
   const isConfirmed = s.includes("CONFIRM");
   const isExpired = s.includes("EXPIRE");
+  const authRequired = detailState.kind === "unauthorized";
+  const bookingDataReady = detailState.kind === "ready";
 
   const canCancel = useMemo(() => {
     return !isCancelled && !isConfirmed && !isExpired;
   }, [isCancelled, isConfirmed, isExpired]);
+
+  const bookingDetail = detailState.kind === "ready" ? detailState.detail : null;
 
   useEffect(() => {
     const b = poll.state.booking;
@@ -349,6 +282,33 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
     }
   }, [poll.state.booking, router]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!props.bookingId) return () => undefined;
+
+    setDetailState({ kind: "loading" });
+    getUserBookingDetail({ bookingId: props.bookingId })
+      .then((detail: BookingDetail) => {
+        if (cancelled) return;
+        setDetailState({ kind: "ready", detail });
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        if (isUnauthorizedError(e)) {
+          setDetailState({ kind: "unauthorized" });
+          return;
+        }
+        setDetailState({
+          kind: "error",
+          message: e instanceof Error ? e.message : "Failed to load booking summary",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.bookingId]);
+
   async function refresh() {
     setState({ kind: "refreshing" });
     try {
@@ -363,6 +323,11 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
         else if (st.includes("EXPIRE")) router.replace(`/payment/failed?bookingId=${encodeURIComponent(b.id)}`);
       }
     } catch (e) {
+      if (isUnauthorizedError(e)) {
+        setDetailState({ kind: "unauthorized" });
+        setState({ kind: "error", message: "Please sign in to refresh booking status." });
+        return;
+      }
       setState({ kind: "error", message: e instanceof Error ? e.message : "Failed to refresh" });
     }
   }
@@ -385,8 +350,10 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
 
   async function prepareIntent() {
     if (!isPending) return;
+    if (!bookingDataReady) return;
     if (intentState.kind === "loading" || intentState.kind === "ready") return;
     if (intentOnceRef.current && intentState.kind === "error") return;
+    if (authRequired) return;
 
     intentOnceRef.current = true;
     setIntentState({ kind: "loading" });
@@ -396,42 +363,45 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
 
       const clientSecret = (res.clientSecret ?? "").trim();
       const publishableKey = (res.publishableKey ?? "").trim();
-      if (!clientSecret || !publishableKey) {
-        throw new Error("Payment session is unavailable. Please try again.");
+      if (!clientSecret) {
+        throw new Error("Unable to start payment. Please try again or refresh.");
       }
 
       setIntentState({
         kind: "ready",
         clientSecret,
-        publishableKey,
+        publishableKey: publishableKey || null,
         reused: Boolean(res.reused),
       });
     } catch (e) {
+      console.error("❌ Failed to initialize payment session:", {
+        bookingId: props.bookingId,
+        error: e instanceof Error ? e.message : String(e ?? "unknown"),
+      });
+      if (isUnauthorizedError(e)) {
+        setDetailState({ kind: "unauthorized" });
+        setIntentState({ kind: "error", message: "Please sign in to continue payment." });
+        return;
+      }
       setIntentState({
         kind: "error",
-        message: e instanceof Error ? e.message : "Failed to start payment",
+        message:
+          e instanceof Error ? e.message : "Unable to start payment. Please try again or refresh.",
       });
     }
   }
 
   useEffect(() => {
-    if (isPending) {
+    if (isPending && bookingDataReady && !authRequired) {
       void prepareIntent();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPending, props.bookingId]);
+  }, [isPending, bookingDataReady, authRequired, props.bookingId]);
 
-  const stripePromise = useMemo(() => {
-    if (intentState.kind !== "ready") return null;
-    return loadStripe(intentState.publishableKey);
-  }, [intentState]);
-
-  const elementsOptions = useMemo<StripeElementsOptions | undefined>(() => {
-    if (intentState.kind !== "ready") return undefined;
-    return {
-      clientSecret: intentState.clientSecret,
+  const stripeElementOptions = useMemo(
+    () => ({
       appearance: {
-        theme: "flat",
+        theme: "flat" as const,
         variables: {
           colorPrimary: "#4f46e5",
           colorBackground: "#f8f2e8",
@@ -449,10 +419,80 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
           ".Label": { color: "rgba(27, 36, 51, 0.72)" },
         },
       },
-    };
-  }, [intentState]);
+    }),
+    [],
+  );
 
-  const totalText = moneyFromCents(effectiveLatest?.totalAmount ?? null, effectiveLatest?.currency ?? null);
+  const detailCurrency = bookingDetail?.currency ?? effectiveLatest?.currency ?? null;
+  const detailTotal = bookingDetail?.totalAmount ?? effectiveLatest?.totalAmount ?? null;
+  const detailCheckIn = bookingDetail?.checkIn ?? null;
+  const detailCheckOut = bookingDetail?.checkOut ?? null;
+  const detailNights =
+    bookingDetail?.nights ??
+    (detailCheckIn && detailCheckOut
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(detailCheckOut).getTime() - new Date(detailCheckIn).getTime()) /
+              (24 * 60 * 60 * 1000),
+          ),
+        )
+      : null);
+  const detailGuests =
+    bookingDetail && Number.isFinite(bookingDetail.adults + bookingDetail.children)
+      ? bookingDetail.adults + bookingDetail.children
+      : null;
+  const fxRateRaw = bookingDetail?.fxRate;
+  const fxRate =
+    typeof fxRateRaw === "number" && Number.isFinite(fxRateRaw) && fxRateRaw > 0 ? fxRateRaw : null;
+  const isAed = !detailCurrency || detailCurrency.toUpperCase() === "AED";
+  const toDisplayAmount = (amountAed: number | null) => {
+    if (amountAed == null) return null;
+    if (isAed) return amountAed;
+    if (fxRate == null) return null;
+    return Math.round(amountAed * fxRate);
+  };
+
+  const basePricePerNightAed = bookingDetail?.property?.basePrice ?? null;
+  const cleaningFeeAed = bookingDetail?.property?.cleaningFee ?? null;
+  const nightlySubtotalAed =
+    basePricePerNightAed != null && detailNights != null ? basePricePerNightAed * detailNights : null;
+  const nightlySubtotal = toDisplayAmount(nightlySubtotalAed);
+  const cleaningFee = toDisplayAmount(cleaningFeeAed);
+  const taxes = 0;
+  const computedTotal =
+    detailTotal != null ? detailTotal : nightlySubtotal != null ? nightlySubtotal + (cleaningFee ?? 0) + taxes : null;
+  const propertyTitle = bookingDetail?.property?.title ?? null;
+  const propertySlug = bookingDetail?.property?.slug ?? null;
+  const propertyCover = bookingDetail?.property?.coverUrl ?? null;
+  const propertyLocation = bookingDetail?.property
+    ? [bookingDetail.property.city, bookingDetail.property.area].filter(Boolean).join(", ")
+    : null;
+
+  const totalText = moneyFromCents(
+    computedTotal ?? effectiveLatest?.totalAmount ?? null,
+    detailCurrency ?? effectiveLatest?.currency ?? null,
+  );
+  const resolvedPublishableKey =
+    intentState.kind === "ready"
+      ? ((intentState.publishableKey ?? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").trim())
+      : "";
+  const isTestMode = resolvedPublishableKey.startsWith("pk_test_");
+
+  const stepAuthStatus = authRequired ? "needs" : "done";
+  const stepPaymentStatus = isConfirmed ? "done" : isPending ? "active" : "idle";
+  const stepConfirmStatus = isConfirmed ? "done" : "idle";
+
+  const editDatesHref = useMemo(() => {
+    if (!propertySlug) return "/properties";
+    const qp = new URLSearchParams();
+    const checkInDay = isoDay(detailCheckIn);
+    const checkOutDay = isoDay(detailCheckOut);
+    if (checkInDay) qp.set("checkIn", checkInDay);
+    if (checkOutDay) qp.set("checkOut", checkOutDay);
+    if (detailGuests != null) qp.set("guests", String(detailGuests));
+    return `/properties/${encodeURIComponent(propertySlug)}${qp.toString() ? `?${qp}` : ""}`;
+  }, [detailCheckIn, detailCheckOut, detailGuests, propertySlug]);
 
   return (
     <div className="premium-card premium-card-tinted rounded-3xl p-6">
@@ -472,6 +512,149 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div
+              className={classNames(
+                "rounded-2xl border p-4",
+                stepAuthStatus === "done"
+                  ? "border-success/30 bg-success/10"
+                  : "border-warning/30 bg-warning/12",
+              )}
+            >
+              <div className="text-xs font-semibold text-secondary">Step 1</div>
+              <div className="mt-1 text-sm font-semibold text-primary">Authentication</div>
+              <div className="mt-1 text-xs text-secondary">
+                {authRequired ? "Sign in required to continue checkout." : "Signed in and ready."}
+              </div>
+            </div>
+
+            <div
+              className={classNames(
+                "rounded-2xl border p-4",
+                stepPaymentStatus === "done"
+                  ? "border-success/30 bg-success/10"
+                  : stepPaymentStatus === "active"
+                    ? "border-warning/30 bg-warning/12"
+                    : "border-line/80 bg-surface/70",
+              )}
+            >
+              <div className="text-xs font-semibold text-secondary">Step 2</div>
+              <div className="mt-1 text-sm font-semibold text-primary">Payment method</div>
+              <div className="mt-1 text-xs text-secondary">
+                {stepPaymentStatus === "done"
+                  ? "Payment submitted."
+                  : stepPaymentStatus === "active"
+                    ? "Enter card details to pay."
+                    : "Awaiting payment window."}
+              </div>
+            </div>
+
+            <div
+              className={classNames(
+                "rounded-2xl border p-4",
+                stepConfirmStatus === "done"
+                  ? "border-success/30 bg-success/10"
+                  : "border-line/80 bg-surface/70",
+              )}
+            >
+              <div className="text-xs font-semibold text-secondary">Step 3</div>
+              <div className="mt-1 text-sm font-semibold text-primary">Confirmation</div>
+              <div className="mt-1 text-xs text-secondary">
+                {stepConfirmStatus === "done"
+                  ? "Booking confirmed via webhook."
+                  : "Confirmation follows verified Stripe events."}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-line/80 bg-surface/70 p-5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="text-xs font-semibold text-secondary">Payment method</div>
+                <div className="mt-1 text-sm text-secondary">Card payment via Stripe.</div>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
+                <CreditCard className="h-4 w-4" />
+                Card
+              </div>
+            </div>
+
+            {authRequired ? (
+              <div className="mt-4 rounded-xl border border-warning/30 bg-warning/12 px-4 py-3 text-xs text-warning">
+                <div className="font-semibold">Sign in required.</div>
+                <div className="mt-1">Please log in to continue secure checkout.</div>
+                <Link
+                  href={loginHref}
+                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+                >
+                  Go to login
+                </Link>
+              </div>
+            ) : !isPending ? (
+              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
+                Payment is not available for this booking status.
+              </div>
+            ) : !bookingDataReady ? (
+              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
+                Loading booking details before payment initialization…
+              </div>
+            ) : intentState.kind === "loading" || intentState.kind === "idle" ? (
+              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
+                Preparing secure checkout…
+              </div>
+            ) : intentState.kind === "error" ? (
+              <div className="mt-4 rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
+                <div className="font-semibold">Unable to start payment. Please try again or refresh.</div>
+                <div className="mt-1">{intentState.message}</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearPaymentIdempotencyKey(props.bookingId);
+                    intentOnceRef.current = false;
+                    void prepareIntent();
+                  }}
+                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : intentState.kind === "ready" ? (
+              <div className="relative z-20 mt-4 pointer-events-auto">
+                <StripeProvider
+                  clientSecret={intentState.clientSecret}
+                  publishableKey={intentState.publishableKey}
+                  options={stripeElementOptions}
+                  onError={(message) => {
+                    console.error("❌ StripeProvider initialization error:", {
+                      bookingId: props.bookingId,
+                      message,
+                    });
+                    setIntentState({ kind: "error", message });
+                  }}
+                >
+                  <CheckoutForm
+                    totalText={totalText}
+                    disabled={!isPending || state.kind !== "idle"}
+                    isTestMode={isTestMode}
+                    bookingId={props.bookingId}
+                    clientSecret={intentState.clientSecret}
+                    onSubmitted={() => void refresh()}
+                  />
+                </StripeProvider>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
+                Payment session not ready. Please refresh.
+              </div>
+            )}
+
+            {intentState.kind === "ready" && intentState.reused ? (
+              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-[11px] text-secondary">
+                Using an existing secure payment session for this booking.
+              </div>
+            ) : null}
+          </div>
+
           <div className="rounded-2xl border border-line/80 bg-surface/70 p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -519,6 +702,12 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
             </div>
           ) : null}
 
+          {detailState.kind === "error" ? (
+            <div className="rounded-2xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
+              <span className="font-semibold">Summary error:</span> {detailState.message}
+            </div>
+          ) : null}
+
           {poll.state.kind === "error" ? (
             <div className="rounded-2xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
               <span className="font-semibold">Auto-refresh error:</span> {poll.state.message}
@@ -552,66 +741,119 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
           </div>
         </div>
 
-        <div className="rounded-2xl border border-line/80 bg-surface/70 p-5">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="text-xs font-semibold text-secondary">Stripe checkout</div>
-              <div className="mt-1 text-sm text-secondary">
-                Secure card payment. Confirmation is webhook-driven.
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-line/80 bg-surface/70 p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-secondary">Your trip</div>
+              {propertyLocation ? (
+                <div className="flex items-center gap-1 text-[11px] text-secondary">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {propertyLocation}
+                </div>
+              ) : null}
+            </div>
+
+            {detailState.kind === "loading" ? (
+              <div className="mt-4 space-y-3">
+                <div className="h-20 w-full animate-pulse rounded-xl bg-white/50" />
+                <div className="h-10 w-full animate-pulse rounded-xl bg-white/50" />
+                <div className="h-24 w-full animate-pulse rounded-xl bg-white/50" />
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-              <CreditCard className="h-4 w-4" />
-              Card
-            </div>
+            ) : detailState.kind === "unauthorized" ? (
+              <div className="mt-4 rounded-xl border border-warning/30 bg-warning/12 px-4 py-3 text-xs text-warning">
+                <div className="font-semibold">Sign in to view your booking summary.</div>
+                <Link
+                  href={loginHref}
+                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+                >
+                  Go to login
+                </Link>
+              </div>
+            ) : bookingDetail ? (
+              <>
+                <div className="mt-4 flex items-start gap-3">
+                  <div className="h-20 w-24 overflow-hidden rounded-xl border border-line/80 bg-warm-alt">
+                    {propertyCover ? (
+                      <img src={propertyCover} alt={propertyTitle ?? "Property"} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs text-secondary">
+                        No image
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-primary">{propertyTitle ?? "Property"}</div>
+                    {propertyLocation ? (
+                      <div className="mt-1 flex items-center gap-1 text-xs text-secondary">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {propertyLocation}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  <div className="rounded-xl border border-line/80 bg-white/60 p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        Dates
+                      </div>
+                      <Link href={editDatesHref} className="text-xs font-semibold text-brand">
+                        Edit
+                      </Link>
+                    </div>
+                    <div className="mt-1 text-sm text-primary">
+                      {fmtShortDate(detailCheckIn)} – {fmtShortDate(detailCheckOut)}
+                    </div>
+                    {detailNights != null ? (
+                      <div className="mt-1 text-xs text-secondary">{detailNights} nights</div>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-xl border border-line/80 bg-white/60 p-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
+                      <Users className="h-3.5 w-3.5" />
+                      Guests
+                    </div>
+                    <div className="mt-1 text-sm text-primary">{detailGuests ?? "—"}</div>
+                  </div>
+
+                  <div className="rounded-xl border border-line/80 bg-white/60 p-3">
+                    <div className="text-xs font-semibold text-secondary">Price breakdown</div>
+                    <div className="mt-2 space-y-2 text-xs text-secondary">
+                      <div className="flex items-center justify-between gap-4">
+                        <span>Base price</span>
+                        <span className="font-semibold text-primary">
+                          {moneyFromCents(nightlySubtotal, detailCurrency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span>Cleaning fee</span>
+                        <span className="font-semibold text-primary">
+                          {moneyFromCents(cleaningFee, detailCurrency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span>Taxes</span>
+                        <span className="font-semibold text-primary">
+                          {moneyFromCents(taxes, detailCurrency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 border-t border-line/60 pt-2 text-sm font-semibold text-primary">
+                        <span>Total</span>
+                        <span>{moneyFromCents(computedTotal, detailCurrency)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
+                Booking summary is unavailable.
+              </div>
+            )}
           </div>
-
-          {!isPending ? (
-            <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-              Payment is not available for this booking status.
-            </div>
-          ) : intentState.kind === "loading" || intentState.kind === "idle" ? (
-            <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-              Preparing secure checkout…
-            </div>
-          ) : intentState.kind === "error" ? (
-            <div className="mt-4 rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-              <div className="font-semibold">Payment session failed.</div>
-              <div className="mt-1">{intentState.message}</div>
-              <button
-                type="button"
-                onClick={() => {
-                  intentOnceRef.current = false;
-                  void prepareIntent();
-                }}
-                className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
-              >
-                Try again
-              </button>
-            </div>
-          ) : intentState.kind === "ready" && stripePromise ? (
-            <div className="mt-4">
-              <Elements stripe={stripePromise} options={elementsOptions}>
-            <StripeCheckoutForm
-              totalText={totalText}
-              disabled={!isPending || state.kind !== "idle"}
-              isTestMode={intentState.publishableKey.startsWith("pk_test_")}
-              bookingId={props.bookingId}
-              onSubmitted={() => void refresh()}
-            />
-              </Elements>
-            </div>
-          ) : (
-            <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-              Payment session not ready. Please refresh.
-            </div>
-          )}
-
-          {intentState.kind === "ready" && intentState.reused ? (
-            <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-[11px] text-secondary">
-              Using an existing secure payment session for this booking.
-            </div>
-          ) : null}
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import {
+  BadRequestException,
   Controller,
   HttpCode,
-  HttpException,
   HttpStatus,
   Logger,
   Post,
@@ -15,7 +15,7 @@ import { PaymentsService } from './payments.service';
 import { StripePaymentsProvider } from './providers/stripe.provider';
 
 @ApiTags('payments-webhooks')
-@Controller('webhooks')
+@Controller()
 export class PaymentsWebhooksController {
   private readonly logger = new Logger(PaymentsWebhooksController.name);
 
@@ -24,27 +24,14 @@ export class PaymentsWebhooksController {
     private readonly stripeProvider: StripePaymentsProvider,
   ) {}
 
-  /**
-   * STRIPE:
-   * - Verify webhook signature (STRIPE_WEBHOOK_SECRET)
-   * - Never trust frontend for confirmation
-   * - Idempotent handling based on Stripe event.id
-   */
-  @Post('stripe')
+  @Post('webhooks/stripe')
   @HttpCode(HttpStatus.OK)
   async stripe(@Req() req: Request) {
     const signature = this.readHeader(req, 'stripe-signature');
-    const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+    const rawBody = this.readRawBody(req);
 
     if (!signature || !rawBody) {
-      throw new HttpException(
-        {
-          ok: false,
-          code: 'STRIPE_SIGNATURE_MISSING',
-          message: 'Stripe webhook signature or payload missing.',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException('Stripe signature or raw payload missing.');
     }
 
     let event: Stripe.Event;
@@ -54,85 +41,62 @@ export class PaymentsWebhooksController {
         signature,
         webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
       });
-    } catch (error) {
-      this.logger.warn('Stripe webhook signature verification failed.');
-      throw new HttpException(
-        {
-          ok: false,
-          code: 'STRIPE_SIGNATURE_INVALID',
-          message: 'Invalid Stripe webhook signature.',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch {
+      throw new BadRequestException('Invalid Stripe webhook signature.');
     }
+
+    this.logger.log(`stripe_webhook eventType=${event.type}`);
 
     try {
       switch (event.type) {
-        case 'payment_intent.succeeded': {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          const result = await this.payments.handleStripePaymentIntentSucceeded(
-            {
-              eventId: event.id,
-              paymentIntent,
-            },
+        case 'checkout.session.completed': {
+          const session = event.data.object;
+          const bookingId = this.readBookingIdFromCheckoutSession(session);
+          this.logger.log(
+            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
           );
-          return {
-            ok: true,
-            action: 'payment_intent_succeeded',
-            reused: result.reused,
-            ignored: result.ignored ?? false,
-          };
+
+          const result =
+            await this.payments.handleStripeCheckoutSessionCompleted({
+              eventId: event.id,
+              session,
+            });
+
+          this.logger.log(
+            `stripe_webhook transition bookingId=${result.bookingId ?? 'n/a'} bookingStatus=${result.previousBookingStatus ?? 'n/a'}->${result.nextBookingStatus ?? 'n/a'} paymentStatus=${result.previousPaymentStatus ?? 'n/a'}->${result.nextPaymentStatus ?? 'n/a'} reused=${result.reused} ignored=${result.ignored}`,
+          );
+          break;
         }
         case 'payment_intent.payment_failed': {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          const result = await this.payments.handleStripePaymentIntentFailed({
-            eventId: event.id,
-            paymentIntent,
-          });
-          return {
-            ok: true,
-            action: 'payment_intent_failed',
-            reused: result.reused,
-            ignored: result.ignored ?? false,
-          };
-        }
-        case 'payment_intent.canceled': {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          const result = await this.payments.handleStripePaymentIntentCanceled({
-            eventId: event.id,
-            paymentIntent,
-          });
-          return {
-            ok: true,
-            action: 'payment_intent_canceled',
-            reused: result.reused,
-            ignored: result.ignored ?? false,
-          };
-        }
-        case 'charge.refunded': {
-          const charge = event.data.object as Stripe.Charge;
-          const result = await this.payments.handleStripeChargeRefunded({
-            eventId: event.id,
-            charge,
-          });
-          return {
-            ok: true,
-            action: 'charge_refunded',
-            reused: result.reused,
-            ignored: result.ignored ?? false,
-          };
+          const paymentIntent = event.data.object;
+          const bookingId =
+            (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+          this.logger.log(
+            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+          );
+
+          const result =
+            await this.payments.handleStripePaymentIntentFailedByMetadata({
+              eventId: event.id,
+              paymentIntent,
+            });
+
+          this.logger.log(
+            `stripe_webhook transition bookingId=${result.bookingId ?? 'n/a'} bookingStatus=${result.previousBookingStatus ?? 'n/a'}->${result.nextBookingStatus ?? 'n/a'} paymentStatus=${result.previousPaymentStatus ?? 'n/a'}->${result.nextPaymentStatus ?? 'n/a'} reused=${result.reused} ignored=${result.ignored}`,
+          );
+          break;
         }
         default:
-          return { ok: true, action: 'ignored', type: event.type };
+          this.logger.log(`stripe_webhook ignored eventType=${event.type}`);
       }
-    } catch (error) {
-      const mapped = this.mapClientCausedError(error);
-      if (mapped) {
-        this.logger.warn(`Stripe webhook ignored: ${mapped}`);
-        return { ok: true, action: 'ignored', reason: mapped };
-      }
-      throw error;
+    } catch (error: unknown) {
+      this.logger.error(
+        `stripe_webhook processing_failed eventType=${event.type}`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
+
+    return { received: true };
   }
 
   private readHeader(req: Request, name: string): string | null {
@@ -146,14 +110,19 @@ export class PaymentsWebhooksController {
     return null;
   }
 
-  private mapClientCausedError(error: unknown): string | null {
-    if (error instanceof HttpException) {
-      const status = error.getStatus();
-      if (status >= 400 && status < 500) {
-        return 'invalid_or_unmatched_payload';
-      }
+  private readRawBody(req: Request): Buffer | null {
+    if (Buffer.isBuffer(req.body)) return req.body;
+    if (typeof req.body === 'string') {
+      return Buffer.from(req.body);
     }
-
     return null;
+  }
+
+  private readBookingIdFromCheckoutSession(
+    session: Stripe.Checkout.Session,
+  ): string | null {
+    const bookingId = session.metadata?.bookingId;
+    if (typeof bookingId !== 'string') return null;
+    return bookingId.trim() || null;
   }
 }

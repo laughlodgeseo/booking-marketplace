@@ -42,6 +42,30 @@ export type BookingListItem = {
   createdAt?: string | null;
 };
 
+export type BookingDetail = {
+  id: string;
+  status: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+  nights: number;
+  totalAmount: number;
+  currency: string;
+  fxRate?: number | null;
+  expiresAt?: string | null;
+  property: {
+    id: string;
+    title: string;
+    slug: string | null;
+    city: string | null;
+    area: string | null;
+    basePrice?: number | null;
+    cleaningFee?: number | null;
+    coverUrl?: string | null;
+  };
+};
+
 export type UserBookingsResponse = {
   page: number;
   pageSize: number;
@@ -52,11 +76,18 @@ export type UserBookingsResponse = {
 // Keep your existing signature EXACTLY (based on your grep)
 export async function createBookingFromHold(body: {
   holdId: string;
-  idempotencyKey: string;
+  idempotencyKey?: string | null;
 }): Promise<unknown> {
+  const headers: Record<string, string> = {};
+  if (body.idempotencyKey) headers["idempotency-key"] = body.idempotencyKey;
+
   const res = await apiFetch<unknown>(`/bookings`, {
     method: "POST",
-    body,
+    body: {
+      holdId: body.holdId,
+      idempotencyKey: body.idempotencyKey ?? undefined,
+    },
+    headers,
     auth: "auto",
   });
   if (!res.ok) throw new Error(res.message);
@@ -70,6 +101,15 @@ export async function getUserBookings(params: {
   const res = await apiFetch<UserBookingsResponse>(`/portal/user/bookings`, {
     method: "GET",
     query: { page: params.page, pageSize: params.pageSize },
+    auth: "auto",
+  });
+  if (!res.ok) throw new Error(res.message);
+  return res.data;
+}
+
+export async function getUserBookingDetail(args: { bookingId: string }): Promise<BookingDetail> {
+  const res = await apiFetch<BookingDetail>(`/portal/user/bookings/${args.bookingId}`, {
+    method: "GET",
     auth: "auto",
   });
   if (!res.ok) throw new Error(res.message);
@@ -131,6 +171,18 @@ export async function createStripePaymentIntent(input: {
     headers,
     auth: "auto",
   });
-  if (!res.ok) throw new Error(res.message);
+  if (!res.ok) {
+    console.error("❌ Payment API error:", {
+      status: res.status,
+      message: res.message,
+      details: res.details,
+    });
+
+    if (res.status === 401) {
+      throw new Error("Unauthorized (401). Please sign in to continue payment.");
+    }
+
+    throw new Error(res.message || "Unable to start payment. Please try again or refresh.");
+  }
   return res.data;
 }

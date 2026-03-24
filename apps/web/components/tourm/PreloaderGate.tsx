@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 
 type MaybeConnection = {
   effectiveType?: string;
@@ -38,10 +39,22 @@ function shouldEnablePreloader(): boolean {
 }
 
 export default function PreloaderGate() {
+  const pathname = usePathname();
+
   const enabled = useMemo(() => {
     if (typeof window === "undefined") return false;
-    return shouldEnablePreloader();
-  }, []);
+    if (!shouldEnablePreloader()) return false;
+
+    const path = (pathname ?? "").toLowerCase();
+    const isTransactionalPath =
+      path.startsWith("/checkout") ||
+      path.startsWith("/payment") ||
+      path.startsWith("/login") ||
+      path.startsWith("/signup");
+
+    if (isTransactionalPath) return false;
+    return true;
+  }, [pathname]);
 
   if (!enabled) return null;
   return <Preloader />;

@@ -55,11 +55,15 @@ export class ContactService {
     const secure =
       secureRaw === '1' || secureRaw === 'true' || secureRaw === 'yes';
     const connectionTimeout =
-      Number.parseInt((process.env.SMTP_CONNECTION_TIMEOUT_MS || '').trim(), 10) ||
-      15000;
+      Number.parseInt(
+        (process.env.SMTP_CONNECTION_TIMEOUT_MS || '').trim(),
+        10,
+      ) || 15000;
     const greetingTimeout =
-      Number.parseInt((process.env.SMTP_GREETING_TIMEOUT_MS || '').trim(), 10) ||
-      15000;
+      Number.parseInt(
+        (process.env.SMTP_GREETING_TIMEOUT_MS || '').trim(),
+        10,
+      ) || 15000;
     const socketTimeout =
       Number.parseInt((process.env.SMTP_SOCKET_TIMEOUT_MS || '').trim(), 10) ||
       20000;

@@ -6,8 +6,7 @@ export class AdminCreatePayoutDto {
   @ApiPropertyOptional({
     enum: PaymentProvider,
     default: PaymentProvider.MANUAL,
-    description:
-      'Payout provider. V1 uses MANUAL; later can add bank/etc.',
+    description: 'Payout provider. V1 uses MANUAL; later can add bank/etc.',
   })
   @IsOptional()
   @IsEnum(PaymentProvider)

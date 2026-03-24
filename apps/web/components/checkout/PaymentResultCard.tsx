@@ -102,15 +102,15 @@ function fmtDate(s?: string | null): string {
 
 function moneyFromCents(cents?: number | null, currency?: string | null): string {
   if (cents == null || !currency) return COPY.en.unknown;
-  const amount = cents / 100;
+  const amount = cents;
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: currency.toUpperCase() === "AED" ? 0 : 2,
     }).format(amount);
   } catch {
-    return `${amount.toFixed(2)} ${currency}`;
+    return `${amount.toFixed(currency.toUpperCase() === "AED" ? 0 : 2)} ${currency}`;
   }
 }
 

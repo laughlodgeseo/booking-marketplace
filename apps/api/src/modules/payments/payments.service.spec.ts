@@ -102,7 +102,9 @@ describe('PaymentsService webhook idempotency', () => {
       prisma,
       {} as ManualPaymentsProvider,
       {} as StripePaymentsProvider,
-      { emit: jest.fn().mockResolvedValue(undefined) } as unknown as NotificationsService,
+      {
+        emit: jest.fn().mockResolvedValue(undefined),
+      } as unknown as NotificationsService,
       {} as BookingsService,
     );
 
@@ -157,10 +159,10 @@ describe('PaymentsService webhook idempotency', () => {
 
     const paymentIntent = {
       id: paymentIntentId,
-      amount: 1000,
+      amount: 100000,
       currency: 'aed',
       metadata: { bookingId },
-    } as Stripe.PaymentIntent;
+    } as unknown as Stripe.PaymentIntent;
 
     const first = await service.handleStripePaymentIntentSucceeded({
       eventId: webhookEventId,
