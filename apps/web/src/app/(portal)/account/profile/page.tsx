@@ -40,8 +40,19 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    void load();
-  }, [status, load]);
+    let cancelled = false;
+    getCustomerProfile().then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setState({ kind: "ready", profile: res.data });
+        setFullName(res.data.fullName ?? "");
+        setPhone(res.data.phone ?? "");
+      } else {
+        setState({ kind: "error", message: res.message ?? "Failed to load profile" });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [status]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();

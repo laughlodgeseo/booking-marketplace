@@ -58,7 +58,7 @@ export function CheckoutPropertySummary({
   guests,
   onEdit,
 }: CheckoutPropertySummaryProps) {
-  const { selectedCurrency } = useCurrency();
+  const { currency: selectedCurrency } = useCurrency();
 
   const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [propLoading, setPropLoading] = useState(true);

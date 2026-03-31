@@ -32,7 +32,9 @@ export function useMessagingSocket({
   onTyping,
 }: UseMessagingSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
-  const [status, setStatus] = useState<ConnectionStatus>("disconnected");
+  const [status, setStatus] = useState<ConnectionStatus>(() =>
+    getAccessToken() ? "connecting" : "disconnected"
+  );
   const onNewMessageRef = useRef(onNewMessage);
   const onTypingRef = useRef(onTyping);
 
@@ -46,13 +48,11 @@ export function useMessagingSocket({
       return;
     }
 
-    setStatus("connecting");
-
     let origin: string;
     try {
       origin = apiOrigin();
     } catch {
-      setStatus("error");
+      queueMicrotask(() => setStatus("error"));
       return;
     }
 

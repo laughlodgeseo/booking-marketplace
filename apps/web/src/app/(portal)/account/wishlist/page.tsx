@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import Link from "next/link";
 import { Heart, Loader2, Trash2 } from "lucide-react";
@@ -18,19 +18,19 @@ export default function WishlistPage() {
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const res = await getWishlist(1, 50);
-    if (res.ok) {
-      setState({ kind: "ready", items: res.data.items, total: res.data.total });
-    } else {
-      setState({ kind: "error", message: res.message ?? "Failed to load wishlist" });
-    }
-  }, []);
-
   useEffect(() => {
     if (status === "loading") return;
-    void load();
-  }, [status, load]);
+    let cancelled = false;
+    getWishlist(1, 50).then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setState({ kind: "ready", items: res.data.items, total: res.data.total });
+      } else {
+        setState({ kind: "error", message: res.message ?? "Failed to load wishlist" });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [status]);
 
   async function handleRemove(propertyId: string) {
     setRemovingId(propertyId);
