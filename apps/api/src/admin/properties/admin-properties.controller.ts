@@ -148,7 +148,9 @@ export class AdminPropertiesController {
     try {
       validateCloudinaryUrl(url);
     } catch (e) {
-      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid URL.');
+      throw new BadRequestException(
+        e instanceof Error ? e.message : 'Invalid URL.',
+      );
     }
     return this.service.addMediaByUrlAdmin(req.user.id, id, url);
   }

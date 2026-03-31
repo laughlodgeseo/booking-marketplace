@@ -573,11 +573,7 @@ export class AdminPropertiesService {
    * Persist a Cloudinary URL that the browser uploaded directly.
    * Used by POST :id/media/register — no file handling on the server.
    */
-  async addMediaByUrlAdmin(
-    adminId: string,
-    propertyId: string,
-    url: string,
-  ) {
+  async addMediaByUrlAdmin(adminId: string, propertyId: string, url: string) {
     const trimmed = (url ?? '').trim();
     if (!trimmed) throw new BadRequestException('url is required.');
 

@@ -246,7 +246,13 @@ export class PropertiesService {
         },
         media: {
           orderBy: { sortOrder: 'asc' },
-          select: { id: true, url: true, alt: true, sortOrder: true, category: true },
+          select: {
+            id: true,
+            url: true,
+            alt: true,
+            sortOrder: true,
+            category: true,
+          },
         },
         guestReviews: {
           where: { status: GuestReviewStatus.APPROVED },

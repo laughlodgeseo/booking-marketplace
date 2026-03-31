@@ -44,4 +44,17 @@ export default tseslint.config(
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
+  // Relax type-safety rules in Jest spec files — Jest matchers (expect.any(),
+  // objectContaining, etc.) legitimately produce `any`-typed values, and
+  // method references passed to `expect()` are intentionally unbound.
+  {
+    files: ['**/*.spec.ts', '**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 );

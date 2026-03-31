@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PricingRuleType } from '@prisma/client';
 
@@ -34,7 +38,8 @@ export class PricingService {
       return { price: property.basePrice, ruleApplied: null };
     }
 
-    const price = rule.fixedPrice ?? Math.round(property.basePrice * rule.priceMultiplier);
+    const price =
+      rule.fixedPrice ?? Math.round(property.basePrice * rule.priceMultiplier);
     return { price, ruleApplied: rule.id };
   }
 
@@ -46,7 +51,11 @@ export class PricingService {
     checkIn: Date,
     checkOut: Date,
   ): Promise<{
-    nightlyBreakdown: Array<{ date: string; price: number; ruleId: string | null }>;
+    nightlyBreakdown: Array<{
+      date: string;
+      price: number;
+      ruleId: string | null;
+    }>;
     subtotal: number;
   }> {
     const property = await this.prisma.property.findUnique({
@@ -65,7 +74,11 @@ export class PricingService {
       orderBy: { priority: 'desc' },
     });
 
-    const breakdown: Array<{ date: string; price: number; ruleId: string | null }> = [];
+    const breakdown: Array<{
+      date: string;
+      price: number;
+      ruleId: string | null;
+    }> = [];
     const current = new Date(checkIn);
     while (current < checkOut) {
       const matchingRule = rules.find(
@@ -73,7 +86,8 @@ export class PricingService {
       );
 
       const price = matchingRule
-        ? (matchingRule.fixedPrice ?? Math.round(property.basePrice * matchingRule.priceMultiplier))
+        ? (matchingRule.fixedPrice ??
+          Math.round(property.basePrice * matchingRule.priceMultiplier))
         : property.basePrice;
 
       breakdown.push({
@@ -116,7 +130,8 @@ export class PricingService {
 
     const start = new Date(dto.startDate);
     const end = new Date(dto.endDate);
-    if (end <= start) throw new BadRequestException('endDate must be after startDate.');
+    if (end <= start)
+      throw new BadRequestException('endDate must be after startDate.');
 
     return this.prisma.pricingRule.create({
       data: {
@@ -166,7 +181,8 @@ export class PricingService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.startDate) data.startDate = new Date(dto.startDate);
     if (dto.endDate) data.endDate = new Date(dto.endDate);
-    if (dto.priceMultiplier !== undefined) data.priceMultiplier = dto.priceMultiplier;
+    if (dto.priceMultiplier !== undefined)
+      data.priceMultiplier = dto.priceMultiplier;
     if (dto.fixedPrice !== undefined) data.fixedPrice = dto.fixedPrice;
     if (dto.priority !== undefined) data.priority = dto.priority;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;

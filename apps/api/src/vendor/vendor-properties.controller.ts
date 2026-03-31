@@ -272,7 +272,9 @@ export class VendorPropertiesController {
     try {
       validateCloudinaryUrl(url);
     } catch (e) {
-      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid URL.');
+      throw new BadRequestException(
+        e instanceof Error ? e.message : 'Invalid URL.',
+      );
     }
     return this.service.addMediaByUrl(req.user.id, id, url);
   }

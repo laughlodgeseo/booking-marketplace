@@ -60,7 +60,9 @@ export class PaymentsController {
   ) {
     const user = req.user;
 
-    this.logger.log(`payment_create_intent userId=${user.id} bookingId=${body?.bookingId ?? 'n/a'}`);
+    this.logger.log(
+      `payment_create_intent userId=${user.id} bookingId=${body?.bookingId ?? 'n/a'}`,
+    );
 
     try {
       if (!user) {
@@ -82,7 +84,9 @@ export class PaymentsController {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      this.logger.error(`payment_create_intent_failed userId=${user.id} bookingId=${body?.bookingId ?? 'n/a'} error=${message}`);
+      this.logger.error(
+        `payment_create_intent_failed userId=${user.id} bookingId=${body?.bookingId ?? 'n/a'} error=${message}`,
+      );
       throw err;
     }
   }

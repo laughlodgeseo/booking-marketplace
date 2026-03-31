@@ -12,7 +12,11 @@ export interface ImageVariant {
   width: number;
 }
 
-const VARIANTS: Array<{ size: ImageVariant['size']; width: number; suffix: string }> = [
+const VARIANTS: Array<{
+  size: ImageVariant['size'];
+  width: number;
+  suffix: string;
+}> = [
   { size: 'thumbnail', width: 320, suffix: '_thumb' },
   { size: 'medium', width: 800, suffix: '_med' },
   { size: 'large', width: 1600, suffix: '_lg' },
@@ -22,9 +26,7 @@ const VARIANTS: Array<{ size: ImageVariant['size']; width: number; suffix: strin
  * Generate image variant paths for a given upload.
  * Returns the paths where variants should be stored.
  */
-export function getImageVariantPaths(
-  originalPath: string,
-): ImageVariant[] {
+export function getImageVariantPaths(originalPath: string): ImageVariant[] {
   const ext = path.extname(originalPath);
   const base = originalPath.slice(0, -ext.length);
 

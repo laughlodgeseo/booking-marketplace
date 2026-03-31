@@ -42,7 +42,7 @@ export class MessagingGateway
   async handleConnection(client: AuthenticatedSocket) {
     try {
       const token =
-        client.handshake.auth?.token ||
+        (client.handshake.auth?.token as string | undefined) ||
         client.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
@@ -50,9 +50,10 @@ export class MessagingGateway
         return;
       }
 
-      const payload = await this.jwt.verifyAsync(token, {
-        secret: process.env.JWT_ACCESS_SECRET,
-      });
+      const payload = await this.jwt.verifyAsync<{
+        sub: string;
+        role: UserRole;
+      }>(token, { secret: process.env.JWT_ACCESS_SECRET });
 
       client.userId = payload.sub;
       client.userRole = payload.role;
@@ -121,9 +122,7 @@ export class MessagingGateway
       );
 
       // Broadcast to other clients in the thread room (excludes sender)
-      client
-        .to(`thread:${data.threadId}`)
-        .emit('newMessage', message);
+      client.to(`thread:${data.threadId}`).emit('newMessage', message);
 
       return { event: 'messageSent', data: message };
     } catch (error) {
@@ -140,12 +139,10 @@ export class MessagingGateway
     if (!client.userId) return;
 
     // Broadcast typing indicator to other clients in the thread
-    client
-      .to(`thread:${data.threadId}`)
-      .emit('userTyping', {
-        threadId: data.threadId,
-        userId: client.userId,
-      });
+    client.to(`thread:${data.threadId}`).emit('userTyping', {
+      threadId: data.threadId,
+      userId: client.userId,
+    });
   }
 
   /**

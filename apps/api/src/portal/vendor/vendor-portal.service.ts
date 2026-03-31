@@ -849,11 +849,7 @@ export class VendorPortalService {
     };
   }
 
-  async getVendorReviews(
-    vendorId: string,
-    page: number,
-    pageSize: number,
-  ) {
+  async getVendorReviews(vendorId: string, page: number, pageSize: number) {
     const where = {
       property: { vendorId },
       status: 'APPROVED' as const,

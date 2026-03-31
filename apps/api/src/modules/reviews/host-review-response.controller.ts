@@ -54,9 +54,7 @@ export class HostReviewResponseController {
 
     // Only approved reviews can receive responses
     if (review.status !== GuestReviewStatus.APPROVED) {
-      throw new ForbiddenException(
-        'Can only respond to approved reviews.',
-      );
+      throw new ForbiddenException('Can only respond to approved reviews.');
     }
 
     const updated = await this.prisma.guestReview.update({

@@ -406,7 +406,8 @@ export class AuthService {
       });
 
       if (requestedRole === UserRole.VENDOR) {
-        const displayName = params.fullName?.trim() || email.split('@')[0] || 'Vendor';
+        const displayName =
+          params.fullName?.trim() || email.split('@')[0] || 'Vendor';
         await this.prisma.vendorProfile.create({
           data: { userId: user.id, displayName, status: 'PENDING' },
         });
@@ -415,7 +416,11 @@ export class AuthService {
       isNewUser = true;
     }
 
-    const accessToken = await this.signAccessToken(user.id, user.email, user.role);
+    const accessToken = await this.signAccessToken(
+      user.id,
+      user.email,
+      user.role,
+    );
     const { refreshToken } = await this.issueRefreshToken(user.id);
 
     return {

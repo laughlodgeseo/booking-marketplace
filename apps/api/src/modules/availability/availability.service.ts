@@ -574,7 +574,9 @@ export class AvailabilityService {
       await this.pricing.calculateTotal(propertyId, checkIn, checkOut);
 
     const avgNightlyPriceAed =
-      nightsCount > 0 ? Math.round(nightlySubtotalAed / nightsCount) : property.basePrice;
+      nightsCount > 0
+        ? Math.round(nightlySubtotalAed / nightsCount)
+        : property.basePrice;
 
     const cleaningFeeAed = property.cleaningFee ?? 0;
     const serviceFeeAed = 0;

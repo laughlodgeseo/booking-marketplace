@@ -10,9 +10,8 @@ export class StripePaymentsProvider {
     if (!key) throw new Error('STRIPE_SECRET_KEY is not configured.');
     if (!this.client) {
       const apiVersionRaw = (process.env.STRIPE_API_VERSION ?? '').trim();
-      const apiVersion = (
-        apiVersionRaw || '2023-10-16'
-      ) as Stripe.LatestApiVersion;
+      const apiVersion = (apiVersionRaw ||
+        '2023-10-16') as Stripe.LatestApiVersion;
       this.client = new Stripe(key, { apiVersion });
     }
     return this.client;

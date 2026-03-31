@@ -22,9 +22,13 @@ export class NotificationsSseController {
     private readonly jwt: JwtService,
   ) {}
 
-  private extractToken(req: { headers?: Record<string, string>; query?: Record<string, string> }): string | null {
+  private extractToken(req: {
+    headers?: Record<string, string>;
+    query?: Record<string, string>;
+  }): string | null {
     // Try Authorization header first
-    const authHeader = req.headers?.['authorization'] ?? req.headers?.['Authorization'] ?? '';
+    const authHeader =
+      req.headers?.['authorization'] ?? req.headers?.['Authorization'] ?? '';
     if (authHeader.startsWith('Bearer ')) {
       return authHeader.slice(7);
     }
@@ -33,7 +37,14 @@ export class NotificationsSseController {
   }
 
   @Sse('stream')
-  stream(@Req() req: { headers: Record<string, string>; query: Record<string, string>; user?: JwtUser }): Observable<MessageEvent> {
+  stream(
+    @Req()
+    req: {
+      headers: Record<string, string>;
+      query: Record<string, string>;
+      user?: JwtUser;
+    },
+  ): Observable<MessageEvent> {
     // If a guard already set req.user, use it. Otherwise, verify manually.
     let userId: string;
 
@@ -46,10 +57,10 @@ export class NotificationsSseController {
       }
 
       try {
-        const payload = this.jwt.verify(token, {
+        const raw: { sub: string } = this.jwt.verify(token, {
           secret: process.env.JWT_ACCESS_SECRET,
         });
-        userId = payload.sub;
+        userId = raw.sub;
       } catch {
         throw new UnauthorizedException('Invalid authentication token');
       }
@@ -78,10 +89,12 @@ export class NotificationsSseController {
         return { unreadCount, latest };
       }),
       catchError(() => of(null)),
-      map((data): MessageEvent => ({
-        data: data ?? { unreadCount: 0, latest: [] },
-        type: 'notification',
-      })),
+      map(
+        (data): MessageEvent => ({
+          data: data ?? { unreadCount: 0, latest: [] },
+          type: 'notification',
+        }),
+      ),
     );
   }
 }

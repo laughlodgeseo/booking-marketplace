@@ -1013,11 +1013,7 @@ export class VendorPropertiesService {
    * Persist a Cloudinary URL the browser uploaded directly.
    * Used by POST :id/media/register — no file handling on the server.
    */
-  async addMediaByUrl(
-    vendorUserId: string,
-    propertyId: string,
-    url: string,
-  ) {
+  async addMediaByUrl(vendorUserId: string, propertyId: string, url: string) {
     const trimmed = (url ?? '').trim();
     if (!trimmed) throw new BadRequestException('url is required.');
 

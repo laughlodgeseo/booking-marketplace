@@ -119,7 +119,14 @@ export class OAuthController {
       if (parts.length !== 3) throw new Error('Invalid JWT format');
       const payload = JSON.parse(
         Buffer.from(parts[1], 'base64url').toString('utf-8'),
-      );
+      ) as {
+        sub?: string;
+        email?: string;
+        iss?: string;
+        exp?: number;
+        name?: string;
+        picture?: string;
+      };
 
       // Basic validation
       if (!payload.sub || !payload.email) {
@@ -165,7 +172,7 @@ export class OAuthController {
       if (parts.length !== 3) throw new Error('Invalid JWT format');
       const payload = JSON.parse(
         Buffer.from(parts[1], 'base64url').toString('utf-8'),
-      );
+      ) as { sub?: string; email?: string; iss?: string; exp?: number };
 
       if (!payload.sub || !payload.email) {
         throw new Error('Missing required claims');

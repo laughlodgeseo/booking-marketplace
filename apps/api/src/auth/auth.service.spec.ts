@@ -150,7 +150,7 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('returns tokens on valid credentials', async () => {
-      const { service, prisma, jwt } = buildService();
+      const { service, prisma } = buildService();
       prisma.user.findUnique.mockResolvedValue({
         id: 'u1',
         email: 'user@test.com',

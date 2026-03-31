@@ -48,7 +48,10 @@ export class PromoService {
     }
 
     // Check minimum booking amount
-    if (promo.minBookingAmount && params.bookingAmount < promo.minBookingAmount) {
+    if (
+      promo.minBookingAmount &&
+      params.bookingAmount < promo.minBookingAmount
+    ) {
       throw new BadRequestException(
         `Minimum booking amount of ${promo.minBookingAmount} required.`,
       );
@@ -136,29 +139,35 @@ export class PromoService {
     return { items, total, page, pageSize };
   }
 
-  async update(id: string, dto: Partial<{
-    code: string;
-    discountPercent: number | null;
-    discountAmount: number | null;
-    validFrom: string;
-    validTo: string;
-    usageLimit: number;
-    minBookingAmount: number | null;
-    maxDiscount: number | null;
-    propertyId: string | null;
-    isActive: boolean;
-  }>) {
+  async update(
+    id: string,
+    dto: Partial<{
+      code: string;
+      discountPercent: number | null;
+      discountAmount: number | null;
+      validFrom: string;
+      validTo: string;
+      usageLimit: number;
+      minBookingAmount: number | null;
+      maxDiscount: number | null;
+      propertyId: string | null;
+      isActive: boolean;
+    }>,
+  ) {
     const promo = await this.prisma.promoCode.findUnique({ where: { id } });
     if (!promo) throw new NotFoundException('Promo code not found.');
 
     const data: Record<string, unknown> = {};
     if (dto.code !== undefined) data.code = dto.code.toUpperCase().trim();
-    if (dto.discountPercent !== undefined) data.discountPercent = dto.discountPercent;
-    if (dto.discountAmount !== undefined) data.discountAmount = dto.discountAmount;
+    if (dto.discountPercent !== undefined)
+      data.discountPercent = dto.discountPercent;
+    if (dto.discountAmount !== undefined)
+      data.discountAmount = dto.discountAmount;
     if (dto.validFrom) data.validFrom = new Date(dto.validFrom);
     if (dto.validTo) data.validTo = new Date(dto.validTo);
     if (dto.usageLimit !== undefined) data.usageLimit = dto.usageLimit;
-    if (dto.minBookingAmount !== undefined) data.minBookingAmount = dto.minBookingAmount;
+    if (dto.minBookingAmount !== undefined)
+      data.minBookingAmount = dto.minBookingAmount;
     if (dto.maxDiscount !== undefined) data.maxDiscount = dto.maxDiscount;
     if (dto.propertyId !== undefined) data.propertyId = dto.propertyId;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;

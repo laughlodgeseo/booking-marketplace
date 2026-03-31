@@ -35,7 +35,9 @@ export class MediaController {
 
     // Vendors may only request vendor-scoped signatures.
     if (scope === 'admin' && req.user.role !== 'ADMIN') {
-      throw new BadRequestException("Only admins can request admin-scoped signatures.");
+      throw new BadRequestException(
+        'Only admins can request admin-scoped signatures.',
+      );
     }
 
     const pid = (propertyId ?? '').trim();

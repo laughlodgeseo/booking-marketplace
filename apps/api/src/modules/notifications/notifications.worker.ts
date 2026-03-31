@@ -334,9 +334,7 @@ export class NotificationsWorker implements OnModuleInit {
         attempt: input.attempt,
         latencyMs,
         messageId:
-          typeof messageId === 'string' && messageId.trim()
-            ? messageId
-            : null,
+          typeof messageId === 'string' && messageId.trim() ? messageId : null,
         smtpResponse:
           typeof smtpResponse === 'string' && smtpResponse.trim()
             ? smtpResponse
