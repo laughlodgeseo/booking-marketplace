@@ -10,7 +10,6 @@ import {
   markPortalNotificationRead,
   markAllPortalNotificationsRead,
   getPortalUnreadCount,
-  type PortalNotificationRole,
 } from "@/lib/api/portal/notifications";
 import { getAccessToken } from "@/lib/auth/tokenStore";
 import { apiBaseUrl } from "@/lib/api/base";
@@ -142,8 +141,9 @@ export default function NotificationBell({
           setUnreadCount(data.unreadCount);
         }
         if (Array.isArray(data.latest) && data.latest.length > 0) {
+          type RawItem = { id: string; type: string; entityType?: string; entityId?: string; createdAt: string };
           setNotifications((prev) => {
-            const merged: NotificationDisplay[] = (data.latest ?? []).map((n: any) => ({
+            const merged: NotificationDisplay[] = (data.latest as RawItem[]).map((n) => ({
               id: n.id,
               type: n.type,
               entityType: n.entityType ?? "",

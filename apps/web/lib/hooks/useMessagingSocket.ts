@@ -43,7 +43,6 @@ export function useMessagingSocket({
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
-      setStatus("disconnected");
       return;
     }
 

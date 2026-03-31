@@ -43,7 +43,7 @@ export function CheckoutEditModal({
   onClose,
   onConfirm,
 }: CheckoutEditModalProps) {
-  const { selectedCurrency } = useCurrency();
+  const { currency: selectedCurrency } = useCurrency();
 
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);

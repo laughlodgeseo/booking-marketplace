@@ -19,7 +19,6 @@ export default function WishlistPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setState({ kind: "loading" });
     const res = await getWishlist(1, 50);
     if (res.ok) {
       setState({ kind: "ready", items: res.data.items, total: res.data.total });

@@ -28,7 +28,6 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
-    setState({ kind: "loading" });
     const res = await getCustomerProfile();
     if (res.ok) {
       setState({ kind: "ready", profile: res.data });

@@ -8,6 +8,34 @@ type SocialLoginButtonsProps = {
   disabled?: boolean;
 };
 
+type GoogleNotification = {
+  isNotDisplayed: () => boolean;
+  isSkippedMoment: () => boolean;
+};
+
+type GoogleWindow = typeof window & {
+  google?: {
+    accounts?: {
+      id?: {
+        prompt: (callback: (n: GoogleNotification) => void) => void;
+      };
+    };
+  };
+};
+
+type AppleAuthResponse = {
+  authorization?: { id_token?: string };
+  user?: { name?: { firstName?: string; lastName?: string } };
+};
+
+type AppleWindow = typeof window & {
+  AppleID?: {
+    auth?: {
+      signIn: () => Promise<AppleAuthResponse>;
+    };
+  };
+};
+
 export function SocialLoginButtons({
   onGoogleLogin,
   onAppleLogin,
@@ -20,9 +48,9 @@ export function SocialLoginButtons({
     setLoading("google");
     try {
       // Use Google Identity Services (GSI) to get credential
-      if (typeof window !== "undefined" && (window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.prompt(
-          async (notification: any) => {
+      if (typeof window !== "undefined" && (window as GoogleWindow).google?.accounts?.id) {
+        (window as GoogleWindow).google!.accounts!.id!.prompt(
+          async (notification: GoogleNotification) => {
             if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
               setLoading(null);
             }
@@ -43,8 +71,8 @@ export function SocialLoginButtons({
     if (loading || disabled) return;
     setLoading("apple");
     try {
-      if (typeof window !== "undefined" && (window as any).AppleID?.auth) {
-        const response = await (window as any).AppleID.auth.signIn();
+      if (typeof window !== "undefined" && (window as AppleWindow).AppleID?.auth) {
+        const response = await (window as AppleWindow).AppleID!.auth!.signIn();
         const idToken = response.authorization?.id_token;
         const fullName = response.user
           ? `${response.user.name?.firstName ?? ""} ${response.user.name?.lastName ?? ""}`.trim()

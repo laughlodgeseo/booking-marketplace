@@ -35,50 +35,37 @@ export default function StripeProvider(props: StripeProviderProps) {
     return getStripePromise(publishableKey);
   }, [publishableKey]);
 
-  const [initError, setInitError] = useState<string | null>(null);
+  // Synchronous validation derived from props — no effect needed
+  const validationError: string | null = !normalizedClientSecret
+    ? "Stripe client secret is missing."
+    : !publishableKey
+      ? "Stripe publishable key is missing. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY."
+      : !stripePromise
+        ? "Stripe failed to initialize."
+        : null;
+
+  const [asyncError, setAsyncError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (validationError || !stripePromise) return;
     let active = true;
-
-    if (!normalizedClientSecret) {
-      setInitError("Stripe client secret is missing.");
-      return () => {
-        active = false;
-      };
-    }
-
-    if (!publishableKey) {
-      setInitError("Stripe publishable key is missing. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.");
-      return () => {
-        active = false;
-      };
-    }
-
-    if (!stripePromise) {
-      setInitError("Stripe failed to initialize.");
-      return () => {
-        active = false;
-      };
-    }
-
-    setInitError(null);
 
     stripePromise
       .then((client) => {
         if (!active) return;
-        if (!client) {
-          setInitError("Stripe failed to initialize. Verify your publishable key.");
-        }
+        setAsyncError(client ? null : "Stripe failed to initialize. Verify your publishable key.");
       })
       .catch(() => {
         if (!active) return;
-        setInitError("Stripe failed to load. Please refresh and try again.");
+        setAsyncError("Stripe failed to load. Please refresh and try again.");
       });
 
     return () => {
       active = false;
     };
-  }, [publishableKey, stripePromise, normalizedClientSecret]);
+  }, [stripePromise, validationError]);
+
+  const initError = validationError ?? asyncError;
 
   useEffect(() => {
     if (initError) props.onError?.(initError);
