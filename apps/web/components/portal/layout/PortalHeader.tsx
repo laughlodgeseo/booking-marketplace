@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Bell, LogOut, Search } from "lucide-react";
+import NotificationBell from "@/components/portal/layout/NotificationBell";
 import { useTranslations } from "next-intl";
 import type { PortalRole } from "@/components/portal/layout/portal-navigation";
 import { roleLabel } from "@/components/portal/layout/portal-navigation";
@@ -81,19 +82,11 @@ export function PortalHeader(props: {
 
             <LanguageSwitcher compact />
 
-            <Link
-              href={notificationsHref}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-surface/88 px-4 text-sm font-semibold text-primary ring-1 ring-line/24 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
-              aria-label={tPortal("alerts")}
-            >
-              <Bell className="h-4 w-4 text-secondary" />
-              <span className="hidden xl:inline">{tPortal("alerts")}</span>
-              {unreadCount > 0 ? (
-                <span className="rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-inverted">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              ) : null}
-            </Link>
+            <NotificationBell
+              role={props.role ?? "customer"}
+              notificationsHref={notificationsHref}
+              initialUnreadCount={unreadCount}
+            />
 
             <button
               type="button"

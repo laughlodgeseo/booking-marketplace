@@ -7,8 +7,11 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { useMemo, useState } from "react";
 import { login, signup } from "@/lib/auth/authApi";
+import { setAccessToken } from "@/lib/auth/tokenStore";
 import type { AuthUiRole } from "@/components/auth/authFlow";
 import { normalizeLocale } from "@/lib/i18n/config";
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
+import { googleLogin, appleLogin } from "@/lib/api/oauth";
 
 type SignupDraft = {
   role: AuthUiRole;
@@ -133,6 +136,30 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
     const qs = new URLSearchParams({ role, next: nextPath, dir: "back" });
     return `/login?${qs.toString()}`;
   }, [role, nextPath]);
+
+  const backendRole = role === "vendor" ? "VENDOR" : "CUSTOMER";
+
+  async function handleGoogleLogin(credential: string) {
+    setError(null);
+    const res = await googleLogin(credential, backendRole);
+    if (res.ok) {
+      setAccessToken(res.data.accessToken);
+      router.push(nextPath);
+    } else {
+      setError(res.message ?? "Google login failed");
+    }
+  }
+
+  async function handleAppleLogin(idToken: string, fullName?: string) {
+    setError(null);
+    const res = await appleLogin(idToken, fullName, backendRole);
+    if (res.ok) {
+      setAccessToken(res.data.accessToken);
+      router.push(nextPath);
+    } else {
+      setError(res.message ?? "Apple login failed");
+    }
+  }
 
   function validate(): string | null {
     if (!email.trim()) return copy.validation.emailRequired;
@@ -307,6 +334,18 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
           {copy.profileInfoHint}
         </p>
       </form>
+
+      <div className="relative flex items-center gap-3 py-1">
+        <div className="h-px flex-1 bg-indigo-100/70" />
+        <span className="text-[11px] font-medium text-secondary/60">or</span>
+        <div className="h-px flex-1 bg-indigo-100/70" />
+      </div>
+
+      <SocialLoginButtons
+        onGoogleLogin={handleGoogleLogin}
+        onAppleLogin={handleAppleLogin}
+        disabled={loading}
+      />
     </div>
   );
 }

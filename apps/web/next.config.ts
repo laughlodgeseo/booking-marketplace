@@ -52,6 +52,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60,
     qualities: [75, 90, 92, 100],
     remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
       { protocol: "https", hostname: "unsplash.com", pathname: "/**" },
       { protocol: "https", hostname: "plus.unsplash.com", pathname: "/**" },

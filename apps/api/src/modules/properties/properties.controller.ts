@@ -8,6 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PropertiesService } from './properties.service';
 import { ListPropertiesDto } from './dto/list-properties.dto';
 import { PropertyDetailParams } from './dto/property-detail.params';
@@ -15,6 +16,7 @@ import type { AppRequest } from '../../common/i18n/app-request';
 
 @ApiTags('properties')
 @Controller('properties')
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class PropertiesController {
   constructor(private readonly properties: PropertiesService) {}
 

@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { FilterChips } from "@/components/portal/ui/FilterChips";
 import {
   approveAdminGuestReview,
+  deleteAdminGuestReview,
   getAdminGuestReviews,
   rejectAdminGuestReview,
   type AdminGuestReview,
@@ -77,39 +78,56 @@ export default function AdminGuestReviewsPage() {
           {review.adminNotes ? <div className="text-secondary">Admin note: {review.adminNotes}</div> : null}
         </div>
       ),
-      actions:
-        review.status === "PENDING" ? (
-          <>
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => {
-                const note = window.prompt("Optional approval note:", "") ?? "";
-                setBusy(`Approving ${review.id}`);
-                void approveAdminGuestReview(review.id, note)
-                  .then(() => setReloadTick((value) => value + 1))
-                  .finally(() => setBusy(null));
-              }}
-              className="rounded-xl bg-success px-3 py-2 text-xs font-semibold text-inverted hover:bg-success disabled:opacity-60"
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => {
-                const note = window.prompt("Reason for rejection:", "") ?? "";
-                setBusy(`Rejecting ${review.id}`);
-                void rejectAdminGuestReview(review.id, note)
-                  .then(() => setReloadTick((value) => value + 1))
-                  .finally(() => setBusy(null));
-              }}
-              className="rounded-xl bg-danger px-3 py-2 text-xs font-semibold text-inverted hover:bg-danger disabled:opacity-60"
-            >
-              Reject
-            </button>
-          </>
-        ) : null,
+      actions: (
+        <>
+          {review.status === "PENDING" && (
+            <>
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => {
+                  const note = window.prompt("Optional approval note:", "") ?? "";
+                  setBusy(`Approving ${review.id}`);
+                  void approveAdminGuestReview(review.id, note)
+                    .then(() => setReloadTick((value) => value + 1))
+                    .finally(() => setBusy(null));
+                }}
+                className="rounded-xl bg-success px-3 py-2 text-xs font-semibold text-inverted hover:bg-success disabled:opacity-60"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => {
+                  const note = window.prompt("Reason for rejection:", "") ?? "";
+                  setBusy(`Rejecting ${review.id}`);
+                  void rejectAdminGuestReview(review.id, note)
+                    .then(() => setReloadTick((value) => value + 1))
+                    .finally(() => setBusy(null));
+                }}
+                className="rounded-xl bg-danger px-3 py-2 text-xs font-semibold text-inverted hover:bg-danger disabled:opacity-60"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => {
+              if (!window.confirm("Permanently delete this review? This cannot be undone.")) return;
+              setBusy(`Deleting ${review.id}`);
+              void deleteAdminGuestReview(review.id)
+                .then(() => setReloadTick((value) => value + 1))
+                .finally(() => setBusy(null));
+            }}
+            className="rounded-xl border border-danger/40 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-60"
+          >
+            Delete
+          </button>
+        </>
+      ),
     }));
   }, [busy, state]);
 

@@ -10,13 +10,12 @@ import { buildPropertiesSearchParams, stableStringifyQuery, withPage, withResetP
 import { searchMapViewport } from "@/lib/api/search";
 import TourmPropertyCard from "@/components/tourm/property/TourmPropertyCard";
 import FiltersPanel from "@/components/search/properties/PropertiesFiltersPanel";
-import PinPreviewCard from "@/components/search/properties/PinPreviewCard";
 import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
 
 const GoogleMap = dynamic(() => import("@/components/maps/GoogleMap"), {
   ssr: false,
   loading: () => (
-    <div className="grid h-[78vh] w-full place-items-center bg-warm-alt/65 lg:h-[640px] xl:h-[700px]" />
+    <div className="grid h-[58vh] min-h-[360px] w-full place-items-center bg-warm-alt/65 sm:h-[64vh] lg:h-[calc(100vh-7.5rem)]" />
   ),
 });
 
@@ -72,12 +71,29 @@ export default function PropertiesSearchShell(props: Props) {
 
   const center = useMemo(() => defaultCenterFromItems(props.items), [props.items]);
   const zoom = useMemo(() => defaultZoom(props.items), [props.items]);
-
-  const cardLookup = useMemo(() => {
-    const m = new Map<string, SearchResponse["items"][number]>();
-    for (const it of props.items) m.set(it.slug, it);
-    return m;
+  const itemById = useMemo(() => {
+    const map = new Map<string, SearchResponse["items"][number]>();
+    for (const item of props.items) map.set(item.id, item);
+    return map;
   }, [props.items]);
+  const mapRenderPoints = useMemo(
+    () =>
+      mapPoints.map((point) => {
+        const fromCard = itemById.get(point.propertyId);
+        if (!fromCard) return point;
+        return {
+          ...point,
+          slug: point.slug ?? fromCard.slug,
+          title: point.title ?? fromCard.title,
+          area: point.area ?? fromCard.location?.area ?? null,
+          city: point.city ?? fromCard.location?.city ?? null,
+          bedrooms: point.bedrooms ?? fromCard.capacity?.bedrooms ?? null,
+          bathrooms: point.bathrooms ?? fromCard.capacity?.bathrooms ?? null,
+          coverImage: point.coverImage ?? fromCard.coverImage ?? null,
+        };
+      }),
+    [itemById, mapPoints],
+  );
 
   const pushQuery = useCallback(
     (next: PropertiesQuery) => {
@@ -151,17 +167,15 @@ export default function PropertiesSearchShell(props: Props) {
 
   const onMarkerClick = useCallback((slug: string) => {
     setActiveSlug(slug);
-    // if the pin exists in current list, scroll to it
     const el = document.querySelector(`[data-slug="${slug}"]`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, []);
 
-  const activeItem = useMemo(() => {
-    if (!activeSlug) return null;
-    return cardLookup.get(activeSlug) ?? null;
-  }, [activeSlug, cardLookup]);
+  const onMarkerOpen = useCallback((slug: string) => {
+    router.push(`/properties/${slug}`);
+  }, [router]);
 
   const totalPages = props.meta ? Math.max(1, Math.ceil(props.meta.total / props.meta.limit)) : 1;
   const page = props.meta?.page ?? props.query.page;
@@ -271,12 +285,12 @@ export default function PropertiesSearchShell(props: Props) {
       {viewMode === "cards" ? (
         renderResultsSection("grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-7")
       ) : (
-        <div className="grid w-full max-w-full gap-4 lg:grid-cols-[0.85fr_1.15fr] lg:gap-6">
-          <div className="min-w-0">
+        <div className="grid w-full max-w-full gap-4 lg:grid-cols-[0.78fr_1.22fr] lg:gap-6">
+          <div className="order-2 min-w-0 lg:order-1 lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:scroll-smooth lg:pr-2">
             {renderResultsSection("grid w-full max-w-full grid-cols-1 gap-5 sm:gap-6", "horizontal")}
           </div>
 
-          <div className="min-w-0 lg:sticky lg:top-24">
+          <div className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-24">
             <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm">
               <div className="flex items-center justify-between gap-3 bg-bg-2/70 px-4 py-3">
                 <div className="text-sm font-semibold text-primary">{t("mapTitle")}</div>
@@ -293,13 +307,14 @@ export default function PropertiesSearchShell(props: Props) {
                 <GoogleMap
                   center={center}
                   zoom={zoom}
-                  points={mapPoints}
+                  points={mapRenderPoints}
                   hoveredSlug={hoveredSlug}
                   activeSlug={activeSlug}
                   onMarkerClick={onMarkerClick}
+                  onMarkerOpen={onMarkerOpen}
                   onViewportChanged={fetchViewport}
                   viewportDebounceMs={520}
-                  className="h-[78vh] w-full lg:h-[640px] xl:h-[700px]"
+                  className="h-[58vh] min-h-[360px] w-full sm:h-[64vh] lg:h-[calc(100vh-7.5rem)]"
                 />
 
                 {mapError ? (
@@ -318,16 +333,6 @@ export default function PropertiesSearchShell(props: Props) {
                 {!mapError && !mapLoading && mapPoints.length === 0 ? (
                   <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
                     {t("noPins")}
-                  </div>
-                ) : null}
-
-                {activeItem ? (
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <PinPreviewCard
-                      item={activeItem}
-                      onClose={() => setActiveSlug(null)}
-                      onOpen={() => router.push(`/properties/${activeItem.slug}`)}
-                    />
                   </div>
                 ) : null}
               </div>

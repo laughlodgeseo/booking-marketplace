@@ -1009,6 +1009,48 @@ export class VendorPropertiesService {
     return created;
   }
 
+  /**
+   * Persist a Cloudinary URL the browser uploaded directly.
+   * Used by POST :id/media/register — no file handling on the server.
+   */
+  async addMediaByUrl(
+    vendorUserId: string,
+    propertyId: string,
+    url: string,
+  ) {
+    const trimmed = (url ?? '').trim();
+    if (!trimmed) throw new BadRequestException('url is required.');
+
+    await this.assertOwnership(vendorUserId, propertyId);
+
+    const last = await this.prisma.media.findFirst({
+      where: { propertyId },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+
+    const created = await this.prisma.media.create({
+      data: {
+        propertyId,
+        url: trimmed,
+        sortOrder: last ? last.sortOrder + 1 : 0,
+        category: PropertyMediaCategory.OTHER,
+      },
+    });
+
+    const prop = await this.prisma.property.findUnique({
+      where: { id: propertyId },
+    });
+    if (prop && this.shouldResetToDraftOnVendorEdit(prop.status)) {
+      await this.prisma.property.update({
+        where: { id: propertyId },
+        data: { status: PropertyStatus.DRAFT },
+      });
+    }
+
+    return created;
+  }
+
   async updateMediaCategory(
     vendorUserId: string,
     propertyId: string,

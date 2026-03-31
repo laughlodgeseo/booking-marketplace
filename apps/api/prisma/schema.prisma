@@ -424,6 +424,10 @@ model User {
   role         UserRole @default(CUSTOMER)
 
   fullName        String?
+  phone           String?
+  avatarUrl       String?
+  authProvider    String?  // 'local', 'google', 'apple'
+  authProviderId  String?  // OAuth provider user ID
   isEmailVerified Boolean @default(false)
 
   vendorProfile VendorProfile?
@@ -478,6 +482,8 @@ model User {
 
   guestReviews          GuestReview[] @relation("GuestReviewCustomer")
   moderatedGuestReviews GuestReview[] @relation("GuestReviewModeratedByAdmin")
+
+  wishlistItems WishlistItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -717,6 +723,26 @@ model Property {
   // ✅ Search performance indexes (NEW)
   @@index([status, city, area], map: "idx_property_status_city_area")
   @@index([status, lat, lng], map: "idx_property_status_lat_lng")
+
+  wishlistItems WishlistItem[]
+  pricingRules  PricingRule[]
+  promoCodes    PromoCode[]
+}
+
+model WishlistItem {
+  id String @id @default(uuid())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, propertyId], map: "uniq_wishlist_user_property")
+  @@index([userId])
+  @@index([propertyId])
 }
 
 model PropertyTranslation {
@@ -1063,6 +1089,9 @@ model GuestReview {
   moderatedAt        DateTime?
   moderationNotes    String?
 
+  hostResponseText String?
+  hostResponseAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1144,6 +1173,7 @@ model Booking {
 
   expiresAt   DateTime?
   cancelledAt DateTime?
+  completedAt DateTime?
 
   cancellation BookingCancellation?
 
@@ -1856,4 +1886,71 @@ model WorkOrder {
   @@index([maintenanceRequestId])
   @@index([status])
   @@index([assignedToUserId])
+}
+
+// ─── Pricing Rules (Seasonal / Weekend) ─────────────────────────────
+
+enum PricingRuleType {
+  SEASONAL
+  WEEKEND
+  WEEKDAY
+  HOLIDAY
+  CUSTOM
+}
+
+model PricingRule {
+  id String @id @default(uuid())
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  type      PricingRuleType
+  name      String?
+  startDate DateTime
+  endDate   DateTime
+
+  priceMultiplier Float   @default(1.0)  // e.g. 1.5 = 150% of base price
+  fixedPrice      Int?                    // override: if set, use instead of multiplier
+
+  priority Int @default(0) // higher wins on overlap
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId, isActive])
+  @@index([propertyId, startDate, endDate])
+}
+
+// ─── Promo Codes ─────────────────────────────────────────────────────
+
+model PromoCode {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  discountPercent Int?  // e.g. 10 = 10% off
+  discountAmount  Int?  // e.g. 5000 = 50.00 AED off (minor units)
+  currency        String @default("AED")
+
+  validFrom  DateTime
+  validTo    DateTime
+
+  usageLimit   Int @default(0)  // 0 = unlimited
+  currentUsage Int @default(0)
+
+  minBookingAmount Int? // minimum booking total to apply
+  maxDiscount      Int? // cap for percentage discounts
+
+  propertyId String?     // null = applies to all properties
+  property   Property?   @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive, validFrom, validTo])
 }

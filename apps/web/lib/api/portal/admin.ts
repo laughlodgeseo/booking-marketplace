@@ -1261,6 +1261,26 @@ export async function uploadAdminPropertyMedia(propertyId: string, file: File): 
   return unwrap(res);
 }
 
+/**
+ * Register a Cloudinary URL that the browser uploaded directly.
+ * The server only saves the URL to the DB — no file handling.
+ */
+export async function registerAdminPropertyMedia(
+  propertyId: string,
+  url: string,
+): Promise<AdminMediaItem> {
+  const res = await apiFetch<AdminMediaItem>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/media/register`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      body: { url },
+    }
+  );
+  return unwrap(res);
+}
+
 export async function updateAdminPropertyMediaCategory(
   propertyId: string,
   mediaId: string,
@@ -1497,6 +1517,94 @@ export async function deleteAdminOwnedProperty(propertyId: string): Promise<{ ok
       credentials: "include",
       cache: "no-store",
     }
+  );
+  return unwrap(res);
+}
+
+// ─── Admin Pricing Rules ───────────────────────────────────────────────────
+
+export type AdminPricingRuleType = "SEASONAL" | "WEEKEND" | "WEEKDAY" | "HOLIDAY" | "CUSTOM";
+
+export type AdminPricingRule = {
+  id: string;
+  propertyId: string;
+  type: AdminPricingRuleType;
+  name: string | null;
+  startDate: string;
+  endDate: string;
+  priceMultiplier: number;
+  fixedPrice: number | null;
+  priority: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export async function listAdminPricingRules(propertyId: string): Promise<AdminPricingRule[]> {
+  const res = await apiFetch<AdminPricingRule[]>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/pricing-rules`,
+    { method: "GET", credentials: "include", cache: "no-store" }
+  );
+  return unwrap(res);
+}
+
+export async function createAdminPricingRule(
+  propertyId: string,
+  input: {
+    type: AdminPricingRuleType;
+    name?: string;
+    startDate: string;
+    endDate: string;
+    priceMultiplier?: number;
+    fixedPrice?: number;
+    priority?: number;
+  }
+): Promise<AdminPricingRule> {
+  const res = await apiFetch<AdminPricingRule>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/pricing-rules`,
+    { method: "POST", credentials: "include", cache: "no-store", body: input }
+  );
+  return unwrap(res);
+}
+
+export async function updateAdminPricingRule(
+  propertyId: string,
+  ruleId: string,
+  input: Partial<{
+    name: string;
+    startDate: string;
+    endDate: string;
+    priceMultiplier: number;
+    fixedPrice: number | null;
+    priority: number;
+    isActive: boolean;
+  }>
+): Promise<AdminPricingRule> {
+  const res = await apiFetch<AdminPricingRule>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/pricing-rules/${encodeURIComponent(ruleId)}`,
+    { method: "PATCH", credentials: "include", cache: "no-store", body: input }
+  );
+  return unwrap(res);
+}
+
+export async function deleteAdminPricingRule(
+  propertyId: string,
+  ruleId: string
+): Promise<void> {
+  const res = await apiFetch<void>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/pricing-rules/${encodeURIComponent(ruleId)}`,
+    { method: "DELETE", credentials: "include", cache: "no-store" }
+  );
+  unwrap(res);
+}
+
+// ─── Admin Review Delete ───────────────────────────────────────────────────
+
+export async function deleteAdminGuestReview(
+  reviewId: string
+): Promise<{ deleted: boolean; reviewId: string }> {
+  const res = await apiFetch<{ deleted: boolean; reviewId: string }>(
+    `/admin/reviews/${encodeURIComponent(reviewId)}`,
+    { method: "DELETE", credentials: "include", cache: "no-store" }
   );
   return unwrap(res);
 }

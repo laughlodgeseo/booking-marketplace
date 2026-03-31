@@ -8,8 +8,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { UpsertFxRatesDto } from './dto/upsert-fx-rates.dto';
+import { UserRole } from '@prisma/client';
+import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { FxRatesService } from './fx-rates.service';
 
 type JwtUser = {
@@ -33,7 +36,8 @@ export class FxRatesPublicController {
 }
 
 @Controller('admin/fx-rates')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class FxRatesAdminController {
   constructor(private readonly service: FxRatesService) {}
 

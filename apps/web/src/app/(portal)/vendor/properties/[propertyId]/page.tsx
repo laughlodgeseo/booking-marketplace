@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
@@ -87,8 +88,13 @@ export default function VendorPropertyHubPage() {
           <section className="overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-sm">
             <div className="aspect-[16/8] bg-bg-2">
               {coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={coverUrl} alt={state.data.title} className="h-full w-full object-cover" />
+                <OptimizedImage
+                  src={coverUrl}
+                  alt={state.data.title}
+                  fill
+                  className="h-full w-full object-cover"
+                  sizes="100vw"
+                />
               ) : null}
             </div>
             <div className="p-5">

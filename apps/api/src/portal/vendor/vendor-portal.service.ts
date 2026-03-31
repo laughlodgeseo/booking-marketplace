@@ -410,6 +410,11 @@ export class VendorPortalService {
     this.assertVendor(params.role);
 
     const propertyIds = await this.getVendorPropertyIds(params.userId);
+
+    // SECURITY: bucketExpr is hardcoded ('day'|'week'|'month'), never from user input.
+    // All raw queries below use Prisma tagged templates — params are parameterized.
+    // propertyIds are fetched from DB (vendor's own properties), not from request.
+    // Raw SQL required for date_trunc aggregation which Prisma ORM cannot express.
     const bucketExpr =
       params.bucket === 'day'
         ? 'day'
@@ -841,6 +846,55 @@ export class VendorPortalService {
       selectedPropertyId,
       properties,
       events,
+    };
+  }
+
+  async getVendorReviews(
+    vendorId: string,
+    page: number,
+    pageSize: number,
+  ) {
+    const where = {
+      property: { vendorId },
+      status: 'APPROVED' as const,
+    };
+
+    const [total, rows] = await Promise.all([
+      this.prisma.guestReview.count({ where }),
+      this.prisma.guestReview.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          rating: true,
+          title: true,
+          comment: true,
+          createdAt: true,
+          hostResponseText: true,
+          hostResponseAt: true,
+          property: { select: { id: true, title: true, slug: true } },
+          customer: { select: { fullName: true } },
+        },
+      }),
+    ]);
+
+    return {
+      page,
+      pageSize,
+      total,
+      items: rows.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        title: r.title,
+        comment: r.comment,
+        createdAt: r.createdAt.toISOString(),
+        hostResponseText: r.hostResponseText,
+        hostResponseAt: r.hostResponseAt?.toISOString() ?? null,
+        property: r.property,
+        customer: { fullName: r.customer.fullName },
+      })),
     };
   }
 

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,8 +15,11 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
+import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { AdminPropertiesService } from './admin-properties.service';
 import { ApprovePropertyDto } from './dto/approve-property.dto';
 import { RejectPropertyDto } from './dto/reject-property.dto';
@@ -25,6 +29,7 @@ import { AdminUpdatePropertyDto } from './dto/admin-update-property.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { imageFileFilter } from '../../common/upload/image-file.filter';
 import { imageUploadStorage } from '../../common/upload/multer.config';
+import { validateCloudinaryUrl } from '../../common/upload/property-media-storage';
 import {
   UpdateMediaCategoryDto,
   ReorderMediaDto,
@@ -43,7 +48,8 @@ type JwtUser = {
 
 @ApiTags('admin-properties')
 @Controller('admin/properties')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminPropertiesController {
   constructor(private readonly service: AdminPropertiesService) {}
 
@@ -126,6 +132,25 @@ export class AdminPropertiesController {
   ) {
     this.assertAdmin(req.user);
     return this.service.addMediaByAdmin(req.user.id, id, file);
+  }
+
+  /**
+   * Register a Cloudinary URL that the browser uploaded directly.
+   * Avoids server-as-proxy timeouts for large images.
+   */
+  @Post(':id/media/register')
+  async registerMedia(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('url') url: string,
+  ) {
+    this.assertAdmin(req.user);
+    try {
+      validateCloudinaryUrl(url);
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid URL.');
+    }
+    return this.service.addMediaByUrlAdmin(req.user.id, id, url);
   }
 
   @Patch(':propertyId/media/:mediaId/category')

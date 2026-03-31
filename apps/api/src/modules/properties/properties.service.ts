@@ -246,7 +246,7 @@ export class PropertiesService {
         },
         media: {
           orderBy: { sortOrder: 'asc' },
-          select: { url: true, alt: true, sortOrder: true, category: true },
+          select: { id: true, url: true, alt: true, sortOrder: true, category: true },
         },
         guestReviews: {
           where: { status: GuestReviewStatus.APPROVED },
@@ -258,6 +258,8 @@ export class PropertiesService {
             title: true,
             comment: true,
             createdAt: true,
+            hostResponseText: true,
+            hostResponseAt: true,
             customer: {
               select: {
                 fullName: true,

@@ -434,19 +434,15 @@ export default function QuotePanelBatchA(props: {
   }, []);
 
   const buildLoginNextPath = useCallback(() => {
-    const qp = new URLSearchParams(searchParams.toString());
+    // After login, land on the new /checkout page so the hold is created there
+    const qp = new URLSearchParams();
+    qp.set("propertyId", props.propertyId);
     if (checkIn) qp.set("checkIn", checkIn);
-    else qp.delete("checkIn");
-
     if (checkOut) qp.set("checkOut", checkOut);
-    else qp.delete("checkOut");
-
     qp.set("guests", String(guests));
-    qp.set("autoreserve", "1");
-
-    const q = qp.toString();
-    return q ? `${pathname}?${q}` : pathname;
-  }, [checkIn, checkOut, guests, pathname, searchParams]);
+    if (props.slug) qp.set("slug", props.slug);
+    return `/checkout?${qp.toString()}`;
+  }, [checkIn, checkOut, guests, props.propertyId, props.slug]);
 
   const redirectToLogin = useCallback(() => {
     const qp = new URLSearchParams();
@@ -476,13 +472,14 @@ export default function QuotePanelBatchA(props: {
       });
 
       const qp = new URLSearchParams();
+      qp.set("propertyId", props.propertyId);
       qp.set("holdId", reserved.holdId);
       qp.set("slug", props.slug);
       qp.set("guests", String(guests));
       qp.set("checkIn", checkIn);
       qp.set("checkOut", checkOut);
 
-      router.push(`/checkout/${encodeURIComponent(props.propertyId)}?${qp.toString()}`);
+      router.push(`/checkout?${qp.toString()}`);
     } catch (error) {
       if (isUnauthorizedError(error)) {
         setReserveError(copy.loginRequired);

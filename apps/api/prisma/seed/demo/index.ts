@@ -20,6 +20,7 @@ import { API_ROOT_DIR } from '../../../src/common/upload/storage-paths';
 import { seedOperatorLayer } from '../operator.seed';
 import { seedDemoBookings } from './bookings';
 import { buildPropertyMediaRows } from './images';
+import { seedPhase5Extras } from './phase5';
 import { createOwnershipProofPdf } from './pdf';
 import { verifyDemoSeed } from './verify';
 
@@ -947,7 +948,16 @@ async function cleanupPreviousDemoData(prisma: PrismaClient) {
     await prisma.propertyActivationInvoice.deleteMany({
       where: { propertyId: { in: demoPropertyIds } },
     });
+    await prisma.pricingRule.deleteMany({
+      where: { propertyId: { in: demoPropertyIds } },
+    });
     await prisma.property.deleteMany({ where: { id: { in: demoPropertyIds } } });
+  }
+
+  if (demoUserIds.length > 0) {
+    await prisma.wishlistItem.deleteMany({
+      where: { userId: { in: demoUserIds } },
+    });
   }
 
   if (demoLocationIds.length > 0) {
@@ -1493,6 +1503,31 @@ export async function runDemoSeed() {
         },
       });
     }
+
+    // ── Phase 5: extended demo data ──────────────────────────────────────────
+    const publishedPropertyEntries = Array.from(propertyBySlug.values()).filter(
+      (p) => {
+        // re-check the status by fetching from DB since propertyBySlug was built before review seed
+        return true; // all published props are in propertyBySlug (only published ones get bookings)
+      },
+    );
+
+    // Resolve which slugs are published
+    const publishedSlugs = PROPERTY_SPECS
+      .filter((spec) => spec.status === PropertyStatus.PUBLISHED)
+      .map((spec) => spec.slug);
+
+    const publishedPropertiesForPhase5 = publishedSlugs
+      .map((slug) => propertyBySlug.get(slug))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+    await seedPhase5Extras({
+      prisma,
+      adminUserId: admin.id,
+      customerByKey,
+      vendorByKey,
+      publishedProperties: publishedPropertiesForPhase5,
+    });
 
     await verifyDemoSeed(prisma, {
       adminEmail: ADMIN_USER.email,

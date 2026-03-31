@@ -95,6 +95,17 @@ export class AdminReviewsService {
     };
   }
 
+  async deleteReview(reviewId: string) {
+    const review = await this.prisma.guestReview.findUnique({
+      where: { id: reviewId },
+      select: { id: true },
+    });
+    if (!review) throw new NotFoundException('Review not found.');
+
+    await this.prisma.guestReview.delete({ where: { id: reviewId } });
+    return { deleted: true, reviewId };
+  }
+
   async moderate(params: {
     reviewId: string;
     adminId: string;

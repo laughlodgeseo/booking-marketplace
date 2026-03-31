@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -13,8 +14,11 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { VendorPropertiesService } from './vendor-properties.service';
+import { UserRole } from '@prisma/client';
+import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import {
   CreatePropertyDto,
   UpdatePropertyDto,
@@ -31,6 +35,7 @@ import {
   imageUploadStorage,
   documentUploadStorage,
 } from '../common/upload/multer.config';
+import { validateCloudinaryUrl } from '../common/upload/property-media-storage';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PaymentProvider } from '@prisma/client';
 
@@ -41,7 +46,8 @@ type JwtUser = {
 };
 
 @Controller('vendor/properties')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.VENDOR)
 export class VendorPropertiesController {
   constructor(private readonly service: VendorPropertiesService) {}
 
@@ -250,6 +256,25 @@ export class VendorPropertiesController {
     this.assertVendor(req.user);
     if (!file) throw new ForbiddenException('File upload failed.');
     return this.service.addMedia(req.user.id, id, file);
+  }
+
+  /**
+   * Register a Cloudinary URL the browser uploaded directly.
+   * Avoids server-as-proxy timeouts for large images.
+   */
+  @Post(':id/media/register')
+  async registerMedia(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('url') url: string,
+  ) {
+    this.assertVendor(req.user);
+    try {
+      validateCloudinaryUrl(url);
+    } catch (e) {
+      throw new BadRequestException(e instanceof Error ? e.message : 'Invalid URL.');
+    }
+    return this.service.addMediaByUrl(req.user.id, id, url);
   }
 
   @Patch(':propertyId/media/:mediaId/category')

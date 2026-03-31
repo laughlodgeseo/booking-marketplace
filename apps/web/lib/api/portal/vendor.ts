@@ -662,6 +662,26 @@ export async function uploadVendorPropertyMedia(
 }
 
 /**
+ * POST /vendor/properties/:id/media/register
+ * Register a Cloudinary URL the browser uploaded directly.
+ */
+export async function registerVendorPropertyMedia(
+  propertyId: string,
+  url: string,
+): Promise<VendorPropertyMedia> {
+  const res = await apiFetch<VendorPropertyMedia>(
+    `/vendor/properties/${encodeURIComponent(propertyId)}/media/register`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      body: { url },
+    }
+  );
+  return unwrap(res);
+}
+
+/**
  * PATCH /vendor/properties/:propertyId/media/:mediaId/category
  */
 export async function updateVendorPropertyMediaCategory(

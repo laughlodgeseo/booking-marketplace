@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { Images } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useLocale } from "next-intl";
@@ -83,7 +83,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                 className="group relative h-full overflow-hidden rounded-3xl text-left shadow-[0_12px_28px_rgba(11,15,25,0.12)] sm:col-span-7"
                 aria-label={isAr ? "عرض جميع الصور" : "Open all photos"}
               >
-                <Image
+                <OptimizedImage
                   src={heroImage.url}
                   alt={heroImage.alt}
                   fill
@@ -114,7 +114,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                             : `Open photo ${absoluteIndex + 1}`
                         }
                       >
-                        <Image
+                        <OptimizedImage
                           src={image.url}
                           alt={image.alt}
                           fill
@@ -147,7 +147,7 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                     className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl border border-white/75 bg-surface text-left"
                     aria-label={isAr ? `عرض الصورة ${index + 2}` : `Open photo ${index + 2}`}
                   >
-                    <Image
+                    <OptimizedImage
                       src={image.url}
                       alt={image.alt}
                       fill

@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { SearchResponse } from "@/lib/types/search";
+import { WishlistHeart } from "@/components/property/WishlistHeart";
 
 type Item = SearchResponse["items"][number];
 type CardOrientation = "vertical" | "horizontal";
@@ -284,14 +285,12 @@ export default function TourmPropertyCard({
                 }}
                 aria-label={t("photoAria", { title, index: idx + 1 })}
               >
-                <Image
+                <OptimizedImage
                   src={slide.url}
                   alt={slide.alt}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 640px"
                   className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.1]"
-                  loading="lazy"
-                  draggable={false}
                 />
               </Link>
             ))}
@@ -301,6 +300,10 @@ export default function TourmPropertyCard({
         )}
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/28 via-ink/5 to-transparent transition-colors duration-300 group-hover:from-ink/14 group-hover:via-transparent" />
+
+        <div className="absolute right-3 top-3 z-10">
+          <WishlistHeart propertyId={item.id} size={20} />
+        </div>
 
         {hasMultipleSlides ? (
           <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">

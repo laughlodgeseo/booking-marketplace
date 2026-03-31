@@ -72,7 +72,11 @@
       "refunds": "الاستردادات",
       "guestDocuments": "مستندات الضيوف",
       "payouts": "التحويلات",
-      "documents": "المستندات"
+      "documents": "المستندات",
+      "wishlist": "المفضلة",
+      "profile": "الملف الشخصي",
+      "pricing": "التسعير",
+      "reviews": "التقييمات"
     },
     "loading": {
       "messages": "جارٍ تحميل الرسائل...",
@@ -367,6 +371,79 @@
         "load": "تعذر تحميل لوحة المورّد",
         "title": "اللوحة غير متاحة"
       }
+    },
+    "vendorReviews": {
+      "title": "التقييمات",
+      "subtitle": "تقييمات الضيوف عبر عقاراتك",
+      "guest": "ضيف",
+      "on": "على",
+      "hostResponse": "رد المضيف",
+      "responded": "تم الرد {date}",
+      "replyAsHost": "الرد كمضيف",
+      "placeholder": "اكتب ردك على هذا التقييم...",
+      "cancel": "إلغاء",
+      "submitting": "جارٍ الإرسال...",
+      "submit": "إرسال",
+      "noReviews": "لا توجد تقييمات بعد",
+      "noReviewsHint": "ستظهر تقييمات الضيوف هنا بعد الموافقة عليها.",
+      "pageOf": "الصفحة {page} من {totalPages}",
+      "prev": "السابق",
+      "next": "التالي",
+      "errors": {
+        "submitResponse": "تعذر إرسال الرد",
+        "load": "تعذر تحميل التقييمات"
+      }
+    },
+    "vendorPricing": {
+      "title": "قواعد التسعير",
+      "subtitle": "إدارة التسعير الديناميكي لعقاراتك",
+      "selectProperty": "اختر العقار",
+      "noProperties": "لا توجد عقارات. أنشئ عقاراً أولاً.",
+      "calendarHint": "انقر على تاريخين في التقويم لتحديد نطاق لقاعدة جديدة، أو استخدم الزر أدناه.",
+      "addRule": "إضافة قاعدة تسعير",
+      "ruleType": "نوع القاعدة",
+      "name": "الاسم",
+      "optional": "(اختياري)",
+      "startDate": "تاريخ البداية",
+      "endDate": "تاريخ النهاية",
+      "priceMode": "وضع السعر",
+      "multiplier": "المُضاعِف",
+      "fixedPrice": "سعر ثابت",
+      "multiplierHint": "(مثال: 1.5 = 150%)",
+      "priority": "الأولوية",
+      "priorityHint": "(الأعلى يفوز)",
+      "saving": "جارٍ الحفظ...",
+      "saveRule": "حفظ القاعدة",
+      "confirm": "تأكيد",
+      "activeRules": "قواعد التسعير النشطة",
+      "noRules": "لا توجد قواعد تسعير بعد. أضف أول قاعدة لتخصيص التسعير.",
+      "fixedPriceLabel": "سعر ثابت: {price}",
+      "multiplierLabel": "المُضاعِف: x{value}",
+      "priorityLabel": "الأولوية: {value}",
+      "namePlaceholder": "مثال: ذروة الصيف",
+      "aria": {
+        "previousMonth": "الشهر السابق",
+        "nextMonth": "الشهر التالي",
+        "toggleRule": "تبديل حالة القاعدة",
+        "cancelDelete": "إلغاء الحذف",
+        "deleteRule": "حذف القاعدة"
+      },
+      "errors": {
+        "load": "تعذر تحميل قواعد التسعير"
+      }
+    },
+    "notificationBell": {
+      "notifications": "الإشعارات",
+      "markAllRead": "تحديد الكل كمقروء",
+      "loading": "جارٍ التحميل...",
+      "noNew": "لا توجد إشعارات جديدة",
+      "viewAll": "عرض جميع الإشعارات",
+      "alerts": "التنبيهات",
+      "aria": "الإشعارات",
+      "justNow": "الآن",
+      "minAgo": "منذ {min} د",
+      "hrAgo": "منذ {hr} س",
+      "dayAgo": "منذ {day} ي"
     },
     "vendorLogin": {
       "title": "دخول المورّد",

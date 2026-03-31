@@ -221,6 +221,12 @@ export default function AdminPropertyDetailPage() {
             Edit property
           </Link>
           <Link
+            href={`/admin/properties/${encodeURIComponent(propertyId)}/pricing`}
+            className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-100"
+          >
+            Pricing rules
+          </Link>
+          <Link
             href="/admin/properties"
             className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt"
           >

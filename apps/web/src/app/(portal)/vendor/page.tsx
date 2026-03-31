@@ -5,13 +5,13 @@ import {
   Building2,
   CalendarDays,
   ClipboardCheck,
-  Loader2,
   Wallet,
   Waves,
   Wrench,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatCard } from "@/components/portal/StatCard";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
@@ -77,14 +77,7 @@ export default function VendorDashboardPage() {
 
   const content = useMemo(() => {
     if (state.kind === "loading") {
-      return (
-        <div className="portal-card rounded-3xl bg-surface/90 p-8 text-sm text-secondary">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {tPortal("loading.dashboard")}
-          </div>
-        </div>
-      );
+      return <DashboardSkeleton />;
     }
 
     if (state.kind === "error") {

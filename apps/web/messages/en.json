@@ -72,7 +72,11 @@
       "refunds": "Refunds",
       "guestDocuments": "Guest Documents",
       "payouts": "Payouts",
-      "documents": "Documents"
+      "documents": "Documents",
+      "wishlist": "Wishlist",
+      "profile": "Profile",
+      "pricing": "Pricing",
+      "reviews": "Reviews"
     },
     "loading": {
       "messages": "Loading messages...",
@@ -367,6 +371,79 @@
         "load": "Failed to load vendor dashboard",
         "title": "Dashboard unavailable"
       }
+    },
+    "vendorReviews": {
+      "title": "Reviews",
+      "subtitle": "Guest reviews across your properties",
+      "guest": "Guest",
+      "on": "on",
+      "hostResponse": "Host Response",
+      "responded": "Responded {date}",
+      "replyAsHost": "Reply as Host",
+      "placeholder": "Write your response to this review...",
+      "cancel": "Cancel",
+      "submitting": "Submitting...",
+      "submit": "Submit",
+      "noReviews": "No reviews yet",
+      "noReviewsHint": "Reviews from guests will appear here once approved.",
+      "pageOf": "Page {page} of {totalPages}",
+      "prev": "Prev",
+      "next": "Next",
+      "errors": {
+        "submitResponse": "Failed to submit response",
+        "load": "Failed to load reviews"
+      }
+    },
+    "vendorPricing": {
+      "title": "Pricing Rules",
+      "subtitle": "Manage dynamic pricing for your properties",
+      "selectProperty": "Select Property",
+      "noProperties": "No properties found. Create a property first.",
+      "calendarHint": "Click two dates on the calendar to select a range for a new rule, or use the button below.",
+      "addRule": "Add Pricing Rule",
+      "ruleType": "Rule Type",
+      "name": "Name",
+      "optional": "(optional)",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "priceMode": "Price Mode",
+      "multiplier": "Multiplier",
+      "fixedPrice": "Fixed Price",
+      "multiplierHint": "(e.g. 1.5 = 150%)",
+      "priority": "Priority",
+      "priorityHint": "(higher wins)",
+      "saving": "Saving...",
+      "saveRule": "Save Rule",
+      "confirm": "Confirm",
+      "activeRules": "Active Pricing Rules",
+      "noRules": "No pricing rules yet. Add your first rule to customize pricing.",
+      "fixedPriceLabel": "Fixed price: {price}",
+      "multiplierLabel": "Multiplier: x{value}",
+      "priorityLabel": "Priority: {value}",
+      "namePlaceholder": "e.g. Summer Peak",
+      "aria": {
+        "previousMonth": "Previous month",
+        "nextMonth": "Next month",
+        "toggleRule": "Toggle rule active",
+        "cancelDelete": "Cancel delete",
+        "deleteRule": "Delete rule"
+      },
+      "errors": {
+        "load": "Failed to load pricing rules"
+      }
+    },
+    "notificationBell": {
+      "notifications": "Notifications",
+      "markAllRead": "Mark all as read",
+      "loading": "Loading...",
+      "noNew": "No new notifications",
+      "viewAll": "View all notifications",
+      "alerts": "Alerts",
+      "aria": "Notifications",
+      "justNow": "just now",
+      "minAgo": "{min}m ago",
+      "hrAgo": "{hr}h ago",
+      "dayAgo": "{day}d ago"
     },
     "vendorLogin": {
       "title": "Vendor login",

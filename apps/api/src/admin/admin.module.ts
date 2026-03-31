@@ -6,14 +6,17 @@ import { AdminVendorsController } from './vendors/admin-vendors.controller';
 import { AdminVendorsService } from './vendors/admin-vendors.service';
 import { AdminReviewsController } from './reviews/admin-reviews.controller';
 import { AdminReviewsService } from './reviews/admin-reviews.service';
+import { AdminPricingController } from './pricing/admin-pricing.controller';
 import { NotificationsModule } from '../modules/notifications/notifications.module';
+import { PricingModule } from '../modules/pricing/pricing.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, PricingModule],
   controllers: [
     AdminPropertiesController,
     AdminVendorsController,
     AdminReviewsController,
+    AdminPricingController,
   ],
   providers: [AdminPropertiesService, AdminVendorsService, AdminReviewsService],
 })

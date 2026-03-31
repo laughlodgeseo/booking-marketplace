@@ -1,6 +1,7 @@
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import Link from "next/link";
 import type { SearchResponse } from "@/lib/types/search";
+import { WishlistHeart } from "@/components/property/WishlistHeart";
 
 type Item = SearchResponse["items"][number];
 
@@ -30,13 +31,12 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         {img ? (
-          <Image
+          <OptimizedImage
             src={img}
             alt={item.coverImage?.alt ?? title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-700 group-hover:scale-[1.06]"
-            loading="lazy"
           />
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-dark-1/5 to-dark-1/0" />
@@ -50,11 +50,14 @@ export default function TourmPropertyCard({ item }: { item: Item }) {
           </div>
         ) : null}
 
-        {item.flags?.instantBook ? (
-          <div className="absolute right-3 top-3 rounded-xl border border-line bg-surface/95 px-3 py-2 text-xs font-semibold text-primary shadow-sm">
-            Instant book
-          </div>
-        ) : null}
+        <div className="absolute right-3 top-3 flex items-center gap-2">
+          <WishlistHeart propertyId={item.id} size={18} />
+          {item.flags?.instantBook ? (
+            <div className="rounded-xl border border-line bg-surface/95 px-3 py-2 text-xs font-semibold text-primary shadow-sm">
+              Instant book
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-2 p-4">

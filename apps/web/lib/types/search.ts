@@ -90,6 +90,14 @@ export type MapPoint = {
   fxProvider?: string | null;
   slug?: string;
   title?: string;
+  city?: string | null;
+  area?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  coverImage?: {
+    url: string;
+    alt: string | null;
+  } | null;
 };
 
 export type MapResponse = {

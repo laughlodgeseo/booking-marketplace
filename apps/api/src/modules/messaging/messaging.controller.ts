@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole, type User } from '@prisma/client';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -23,6 +24,7 @@ import {
 @Controller('portal/admin/messages')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class AdminMessagesController {
   constructor(private readonly messaging: MessagingService) {}
 
@@ -84,6 +86,7 @@ export class AdminMessagesController {
 @Controller('portal/vendor/messages')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.VENDOR)
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class VendorMessagesController {
   constructor(private readonly messaging: MessagingService) {}
 
@@ -144,6 +147,7 @@ export class VendorMessagesController {
 @Controller('portal/user/messages')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.CUSTOMER)
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserMessagesController {
   constructor(private readonly messaging: MessagingService) {}
 

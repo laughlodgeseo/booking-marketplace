@@ -1,4 +1,5 @@
 import { Controller, Get, Header, Query, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SearchService } from './search.service';
 import { SearchPropertiesQuery } from './dto/search-properties.query';
 import { SearchMapQuery } from './dto/search-map.query';
@@ -6,6 +7,7 @@ import { SearchMapViewportQuery } from './dto/search-map-viewport.query';
 import type { AppRequest } from '../../common/i18n/app-request';
 
 @Controller('search')
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class SearchController {
   constructor(private readonly search: SearchService) {}
 

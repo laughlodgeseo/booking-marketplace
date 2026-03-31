@@ -207,12 +207,17 @@ export async function verifyDemoSeed(
     orderBy: [{ propertyId: 'asc' }, { checkIn: 'asc' }],
   });
 
+  // Phase 5 adds 17 historical completed bookings on top of the 9 base bookings
   assert(
-    demoBookings.length >= 8 && demoBookings.length <= 10,
-    `Expected 8-10 bookings, got ${demoBookings.length}.`,
+    demoBookings.length >= 8,
+    `Expected at least 8 bookings, got ${demoBookings.length}.`,
   );
 
-  for (const booking of demoBookings) {
+  // Only validate booking window for non-completed bookings (Phase 5 adds historical COMPLETED bookings outside the window)
+  const windowBookings = demoBookings.filter(
+    (b) => b.status !== BookingStatus.COMPLETED,
+  );
+  for (const booking of windowBookings) {
     assert(
       withinWindow(booking.checkIn, bookingWindowStart, bookingWindowEnd),
       `Booking ${booking.id} check-in outside window.`,
@@ -409,13 +414,11 @@ export async function verifyDemoSeed(
     customersWithBookings.length >= 5,
     `Expected at least 5 customers with bookings, got ${customersWithBookings.length}.`,
   );
-  assert(
-    customersWithoutBookings.length >= 2,
-    `Expected at least 2 customers with no bookings, got ${customersWithoutBookings.length}.`,
-  );
+  // Note: Phase 5 gives all customers historical bookings, so we no longer assert 2 with zero bookings.
 
+  // Phase 5 adds historical bookings so some customers may have 4+ bookings
   for (const count of customersWithBookings) {
-    assert(count <= 2, `Customer booking count exceeds 2 (${count}).`);
+    assert(count <= 10, `Customer booking count exceeds 10 (${count}).`);
   }
 
   const summaryRows = [

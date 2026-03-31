@@ -1,17 +1,22 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 
 import {
   deleteAdminPropertyMedia,
+  registerAdminPropertyMedia,
   reorderAdminPropertyMedia,
   updateAdminPropertyMediaCategory,
   uploadAdminPropertyMedia,
   type AdminMediaItem,
   type MediaCategory,
 } from "@/lib/api/portal/admin";
+import {
+  getCloudinaryUploadParams,
+  uploadFileToCloudinary,
+} from "@/lib/cloudinary";
 
 function cn(...xs: Array<string | false | null | undefined>): string {
   return xs.filter(Boolean).join(" ");
@@ -79,6 +84,7 @@ export function AdminPropertyMediaManager(props: {
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [otherCategory, setOtherCategory] = useState<MediaCategory>("COVER");
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -120,13 +126,36 @@ export function AdminPropertyMediaManager(props: {
   ) {
     if (!files || files.length === 0) return;
     setError(null);
+    setUploadProgress(null);
     setBusy(`Uploading to ${category}...`);
 
     try {
+      // Fetch direct-upload params once (reused for all files in the batch)
+      const params = await getCloudinaryUploadParams(props.propertyId, "admin");
+
       const created: AdminMediaItem[] = [];
-      for (const f of Array.from(files)) {
-        const item = await uploadAdminPropertyMedia(props.propertyId, f);
+      const fileArray = Array.from(files);
+
+      for (let i = 0; i < fileArray.length; i++) {
+        const f = fileArray[i];
+        setBusy(`Uploading ${i + 1} / ${fileArray.length}...`);
+        setUploadProgress(0);
+
+        let item: AdminMediaItem;
+
+        if (params.mode === "cloudinary") {
+          // Direct browser → Cloudinary upload (no server timeout risk)
+          const url = await uploadFileToCloudinary(f, params, (pct) =>
+            setUploadProgress(pct),
+          );
+          item = await registerAdminPropertyMedia(props.propertyId, url);
+        } else {
+          // Cloudinary not configured → fall back to server-side upload
+          item = await uploadAdminPropertyMedia(props.propertyId, f);
+        }
+
         created.push(item);
+        setUploadProgress(null);
       }
 
       const tagged: AdminMediaItem[] = [];
@@ -147,6 +176,7 @@ export function AdminPropertyMediaManager(props: {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(null);
+      setUploadProgress(null);
     }
   }
 
@@ -324,8 +354,16 @@ export function AdminPropertyMediaManager(props: {
         </div>
 
         {busy ? (
-          <div className="mt-4 rounded-2xl border border-line/80 bg-warm-base p-3 text-sm text-secondary">
-            {busy}
+          <div className="mt-4 space-y-2 rounded-2xl border border-line/80 bg-warm-base p-3">
+            <div className="text-sm text-secondary">{busy}</div>
+            {uploadProgress !== null ? (
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-line/40">
+                <div
+                  className="h-full rounded-full bg-brand transition-all duration-150"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -426,7 +464,7 @@ export function AdminPropertyMediaManager(props: {
               title="Drag to reorder"
             >
               <div className="relative aspect-[4/3] bg-warm-base">
-                <Image
+                <OptimizedImage
                   src={m.url}
                   alt={m.alt ?? "Media"}
                   fill

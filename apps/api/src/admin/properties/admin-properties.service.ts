@@ -569,6 +569,36 @@ export class AdminPropertiesService {
     });
   }
 
+  /**
+   * Persist a Cloudinary URL that the browser uploaded directly.
+   * Used by POST :id/media/register — no file handling on the server.
+   */
+  async addMediaByUrlAdmin(
+    adminId: string,
+    propertyId: string,
+    url: string,
+  ) {
+    const trimmed = (url ?? '').trim();
+    if (!trimmed) throw new BadRequestException('url is required.');
+
+    await this.mustFindProperty(propertyId);
+
+    const last = await this.prisma.media.findFirst({
+      where: { propertyId },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+
+    return this.prisma.media.create({
+      data: {
+        propertyId,
+        url: trimmed,
+        sortOrder: last ? last.sortOrder + 1 : 0,
+        category: 'OTHER',
+      },
+    });
+  }
+
   async updateMediaCategoryByAdmin(
     adminId: string,
     propertyId: string,

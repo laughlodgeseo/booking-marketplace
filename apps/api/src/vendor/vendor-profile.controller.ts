@@ -8,8 +8,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { VendorProfileService } from './vendor-profile.service';
+import { UserRole } from '@prisma/client';
+import { JwtAccessGuard } from '../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateVendorProfileDto } from './vendor-profile.dto';
 import { UpdateVendorProfileDto } from './vendor-profile.dto';
 
@@ -20,7 +23,8 @@ type JwtUser = {
 };
 
 @Controller('vendor/profile')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.VENDOR)
 export class VendorProfileController {
   constructor(private readonly service: VendorProfileService) {}
 

@@ -11,11 +11,15 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import {
   ContactSubmissionStatus,
   ContactSubmissionTopic,
+  UserRole,
 } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
+import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { ContactService } from './contact.service';
 
 type JwtUser = {
@@ -29,6 +33,7 @@ export class PublicContactController {
   constructor(private readonly contact: ContactService) {}
 
   @Post()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   create(
     @Body()
     body: {
@@ -44,7 +49,8 @@ export class PublicContactController {
 }
 
 @Controller('admin/contact-submissions')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminContactController {
   constructor(private readonly contact: ContactService) {}
 

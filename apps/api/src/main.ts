@@ -142,7 +142,6 @@ async function bootstrap() {
     origin: (origin: string | undefined, callback: CorsOriginCallback) => {
       // Allow non-browser calls (curl, server-to-server) with no Origin header.
       if (!origin) {
-        console.log('[cors] origin=<none> allowed=true');
         callback(null, true);
         return;
       }
@@ -151,10 +150,6 @@ async function bootstrap() {
       const allowed =
         staticAllowedOrigins.has(normalizedOrigin) ||
         vercelPreviewPattern.test(normalizedOrigin);
-
-      // Temporary proof log for CORS verification.
-
-      console.log(`[cors] origin=${normalizedOrigin} allowed=${allowed}`);
 
       if (allowed) {
         callback(null, true);

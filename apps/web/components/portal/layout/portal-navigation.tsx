@@ -5,10 +5,14 @@ import {
   CalendarDays,
   ClipboardCheck,
   CreditCard,
+  DollarSign,
+  Heart,
   LayoutDashboard,
   MessageSquare,
   Settings2,
   ShieldCheck,
+  Star,
+  User,
   Users,
   Wrench,
 } from "lucide-react";
@@ -51,8 +55,10 @@ export function getRoleNav(role?: PortalRole, translateFn?: TranslateFn): Portal
       { href: "/vendor/properties", label: translate(translateFn, "nav.properties", "Properties"), icon: <Building2 className="h-4 w-4" />, group: gWorkspace },
       { href: "/vendor/bookings", label: translate(translateFn, "nav.bookings", "Bookings"), icon: <ClipboardCheck className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/calendar", label: translate(translateFn, "nav.calendar", "Calendar"), icon: <CalendarDays className="h-4 w-4" />, group: gOperations },
+      { href: "/vendor/pricing", label: translate(translateFn, "nav.pricing", "Pricing"), icon: <DollarSign className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/block-requests", label: translate(translateFn, "nav.blockRequests", "Block Requests"), icon: <CalendarDays className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/messages", label: translate(translateFn, "nav.messages", "Messages"), icon: <MessageSquare className="h-4 w-4" />, group: gOperations },
+      { href: "/vendor/reviews", label: translate(translateFn, "nav.reviews", "Reviews"), icon: <Star className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/notifications", label: translate(translateFn, "nav.notifications", "Notifications"), icon: <Bell className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/ops-tasks", label: translate(translateFn, "nav.opsTasks", "Ops Tasks"), icon: <Wrench className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/maintenance", label: translate(translateFn, "nav.maintenance", "Maintenance"), icon: <Wrench className="h-4 w-4" />, group: gOperations },
@@ -95,6 +101,8 @@ export function getRoleNav(role?: PortalRole, translateFn?: TranslateFn): Portal
       { href: "/account/messages", label: translate(translateFn, "nav.messages", "Messages"), icon: <MessageSquare className="h-4 w-4" />, group: gAccount },
       { href: "/account/notifications", label: translate(translateFn, "nav.notifications", "Notifications"), icon: <Bell className="h-4 w-4" />, group: gAccount },
       { href: "/account/refunds", label: translate(translateFn, "nav.refunds", "Refunds"), icon: <CreditCard className="h-4 w-4" />, group: gAccount },
+      { href: "/account/wishlist", label: translate(translateFn, "nav.wishlist", "Wishlist"), icon: <Heart className="h-4 w-4" />, group: gAccount },
+      { href: "/account/profile", label: translate(translateFn, "nav.profile", "Profile"), icon: <User className="h-4 w-4" />, group: gAccount },
     ];
   }
 

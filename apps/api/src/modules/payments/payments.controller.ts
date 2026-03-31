@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Headers,
+  Logger,
   Post,
   Req,
   UnauthorizedException,
@@ -18,6 +19,7 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../../auth/types/auth-user.type';
 import type { AuthRequest } from '../../auth/types/auth-request.type';
 
+import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { AuthorizePaymentDto } from './dto/authorize-payment.dto';
 import { CapturePaymentDto } from './dto/capture-payment.dto';
@@ -26,7 +28,10 @@ import { RefundPaymentDto } from './dto/refund-payment.dto';
 @ApiTags('payments')
 @Controller('payments')
 @UseGuards(JwtAccessGuard, RolesGuard)
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
+
   constructor(private readonly payments: PaymentsService) {}
 
   @Post('authorize')
@@ -55,8 +60,7 @@ export class PaymentsController {
   ) {
     const user = req.user;
 
-    console.log('🔥 Create PaymentIntent called');
-    console.log('BODY:', body);
+    this.logger.log(`payment_create_intent userId=${user.id} bookingId=${body?.bookingId ?? 'n/a'}`);
 
     try {
       if (!user) {
@@ -77,7 +81,8 @@ export class PaymentsController {
         idempotencyKey,
       });
     } catch (err) {
-      console.error('❌ PaymentIntent Error:', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`payment_create_intent_failed userId=${user.id} bookingId=${body?.bookingId ?? 'n/a'} error=${message}`);
       throw err;
     }
   }
@@ -112,6 +117,33 @@ export class PaymentsController {
       refundId: dto.refundId,
       idempotencyKey,
       amountOverride: dto.amountOverride,
+    });
+  }
+
+  @Post('deposit/release')
+  @Roles(UserRole.ADMIN)
+  releaseDeposit(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { depositId: string; note?: string },
+  ) {
+    return this.payments.releaseSecurityDeposit({
+      actor: { id: user.id, role: user.role },
+      depositId: body.depositId,
+      note: body.note,
+    });
+  }
+
+  @Post('deposit/claim')
+  @Roles(UserRole.ADMIN)
+  claimDeposit(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { depositId: string; claimAmount?: number; note?: string },
+  ) {
+    return this.payments.claimSecurityDeposit({
+      actor: { id: user.id, role: user.role },
+      depositId: body.depositId,
+      claimAmount: body.claimAmount,
+      note: body.note,
     });
   }
 }

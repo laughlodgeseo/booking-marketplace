@@ -12,3 +12,5 @@ ignoredBuiltDependencies:
   - prisma
   - sharp
   - unrs-resolver
+
+onlyBuiltDependencies: sharp

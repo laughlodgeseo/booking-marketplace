@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { MessageSquare, ReceiptText } from "lucide-react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
@@ -149,11 +150,12 @@ export default function AccountBookingDetailPage() {
           <section className="overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-sm">
             <div className="relative aspect-[16/10] w-full bg-warm-base sm:aspect-[21/9]">
               {heroImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <OptimizedImage
                   src={heroImage}
                   alt={state.data.property.title}
+                  fill
                   className="h-full w-full object-cover"
+                  sizes="100vw"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-secondary">

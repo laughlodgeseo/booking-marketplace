@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import type { VendorPropertyDetail, VendorPropertyMedia } from "@/lib/api/portal/vendor";
 import {
   deleteVendorPropertyMedia,
+  registerVendorPropertyMedia,
   reorderVendorPropertyMedia,
   updateVendorPropertyMediaCategory,
   uploadVendorPropertyMedia,
 } from "@/lib/api/portal/vendor";
+import {
+  getCloudinaryUploadParams,
+  uploadFileToCloudinary,
+} from "@/lib/cloudinary";
 import type { MediaCategory } from "@/lib/types/property";
 
 const REQUIRED_BLOCKS: Array<{ key: MediaCategory; title: string; help: string }> = [
@@ -67,6 +72,7 @@ function normalizeIncomingCategory(v: string): MediaCategory {
 export function MediaManager({ property, onChanged }: Props) {
   const [busy, setBusy] = useState<null | string>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const [otherCategory, setOtherCategory] = useState<MediaCategory>("OTHER");
 
@@ -95,33 +101,58 @@ export function MediaManager({ property, onChanged }: Props) {
     if (!files || files.length === 0) return;
 
     setError(null);
+    setUploadProgress(null);
     setBusy(`Uploading to ${category}...`);
 
     try {
-      const created: VendorPropertyMedia[] = [];
+      // Fetch direct-upload params once for the batch
+      const params = await getCloudinaryUploadParams(property.id, "vendor");
 
-      // 1) upload
-      for (const file of Array.from(files)) {
-        const item = await uploadVendorPropertyMedia(property.id, file);
+      const created: VendorPropertyMedia[] = [];
+      const fileArray = Array.from(files);
+
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        setBusy(`Uploading ${i + 1} / ${fileArray.length}...`);
+        setUploadProgress(0);
+
+        let item: VendorPropertyMedia;
+
+        if (params.mode === "cloudinary") {
+          // Direct browser → Cloudinary upload (no server timeout risk)
+          const url = await uploadFileToCloudinary(file, params, (pct) =>
+            setUploadProgress(pct),
+          );
+          item = await registerVendorPropertyMedia(property.id, url);
+        } else {
+          // Cloudinary not configured → fall back to server-side upload
+          item = await uploadVendorPropertyMedia(property.id, file);
+        }
+
         created.push(item);
+        setUploadProgress(null);
       }
 
-      // 2) tag each uploaded media to requested category
+      // Tag each uploaded item with the requested category
       const tagged: VendorPropertyMedia[] = [];
       for (const item of created) {
         const updated = await updateVendorPropertyMediaCategory(property.id, item.id, category);
         tagged.push(updated);
       }
 
-      // 3) merge into local state (replace created with tagged)
+      // Merge into local state
       const createdIds = new Set(created.map((x) => x.id));
-      const nextMedia = [...(property.media ?? []).filter((m) => !createdIds.has(m.id)), ...tagged];
+      const nextMedia = [
+        ...(property.media ?? []).filter((m) => !createdIds.has(m.id)),
+        ...tagged,
+      ];
 
       onChanged({ ...property, media: nextMedia });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(null);
+      setUploadProgress(null);
     }
   }
 
@@ -275,8 +306,16 @@ export function MediaManager({ property, onChanged }: Props) {
         </div>
 
         {busy ? (
-          <div className="mt-4 rounded-xl border border-line/80 bg-warm-base p-3 text-sm text-secondary">
-            {busy}
+          <div className="mt-4 space-y-2 rounded-xl border border-line/80 bg-warm-base p-3">
+            <div className="text-sm text-secondary">{busy}</div>
+            {uploadProgress !== null ? (
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-line/40">
+                <div
+                  className="h-full rounded-full bg-brand transition-all duration-150"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -359,7 +398,7 @@ export function MediaManager({ property, onChanged }: Props) {
             return (
               <div key={m.id} className="overflow-hidden rounded-2xl border border-line/80 bg-surface">
                 <div className="relative aspect-[4/3] w-full bg-warm-base">
-                  <Image
+                  <OptimizedImage
                     src={m.url}
                     alt={m.alt ?? `Photo ${idx + 1}`}
                     fill

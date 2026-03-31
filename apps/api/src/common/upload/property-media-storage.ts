@@ -4,6 +4,89 @@ import { extname } from 'path';
 
 type UploadScope = 'admin' | 'vendor' | 'seed';
 
+// ─── Direct-upload params returned to the browser ────────────────────────────
+
+export type CloudinaryDirectUploadParams = {
+  mode: 'cloudinary';
+  cloudName: string;
+  /** Present for unsigned-preset uploads */
+  uploadPreset?: string;
+  /** Present for signed uploads */
+  apiKey?: string;
+  signature?: string;
+  timestamp?: number;
+  folder: string;
+  publicId: string;
+};
+
+export type DirectUploadParams =
+  | CloudinaryDirectUploadParams
+  | { mode: 'server' };
+
+/**
+ * Generate parameters the browser can use to upload directly to Cloudinary,
+ * bypassing the NestJS server entirely (avoids proxy timeouts).
+ *
+ * Returns `{ mode: 'server' }` when Cloudinary is not configured so callers
+ * can fall back to the existing multipart-upload endpoint.
+ */
+export function getCloudinaryUploadParams(
+  propertyId: string,
+  scope: 'admin' | 'vendor',
+): DirectUploadParams {
+  const cfg = loadCloudinaryConfig();
+  if (!cfg) return { mode: 'server' };
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const propertySegment = normalizeSegment(propertyId);
+  const folder = `${cfg.baseFolder}/${scope}/${propertySegment}`;
+  const publicId = `${scope}-${propertySegment}-${randomUUID()}`;
+
+  const params: CloudinaryDirectUploadParams = {
+    mode: 'cloudinary',
+    cloudName: cfg.cloudName,
+    folder,
+    publicId,
+  };
+
+  if (cfg.uploadPreset) {
+    params.uploadPreset = cfg.uploadPreset;
+  }
+
+  if (cfg.apiKey && cfg.apiSecret) {
+    params.apiKey = cfg.apiKey;
+    params.timestamp = timestamp;
+    params.signature = cloudinarySignature(
+      { folder, public_id: publicId, timestamp },
+      cfg.apiSecret,
+    );
+  }
+
+  return params;
+}
+
+/**
+ * Validate that a URL returned by Cloudinary is safe to persist in the DB.
+ * Throws an Error if the URL is invalid or from an unexpected host.
+ */
+export function validateCloudinaryUrl(url: string): void {
+  const trimmed = (url ?? '').trim();
+  if (!trimmed) throw new Error('Media URL is required.');
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error('Media URL is not valid.');
+  }
+
+  const allowed = ['res.cloudinary.com', 'localhost', '127.0.0.1'];
+  const hostname = parsed.hostname.toLowerCase();
+  if (!allowed.some((h) => hostname === h || hostname.endsWith(`.${h}`))) {
+    throw new Error(`Media URL hostname '${hostname}' is not allowed.`);
+  }
+}
+
 type ResolvePropertyImageUrlInput = {
   file: Express.Multer.File;
   propertyId: string;

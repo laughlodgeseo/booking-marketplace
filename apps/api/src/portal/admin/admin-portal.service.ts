@@ -156,6 +156,9 @@ export class AdminPortalService {
   }): Promise<ChartResponse> {
     this.assertAdmin(params.role);
 
+    // SECURITY: bucketExpr is hardcoded ('day'|'week'|'month'), never from user input.
+    // All raw queries below use Prisma tagged templates — params are parameterized.
+    // Raw SQL required for date_trunc aggregation which Prisma ORM cannot express.
     const bucketExpr =
       params.bucket === 'day'
         ? 'day'

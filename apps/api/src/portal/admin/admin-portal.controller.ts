@@ -35,6 +35,7 @@ import {
   parseDateRange,
   parsePageParams,
 } from '../common/portal.utils';
+import { Throttle } from '@nestjs/throttler';
 import { createReadStream } from 'fs';
 import type { Response } from 'express';
 import { PortalNotificationsService } from '../common/portal-notifications.service';
@@ -42,6 +43,7 @@ import { PortalNotificationsService } from '../common/portal-notifications.servi
 @Controller('/portal/admin')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class AdminPortalController {
   constructor(
     private readonly service: AdminPortalService,

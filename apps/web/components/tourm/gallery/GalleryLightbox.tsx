@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { GalleryImage } from "@/lib/content/gallery-items";
@@ -134,7 +134,7 @@ export default function GalleryLightbox(props: GalleryLightboxProps) {
               if (deltaX > 0) prev();
             }}
           >
-            <Image src={currentImage.src} alt={currentImage.alt} fill sizes="100vw" className="object-contain" priority />
+            <OptimizedImage src={currentImage.src} alt={currentImage.alt} fill sizes="100vw" className="object-contain" priority />
 
             <button
               type="button"

@@ -21,6 +21,9 @@ type GoogleMapsWithMarkerLib = typeof google.maps & {
     AdvancedMarkerElement?: typeof google.maps.marker.AdvancedMarkerElement;
   };
 };
+type GoogleMapsWithImportLibrary = typeof google.maps & {
+  importLibrary?: (libraryName: string) => Promise<unknown>;
+};
 
 let _mapsInitPromise: Promise<void> | null = null;
 
@@ -36,6 +39,10 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
 
     const existing = document.querySelector<HTMLScriptElement>('script[data-google-maps-loader="1"]');
     if (existing) {
+      if (typeof window !== "undefined" && (window as unknown as { google?: { maps?: unknown } }).google?.maps) {
+        resolve();
+        return;
+      }
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("Google Maps script failed to load.")));
       return;
@@ -52,7 +59,6 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
       key: apiKey,
       v: "weekly",
       libraries: "marker",
-      loading: "async",
     });
 
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
@@ -64,6 +70,40 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   });
 
   return _mapsInitPromise;
+}
+
+async function resolveMapConstructor(): Promise<typeof google.maps.Map> {
+  const mapsWithImport = google.maps as GoogleMapsWithImportLibrary;
+
+  if (typeof mapsWithImport.importLibrary === "function") {
+    const mapsLib = (await mapsWithImport.importLibrary("maps")) as google.maps.MapsLibrary;
+    try {
+      await mapsWithImport.importLibrary("marker");
+    } catch {
+      // Marker library is optional for fallback markers.
+    }
+    if (typeof mapsLib.Map === "function") return mapsLib.Map;
+  }
+
+  if (typeof google.maps.Map === "function") return google.maps.Map;
+
+  await new Promise<void>((resolve, reject) => {
+    const deadline = Date.now() + 2500;
+    const tick = () => {
+      if (typeof google.maps.Map === "function") {
+        resolve();
+        return;
+      }
+      if (Date.now() >= deadline) {
+        reject(new Error("Google Maps Map constructor unavailable after script load."));
+        return;
+      }
+      window.setTimeout(tick, 50);
+    };
+    tick();
+  });
+
+  return google.maps.Map;
 }
 
 function clearMarkers(markers: MapMarkerHandle[]) {
@@ -83,19 +123,124 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-function createPricePill(text: string): HTMLDivElement {
-  const el = document.createElement("div");
-  el.textContent = text;
-  el.style.background = "#111827";
-  el.style.color = "#ffffff";
-  el.style.fontSize = "12px";
-  el.style.fontWeight = "600";
-  el.style.padding = "5px 8px";
-  el.style.borderRadius = "999px";
-  el.style.boxShadow = "0 8px 18px rgba(0,0,0,0.22)";
-  el.style.border = "1px solid rgba(255,255,255,0.35)";
-  el.style.whiteSpace = "nowrap";
-  return el;
+type PinCardDom = {
+  root: HTMLDivElement;
+};
+
+function createPinCard(args: {
+  title: string;
+  priceText: string;
+  imageUrl: string | null;
+  imageAlt: string;
+  meta: string | null;
+  expanded: boolean;
+  emphasized: boolean;
+}): PinCardDom {
+  const root = document.createElement("div");
+  root.style.display = "flex";
+  root.style.alignItems = "center";
+  root.style.gap = args.expanded ? "10px" : "6px";
+  root.style.maxWidth = args.expanded ? "310px" : "150px";
+  root.style.width = args.expanded ? "310px" : "150px";
+  root.style.padding = args.expanded ? "8px" : "5px";
+  root.style.borderRadius = args.expanded ? "16px" : "12px";
+  root.style.border = args.emphasized
+    ? "1px solid rgba(79,70,229,0.9)"
+    : "1px solid rgba(15,23,42,0.16)";
+  root.style.background = "rgba(255,255,255,0.98)";
+  root.style.backdropFilter = "blur(3px)";
+  root.style.boxShadow = args.emphasized
+    ? "0 16px 34px rgba(79,70,229,0.28)"
+    : "0 12px 28px rgba(15,23,42,0.2)";
+  root.style.transform = args.expanded ? "scale(1.02)" : "scale(1)";
+  root.style.transition = "transform 160ms ease, box-shadow 160ms ease, width 160ms ease";
+  root.style.cursor = "pointer";
+
+  const thumb = document.createElement("div");
+  thumb.style.width = args.expanded ? "96px" : "36px";
+  thumb.style.height = args.expanded ? "72px" : "36px";
+  thumb.style.flex = args.expanded ? "0 0 96px" : "0 0 36px";
+  thumb.style.overflow = "hidden";
+  thumb.style.borderRadius = args.expanded ? "12px" : "9px";
+  thumb.style.background = "linear-gradient(140deg, #e2e8f0, #cbd5e1)";
+  thumb.style.position = "relative";
+  thumb.style.boxShadow = "inset 0 0 0 1px rgba(15,23,42,0.08)";
+
+  if (args.imageUrl) {
+    const img = document.createElement("img");
+    img.src = args.imageUrl;
+    img.alt = args.imageAlt;
+    img.loading = "lazy";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    thumb.appendChild(img);
+  }
+
+  const content = document.createElement("div");
+  content.style.minWidth = "0";
+  content.style.display = "flex";
+  content.style.flexDirection = "column";
+  content.style.gap = args.expanded ? "4px" : "2px";
+
+  const title = document.createElement("div");
+  title.textContent = args.title;
+  title.style.fontSize = args.expanded ? "12px" : "10px";
+  title.style.fontWeight = "700";
+  title.style.lineHeight = "1.2";
+  title.style.color = "#0f172a";
+  title.style.display = "-webkit-box";
+  title.style.webkitLineClamp = args.expanded ? "2" : "1";
+  title.style.webkitBoxOrient = "vertical";
+  title.style.overflow = "hidden";
+
+  const price = document.createElement("div");
+  price.textContent = args.priceText;
+  price.style.fontSize = args.expanded ? "12px" : "10px";
+  price.style.fontWeight = "700";
+  price.style.color = "#3730a3";
+  price.style.whiteSpace = "nowrap";
+
+  content.appendChild(title);
+
+  if (args.expanded && args.meta) {
+    const meta = document.createElement("div");
+    meta.textContent = args.meta;
+    meta.style.fontSize = "10px";
+    meta.style.fontWeight = "500";
+    meta.style.color = "#64748b";
+    meta.style.display = "-webkit-box";
+    meta.style.webkitLineClamp = "1";
+    meta.style.webkitBoxOrient = "vertical";
+    meta.style.overflow = "hidden";
+    content.appendChild(meta);
+  }
+
+  const footer = document.createElement("div");
+  footer.style.display = "flex";
+  footer.style.alignItems = "center";
+  footer.style.justifyContent = args.expanded ? "space-between" : "flex-start";
+  footer.style.gap = "6px";
+  footer.appendChild(price);
+
+  if (args.expanded) {
+    const cta = document.createElement("span");
+    cta.textContent = "View";
+    cta.style.fontSize = "10px";
+    cta.style.fontWeight = "700";
+    cta.style.color = "#1e1b4b";
+    cta.style.background = "rgba(99,102,241,0.16)";
+    cta.style.padding = "3px 7px";
+    cta.style.borderRadius = "999px";
+    cta.style.border = "1px solid rgba(99,102,241,0.28)";
+    footer.appendChild(cta);
+  }
+
+  content.appendChild(footer);
+
+  root.appendChild(thumb);
+  root.appendChild(content);
+  return { root };
 }
 
 export default function GoogleMap(props: {
@@ -104,6 +249,7 @@ export default function GoogleMap(props: {
   points: MapPoint[];
   className?: string;
   onMarkerClick?: (slug: string) => void;
+  onMarkerOpen?: (slug: string) => void;
   hoveredSlug?: string | null;
   activeSlug?: string | null;
   onViewportChanged?: (bounds: ViewportBounds) => void | Promise<void>;
@@ -115,6 +261,9 @@ export default function GoogleMap(props: {
     points,
     className,
     onMarkerClick,
+    onMarkerOpen,
+    hoveredSlug,
+    activeSlug,
     onViewportChanged,
     viewportDebounceMs,
   } = props;
@@ -124,6 +273,7 @@ export default function GoogleMap(props: {
 
   const [ready, setReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [markerHoverSlug, setMarkerHoverSlug] = useState<string | null>(null);
 
   const apiKey = ENV.googleMapsApiKey;
   const mapIdRef = useRef<string | null>(ENV.googleMapsMapId);
@@ -151,7 +301,10 @@ export default function GoogleMap(props: {
           return;
         }
 
-        const map = new google.maps.Map(elRef.current, {
+        const MapCtor = await resolveMapConstructor();
+        if (cancelled || !elRef.current) return;
+
+        const map = new MapCtor(elRef.current, {
           center,
           zoom,
           disableDefaultUI: true,
@@ -199,39 +352,98 @@ export default function GoogleMap(props: {
         typeof p.priceFrom === "number"
           ? formatMoney(p.priceFrom, p.currency)
           : `${p.currency} --`;
+      const title = (p.title ?? "Property").trim() || "Property";
+      const metaParts: string[] = [];
+      if (typeof p.bedrooms === "number" && p.bedrooms > 0) metaParts.push(`${p.bedrooms} bd`);
+      if (typeof p.bathrooms === "number" && p.bathrooms > 0) metaParts.push(`${p.bathrooms} ba`);
+      if (p.area?.trim()) metaParts.push(p.area.trim());
+      const isExpanded = Boolean(slug && (slug === hoveredSlug || slug === activeSlug || slug === markerHoverSlug));
+      const isEmphasized = isExpanded;
 
       if (AdvancedMarkerCtor) {
-        const content = createPricePill(priceText);
-        const marker = new AdvancedMarkerCtor({
-          map: h.map,
-          position,
-          title: p.title,
-          content,
-        });
+        try {
+          const card = createPinCard({
+            title,
+            priceText,
+            imageUrl: p.coverImage?.url ?? null,
+            imageAlt: p.coverImage?.alt ?? title,
+            meta: metaParts.length > 0 ? metaParts.join(" • ") : null,
+            expanded: isExpanded,
+            emphasized: isEmphasized,
+          });
+          const content = card.root;
 
-        let clickListener: google.maps.MapsEventListener | null = null;
-        if (onMarkerClick && slug && typeof marker.addListener === "function") {
-          clickListener = marker.addListener("gmp-click", () => onMarkerClick(slug));
+          const onEnter =
+            slug
+              ? () => {
+                  setMarkerHoverSlug(slug);
+                }
+              : null;
+          const onLeave =
+            slug
+              ? () => {
+                  setMarkerHoverSlug((prev) => (prev === slug ? null : prev));
+                }
+              : null;
+
+          if (onEnter && onLeave) {
+            content.addEventListener("pointerenter", onEnter);
+            content.addEventListener("pointerleave", onLeave);
+          }
+
+          const openClickListener =
+            onMarkerOpen && slug && isExpanded
+              ? (event: Event) => {
+                  event.stopPropagation();
+                  onMarkerOpen(slug);
+                }
+              : null;
+          if (openClickListener) {
+            content.addEventListener("click", openClickListener);
+          }
+
+          const marker = new AdvancedMarkerCtor({
+            map: h.map,
+            position,
+            title,
+            content,
+            gmpClickable: Boolean(onMarkerClick && slug),
+          });
+
+          let clickListener: google.maps.MapsEventListener | null = null;
+          if (onMarkerClick && slug && typeof marker.addListener === "function") {
+            clickListener = marker.addListener("gmp-click", () => onMarkerClick(slug));
+          }
+
+          h.markers.push({
+            clear: () => {
+              if (openClickListener) {
+                content.removeEventListener("click", openClickListener);
+              }
+              if (onEnter && onLeave) {
+                content.removeEventListener("pointerenter", onEnter);
+                content.removeEventListener("pointerleave", onLeave);
+              }
+              clickListener?.remove();
+              marker.map = null;
+            },
+          });
+          continue;
+        } catch {
+          // Fall through to classic markers if advanced marker rendering fails.
         }
-
-        h.markers.push({
-          clear: () => {
-            clickListener?.remove();
-            marker.map = null;
-          },
-        });
-        continue;
       }
 
       const marker = new google.maps.Marker({
         map: h.map,
         position,
-        title: p.title,
+        title,
         label: {
           text: priceText,
           fontSize: "12px",
           fontWeight: "600",
         },
+        zIndex: isEmphasized ? 20 : undefined,
       });
 
       const clickListener =
@@ -246,7 +458,7 @@ export default function GoogleMap(props: {
         },
       });
     }
-  }, [onMarkerClick, points, ready]);
+  }, [activeSlug, hoveredSlug, markerHoverSlug, onMarkerClick, onMarkerOpen, points, ready]);
 
   // Emit viewport changes after pan/zoom settles.
   useEffect(() => {

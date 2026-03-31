@@ -322,23 +322,60 @@ export class NotificationsWorker implements OnModuleInit {
     startedAt: number;
   }): Promise<DeliveryResult> {
     const transporter = this.getTransporter(input.smtp);
-    const rawInfo: unknown = await transporter.sendMail(input.message);
-    const info = this.toRecord(rawInfo);
-    const latencyMs = Date.now() - input.startedAt;
-    const messageId = info.messageId;
-    const smtpResponse = info.response;
+    try {
+      const rawInfo: unknown = await transporter.sendMail(input.message);
+      const info = this.toRecord(rawInfo);
+      const latencyMs = Date.now() - input.startedAt;
+      const messageId = info.messageId;
+      const smtpResponse = info.response;
 
-    return {
-      to: input.to,
-      attempt: input.attempt,
-      latencyMs,
-      messageId:
-        typeof messageId === 'string' && messageId.trim() ? messageId : null,
-      smtpResponse:
-        typeof smtpResponse === 'string' && smtpResponse.trim()
-          ? smtpResponse
-          : null,
-    };
+      const result: DeliveryResult = {
+        to: input.to,
+        attempt: input.attempt,
+        latencyMs,
+        messageId:
+          typeof messageId === 'string' && messageId.trim()
+            ? messageId
+            : null,
+        smtpResponse:
+          typeof smtpResponse === 'string' && smtpResponse.trim()
+            ? smtpResponse
+            : null,
+      };
+
+      this.logger.log(
+        `SMTP_SEND_SUCCESS ${JSON.stringify({
+          to: result.to,
+          attempt: result.attempt,
+          latencyMs: result.latencyMs,
+          messageId: result.messageId,
+          smtpResponse: result.smtpResponse,
+        })}`,
+      );
+
+      return result;
+    } catch (err: unknown) {
+      const record = this.toRecord(err);
+      const code = typeof record.code === 'string' ? record.code : null;
+      const response =
+        typeof record.response === 'string'
+          ? record.response
+          : typeof record.responseMessage === 'string'
+            ? record.responseMessage
+            : null;
+
+      this.logger.error(
+        `SMTP_SEND_ERROR ${JSON.stringify({
+          to: input.to,
+          attempt: input.attempt,
+          code,
+          response,
+          error: this.errMessage(err),
+        })}`,
+      );
+
+      throw err;
+    }
   }
 
   private shouldFallbackToSubmissionPort(
@@ -389,14 +426,8 @@ export class NotificationsWorker implements OnModuleInit {
     const portRaw = this.readEnv('SMTP_PORT');
     const port = Number(portRaw || '587');
 
-    // SSL on 465 is mandatory for cPanel SMTP.
-    const secureFlag = this.readEnv('SMTP_SECURE').toLowerCase();
-    const secureFromEnv =
-      secureFlag === 'true' || secureFlag === '1' || secureFlag === 'yes';
-    // Port 587 is submission + STARTTLS in practice; force non-implicit TLS there.
-    const secure = port === 465 ? true : port === 587 ? false : secureFromEnv;
-    const requireTls =
-      port === 465 ? false : this.readBooleanEnv('SMTP_REQUIRE_TLS', !secure);
+    const secure = this.readBooleanEnv('SMTP_SECURE', port === 465);
+    const requireTls = this.readBooleanEnv('SMTP_REQUIRE_TLS', true);
 
     const user = this.readEnv('SMTP_USER');
     const pass = this.readEnv('SMTP_PASS');
@@ -438,6 +469,16 @@ export class NotificationsWorker implements OnModuleInit {
   }
 
   private getTransporter(smtp: SmtpConfig): nodemailer.Transporter {
+    const transportDebugDefault = process.env.NODE_ENV !== 'production';
+    const transportLogger = this.readBooleanEnv(
+      'SMTP_TRANSPORT_LOGGER',
+      transportDebugDefault,
+    );
+    const transportDebug = this.readBooleanEnv(
+      'SMTP_TRANSPORT_DEBUG',
+      transportDebugDefault,
+    );
+
     const key = [
       smtp.host,
       String(smtp.port),
@@ -453,6 +494,8 @@ export class NotificationsWorker implements OnModuleInit {
       String(smtp.connectionTimeout),
       String(smtp.greetingTimeout),
       String(smtp.socketTimeout),
+      String(transportLogger),
+      String(transportDebug),
     ].join('|');
 
     if (this.cachedTransport && this.cachedTransport.key === key) {
@@ -465,6 +508,8 @@ export class NotificationsWorker implements OnModuleInit {
       secure: smtp.secure,
       requireTLS: smtp.requireTls,
       auth: { user: smtp.user, pass: smtp.pass },
+      logger: transportLogger,
+      debug: transportDebug,
       pool: true,
       maxConnections: smtp.maxConnections,
       maxMessages: smtp.maxMessages,
@@ -517,13 +562,17 @@ export class NotificationsWorker implements OnModuleInit {
 
   private warnOnSmtpModeMismatch() {
     const port = Number(this.readEnv('SMTP_PORT') || '587');
-    const secureFlag = this.readEnv('SMTP_SECURE').toLowerCase();
-    const secureRequested =
-      secureFlag === 'true' || secureFlag === '1' || secureFlag === 'yes';
+    const secureRequested = this.readBooleanEnv('SMTP_SECURE', port === 465);
 
     if (port === 587 && secureRequested) {
       this.logger.warn(
-        'SMTP_PORT=587 with SMTP_SECURE=true is not compatible with STARTTLS submission mode. Runtime will force secure=false and requireTLS=true.',
+        'SMTP_PORT=587 with SMTP_SECURE=true is usually invalid for STARTTLS submission. Prefer SMTP_SECURE=false with SMTP_REQUIRE_TLS=true unless your provider explicitly requires implicit TLS on 587.',
+      );
+    }
+
+    if (port === 465 && !secureRequested) {
+      this.logger.warn(
+        'SMTP_PORT=465 is typically implicit TLS. Prefer SMTP_SECURE=true for this port.',
       );
     }
   }

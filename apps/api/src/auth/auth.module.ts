@@ -9,6 +9,7 @@ import { RbacTestController } from './rbac-test.controller';
 // ✅ NEW: OTP email verification
 import { EmailVerificationController } from './email-verification/email-verification.controller';
 import { EmailVerificationService } from './email-verification/email-verification.service';
+import { OAuthController } from './oauth.controller';
 
 // ✅ Assumed existing modules (standard in your repo structure)
 import { PrismaModule } from '../modules/prisma/prisma.module';
@@ -20,6 +21,7 @@ import { NotificationsModule } from '../modules/notifications/notifications.modu
     AuthController,
     RbacTestController,
     EmailVerificationController,
+    OAuthController,
   ],
   providers: [
     AuthService,

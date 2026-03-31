@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -24,15 +25,19 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CancellationPolicyService } from './policies/cancellation.policy';
 import { NotificationsService } from '../modules/notifications/notifications.service';
 import { buildOverlapFilter } from '../common/date-range';
+import { PricingService } from '../modules/pricing/pricing.service';
 
 const PAYMENT_WINDOW_MINUTES = 15;
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cancellationPolicy: CancellationPolicyService,
     private readonly notifications: NotificationsService,
+    private readonly pricing: PricingService,
   ) {}
 
   // ---------------------------
@@ -59,7 +64,12 @@ export class BookingsService {
 
     if (nights <= 0) throw new BadRequestException('Invalid date range.');
 
-    const subtotal = nights * property.basePrice;
+    // Use PricingService as single source of truth (applies rules per night)
+    const { subtotal } = await this.pricing.calculateTotal(
+      params.propertyId,
+      params.checkIn,
+      params.checkOut,
+    );
     const fees = property.cleaningFee ?? 0;
 
     return {
@@ -93,6 +103,9 @@ export class BookingsService {
       });
 
       if (existing) {
+        this.logger.log(
+          `booking_create_idempotent bookingId=${existing.id} userId=${args.userId}`,
+        );
         return { ok: true, reused: true, booking: existing };
       }
     }
@@ -221,6 +234,10 @@ export class BookingsService {
               convertedAt: now,
             },
           });
+
+          this.logger.log(
+            `booking_created bookingId=${booking.id} propertyId=${hold.propertyId} userId=${args.userId} amount=${displayTotalAmount} currency=${displayCurrency}`,
+          );
 
           return { ok: true, reused: false, booking };
         },
@@ -491,6 +508,10 @@ export class BookingsService {
 
       // ✅ Frank Porter Ops Hook: cancel ops tasks linked to this booking
       await this.cancelOpsTasksForBooking(tx, booking.id);
+
+      this.logger.log(
+        `booking_cancelled bookingId=${booking.id} actor=${actor} reason=${dto.reason} tier=${decision.tier} penalty=${penaltyAmountDisplay} refund=${refundableAmountDisplay}`,
+      );
 
       return {
         ok: true,

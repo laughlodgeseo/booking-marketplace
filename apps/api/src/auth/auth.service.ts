@@ -350,6 +350,88 @@ export class AuthService {
     return { ok: true };
   }
 
+  /**
+   * OAuth login: find or create user by provider + provider ID.
+   * If user exists with same email but different provider, link them.
+   */
+  async oauthLogin(params: {
+    provider: string;
+    providerId: string;
+    email: string;
+    fullName?: string;
+    avatarUrl?: string;
+    role?: UserRole;
+  }): Promise<{
+    user: SafeAuthUser;
+    accessToken: string;
+    refreshToken: string;
+    isNewUser: boolean;
+  }> {
+    const email = params.email.trim().toLowerCase();
+    const requestedRole = params.role ?? UserRole.CUSTOMER;
+
+    // Try to find existing user by email
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    let isNewUser = false;
+
+    if (user) {
+      // Link OAuth provider if not already set
+      if (!user.authProvider) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            authProvider: params.provider,
+            authProviderId: params.providerId,
+            isEmailVerified: true, // OAuth emails are verified
+            avatarUrl: user.avatarUrl || params.avatarUrl || null,
+          },
+        });
+      }
+    } else {
+      // Create new user — generate a random password hash (user won't use password login)
+      const randomPwd = randomBytes(32).toString('hex');
+      const passwordHash = await hashPassword(randomPwd);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          fullName: params.fullName?.trim() || null,
+          avatarUrl: params.avatarUrl || null,
+          role: requestedRole,
+          authProvider: params.provider,
+          authProviderId: params.providerId,
+          isEmailVerified: true, // OAuth emails are verified
+        },
+      });
+
+      if (requestedRole === UserRole.VENDOR) {
+        const displayName = params.fullName?.trim() || email.split('@')[0] || 'Vendor';
+        await this.prisma.vendorProfile.create({
+          data: { userId: user.id, displayName, status: 'PENDING' },
+        });
+      }
+
+      isNewUser = true;
+    }
+
+    const accessToken = await this.signAccessToken(user.id, user.email, user.role);
+    const { refreshToken } = await this.issueRefreshToken(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        ...this.splitName(user.fullName),
+      },
+      accessToken,
+      refreshToken,
+      isNewUser,
+    };
+  }
+
   private async signAccessToken(userId: string, email: string, role: UserRole) {
     const payload: JwtAccessPayload = { sub: userId, email, role };
     return this.jwt.signAsync(payload, {

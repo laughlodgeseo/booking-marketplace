@@ -28,11 +28,13 @@ import {
 } from '../common/portal.utils';
 import type { VendorOpsTaskQueryDto } from './dto/vendor-ops-task-query.dto';
 import type { VendorPropertiesQueryDto } from './dto/vendor-properties-query.dto';
+import { Throttle } from '@nestjs/throttler';
 import { PortalNotificationsService } from '../common/portal-notifications.service';
 
 @Controller('/portal/vendor')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.VENDOR)
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class VendorPortalController {
   constructor(
     private readonly service: VendorPortalService,
@@ -194,6 +196,15 @@ export class VendorPortalController {
       page,
       pageSize,
     });
+  }
+
+  @Get('reviews')
+  reviews(
+    @CurrentUser() user: User,
+    @Query() query: { page?: string; pageSize?: string },
+  ) {
+    const { page, pageSize } = parsePageParams(query);
+    return this.service.getVendorReviews(user.id, page, pageSize);
   }
 
   @Post('block-requests')

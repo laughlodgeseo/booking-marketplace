@@ -19,12 +19,19 @@ import { AdminModule } from './admin/admin.module';
 import { PortalModule } from './portal/portal.module';
 
 import { BookingExpiryWorker } from './workers/booking-expiry.worker';
+import { BookingCompletionWorker } from './workers/booking-completion.worker';
 import { SearchModule } from './modules/search/search.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { FxModule } from './modules/fx/fx.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { CustomerModule } from './modules/customer/customer.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { PricingModule } from './modules/pricing/pricing.module';
+import { PromoModule } from './modules/promo/promo.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
@@ -58,10 +65,21 @@ import { AppThrottlerGuard } from './common/guards/app-throttler.guard';
     ContactModule,
 
     SearchModule,
+
+    // Phase 2 modules
+    WishlistModule,
+    CustomerModule,
+    ReviewsModule,
+    PricingModule,
+    PromoModule,
+
+    // Media: direct-upload signature endpoint
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [
     BookingExpiryWorker,
+    BookingCompletionWorker,
     {
       provide: APP_GUARD,
       useClass: AppThrottlerGuard,

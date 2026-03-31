@@ -46,6 +46,8 @@ type GuestReviewView = {
   comment: string | null;
   createdAt: string;
   reviewer: string;
+  hostResponseText: string | null;
+  hostResponseAt: string | null;
 };
 
 const PROPERTY_PAGE_COPY = {
@@ -205,6 +207,8 @@ function normalizeGuestReviews(
       comment?: unknown;
       createdAt?: unknown;
       customer?: { fullName?: unknown } | null;
+      hostResponseText?: unknown;
+      hostResponseAt?: unknown;
     };
 
     const id = typeof obj.id === "string" ? obj.id : "";
@@ -223,6 +227,8 @@ function normalizeGuestReviews(
         obj.customer && typeof obj.customer.fullName === "string" && obj.customer.fullName.trim()
           ? obj.customer.fullName.trim()
           : guestFallback,
+      hostResponseText: typeof obj.hostResponseText === "string" ? obj.hostResponseText : null,
+      hostResponseAt: typeof obj.hostResponseAt === "string" ? obj.hostResponseAt : null,
     });
   }
 
@@ -612,6 +618,21 @@ export default async function PropertyDetailPage(props: PageProps) {
                         ) : null}
                         {review.comment ? (
                           <p className="mt-1 text-sm leading-relaxed text-secondary/80">{review.comment}</p>
+                        ) : null}
+                        {review.hostResponseText ? (
+                          <div className="mt-3 rounded-xl bg-indigo-50/60 p-3 ring-1 ring-indigo-100/50">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700">
+                              <span>Host response</span>
+                              {review.hostResponseAt ? (
+                                <span className="font-normal text-indigo-500">
+                                  · {new Date(review.hostResponseAt).toLocaleDateString()}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-sm leading-relaxed text-secondary/80">
+                              {review.hostResponseText}
+                            </p>
+                          </div>
                         ) : null}
                       </article>
                     ))}

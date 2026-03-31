@@ -40,11 +40,13 @@ import { CreateReviewDto } from './dto/create-review.dto';
 import { createReadStream } from 'fs';
 import type { Response } from 'express';
 import { UploadCustomerDocumentDto } from './dto/upload-customer-document.dto';
+import { Throttle } from '@nestjs/throttler';
 import { PortalNotificationsService } from '../common/portal-notifications.service';
 
 @Controller('/portal/user')
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.CUSTOMER)
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserPortalController {
   constructor(
     private readonly service: UserPortalService,

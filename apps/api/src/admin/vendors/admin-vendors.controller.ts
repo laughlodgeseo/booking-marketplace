@@ -5,8 +5,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { AdminVendorsService } from './admin-vendors.service';
 
 type JwtUser = {
@@ -17,7 +20,8 @@ type JwtUser = {
 
 @ApiTags('admin-vendors')
 @Controller('admin/vendors')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminVendorsController {
   constructor(private readonly service: AdminVendorsService) {}
 

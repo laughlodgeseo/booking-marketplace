@@ -1,9 +1,11 @@
 import { Body, Controller, Param, Post, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AvailabilityService } from '../availability.service';
 import { QuoteRequestDto } from '../dto/quote.dto';
 import type { AppRequest } from '../../../common/i18n/app-request';
 
 @Controller('properties/:propertyId/quote')
+@Throttle({ default: { limit: 30, ttl: 60_000 } })
 export class QuoteController {
   constructor(private readonly availability: AvailabilityService) {}
 

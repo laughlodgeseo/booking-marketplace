@@ -8,8 +8,11 @@ import { useLocale } from "next-intl";
 import { useMemo, useState } from "react";
 import { login } from "@/lib/auth/authApi";
 import { useAuth } from "@/lib/auth/auth-context";
+import { setAccessToken } from "@/lib/auth/tokenStore";
 import type { AuthUiRole } from "@/components/auth/authFlow";
 import { normalizeLocale } from "@/lib/i18n/config";
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
+import { googleLogin, appleLogin } from "@/lib/api/oauth";
 
 interface AuthPanelLoginProps {
   role: AuthUiRole;
@@ -86,6 +89,32 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
     const qs = new URLSearchParams({ role, next: nextPath, dir: "forward" });
     return `/forgot?${qs.toString()}`;
   }, [role, nextPath]);
+
+  const backendRole = role === "vendor" ? "VENDOR" : "CUSTOMER";
+
+  async function handleGoogleLogin(credential: string) {
+    setError(null);
+    const res = await googleLogin(credential, backendRole);
+    if (res.ok) {
+      setAccessToken(res.data.accessToken);
+      await refresh();
+      router.push(nextPath);
+    } else {
+      setError(res.message ?? "Google login failed");
+    }
+  }
+
+  async function handleAppleLogin(idToken: string, fullName?: string) {
+    setError(null);
+    const res = await appleLogin(idToken, fullName, backendRole);
+    if (res.ok) {
+      setAccessToken(res.data.accessToken);
+      await refresh();
+      router.push(nextPath);
+    } else {
+      setError(res.message ?? "Apple login failed");
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -184,6 +213,18 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
           </Link>
         </div>
       </form>
+
+      <div className="relative flex items-center gap-3 py-1">
+        <div className="h-px flex-1 bg-indigo-100/70" />
+        <span className="text-[11px] font-medium text-secondary/60">or</span>
+        <div className="h-px flex-1 bg-indigo-100/70" />
+      </div>
+
+      <SocialLoginButtons
+        onGoogleLogin={handleGoogleLogin}
+        onAppleLogin={handleAppleLogin}
+        disabled={loading}
+      />
     </div>
   );
 }

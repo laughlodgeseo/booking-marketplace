@@ -11,11 +11,13 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
 
+import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { StripePaymentsProvider } from './providers/stripe.provider';
 
 @ApiTags('payments-webhooks')
 @Controller()
+@Throttle({ default: { limit: 100, ttl: 60_000 } })
 export class PaymentsWebhooksController {
   private readonly logger = new Logger(PaymentsWebhooksController.name);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -271,7 +271,7 @@ function GallerySection(props: {
                   layout.mobilePlacement,
                 ].join(" ")}
               >
-                <Image
+                <OptimizedImage
                   src={tile.image.src}
                   alt={tile.image.alt}
                   fill

@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { runDemoSeed } from './seed/demo';
 
 async function main() {

@@ -137,6 +137,16 @@ type SearchPoint = {
   fxRate?: number;
   fxAsOf?: string | null;
   fxProvider?: string | null;
+  slug?: string;
+  title?: string;
+  city?: string | null;
+  area?: string | null;
+  bedrooms?: number;
+  bathrooms?: number;
+  coverImage?: {
+    url: string;
+    alt: string | null;
+  } | null;
 };
 
 type SearchPropertiesResult = {
@@ -750,15 +760,21 @@ export class SearchService {
       includeAvailability: true,
     });
 
-    // IMPORTANT: Map needs only points; keep selection minimal.
+    // Map + card UI needs lightweight details for richer pin cards.
     const rows = await this.prisma.property.findMany({
       where,
       take: 2000,
       orderBy: [{ basePrice: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
+        slug: true,
+        title: true,
+        city: true,
+        area: true,
         lat: true,
         lng: true,
+        bedrooms: true,
+        bathrooms: true,
         basePrice: true,
         currency: true,
       },
@@ -776,6 +792,12 @@ export class SearchService {
         fxRate: fx.rate,
         fxAsOf: fx.asOfDate,
         fxProvider: fx.provider,
+        slug: r.slug,
+        title: r.title,
+        city: r.city,
+        area: r.area,
+        bedrooms: r.bedrooms,
+        bathrooms: r.bathrooms,
       }));
 
     const result: SearchMapResult = {
@@ -825,8 +847,14 @@ export class SearchService {
       orderBy: [{ basePrice: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
+        slug: true,
+        title: true,
+        city: true,
+        area: true,
         lat: true,
         lng: true,
+        bedrooms: true,
+        bathrooms: true,
         basePrice: true,
         currency: true,
       },
@@ -844,6 +872,12 @@ export class SearchService {
         fxRate: fx.rate,
         fxAsOf: fx.asOfDate,
         fxProvider: fx.provider,
+        slug: r.slug,
+        title: r.title,
+        city: r.city,
+        area: r.area,
+        bedrooms: r.bedrooms,
+        bathrooms: r.bathrooms,
       }));
 
     const result: SearchMapViewportResult = {

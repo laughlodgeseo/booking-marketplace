@@ -35,6 +35,9 @@ type GoogleMapsWithMarkerLib = typeof google.maps & {
     AdvancedMarkerElement?: typeof google.maps.marker.AdvancedMarkerElement;
   };
 };
+type GoogleMapsWithImportLibrary = typeof google.maps & {
+  importLibrary?: (libraryName: string) => Promise<unknown>;
+};
 
 let mapsPromise: Promise<void> | null = null;
 
@@ -49,6 +52,10 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 
     const existing = document.querySelector<HTMLScriptElement>('script[data-google-maps-loader="1"]');
     if (existing) {
+      if (typeof window !== "undefined" && (window as unknown as { google?: { maps?: unknown } }).google?.maps) {
+        resolve();
+        return;
+      }
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("Google Maps script failed to load.")));
       return;
@@ -63,7 +70,6 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
       key: apiKey,
       v: "weekly",
       libraries: "marker",
-      loading: "async",
     });
 
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
@@ -73,6 +79,40 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
   });
 
   return mapsPromise;
+}
+
+async function resolveMapConstructor(): Promise<typeof google.maps.Map> {
+  const mapsWithImport = google.maps as GoogleMapsWithImportLibrary;
+
+  if (typeof mapsWithImport.importLibrary === "function") {
+    const mapsLib = (await mapsWithImport.importLibrary("maps")) as google.maps.MapsLibrary;
+    try {
+      await mapsWithImport.importLibrary("marker");
+    } catch {
+      // Marker library is optional for fallback markers.
+    }
+    if (typeof mapsLib.Map === "function") return mapsLib.Map;
+  }
+
+  if (typeof google.maps.Map === "function") return google.maps.Map;
+
+  await new Promise<void>((resolve, reject) => {
+    const deadline = Date.now() + 2500;
+    const tick = () => {
+      if (typeof google.maps.Map === "function") {
+        resolve();
+        return;
+      }
+      if (Date.now() >= deadline) {
+        reject(new Error("Google Maps Map constructor unavailable after script load."));
+        return;
+      }
+      window.setTimeout(tick, 50);
+    };
+    tick();
+  });
+
+  return google.maps.Map;
 }
 
 function createPickerMarker(map: google.maps.Map, position: LatLng, mapId: string | null): MarkerHandle {
@@ -168,7 +208,10 @@ export function PortalMapPicker(props: {
         if (cancelled || !mapRef.current) return;
 
         if (!handleRef.current) {
-          const map = new google.maps.Map(mapRef.current, {
+          const MapCtor = await resolveMapConstructor();
+          if (cancelled || !mapRef.current) return;
+
+          const map = new MapCtor(mapRef.current, {
             center: selected,
             zoom: 12,
             disableDefaultUI: false,

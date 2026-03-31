@@ -6,6 +6,7 @@ import {
 import { BookingStatus, CalendarDayStatus, HoldStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FxRatesService } from '../fx/fx-rates.service';
+import { PricingService } from '../pricing/pricing.service';
 import {
   assertValidRange,
   buildOverlapFilter,
@@ -51,6 +52,7 @@ export class AvailabilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fxRates: FxRatesService,
+    private readonly pricing: PricingService,
   ) {}
 
   // -----------------------------
@@ -375,7 +377,8 @@ export class AvailabilityService {
     const expiresAt = new Date(Date.now() + ttl * 60 * 1000);
 
     return this.prisma.$transaction(async (tx) => {
-      // Advisory lock that returns a serializable result (avoids "void" deserialization)
+      // SECURITY: Advisory lock uses Prisma tagged template — propertyId is parameterized.
+      // Raw SQL required because Prisma ORM has no pg_advisory_xact_lock equivalent.
       await tx.$queryRaw<{ ok: number }[]>`
         WITH lock AS (
           SELECT pg_advisory_xact_lock((hashtext(${propertyId})::bigint))
@@ -566,7 +569,13 @@ export class AvailabilityService {
 
     const canBook = reasons.length === 0;
 
-    const nightlySubtotalAed = property.basePrice * nightsCount;
+    // Apply pricing rules per night (single source of truth via PricingService)
+    const { nightlyBreakdown, subtotal: nightlySubtotalAed } =
+      await this.pricing.calculateTotal(propertyId, checkIn, checkOut);
+
+    const avgNightlyPriceAed =
+      nightsCount > 0 ? Math.round(nightlySubtotalAed / nightsCount) : property.basePrice;
+
     const cleaningFeeAed = property.cleaningFee ?? 0;
     const serviceFeeAed = 0;
     const taxesAed = 0;
@@ -578,7 +587,7 @@ export class AvailabilityService {
     const serviceFee = this.toDisplayAmount(serviceFeeAed, fx.rate);
     const taxes = this.toDisplayAmount(taxesAed, fx.rate);
     const total = this.toDisplayAmount(totalAed, fx.rate);
-    const basePricePerNight = this.toDisplayAmount(property.basePrice, fx.rate);
+    const basePricePerNight = this.toDisplayAmount(avgNightlyPriceAed, fx.rate);
 
     return {
       ok: true,
@@ -602,13 +611,14 @@ export class AvailabilityService {
         serviceFee,
         taxes,
         total,
-        basePricePerNightAed: property.basePrice,
+        basePricePerNightAed: avgNightlyPriceAed,
         nightlySubtotalAed,
         baseAmountAed: nightlySubtotalAed,
         cleaningFeeAed,
         serviceFeeAed,
         taxesAed,
         totalAed,
+        nightlyBreakdown,
       },
     };
   }

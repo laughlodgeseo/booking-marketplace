@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getUserOverview } from "@/lib/api/portal/user";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatCard } from "@/components/portal/StatCard";
 
@@ -44,11 +45,7 @@ export default function AccountOverviewPage() {
 
   const content = useMemo(() => {
     if (state.kind === "loading") {
-      return (
-        <div className="premium-card premium-card-tinted rounded-2xl p-6 text-sm text-secondary">
-          {tPortal("loading.overview")}
-        </div>
-      );
+      return <DashboardSkeleton />;
     }
 
     if (state.kind === "error") {

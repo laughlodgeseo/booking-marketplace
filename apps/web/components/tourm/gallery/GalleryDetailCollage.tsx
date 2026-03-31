@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { useState } from "react";
 import type { GalleryImage } from "@/lib/content/gallery-items";
 import GalleryLightbox from "./GalleryLightbox";
@@ -29,7 +29,7 @@ function TileButton(props: {
       className={["group relative overflow-hidden border border-white/75", props.className].join(" ")}
       aria-label={`Open image ${props.index + 1}`}
     >
-      <Image
+      <OptimizedImage
         src={props.image.src}
         alt={props.image.alt}
         fill

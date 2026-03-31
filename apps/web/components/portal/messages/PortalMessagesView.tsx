@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { PortalShell, type PortalRole } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { useMessagingSocket } from "@/lib/hooks/useMessagingSocket";
 import type {
   MessageThreadDetail,
   MessageThreadListResponse,
@@ -71,6 +72,51 @@ export default function PortalMessagesView(props: Props) {
   const [newSubject, setNewSubject] = useState("");
   const [newBody, setNewBody] = useState("");
   const [replyBody, setReplyBody] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadThreadsRef = useRef<(() => Promise<void>) | null>(null);
+
+  // WebSocket real-time integration
+  const { connected, status: wsStatus, sendMessage: wsSendMessage, sendTyping } = useMessagingSocket({
+    threadId: selectedId,
+    onNewMessage: useCallback((msg: { id: string; body: string; createdAt: string; senderId: string; sender: { id: string; email: string; fullName: string | null; role: "ADMIN" | "VENDOR" | "CUSTOMER" } }) => {
+      setThreadState((prev) => {
+        if (prev.kind !== "ready") return prev;
+        // Avoid duplicates
+        if (prev.thread.messages.some((m) => m.id === msg.id)) return prev;
+        return {
+          ...prev,
+          thread: {
+            ...prev.thread,
+            messages: [...prev.thread.messages, msg],
+          },
+        };
+      });
+      // Also refresh thread list to update last message preview
+      void loadThreadsRef.current?.();
+    }, []),
+    onTyping: useCallback((data: { threadId: string; userId: string }) => {
+      setTypingUser(data.userId);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+    }, []),
+  });
+
+  // Clean up typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  const messageCount = threadState.kind === "ready" ? threadState.thread.messages.length : 0;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messageCount]);
 
   async function loadThreads() {
     setThreadsState({ kind: "loading" });
@@ -103,6 +149,8 @@ export default function PortalMessagesView(props: Props) {
       });
     }
   }
+
+  loadThreadsRef.current = loadThreads;
 
   useEffect(() => {
     void loadThreads();
@@ -161,6 +209,7 @@ export default function PortalMessagesView(props: Props) {
   async function submitReply() {
     if (!selectedId || !replyBody.trim()) return;
     setBusyLabel(tPortal("messages.busy.sending"));
+    setSendError(null);
     try {
       await props.sendMessage(selectedId, replyBody.trim());
       setReplyBody("");
@@ -168,10 +217,7 @@ export default function PortalMessagesView(props: Props) {
       const refreshed = await props.getThread(selectedId);
       setThreadState({ kind: "ready", thread: refreshed });
     } catch (e) {
-      setThreadState({
-        kind: "error",
-        message: e instanceof Error ? e.message : tPortal("messages.errors.sendMessage"),
-      });
+      setSendError(e instanceof Error ? e.message : tPortal("messages.errors.sendMessage"));
     } finally {
       setBusyLabel(null);
     }
@@ -380,6 +426,24 @@ export default function PortalMessagesView(props: Props) {
                     <StatusPill status={threadState.thread.counterpartyRole}>
                       {threadState.thread.counterpartyRole}
                     </StatusPill>
+                    {wsStatus === "connected" && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-green-600">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                        Live
+                      </span>
+                    )}
+                    {wsStatus === "connecting" && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-amber-600">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Connecting…
+                      </span>
+                    )}
+                    {wsStatus === "error" && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-red-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                        Offline
+                      </span>
+                    )}
                   </div>
 
                   <div className="max-h-[380px] space-y-2 overflow-auto rounded-2xl border border-line/80 bg-surface p-3">
@@ -401,12 +465,41 @@ export default function PortalMessagesView(props: Props) {
                         </div>
                       );
                     })}
+                    <div ref={messagesEndRef} />
                   </div>
 
+                  {typingUser && (
+                    <div className="text-xs text-secondary animate-pulse">
+                      Someone is typing...
+                    </div>
+                  )}
+
                   <div className="space-y-2">
+                    {sendError && (
+                      <div className="flex items-center justify-between rounded-2xl border border-danger/30 bg-danger/12 px-3 py-2 text-xs text-danger">
+                        <span>{sendError}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSendError(null)}
+                          className="ml-2 shrink-0 font-semibold hover:underline"
+                          aria-label="Dismiss error"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
                     <textarea
                       value={replyBody}
-                      onChange={(event) => setReplyBody(event.target.value)}
+                      onChange={(event) => {
+                        setReplyBody(event.target.value);
+                        sendTyping();
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          void submitReply();
+                        }
+                      }}
                       rows={3}
                       placeholder={tPortal("messages.writeReply")}
                       className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary"

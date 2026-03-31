@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { PropertyMedia } from "@/lib/types/property";
@@ -125,7 +125,7 @@ export default function PropertyGallery({ media, title }: Props) {
               className="absolute inset-0 text-left"
               aria-label="Open photo gallery"
             >
-              <Image
+              <OptimizedImage
                 src={hero.url}
                 alt={hero.alt}
                 fill
@@ -176,7 +176,7 @@ export default function PropertyGallery({ media, title }: Props) {
                   className="relative aspect-[16/10] overflow-hidden rounded-2xl text-left"
                   aria-label="Open photo"
                 >
-                  <Image
+                  <OptimizedImage
                     src={m.url}
                     alt={m.alt}
                     fill
@@ -238,7 +238,7 @@ export default function PropertyGallery({ media, title }: Props) {
 
               <div className="px-2 pb-3 pt-3 sm:px-6 sm:pb-6 sm:pt-5">
                 <div className="relative mx-auto h-[62vh] min-h-[320px] max-h-[760px] w-full overflow-hidden rounded-[1.65rem] bg-dark-1/70 sm:h-[70vh]">
-                  <Image
+                  <OptimizedImage
                     src={items[activeIndex].url}
                     alt={items[activeIndex].alt}
                     fill
@@ -280,7 +280,7 @@ export default function PropertyGallery({ media, title }: Props) {
                         ].join(" ")}
                         aria-label={`Go to photo ${idx + 1}`}
                       >
-                        <Image src={it.url} alt={it.alt} fill sizes="160px" className="object-cover" />
+                        <OptimizedImage src={it.url} alt={it.alt} fill sizes="160px" className="object-cover" />
                         {active ? (
                           <div className="absolute inset-0 ring-2 ring-inverted" />
                         ) : (

@@ -23,6 +23,8 @@ import {
   type BookingListItem,
   type BookingDetail,
 } from "@/lib/api/bookings";
+import { PromoCodeInput } from "@/components/checkout/PromoCodeInput";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 type ViewState =
   | { kind: "idle" }
@@ -567,6 +569,22 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
             </div>
           </div>
 
+          {isPending && !authRequired && computedTotal != null && (
+            <div className="rounded-2xl border border-line/80 bg-surface/70 p-4">
+              <div className="text-xs font-semibold text-secondary mb-3">Promo code</div>
+              <PromoCodeInput
+                bookingAmount={computedTotal}
+                propertyId={bookingDetail?.property?.id}
+                onApplied={(_discount) => {
+                  // TODO: apply discount to total
+                }}
+                onRemoved={() => {
+                  // TODO: remove discount from total
+                }}
+              />
+            </div>
+          )}
+
           <div className="rounded-2xl border border-line/80 bg-surface/70 p-5">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -774,7 +792,7 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
                 <div className="mt-4 flex items-start gap-3">
                   <div className="h-20 w-24 overflow-hidden rounded-xl border border-line/80 bg-warm-alt">
                     {propertyCover ? (
-                      <img src={propertyCover} alt={propertyTitle ?? "Property"} className="h-full w-full object-cover" />
+                      <OptimizedImage src={propertyCover} alt={propertyTitle ?? "Property"} width={400} height={300} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xs text-secondary">
                         No image

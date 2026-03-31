@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -10,8 +11,10 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { GuestReviewStatus } from '@prisma/client';
+import { GuestReviewStatus, UserRole } from '@prisma/client';
+import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { AdminReviewsService } from './admin-reviews.service';
 
 type JwtUser = {
@@ -21,7 +24,8 @@ type JwtUser = {
 };
 
 @Controller('admin/reviews')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAccessGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AdminReviewsController {
   constructor(private readonly reviews: AdminReviewsService) {}
 
@@ -74,5 +78,14 @@ export class AdminReviewsController {
       approve: false,
       notes: dto.notes,
     });
+  }
+
+  @Delete(':reviewId')
+  async remove(
+    @Req() req: { user: JwtUser },
+    @Param('reviewId', new ParseUUIDPipe()) reviewId: string,
+  ) {
+    this.assertAdmin(req.user);
+    return this.reviews.deleteReview(reviewId);
   }
 }

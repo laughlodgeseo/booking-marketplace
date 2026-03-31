@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { AlertTriangle, FileText, ShieldAlert } from "lucide-react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
@@ -193,8 +194,13 @@ export default function AdminBookingDetailPage() {
           <section className="overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-sm">
             <div className="relative aspect-[16/10] w-full bg-warm-base sm:aspect-[21/9]">
               {coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={coverUrl} alt={state.data.property.title} className="h-full w-full object-cover" />
+                <OptimizedImage
+                  src={coverUrl}
+                  alt={state.data.property.title}
+                  fill
+                  className="h-full w-full object-cover"
+                  sizes="100vw"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-secondary">
                   Property image unavailable

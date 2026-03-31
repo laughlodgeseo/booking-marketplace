@@ -7,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 
 import { CreateBookingDto } from './booking.dto';
@@ -21,6 +22,7 @@ import type { AuthUser } from '../auth/types/auth-user.type';
 
 @Controller('bookings')
 @UseGuards(JwtAccessGuard, RolesGuard)
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 

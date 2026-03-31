@@ -280,8 +280,8 @@ export class PaymentsService {
         );
       }
 
-      const amount = Number(booking.totalAmount ?? 0);
-      if (!Number.isFinite(amount) || amount <= 0) {
+      const bookingAmount = Number(booking.totalAmount ?? 0);
+      if (!Number.isFinite(bookingAmount) || bookingAmount <= 0) {
         this.logger.warn(
           `createStripeIntent validation_failed invalid_amount bookingId=${booking.id} amount=${booking.totalAmount}`,
         );
@@ -289,6 +289,25 @@ export class PaymentsService {
       }
 
       const currency = (booking.currency ?? '').trim() || 'AED';
+
+      // Include security deposit if the property has an active deposit policy
+      const depositPolicy = await this.prisma.securityDepositPolicy.findUnique({
+        where: { propertyId: booking.propertyId },
+      });
+      const depositAmount =
+        depositPolicy &&
+        depositPolicy.isActive &&
+        depositPolicy.mode !== SecurityDepositMode.NONE &&
+        depositPolicy.amount > 0
+          ? depositPolicy.amount
+          : 0;
+
+      const amount = bookingAmount + depositAmount;
+
+      this.logger.log(
+        `createStripeIntent amounts bookingId=${booking.id} bookingAmount=${bookingAmount} depositAmount=${depositAmount} totalCharge=${amount}`,
+      );
+
       const publishableKey = (
         process.env.STRIPE_PUBLISHABLE_KEY ??
         process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ??
@@ -350,6 +369,8 @@ export class PaymentsService {
         metadata: {
           bookingId: booking.id,
           userId: booking.customerId,
+          bookingAmount: String(bookingAmount),
+          depositAmount: String(depositAmount),
         },
       };
 
@@ -2473,5 +2494,132 @@ export class PaymentsService {
     const safeBps = Number.isFinite(bps) ? bps : 0;
     if (safeAmount <= 0 || safeBps <= 0) return 0;
     return Math.round((safeAmount * safeBps) / 10000);
+  }
+
+  // ── Security Deposit Admin Operations ──────────────────────────────
+
+  async releaseSecurityDeposit(args: {
+    actor: Actor;
+    depositId: string;
+    note?: string;
+  }): Promise<{ ok: true; deposit: unknown }> {
+    if (args.actor.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can release deposits.');
+    }
+
+    const deposit = await this.prisma.securityDeposit.findUnique({
+      where: { id: args.depositId },
+      include: { booking: { include: { payment: true } } },
+    });
+    if (!deposit) throw new NotFoundException('Security deposit not found.');
+
+    if (deposit.status === SecurityDepositStatus.RELEASED) {
+      return { ok: true, deposit };
+    }
+    if (
+      deposit.status !== SecurityDepositStatus.REQUIRED &&
+      deposit.status !== SecurityDepositStatus.AUTHORIZED &&
+      deposit.status !== SecurityDepositStatus.CAPTURED
+    ) {
+      throw new BadRequestException(
+        `Cannot release deposit in status ${deposit.status}.`,
+      );
+    }
+
+    // Refund the deposit amount via Stripe if possible
+    const payment = deposit.booking?.payment;
+    if (
+      deposit.provider === PaymentProvider.STRIPE &&
+      payment?.stripePaymentIntentId &&
+      deposit.amount > 0
+    ) {
+      try {
+        await this.stripeProvider.createRefund({
+          paymentIntentId: payment.stripePaymentIntentId,
+          amount: this.toStripeMinorUnits(
+            deposit.amount,
+            deposit.currency || 'AED',
+          ),
+          metadata: {
+            type: 'security_deposit_release',
+            depositId: deposit.id,
+            bookingId: deposit.bookingId,
+          },
+        });
+      } catch (error) {
+        const msg =
+          error instanceof Error ? error.message : 'Stripe refund failed';
+        this.logger.error(
+          `releaseSecurityDeposit stripe_refund_failed depositId=${deposit.id}: ${msg}`,
+        );
+        throw new BadGatewayException(
+          'Failed to refund security deposit via Stripe.',
+        );
+      }
+    }
+
+    const updated = await this.prisma.securityDeposit.update({
+      where: { id: deposit.id },
+      data: {
+        status: SecurityDepositStatus.RELEASED,
+        releasedAt: new Date(),
+        note: args.note ?? deposit.note,
+      },
+    });
+
+    this.logger.log(
+      `releaseSecurityDeposit completed depositId=${deposit.id} bookingId=${deposit.bookingId}`,
+    );
+    return { ok: true, deposit: updated };
+  }
+
+  async claimSecurityDeposit(args: {
+    actor: Actor;
+    depositId: string;
+    claimAmount?: number;
+    note?: string;
+  }): Promise<{ ok: true; deposit: unknown }> {
+    if (args.actor.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can claim deposits.');
+    }
+
+    const deposit = await this.prisma.securityDeposit.findUnique({
+      where: { id: args.depositId },
+    });
+    if (!deposit) throw new NotFoundException('Security deposit not found.');
+
+    if (deposit.status === SecurityDepositStatus.CLAIMED) {
+      return { ok: true, deposit };
+    }
+    if (
+      deposit.status !== SecurityDepositStatus.REQUIRED &&
+      deposit.status !== SecurityDepositStatus.AUTHORIZED &&
+      deposit.status !== SecurityDepositStatus.CAPTURED
+    ) {
+      throw new BadRequestException(
+        `Cannot claim deposit in status ${deposit.status}.`,
+      );
+    }
+
+    const claimAmount = args.claimAmount ?? deposit.amount;
+    if (claimAmount <= 0 || claimAmount > deposit.amount) {
+      throw new BadRequestException(
+        `Claim amount must be between 1 and ${deposit.amount}.`,
+      );
+    }
+
+    const updated = await this.prisma.securityDeposit.update({
+      where: { id: deposit.id },
+      data: {
+        status: SecurityDepositStatus.CLAIMED,
+        claimedAt: new Date(),
+        note: args.note ?? deposit.note,
+      },
+    });
+
+    this.logger.log(
+      `claimSecurityDeposit completed depositId=${deposit.id} bookingId=${deposit.bookingId} claimAmount=${claimAmount}`,
+    );
+    return { ok: true, deposit: updated };
   }
 }

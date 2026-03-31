@@ -1,4 +1,5 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AvailabilityService } from '../availability.service';
 import { ReserveRequestDto } from '../dto/reserve.dto';
 import { JwtAccessGuard } from '../../../auth/guards/jwt-access.guard';
@@ -8,6 +9,7 @@ import type { AppRequest } from '../../../common/i18n/app-request';
 
 @Controller('properties/:propertyId/reserve')
 @UseGuards(JwtAccessGuard)
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 export class ReserveController {
   constructor(private readonly availability: AvailabilityService) {}
 
