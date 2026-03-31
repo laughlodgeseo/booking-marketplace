@@ -13,6 +13,7 @@ import { BookingsService } from './bookings.service';
 import { PrismaService } from '../modules/prisma/prisma.service';
 import { CancellationPolicyService } from './policies/cancellation.policy';
 import { NotificationsService } from '../modules/notifications/notifications.service';
+import { PricingService } from '../modules/pricing/pricing.service';
 
 describe('BookingsService critical paths', () => {
   function buildService(deps?: {
@@ -34,9 +35,12 @@ describe('BookingsService critical paths', () => {
       ({
         emit: jest.fn().mockResolvedValue(undefined),
       } as unknown as NotificationsService);
+    const pricing = {
+      calculateTotal: jest.fn().mockResolvedValue({ nightlyBreakdown: [], subtotal: 0 }),
+    } as unknown as PricingService;
 
     return {
-      service: new BookingsService(prisma, cancellationPolicy, notifications),
+      service: new BookingsService(prisma, cancellationPolicy, notifications, pricing),
       prisma,
       cancellationPolicy,
       notifications,

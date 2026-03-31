@@ -1,6 +1,7 @@
 import { AvailabilityService } from './availability.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FxRatesService } from '../fx/fx-rates.service';
+import { PricingService } from '../pricing/pricing.service';
 
 describe('AvailabilityService currency snapshot flow', () => {
   function buildService() {
@@ -43,8 +44,15 @@ describe('AvailabilityService currency snapshot flow', () => {
       }),
     } as unknown as FxRatesService;
 
+    const pricing = {
+      calculateTotal: jest.fn().mockResolvedValue({
+        nightlyBreakdown: [{ date: '2026-03-10', price: 1000, ruleId: null }, { date: '2026-03-11', price: 1000, ruleId: null }],
+        subtotal: 2000,
+      }),
+    } as unknown as PricingService;
+
     return {
-      service: new AvailabilityService(prisma, fxRates),
+      service: new AvailabilityService(prisma, fxRates, pricing),
       prisma,
       fxRates,
     };
@@ -100,6 +108,10 @@ describe('AvailabilityService currency snapshot flow', () => {
         serviceFeeAed: 0,
         taxesAed: 0,
         totalAed: 2200,
+        nightlyBreakdown: [
+          { date: '2026-03-10', price: 1000, ruleId: null },
+          { date: '2026-03-11', price: 1000, ruleId: null },
+        ],
       },
     });
 
