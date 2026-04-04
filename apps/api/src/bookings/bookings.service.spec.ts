@@ -129,7 +129,7 @@ describe('BookingsService critical paths', () => {
       checkIn: new Date('2026-04-01T00:00:00.000Z'),
       checkOut: new Date('2026-04-03T00:00:00.000Z'),
       status: HoldStatus.ACTIVE,
-      expiresAt: new Date('2026-04-02T12:00:00.000Z'),
+      expiresAt: new Date('2099-12-31T23:59:59.000Z'),
       quotedTotalAed: 120000,
       quotedTotalDisplay: 32712,
       displayCurrency: 'USD',
