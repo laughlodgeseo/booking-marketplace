@@ -1,23 +1,38 @@
-node_modules
-.pnpm-store
-.next
-dist
-build
-coverage
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Test coverage
+coverage/
+
+# Environment variables
 .env
 .env.*
 !.env.example
-*.log
-.DS_Store
-.vscode
-.idea
 
-# Turborepo cache
+# Logs
+*.log
+
+# OS / editor artifacts
+.DS_Store
+.vscode/
+.idea/
+
+# Turborepo / temp
 .turbo/
 .tmp/
+
+# TypeScript
+*.tsbuildinfo
 
 # Upload artifacts (must never be versioned)
 apps/api/private_uploads/
 apps/api/uploads/
-apps/api/apps/api/private_uploads/
-apps/api/apps/api/uploads/
+# Misrouted uploads from incorrect API working-dir config
+apps/api/apps/
