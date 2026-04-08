@@ -69,6 +69,25 @@ export class PaymentsWebhooksController {
           );
           break;
         }
+        case 'payment_intent.succeeded': {
+          const paymentIntent = event.data.object;
+          const bookingId =
+            (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+          this.logger.log(
+            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+          );
+
+          const result =
+            await this.payments.handleStripePaymentIntentSucceeded({
+              eventId: event.id,
+              paymentIntent,
+            });
+
+          this.logger.log(
+            `stripe_webhook handled eventType=${event.type} bookingId=${bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored ?? false}`,
+          );
+          break;
+        }
         case 'payment_intent.payment_failed': {
           const paymentIntent = event.data.object;
           const bookingId =
@@ -78,13 +97,32 @@ export class PaymentsWebhooksController {
           );
 
           const result =
-            await this.payments.handleStripePaymentIntentFailedByMetadata({
+            await this.payments.handleStripePaymentIntentFailed({
               eventId: event.id,
               paymentIntent,
             });
 
           this.logger.log(
-            `stripe_webhook transition bookingId=${result.bookingId ?? 'n/a'} bookingStatus=${result.previousBookingStatus ?? 'n/a'}->${result.nextBookingStatus ?? 'n/a'} paymentStatus=${result.previousPaymentStatus ?? 'n/a'}->${result.nextPaymentStatus ?? 'n/a'} reused=${result.reused} ignored=${result.ignored}`,
+            `stripe_webhook handled eventType=${event.type} bookingId=${bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored ?? false}`,
+          );
+          break;
+        }
+        case 'payment_intent.processing': {
+          const paymentIntent = event.data.object;
+          const bookingId =
+            (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+          this.logger.log(
+            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+          );
+
+          const result =
+            await this.payments.handleStripePaymentIntentProcessing({
+              eventId: event.id,
+              paymentIntent,
+            });
+
+          this.logger.log(
+            `stripe_webhook handled eventType=${event.type} bookingId=${bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored ?? false}`,
           );
           break;
         }
