@@ -55,6 +55,19 @@ type FxRateResolution = {
 
 const USD_TO_SAR_PEG = 3.75;
 
+/**
+ * Static fallback rates (AED base) used when no DB or cached rates are available.
+ * These reflect approximate real-world rates and prevent the service from hard-crashing
+ * on fresh deployments before the FX sync cron or manual seed runs.
+ * Provider is tagged 'static-fallback' so callers can detect and warn.
+ */
+const STATIC_FALLBACK_RATES: Record<'USD' | 'SAR' | 'EUR' | 'GBP', number> = {
+  USD: 0.2726,
+  SAR: 1.0221,
+  EUR: 0.252,
+  GBP: 0.2151,
+};
+
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return fallback;
@@ -429,6 +442,22 @@ export class FxRatesService implements OnModuleDestroy {
           provider: usdQuote?.provider ?? latest.provider,
         };
       }
+    }
+
+    const fallbackRate =
+      STATIC_FALLBACK_RATES[quoteCurrency as keyof typeof STATIC_FALLBACK_RATES];
+    if (this.isValidRate(fallbackRate)) {
+      this.logger.warn(
+        `FX rate unavailable for ${quoteCurrency} in DB/cache — using static fallback. ` +
+          `Seed FX rates or configure FX_PROVIDER_API_KEY to fix this.`,
+      );
+      return {
+        baseCurrency: 'AED',
+        quoteCurrency,
+        rate: fallbackRate,
+        asOfDate: null,
+        provider: 'static-fallback',
+      };
     }
 
     throw new BadRequestException(

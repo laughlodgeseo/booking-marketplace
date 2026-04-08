@@ -4,9 +4,11 @@ import { mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import {
   CalendarDayStatus,
+  FxQuoteCurrency,
   NotificationChannel,
   NotificationStatus,
   NotificationType,
+  Prisma,
   PrismaClient,
   PropertyDocumentType,
   PropertyReviewDecision,
@@ -1074,6 +1076,60 @@ async function seedAmenityCatalog(prisma: PrismaClient) {
   return amenityByKey;
 }
 
+async function seedFxRates(prisma: PrismaClient) {
+  const provider = 'seed:demo';
+  const today = new Date();
+  const todayUtc = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  );
+
+  const snapshots = [
+    {
+      asOfDate: new Date(todayUtc.getTime() - 86_400_000), // yesterday
+      sar: new Prisma.Decimal('1.0209'),
+      usd: new Prisma.Decimal('0.2721'),
+      eur: new Prisma.Decimal('0.2512'),
+      gbp: new Prisma.Decimal('0.2147'),
+    },
+    {
+      asOfDate: todayUtc,
+      sar: new Prisma.Decimal('1.0221'),
+      usd: new Prisma.Decimal('0.2726'),
+      eur: new Prisma.Decimal('0.2520'),
+      gbp: new Prisma.Decimal('0.2151'),
+    },
+  ];
+
+  for (const snap of snapshots) {
+    const pairs: Array<{ quoteCurrency: FxQuoteCurrency; rate: Prisma.Decimal }> = [
+      { quoteCurrency: FxQuoteCurrency.SAR, rate: snap.sar },
+      { quoteCurrency: FxQuoteCurrency.USD, rate: snap.usd },
+      { quoteCurrency: FxQuoteCurrency.EUR, rate: snap.eur },
+      { quoteCurrency: FxQuoteCurrency.GBP, rate: snap.gbp },
+    ];
+
+    for (const { quoteCurrency, rate } of pairs) {
+      await prisma.fxRate.upsert({
+        where: {
+          baseCurrency_quoteCurrency_asOfDate: {
+            baseCurrency: 'AED',
+            quoteCurrency,
+            asOfDate: snap.asOfDate,
+          },
+        },
+        update: { rate, provider },
+        create: {
+          baseCurrency: 'AED',
+          quoteCurrency,
+          rate,
+          asOfDate: snap.asOfDate,
+          provider,
+        },
+      });
+    }
+  }
+}
+
 export async function runDemoSeed() {
   if (process.env.SEED_MODE !== 'demo') {
     throw new Error(
@@ -1101,6 +1157,7 @@ export async function runDemoSeed() {
     ensureSeedDirectories();
 
     await seedOperatorLayer(prisma);
+    await seedFxRates(prisma);
 
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
