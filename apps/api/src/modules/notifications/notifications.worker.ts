@@ -5,7 +5,7 @@ import { NotificationEventsService } from './notification-events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
-import nodemailer, { type SendMailOptions } from 'nodemailer';
+import { Resend } from 'resend';
 
 type JsonObject = Record<string, unknown>;
 type WorkerMetrics = {
@@ -13,30 +13,18 @@ type WorkerMetrics = {
   failed_count: number;
   retry_count: number;
 };
-type SmtpConfig = {
+type ResendConfig = {
   configured: boolean;
-  host: string;
-  port: number;
-  secure: boolean;
-  requireTls: boolean;
-  user: string;
-  pass: string;
+  apiKey: string;
   from: string;
   replyTo: string | undefined;
-  maxConnections: number;
-  maxMessages: number;
-  rateDelta: number;
-  rateLimit: number;
-  connectionTimeout: number;
-  greetingTimeout: number;
-  socketTimeout: number;
 };
 type DeliveryResult = {
   to: string;
   attempt: number;
   latencyMs: number;
   messageId: string | null;
-  smtpResponse: string | null;
+  resendId: string | null;
 };
 type DeliveryErrorInfo = {
   retryable: boolean;
@@ -47,20 +35,13 @@ type DeliveryErrorInfo = {
 type DeliveryErrorContext = {
   to?: string;
   latencyMs?: number;
-  smtpResponse?: string;
-};
-type ResolvedBrandLogo = {
-  logoUrl: string;
-  attachment: NonNullable<SendMailOptions['attachments']>[number] | null;
 };
 
 @Injectable()
 export class NotificationsWorker implements OnModuleInit {
   private readonly logger = new Logger(NotificationsWorker.name);
-  private readonly inlineBrandLogoCid = 'brand-logo';
   private readonly defaultRemoteBrandLogoUrl =
     'https://rentpropertyuae.com/brand/logo.svg';
-  private readonly localBrandLogoPath = this.resolveLocalBrandLogoPath();
 
   // Outbox knobs
   private readonly batchSize = 10;
@@ -73,10 +54,7 @@ export class NotificationsWorker implements OnModuleInit {
     retry_count: 0,
   };
 
-  private cachedTransport: {
-    key: string;
-    transporter: nodemailer.Transporter;
-  } | null = null;
+  private cachedResendClient: { key: string; client: Resend } | null = null;
 
   constructor(
     private readonly events: NotificationEventsService,
@@ -85,8 +63,7 @@ export class NotificationsWorker implements OnModuleInit {
 
   onModuleInit() {
     this.warnOnInsecureLogoUrl();
-    this.warnOnMissingSmtpConfig();
-    this.warnOnSmtpModeMismatch();
+    this.warnOnMissingResendConfig();
   }
 
   @Cron('*/5 * * * * *') // every 5 seconds
@@ -105,9 +82,7 @@ export class NotificationsWorker implements OnModuleInit {
           attempts: event.attempts,
           latencyMs: null,
           messageId: null,
-          smtpResponse: null,
-          smtpCode: null,
-          smtpResponseCode: null,
+          resendId: null,
           retryable: false,
           status: 'failed',
           reason: 'max_attempts_reached',
@@ -146,9 +121,7 @@ export class NotificationsWorker implements OnModuleInit {
             attempts: result.attempt,
             latencyMs: result.latencyMs,
             messageId: result.messageId,
-            smtpResponse: result.smtpResponse,
-            smtpCode: null,
-            smtpResponseCode: null,
+            resendId: result.resendId,
             retryable: false,
             status: 'sent',
             reason: 'delivered',
@@ -177,9 +150,9 @@ export class NotificationsWorker implements OnModuleInit {
             attempts: attempt,
             latencyMs: context.latencyMs ?? null,
             messageId: null,
-            smtpResponse: context.smtpResponse ?? null,
-            smtpCode: info.code,
-            smtpResponseCode: info.responseCode,
+            resendId: null,
+            resendCode: info.code,
+            statusCode: info.responseCode,
             retryable: false,
             status: 'failed',
             reason: info.reason,
@@ -201,9 +174,9 @@ export class NotificationsWorker implements OnModuleInit {
           attempts: attempt,
           latencyMs: context.latencyMs ?? null,
           messageId: null,
-          smtpResponse: context.smtpResponse ?? null,
-          smtpCode: info.code,
-          smtpResponseCode: info.responseCode,
+          resendId: null,
+          resendCode: info.code,
+          statusCode: info.responseCode,
           retryable: true,
           status: 'retry',
           reason: info.reason,
@@ -243,172 +216,117 @@ export class NotificationsWorker implements OnModuleInit {
       input.payload,
     );
 
-    const smtp = this.smtpConfig();
-    if (!smtp.configured) {
+    const config = this.resendConfig();
+    if (!config.configured) {
       throw new Error(
-        'SMTP not configured. Required env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM (or SMTP_FROM_EMAIL)',
+        'Resend is not configured. Set RESEND_API_KEY environment variable.',
       );
     }
 
-    const payloadBrand = this.getNested(input.payload, 'brand');
-    const brandOverrides = this.isObject(payloadBrand) ? payloadBrand : {};
-    const resolvedBrandLogo = this.resolveBrandLogo();
-    const overrideLogoUrl = this.readLogoUrlFromOverrides(brandOverrides);
-    const effectiveLogoUrl = overrideLogoUrl ?? resolvedBrandLogo.logoUrl;
-    const attachments =
-      resolvedBrandLogo.attachment &&
-      effectiveLogoUrl === resolvedBrandLogo.logoUrl &&
-      effectiveLogoUrl.startsWith('cid:')
-        ? [resolvedBrandLogo.attachment]
-        : undefined;
-
-    const message: SendMailOptions = {
-      from: smtp.from,
+    const startedAt = Date.now();
+    return await this.sendViaResend({
+      config,
       to,
-      replyTo: smtp.replyTo,
       subject,
       html,
       text,
-      attachments,
-    };
-
-    const startedAt = Date.now();
-
-    try {
-      return await this.sendViaSmtp({
-        smtp,
-        message,
-        to,
-        attempt: input.attempt,
-        startedAt,
-      });
-    } catch (err: unknown) {
-      if (this.shouldFallbackToSubmissionPort(err, smtp)) {
-        const fallbackSmtp = this.buildSubmissionFallbackSmtp(smtp);
-        this.logger.warn(
-          `Primary SMTP connection timed out on ${smtp.host}:${smtp.port}. Retrying once via ${fallbackSmtp.host}:${fallbackSmtp.port}.`,
-        );
-
-        try {
-          return await this.sendViaSmtp({
-            smtp: fallbackSmtp,
-            message,
-            to,
-            attempt: input.attempt,
-            startedAt,
-          });
-        } catch (fallbackErr: unknown) {
-          const fallbackContext: DeliveryErrorContext = {
-            to,
-            latencyMs: Date.now() - startedAt,
-          };
-          throw this.withDeliveryContext(fallbackErr, fallbackContext);
-        }
-      }
-
-      const context: DeliveryErrorContext = {
-        to,
-        latencyMs: Date.now() - startedAt,
-      };
-      throw this.withDeliveryContext(err, context);
-    }
+      attempt: input.attempt,
+      startedAt,
+    });
   }
 
-  private async sendViaSmtp(input: {
-    smtp: SmtpConfig;
-    message: SendMailOptions;
+  private async sendViaResend(input: {
+    config: ResendConfig;
     to: string;
+    subject: string;
+    html: string;
+    text: string;
     attempt: number;
     startedAt: number;
   }): Promise<DeliveryResult> {
-    const transporter = this.getTransporter(input.smtp);
-    try {
-      const rawInfo: unknown = await transporter.sendMail(input.message);
-      const info = this.toRecord(rawInfo);
-      const latencyMs = Date.now() - input.startedAt;
-      const messageId = info.messageId;
-      const smtpResponse = info.response;
+    const client = this.getResendClient(input.config);
 
-      const result: DeliveryResult = {
+    const { data, error } = await client.emails.send({
+      from: input.config.from,
+      to: [input.to],
+      subject: input.subject,
+      html: input.html,
+      text: input.text,
+      ...(input.config.replyTo ? { reply_to: input.config.replyTo } : {}),
+    });
+
+    if (error) {
+      const resendError = new Error(error.message) as Error & {
+        name: string;
+        statusCode?: number;
+      };
+      resendError.name = error.name;
+      const statusCode =
+        'statusCode' in error && typeof error.statusCode === 'number'
+          ? error.statusCode
+          : undefined;
+      if (statusCode !== undefined) resendError.statusCode = statusCode;
+
+      this.logger.error(
+        `RESEND_SEND_ERROR ${JSON.stringify({
+          to: input.to,
+          attempt: input.attempt,
+          name: error.name,
+          message: error.message,
+          statusCode,
+        })}`,
+      );
+
+      throw resendError;
+    }
+
+    const latencyMs = Date.now() - input.startedAt;
+    const resendId = data?.id ?? null;
+
+    this.logger.log(
+      `RESEND_SEND_SUCCESS ${JSON.stringify({
         to: input.to,
         attempt: input.attempt,
         latencyMs,
-        messageId:
-          typeof messageId === 'string' && messageId.trim() ? messageId : null,
-        smtpResponse:
-          typeof smtpResponse === 'string' && smtpResponse.trim()
-            ? smtpResponse
-            : null,
-      };
-
-      this.logger.log(
-        `SMTP_SEND_SUCCESS ${JSON.stringify({
-          to: result.to,
-          attempt: result.attempt,
-          latencyMs: result.latencyMs,
-          messageId: result.messageId,
-          smtpResponse: result.smtpResponse,
-        })}`,
-      );
-
-      return result;
-    } catch (err: unknown) {
-      const record = this.toRecord(err);
-      const code = typeof record.code === 'string' ? record.code : null;
-      const response =
-        typeof record.response === 'string'
-          ? record.response
-          : typeof record.responseMessage === 'string'
-            ? record.responseMessage
-            : null;
-
-      this.logger.error(
-        `SMTP_SEND_ERROR ${JSON.stringify({
-          to: input.to,
-          attempt: input.attempt,
-          code,
-          response,
-          error: this.errMessage(err),
-        })}`,
-      );
-
-      throw err;
-    }
-  }
-
-  private shouldFallbackToSubmissionPort(
-    err: unknown,
-    smtp: SmtpConfig,
-  ): boolean {
-    const fallbackEnabled = this.readBooleanEnv('SMTP_FALLBACK_TO_587', true);
-    if (!fallbackEnabled) return false;
-    if (smtp.port !== 465 || !smtp.secure) return false;
-
-    const record = this.toRecord(err);
-    const code =
-      typeof record.code === 'string' ? record.code.toUpperCase() : '';
-    const message = this.errMessage(err).toLowerCase();
-
-    return (
-      code === 'ETIMEDOUT' ||
-      code === 'ECONNECTION' ||
-      code === 'ESOCKET' ||
-      code === 'EHOSTUNREACH' ||
-      code === 'ECONNREFUSED' ||
-      message.includes('timeout')
+        resendId,
+      })}`,
     );
-  }
-
-  private buildSubmissionFallbackSmtp(primary: SmtpConfig): SmtpConfig {
-    const fallbackPort = this.readPositiveInt('SMTP_FALLBACK_PORT', 587);
-    const fallbackSecure = fallbackPort === 465;
 
     return {
-      ...primary,
-      port: fallbackPort,
-      secure: fallbackSecure,
-      requireTls: fallbackSecure ? false : true,
+      to: input.to,
+      attempt: input.attempt,
+      latencyMs,
+      messageId: resendId,
+      resendId,
     };
+  }
+
+  private resendConfig(): ResendConfig {
+    const apiKey = this.readEnv('RESEND_API_KEY');
+    const from =
+      this.readEnv('SMTP_FROM') ||
+      'RentPropertyUAE <booking@rentpropertyuae.com>';
+    const replyTo = this.readEnv('SMTP_REPLY_TO') || undefined;
+
+    return {
+      configured: Boolean(apiKey),
+      apiKey,
+      from,
+      replyTo,
+    };
+  }
+
+  private getResendClient(config: ResendConfig): Resend {
+    if (
+      this.cachedResendClient &&
+      this.cachedResendClient.key === config.apiKey
+    ) {
+      return this.cachedResendClient.client;
+    }
+
+    const client = new Resend(config.apiKey);
+    this.cachedResendClient = { key: config.apiKey, client };
+    return client;
   }
 
   private async lookupUserEmail(userId: string): Promise<string | null> {
@@ -419,175 +337,31 @@ export class NotificationsWorker implements OnModuleInit {
     return u?.email?.trim().toLowerCase() ?? null;
   }
 
-  private smtpConfig(): SmtpConfig {
-    const host = this.readEnv('SMTP_HOST');
-    const portRaw = this.readEnv('SMTP_PORT');
-    const port = Number(portRaw || '587');
+  private warnOnMissingResendConfig() {
+    const config = this.resendConfig();
+    if (config.configured) return;
 
-    const secure = this.readBooleanEnv('SMTP_SECURE', port === 465);
-    const requireTls = this.readBooleanEnv('SMTP_REQUIRE_TLS', true);
-
-    const user = this.readEnv('SMTP_USER');
-    const pass = this.readEnv('SMTP_PASS');
-    const from =
-      this.readEnv('SMTP_FROM') ||
-      this.readEnv('SMTP_FROM_EMAIL') ||
-      'RentPropertyUAE <booking@rentpropertyuae.com>';
-    const replyTo = this.readEnv('SMTP_REPLY_TO') || undefined;
-
-    const configured =
-      Boolean(host) &&
-      Number.isFinite(port) &&
-      port > 0 &&
-      Boolean(user) &&
-      Boolean(pass) &&
-      Boolean(from);
-
-    return {
-      configured,
-      host,
-      port,
-      secure,
-      requireTls,
-      user,
-      pass,
-      from,
-      replyTo,
-      maxConnections: this.readPositiveInt('SMTP_MAX_CONNECTIONS', 2),
-      maxMessages: this.readPositiveInt('SMTP_MAX_MESSAGES', 50),
-      rateDelta: this.readPositiveInt('SMTP_RATE_DELTA', 1000),
-      rateLimit: this.readPositiveInt('SMTP_RATE_LIMIT', 5),
-      connectionTimeout: this.readPositiveInt(
-        'SMTP_CONNECTION_TIMEOUT_MS',
-        15000,
-      ),
-      greetingTimeout: this.readPositiveInt('SMTP_GREETING_TIMEOUT_MS', 15000),
-      socketTimeout: this.readPositiveInt('SMTP_SOCKET_TIMEOUT_MS', 20000),
-    };
-  }
-
-  private getTransporter(smtp: SmtpConfig): nodemailer.Transporter {
-    const transportDebugDefault = process.env.NODE_ENV !== 'production';
-    const transportLogger = this.readBooleanEnv(
-      'SMTP_TRANSPORT_LOGGER',
-      transportDebugDefault,
+    this.logger.error(
+      'Resend is not configured. Email notifications (including verification OTP) will fail until RESEND_API_KEY is set.',
     );
-    const transportDebug = this.readBooleanEnv(
-      'SMTP_TRANSPORT_DEBUG',
-      transportDebugDefault,
-    );
-
-    const key = [
-      smtp.host,
-      String(smtp.port),
-      String(smtp.secure),
-      String(smtp.requireTls),
-      smtp.user,
-      smtp.from,
-      smtp.replyTo ?? '',
-      String(smtp.maxConnections),
-      String(smtp.maxMessages),
-      String(smtp.rateDelta),
-      String(smtp.rateLimit),
-      String(smtp.connectionTimeout),
-      String(smtp.greetingTimeout),
-      String(smtp.socketTimeout),
-      String(transportLogger),
-      String(transportDebug),
-    ].join('|');
-
-    if (this.cachedTransport && this.cachedTransport.key === key) {
-      return this.cachedTransport.transporter;
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: smtp.host,
-      port: smtp.port,
-      secure: smtp.secure,
-      requireTLS: smtp.requireTls,
-      auth: { user: smtp.user, pass: smtp.pass },
-      logger: transportLogger,
-      debug: transportDebug,
-      pool: true,
-      maxConnections: smtp.maxConnections,
-      maxMessages: smtp.maxMessages,
-      rateDelta: smtp.rateDelta,
-      rateLimit: smtp.rateLimit,
-      connectionTimeout: smtp.connectionTimeout,
-      greetingTimeout: smtp.greetingTimeout,
-      socketTimeout: smtp.socketTimeout,
-    });
-
-    this.cachedTransport = { key, transporter };
-    return transporter;
   }
 
   private warnOnInsecureLogoUrl() {
     const rawLogoUrl = (process.env.BRAND_LOGO_URL || '').trim();
-    const resolvedBrandLogo = this.resolveBrandLogo();
-    if (resolvedBrandLogo.attachment && this.localBrandLogoPath) {
-      this.logger.log(
-        `Using local inline brand logo from ${this.localBrandLogoPath}.`,
-      );
-      return;
-    }
 
     if (!rawLogoUrl) {
       this.logger.warn(
-        'BRAND_LOGO_URL is not set and local logo was not found. Set BRAND_LOGO_URL to an HTTPS logo URL.',
+        'BRAND_LOGO_URL is not set. Set BRAND_LOGO_URL to an HTTPS logo URL.',
       );
       return;
     }
 
     const lower = rawLogoUrl.toLowerCase();
-    if (!lower.startsWith('https://') && !lower.startsWith('cid:')) {
+    if (!lower.startsWith('https://')) {
       this.logger.warn(
-        'BRAND_LOGO_URL should use HTTPS (or cid: for inline assets) to avoid blocked images in email clients.',
+        'BRAND_LOGO_URL should use HTTPS to ensure images render correctly in email clients.',
       );
     }
-  }
-
-  private warnOnMissingSmtpConfig() {
-    const smtp = this.smtpConfig();
-    if (smtp.configured) {
-      return;
-    }
-
-    this.logger.error(
-      'SMTP is not configured. Email notifications (including verification OTP) will fail until SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM/SMTP_FROM_EMAIL are set.',
-    );
-  }
-
-  private warnOnSmtpModeMismatch() {
-    const port = Number(this.readEnv('SMTP_PORT') || '587');
-    const secureRequested = this.readBooleanEnv('SMTP_SECURE', port === 465);
-
-    if (port === 587 && secureRequested) {
-      this.logger.warn(
-        'SMTP_PORT=587 with SMTP_SECURE=true is usually invalid for STARTTLS submission. Prefer SMTP_SECURE=false with SMTP_REQUIRE_TLS=true unless your provider explicitly requires implicit TLS on 587.',
-      );
-    }
-
-    if (port === 465 && !secureRequested) {
-      this.logger.warn(
-        'SMTP_PORT=465 is typically implicit TLS. Prefer SMTP_SECURE=true for this port.',
-      );
-    }
-  }
-
-  private readPositiveInt(key: string, fallback: number): number {
-    const raw = this.readEnv(key);
-    const value = Number(raw);
-    if (!Number.isFinite(value) || value <= 0) return fallback;
-    return Math.trunc(value);
-  }
-
-  private readBooleanEnv(key: string, fallback: boolean): boolean {
-    const raw = this.readEnv(key).toLowerCase();
-    if (!raw) return fallback;
-    if (raw === '1' || raw === 'true' || raw === 'yes') return true;
-    if (raw === '0' || raw === 'false' || raw === 'no') return false;
-    return fallback;
   }
 
   private readEnv(key: string): string {
@@ -612,45 +386,42 @@ export class NotificationsWorker implements OnModuleInit {
     const message = this.errMessage(err).toLowerCase();
     const record = this.toRecord(err);
 
-    const rawCode = record.code;
+    const rawCode = record.code ?? record.name;
     const code = typeof rawCode === 'string' ? rawCode.toUpperCase() : null;
 
-    const rawResponseCode = record.responseCode;
+    const rawStatusCode = record.statusCode;
     const responseCode =
-      typeof rawResponseCode === 'number'
-        ? rawResponseCode
-        : typeof rawResponseCode === 'string' &&
-            Number.isFinite(Number(rawResponseCode))
-          ? Number(rawResponseCode)
+      typeof rawStatusCode === 'number'
+        ? rawStatusCode
+        : typeof rawStatusCode === 'string' &&
+            Number.isFinite(Number(rawStatusCode))
+          ? Number(rawStatusCode)
           : null;
 
     if (message.includes('template') || message.includes('interpolate')) {
-      return {
-        retryable: false,
-        reason: 'template_error',
-        code,
-        responseCode,
-      };
+      return { retryable: false, reason: 'template_error', code, responseCode };
     }
 
+    // Auth failures
     if (
-      code === 'EAUTH' ||
-      responseCode === 535 ||
-      message.includes('535 ') ||
-      message.includes('authentication failed')
+      responseCode === 401 ||
+      responseCode === 403 ||
+      message.includes('api key') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden')
     ) {
       return {
         retryable: false,
-        reason: 'smtp_auth_failure',
+        reason: 'api_auth_failure',
         code,
         responseCode,
       };
     }
 
+    // Invalid recipient / validation
     if (
-      responseCode === 550 ||
-      message.includes('550 ') ||
-      message.includes('invalid recipient')
+      responseCode === 422 ||
+      (message.includes('invalid') && message.includes('email'))
     ) {
       return {
         retryable: false,
@@ -660,6 +431,22 @@ export class NotificationsWorker implements OnModuleInit {
       };
     }
 
+    // Bad request (non-retryable)
+    if (responseCode === 400) {
+      return { retryable: false, reason: 'bad_request', code, responseCode };
+    }
+
+    // Rate limited — retryable
+    if (responseCode === 429 || message.includes('rate limit')) {
+      return { retryable: true, reason: 'rate_limited', code, responseCode };
+    }
+
+    // Server errors — retryable
+    if (responseCode !== null && responseCode >= 500) {
+      return { retryable: true, reason: 'server_error', code, responseCode };
+    }
+
+    // Network transient errors
     const transientCodes = new Set([
       'ETIMEDOUT',
       'ECONNRESET',
@@ -671,7 +458,6 @@ export class NotificationsWorker implements OnModuleInit {
       'EAI_AGAIN',
       'EHOSTUNREACH',
     ]);
-
     if (code && transientCodes.has(code)) {
       return {
         retryable: true,
@@ -681,37 +467,16 @@ export class NotificationsWorker implements OnModuleInit {
       };
     }
 
-    if (responseCode !== null && responseCode >= 400 && responseCode < 500) {
+    if (message.includes('timeout') || message.includes('network')) {
       return {
         retryable: true,
-        reason: 'smtp_4xx_transient',
+        reason: 'network_transient',
         code,
         responseCode,
       };
     }
 
-    return {
-      retryable: false,
-      reason: 'non_retryable',
-      code,
-      responseCode,
-    };
-  }
-
-  private withDeliveryContext(
-    err: unknown,
-    context: DeliveryErrorContext,
-  ): Error {
-    const baseError =
-      err instanceof Error ? err : new Error(this.errMessage(err));
-    const output = baseError as Error & DeliveryErrorContext;
-
-    if (context.to) output.to = context.to;
-    if (typeof context.latencyMs === 'number')
-      output.latencyMs = context.latencyMs;
-    if (context.smtpResponse) output.smtpResponse = context.smtpResponse;
-
-    return output;
+    return { retryable: false, reason: 'non_retryable', code, responseCode };
   }
 
   private extractErrorContext(err: unknown): DeliveryErrorContext {
@@ -719,13 +484,7 @@ export class NotificationsWorker implements OnModuleInit {
     const to = typeof record.to === 'string' ? record.to : undefined;
     const latencyMs =
       typeof record.latencyMs === 'number' ? record.latencyMs : undefined;
-    const smtpResponse =
-      typeof record.response === 'string'
-        ? record.response
-        : typeof record.smtpResponse === 'string'
-          ? record.smtpResponse
-          : undefined;
-    return { to, latencyMs, smtpResponse };
+    return { to, latencyMs };
   }
 
   private toRecord(value: unknown): Record<string, unknown> {
@@ -870,7 +629,9 @@ export class NotificationsWorker implements OnModuleInit {
   }
 
   private defaultBrand() {
-    const resolvedBrandLogo = this.resolveBrandLogo();
+    const logoUrl =
+      (process.env.BRAND_LOGO_URL || '').trim() ||
+      this.defaultRemoteBrandLogoUrl;
     return {
       name: 'RentPropertyUAE',
       legalName: 'RentPropertyUAE',
@@ -879,86 +640,8 @@ export class NotificationsWorker implements OnModuleInit {
       bookingEmail: 'booking@rentpropertyuae.com',
       phone: '+971 50 234 8756',
       country: 'United Arab Emirates',
-      logoUrl: resolvedBrandLogo.logoUrl,
+      logoUrl,
     };
-  }
-
-  private resolveBrandLogo(): ResolvedBrandLogo {
-    const configuredLogoUrl = (process.env.BRAND_LOGO_URL || '').trim();
-    const inlineLogoUrl = `cid:${this.inlineBrandLogoCid}`;
-    const shouldPreferLocalInlineLogo =
-      !configuredLogoUrl ||
-      configuredLogoUrl.toLowerCase() ===
-        this.defaultRemoteBrandLogoUrl.toLowerCase() ||
-      configuredLogoUrl.toLowerCase() === inlineLogoUrl.toLowerCase();
-
-    if (this.localBrandLogoPath && shouldPreferLocalInlineLogo) {
-      return {
-        logoUrl: inlineLogoUrl,
-        attachment: {
-          filename: path.basename(this.localBrandLogoPath),
-          path: this.localBrandLogoPath,
-          cid: this.inlineBrandLogoCid,
-          contentType: 'image/svg+xml',
-        },
-      };
-    }
-
-    if (configuredLogoUrl) {
-      return {
-        logoUrl: configuredLogoUrl,
-        attachment: null,
-      };
-    }
-
-    return {
-      logoUrl: this.defaultRemoteBrandLogoUrl,
-      attachment: null,
-    };
-  }
-
-  private resolveLocalBrandLogoPath(): string | null {
-    const candidates = [
-      path.join(process.cwd(), 'apps', 'web', 'public', 'brand', 'logo.svg'),
-      path.join(process.cwd(), '..', 'web', 'public', 'brand', 'logo.svg'),
-      path.join(process.cwd(), 'web', 'public', 'brand', 'logo.svg'),
-      path.join(
-        __dirname,
-        '..',
-        '..',
-        '..',
-        '..',
-        'web',
-        'public',
-        'brand',
-        'logo.svg',
-      ),
-      path.join(
-        __dirname,
-        '..',
-        '..',
-        '..',
-        '..',
-        '..',
-        'web',
-        'public',
-        'brand',
-        'logo.svg',
-      ),
-    ];
-
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) return candidate;
-    }
-
-    return null;
-  }
-
-  private readLogoUrlFromOverrides(brandOverrides: JsonObject): string | null {
-    const rawLogoUrl = brandOverrides.logoUrl;
-    if (typeof rawLogoUrl !== 'string') return null;
-    const value = rawLogoUrl.trim();
-    return value ? value : null;
   }
 
   private resolveTemplatePath(fileName: string): string | null {

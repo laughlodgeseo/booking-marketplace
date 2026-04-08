@@ -9,7 +9,7 @@ import {
   ContactSubmissionTopic,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -36,57 +36,19 @@ export class ContactService {
     return base;
   }
 
-  private smtpConfig() {
-    const host = (process.env.SMTP_HOST || '').trim();
-    const portRaw = (process.env.SMTP_PORT || '').trim();
-    const secureRaw = (process.env.SMTP_SECURE || '').trim().toLowerCase();
-    const user = (process.env.SMTP_USER || '').trim();
-    const pass = (process.env.SMTP_PASS || '').trim();
+  private resendConfig() {
+    const apiKey = (process.env.RESEND_API_KEY || '').trim();
     const from =
       (process.env.SMTP_FROM || '').trim() ||
-      (process.env.SMTP_FROM_EMAIL || '').trim() ||
-      'RentPropertyUAE <noreply@rentpropertyuae.com>';
+      'RentPropertyUAE <booking@rentpropertyuae.com>';
     const replyTo =
-      (process.env.SMTP_REPLY_TO || '').trim() ||
-      (process.env.SMTP_FROM_EMAIL || '').trim() ||
-      undefined;
-
-    const port = Number.parseInt(portRaw, 10);
-    const secure =
-      secureRaw === '1' || secureRaw === 'true' || secureRaw === 'yes';
-    const connectionTimeout =
-      Number.parseInt(
-        (process.env.SMTP_CONNECTION_TIMEOUT_MS || '').trim(),
-        10,
-      ) || 15000;
-    const greetingTimeout =
-      Number.parseInt(
-        (process.env.SMTP_GREETING_TIMEOUT_MS || '').trim(),
-        10,
-      ) || 15000;
-    const socketTimeout =
-      Number.parseInt((process.env.SMTP_SOCKET_TIMEOUT_MS || '').trim(), 10) ||
-      20000;
-
-    const configured =
-      host.length > 0 &&
-      Number.isFinite(port) &&
-      port > 0 &&
-      user.length > 0 &&
-      pass.length > 0;
+      (process.env.SMTP_REPLY_TO || '').trim() || undefined;
 
     return {
-      configured,
-      host,
-      port,
-      secure,
-      user,
-      pass,
+      configured: apiKey.length > 0,
+      apiKey,
       from,
       replyTo,
-      connectionTimeout,
-      greetingTimeout,
-      socketTimeout,
     };
   }
 
@@ -99,27 +61,13 @@ export class ContactService {
     message: string;
     createdAtIso: string;
   }) {
-    const smtp = this.smtpConfig();
-    if (!smtp.configured) {
-      return { sent: false, skipped: true, reason: 'smtp_not_configured' };
+    const config = this.resendConfig();
+    if (!config.configured) {
+      return { sent: false, skipped: true, reason: 'resend_not_configured' };
     }
 
     const recipients = this.getRecipients(input.topic);
-    const transport = nodemailer.createTransport({
-      host: smtp.host,
-      port: smtp.port,
-      secure: smtp.secure,
-      auth: {
-        user: smtp.user,
-        pass: smtp.pass,
-      },
-      pool: true,
-      maxConnections: 2,
-      maxMessages: 20,
-      connectionTimeout: smtp.connectionTimeout,
-      greetingTimeout: smtp.greetingTimeout,
-      socketTimeout: smtp.socketTimeout,
-    });
+    const resend = new Resend(config.apiKey);
 
     const subject = `[Contact] ${input.topic} inquiry from ${input.name}`;
     const html = `
@@ -149,14 +97,18 @@ export class ContactService {
       input.message,
     ].join('\n');
 
-    await transport.sendMail({
-      from: smtp.from,
-      to: recipients.join(', '),
-      replyTo: smtp.replyTo,
+    const { error } = await resend.emails.send({
+      from: config.from,
+      to: recipients,
       subject,
       html,
       text,
+      ...(config.replyTo ? { reply_to: config.replyTo } : {}),
     });
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     return { sent: true, skipped: false, recipients };
   }
