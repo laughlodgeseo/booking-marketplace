@@ -555,6 +555,10 @@ export class NotificationsWorker implements OnModuleInit {
         return 'Your stay services are scheduled';
       case 'PROPERTY_APPROVED_ACTIVATION_REQUIRED':
         return 'Property approved: activation payment required';
+      case 'NEW_BOOKING_RECEIVED':
+        return 'New booking received for your property';
+      case 'MAINTENANCE_REQUEST_CREATED':
+        return 'New maintenance request';
       default: {
         const ref = this.getNested(payload, 'booking.id');
         if (typeof ref === 'string' && ref.trim())
@@ -702,6 +706,8 @@ export class NotificationsWorker implements OnModuleInit {
         return 'ops-tasks-created';
       case 'PROPERTY_APPROVED_ACTIVATION_REQUIRED':
         return 'property-approved-activation-required';
+      case 'NEW_BOOKING_RECEIVED':
+        return 'new-booking-received';
       default:
         return 'booking-confirmed';
     }

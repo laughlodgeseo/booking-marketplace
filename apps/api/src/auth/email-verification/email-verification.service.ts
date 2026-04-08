@@ -55,21 +55,8 @@ export class EmailVerificationService {
     );
   }
 
-  private smtpConfigured(): boolean {
-    const host = this.readEnv('SMTP_HOST');
-    const port = Number.parseInt(this.readEnv('SMTP_PORT'), 10);
-    const user = this.readEnv('SMTP_USER');
-    const pass = this.readEnv('SMTP_PASS');
-    const from = this.readEnv('SMTP_FROM') || this.readEnv('SMTP_FROM_EMAIL');
-
-    return (
-      Boolean(host) &&
-      Number.isFinite(port) &&
-      port > 0 &&
-      Boolean(user) &&
-      Boolean(pass) &&
-      Boolean(from)
-    );
+  private emailConfigured(): boolean {
+    return Boolean(this.readEnv('RESEND_API_KEY'));
   }
 
   private readEnv(key: string): string {
@@ -167,7 +154,7 @@ export class EmailVerificationService {
     const email = user.email.trim().toLowerCase();
     if (!email) throw new BadRequestException('Email not found');
 
-    if (!this.smtpConfigured()) {
+    if (!this.emailConfigured()) {
       throw new ServiceUnavailableException(
         'Email delivery is temporarily unavailable. Please try again shortly.',
       );
