@@ -41,7 +41,7 @@ export function OptimizedImage({
   if (error || !src) {
     return (
       <div
-        className={`flex items-center justify-center bg-warm-alt/40 text-xs text-muted ${className}`}
+        className={`flex items-center justify-center bg-warm-alt/40 text-xs text-muted ${fill ? "absolute inset-0" : ""} ${className}`}
         style={!fill ? { width, height } : undefined}
       >
         No image
@@ -55,11 +55,20 @@ export function OptimizedImage({
   const blurUrl = getBlurPlaceholder(src);
   const hasBlur = blurUrl.length > 0;
 
+  // When fill=true, the wrapper must be positioned and sized to fill its parent.
+  // Using "absolute inset-0" ensures the wrapper fills the nearest `position:relative`
+  // ancestor — the wrapper div itself then becomes the positioned parent for the Image.
+  // Without this, the wrapper collapses to 0 height (absolutely-positioned Image is
+  // out of flow) and the image is invisible.
+  const wrapperClass = fill
+    ? `absolute inset-0 overflow-hidden ${className}`
+    : `relative overflow-hidden ${className}`;
+
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div className={wrapperClass}>
       {/* Shimmer placeholder for non-Cloudinary images (Cloudinary uses blur) */}
       {!loaded && !hasBlur && (
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(226,218,203,0.55),rgba(245,239,228,0.78),rgba(226,218,203,0.55))] bg-[length:220%_100%] animate-[shimmer_1.4s_ease-in-out_infinite]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(226,218,203,0.55),rgba(245,239,228,0.78),rgba(226,218,203,0.55))] bg-size-[220%_100%] animate-[shimmer_1.4s_ease-in-out_infinite]" />
       )}
       <Image
         src={optimizedSrc}

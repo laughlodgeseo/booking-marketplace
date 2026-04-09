@@ -148,81 +148,6 @@ function clearPaymentIdempotencyKey(bookingId: string) {
   }
 }
 
-function StatusPill({ status }: { status: string }) {
-  const s = upper(status);
-  if (s.includes("PENDING")) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-warning/30 bg-warning/12 px-3 py-1.5 text-xs font-semibold text-warning">
-        PENDING PAYMENT
-      </span>
-    );
-  }
-  if (s.includes("CONFIRM")) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-success/30 bg-success/12 px-3 py-1.5 text-xs font-semibold text-success">
-        CONFIRMED
-      </span>
-    );
-  }
-  if (s.includes("CANCEL")) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-danger/30 bg-danger/12 px-3 py-1.5 text-xs font-semibold text-danger">
-        CANCELLED
-      </span>
-    );
-  }
-  if (s.includes("EXPIRE")) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-danger/30 bg-danger/12 px-3 py-1.5 text-xs font-semibold text-danger">
-        EXPIRED
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full border border-line/80 bg-surface/60 px-3 py-1.5 text-xs font-semibold text-secondary">
-      {status || "—"}
-    </span>
-  );
-}
-
-function HowConfirmationWorks() {
-  return (
-    <div className="rounded-2xl border border-line/80 bg-surface/70 p-4">
-      <div className="text-sm font-semibold text-primary">How confirmation works</div>
-      <p className="mt-1 text-sm leading-6 text-secondary">
-        Your booking becomes <span className="font-semibold">CONFIRMED</span> only after Stripe notifies the backend via
-        verified webhooks. This prevents fake confirmations and protects inventory.
-      </p>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-line/80 bg-white/60 px-3 py-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-            <CreditCard className="h-4 w-4" />
-            Step 1
-          </div>
-          <div className="mt-2 text-sm font-semibold text-primary">Pay securely</div>
-          <div className="mt-1 text-xs text-secondary">Card details are encrypted and sent to Stripe.</div>
-        </div>
-        <div className="rounded-xl border border-line/80 bg-white/60 px-3 py-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-            <ShieldCheck className="h-4 w-4" />
-            Step 2
-          </div>
-          <div className="mt-2 text-sm font-semibold text-primary">Stripe verifies</div>
-          <div className="mt-1 text-xs text-secondary">Stripe validates the payment and sends a webhook.</div>
-        </div>
-        <div className="rounded-xl border border-line/80 bg-white/60 px-3 py-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-            <CheckCircle2 className="h-4 w-4" />
-            Step 3
-          </div>
-          <div className="mt-2 text-sm font-semibold text-primary">Backend confirms</div>
-          <div className="mt-1 text-xs text-secondary">Only backend confirmation marks the booking.</div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function PendingPaymentCard(props: { bookingId: string; status: string; subtitle?: string }) {
   const router = useRouter();
@@ -497,406 +422,155 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   }, [detailCheckIn, detailCheckOut, detailGuests, propertySlug]);
 
   return (
-    <div className="premium-card premium-card-tinted rounded-3xl p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold tracking-wide text-muted">Payment status</div>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-primary">Secure checkout</h2>
-          <p className="mt-2 text-sm text-secondary">
-            {props.subtitle ??
-              (isPending
-                ? "Submit payment securely. Booking is confirmed only after Stripe webhooks are verified by the backend."
-                : "This booking status is driven by backend state.")}
+    <div className="space-y-5">
+      {/* Heading */}
+      <div className="space-y-2.5">
+        <h2 className="text-xl font-semibold tracking-tight text-primary">
+          {isConfirmed ? "Payment confirmed" : "Complete your payment"}
+        </h2>
+        {isPending && totalText !== "—" && (
+          <div className="inline-flex items-center gap-2.5 rounded-full bg-linear-to-r from-indigo-500/10 to-violet-500/10 px-4 py-2 ring-1 ring-brand/20">
+            <CreditCard className="h-4 w-4 shrink-0 text-brand" />
+            <span className="text-sm font-bold text-primary">{totalText}</span>
+            <span className="text-xs text-secondary">due now</span>
+          </div>
+        )}
+      </div>
+
+      {/* Expiry timer — only show when less than 15 min remaining */}
+      {poll.remainingMs !== null && isPending && poll.remainingMs < 15 * 60 * 1000 && (
+        <div className="flex items-center gap-2 rounded-xl bg-warning/10 px-4 py-2.5 text-xs text-warning ring-1 ring-warning/20">
+          <Timer className="h-3.5 w-3.5 shrink-0" />
+          Reservation expires in{" "}
+          <span className="font-bold">{fmtCountdown(poll.remainingMs)}</span>
+        </div>
+      )}
+
+      {/* Auth required */}
+      {authRequired && (
+        <div className="rounded-2xl bg-warning/10 px-5 py-4 ring-1 ring-warning/20">
+          <div className="text-sm font-semibold text-primary">Sign in to continue</div>
+          <p className="mt-1 text-xs text-secondary">
+            You must be signed in to complete payment.
+          </p>
+          <Link
+            href={loginHref}
+            className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+          >
+            Sign in
+          </Link>
+        </div>
+      )}
+
+      {/* Non-pending / non-confirmed state */}
+      {!isPending && !isConfirmed && !isExpired && !authRequired && (
+        <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-3 text-sm text-secondary ring-1 ring-black/[0.07]">
+          Payment is not available for this booking status.
+        </div>
+      )}
+
+      {/* Expired */}
+      {isExpired && (
+        <div className="rounded-xl bg-danger/8 px-4 py-4 text-sm text-danger ring-1 ring-danger/20">
+          <div className="font-semibold">Reservation expired</div>
+          <p className="mt-1 text-xs">
+            This booking expired before payment was completed. Please start again from the listing.
           </p>
         </div>
-        <StatusPill status={status} />
-      </div>
+      )}
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div
-              className={classNames(
-                "rounded-2xl border p-4",
-                stepAuthStatus === "done"
-                  ? "border-success/30 bg-success/10"
-                  : "border-warning/30 bg-warning/12",
-              )}
-            >
-              <div className="text-xs font-semibold text-secondary">Step 1</div>
-              <div className="mt-1 text-sm font-semibold text-primary">Authentication</div>
-              <div className="mt-1 text-xs text-secondary">
-                {authRequired ? "Sign in required to continue checkout." : "Signed in and ready."}
-              </div>
+      {/* Loading booking details */}
+      {isPending && !authRequired && !bookingDataReady && (
+        <div className="flex items-center gap-2 text-sm text-secondary">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          Preparing payment…
+        </div>
+      )}
+
+      {/* Stripe payment form */}
+      {isPending && !authRequired && bookingDataReady && (
+        <div className="space-y-3">
+          {intentState.kind === "idle" || intentState.kind === "loading" ? (
+            <div className="flex items-center gap-2 text-sm text-secondary">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+              Initializing secure payment…
             </div>
-
-            <div
-              className={classNames(
-                "rounded-2xl border p-4",
-                stepPaymentStatus === "done"
-                  ? "border-success/30 bg-success/10"
-                  : stepPaymentStatus === "active"
-                    ? "border-warning/30 bg-warning/12"
-                    : "border-line/80 bg-surface/70",
-              )}
-            >
-              <div className="text-xs font-semibold text-secondary">Step 2</div>
-              <div className="mt-1 text-sm font-semibold text-primary">Payment method</div>
-              <div className="mt-1 text-xs text-secondary">
-                {stepPaymentStatus === "done"
-                  ? "Payment submitted."
-                  : stepPaymentStatus === "active"
-                    ? "Enter card details to pay."
-                    : "Awaiting payment window."}
-              </div>
-            </div>
-
-            <div
-              className={classNames(
-                "rounded-2xl border p-4",
-                stepConfirmStatus === "done"
-                  ? "border-success/30 bg-success/10"
-                  : "border-line/80 bg-surface/70",
-              )}
-            >
-              <div className="text-xs font-semibold text-secondary">Step 3</div>
-              <div className="mt-1 text-sm font-semibold text-primary">Confirmation</div>
-              <div className="mt-1 text-xs text-secondary">
-                {stepConfirmStatus === "done"
-                  ? "Booking confirmed via webhook."
-                  : "Confirmation follows verified Stripe events."}
-              </div>
-            </div>
-          </div>
-
-          {isPending && !authRequired && computedTotal != null && (
-            <div className="rounded-2xl border border-line/80 bg-surface/70 p-4">
-              <div className="text-xs font-semibold text-secondary mb-3">Promo code</div>
-              <PromoCodeInput
-                bookingAmount={computedTotal}
-                propertyId={bookingDetail?.property?.id}
-                onApplied={(_discount) => {
-                  // TODO: apply discount to total
+          ) : intentState.kind === "error" ? (
+            <div className="space-y-3 rounded-xl bg-danger/8 px-4 py-4 ring-1 ring-danger/20">
+              <p className="text-sm font-semibold text-danger">Unable to start payment</p>
+              <p className="text-xs text-danger/80">{intentState.message}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  clearPaymentIdempotencyKey(props.bookingId);
+                  intentOnceRef.current = false;
+                  void prepareIntent();
                 }}
-                onRemoved={() => {
-                  // TODO: remove discount from total
+                className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+              >
+                Try again
+              </button>
+            </div>
+          ) : intentState.kind === "ready" ? (
+            <div className="relative z-20 pointer-events-auto">
+              <StripeProvider
+                clientSecret={intentState.clientSecret}
+                publishableKey={intentState.publishableKey}
+                options={stripeElementOptions}
+                onError={(message) => {
+                  setIntentState({ kind: "error", message });
                 }}
-              />
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-line/80 bg-surface/70 p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-semibold text-secondary">Payment method</div>
-                <div className="mt-1 text-sm text-secondary">Card payment via Stripe.</div>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-                <CreditCard className="h-4 w-4" />
-                Card
-              </div>
-            </div>
-
-            {authRequired ? (
-              <div className="mt-4 rounded-xl border border-warning/30 bg-warning/12 px-4 py-3 text-xs text-warning">
-                <div className="font-semibold">Sign in required.</div>
-                <div className="mt-1">Please log in to continue secure checkout.</div>
-                <Link
-                  href={loginHref}
-                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
-                >
-                  Go to login
-                </Link>
-              </div>
-            ) : !isPending ? (
-              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-                Payment is not available for this booking status.
-              </div>
-            ) : !bookingDataReady ? (
-              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-                Loading booking details before payment initialization…
-              </div>
-            ) : intentState.kind === "loading" || intentState.kind === "idle" ? (
-              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-                Preparing secure checkout…
-              </div>
-            ) : intentState.kind === "error" ? (
-              <div className="mt-4 rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-                <div className="font-semibold">Unable to start payment. Please try again or refresh.</div>
-                <div className="mt-1">{intentState.message}</div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearPaymentIdempotencyKey(props.bookingId);
-                    intentOnceRef.current = false;
-                    void prepareIntent();
-                  }}
-                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
-                >
-                  Try again
-                </button>
-              </div>
-            ) : intentState.kind === "ready" ? (
-              <div className="relative z-20 mt-4 pointer-events-auto">
-                <StripeProvider
+              >
+                <CheckoutForm
+                  totalText={totalText}
+                  disabled={!isPending || state.kind !== "idle"}
+                  isTestMode={isTestMode}
+                  bookingId={props.bookingId}
                   clientSecret={intentState.clientSecret}
-                  publishableKey={intentState.publishableKey}
-                  options={stripeElementOptions}
-                  onError={(message) => {
-                    console.error("❌ StripeProvider initialization error:", {
-                      bookingId: props.bookingId,
-                      message,
-                    });
-                    setIntentState({ kind: "error", message });
-                  }}
-                >
-                  <CheckoutForm
-                    totalText={totalText}
-                    disabled={!isPending || state.kind !== "idle"}
-                    isTestMode={isTestMode}
-                    bookingId={props.bookingId}
-                    clientSecret={intentState.clientSecret}
-                    onSubmitted={() => void refresh()}
-                  />
-                </StripeProvider>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-                Payment session not ready. Please refresh.
-              </div>
-            )}
-
-            {intentState.kind === "ready" && intentState.reused ? (
-              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-[11px] text-secondary">
-                Using an existing secure payment session for this booking.
-              </div>
-            ) : null}
-          </div>
-
-          <div className="rounded-2xl border border-line/80 bg-surface/70 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div className="text-xs font-semibold text-secondary">Booking</div>
-                <div className="mt-1 text-sm text-primary">
-                  ID: <span className="font-mono text-xs">{props.bookingId}</span>
-                </div>
-                <div className="mt-1 text-sm text-secondary">
-                  Status: <span className="font-semibold">{status}</span>
-                </div>
-                {totalText !== "—" ? (
-                  <div className="mt-1 text-sm text-secondary">
-                    Total: <span className="font-semibold">{totalText}</span>
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-line/80 bg-white/70 px-3 py-1 text-xs font-semibold text-secondary">
-                <Timer className="h-3.5 w-3.5" />
-                {isPending ? "Payment window" : "Timeline"}
-              </div>
-            </div>
-
-            {effectiveLatest?.expiresAt ? (
-              <div className="mt-2 text-xs text-secondary">
-                Expires at: <span className="font-semibold">{fmtDate(effectiveLatest.expiresAt)}</span>
-              </div>
-            ) : null}
-
-            {poll.remainingMs !== null && isPending ? (
-              <div className="mt-2 text-xs text-warning">
-                Remaining: <span className="font-semibold">{fmtCountdown(poll.remainingMs)}</span>
-              </div>
-            ) : null}
-
-            <div className="mt-3 text-xs text-secondary">
-              Auto-refresh: <span className="font-semibold">{isPending ? "On" : "Off"}</span> • ticks: {poll.ticks}
-            </div>
-          </div>
-
-          {isPending ? <HowConfirmationWorks /> : null}
-
-          {isExpired ? (
-            <div className="rounded-2xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
-              This booking expired due to unpaid status. Please start again from the listing.
+                  onSubmitted={() => void refresh()}
+                />
+              </StripeProvider>
             </div>
           ) : null}
+        </div>
+      )}
 
-          {detailState.kind === "error" ? (
-            <div className="rounded-2xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-              <span className="font-semibold">Summary error:</span> {detailState.message}
-            </div>
-          ) : null}
-
-          {poll.state.kind === "error" ? (
-            <div className="rounded-2xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-              <span className="font-semibold">Auto-refresh error:</span> {poll.state.message}
-            </div>
-          ) : null}
-
-          {state.kind === "error" ? (
-            <div className="rounded-2xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-              <span className="font-semibold">Error:</span> {state.message}
-            </div>
-          ) : null}
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => void refresh()}
-              disabled={state.kind !== "idle"}
-              className="inline-flex items-center justify-center rounded-2xl border border-line/80 bg-surface/70 px-4 py-2 text-sm font-semibold text-primary hover:bg-surface disabled:opacity-60"
-            >
-              {state.kind === "refreshing" ? "Refreshing…" : "Refresh status"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void onCancel()}
-              disabled={state.kind !== "idle" || !canCancel}
-              className="inline-flex items-center justify-center rounded-2xl border border-line/80 bg-surface/70 px-4 py-2 text-sm font-semibold text-danger hover:bg-surface disabled:opacity-60"
-            >
-              {state.kind === "cancelling" ? "Cancelling…" : "Cancel booking"}
-            </button>
+      {/* Confirmed */}
+      {isConfirmed && (
+        <div className="flex items-start gap-4 rounded-2xl bg-success/10 px-5 py-5 ring-1 ring-success/20">
+          <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-success" />
+          <div>
+            <div className="font-semibold text-primary">Payment confirmed!</div>
+            <p className="mt-1 text-sm text-secondary">
+              Redirecting to your booking details…
+            </p>
           </div>
         </div>
+      )}
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-line/80 bg-surface/70 p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-xs font-semibold text-secondary">Your trip</div>
-              {propertyLocation ? (
-                <div className="flex items-center gap-1 text-[11px] text-secondary">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {propertyLocation}
-                </div>
-              ) : null}
-            </div>
-
-            {detailState.kind === "loading" ? (
-              <div className="mt-4 space-y-3">
-                <div className="h-20 w-full animate-pulse rounded-xl bg-white/50" />
-                <div className="h-10 w-full animate-pulse rounded-xl bg-white/50" />
-                <div className="h-24 w-full animate-pulse rounded-xl bg-white/50" />
-              </div>
-            ) : detailState.kind === "unauthorized" ? (
-              <div className="mt-4 rounded-xl border border-warning/30 bg-warning/12 px-4 py-3 text-xs text-warning">
-                <div className="font-semibold">Sign in to view your booking summary.</div>
-                <Link
-                  href={loginHref}
-                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover"
-                >
-                  Go to login
-                </Link>
-              </div>
-            ) : bookingDetail ? (
-              <>
-                <div className="mt-4 flex items-start gap-3">
-                  <div className="h-20 w-24 overflow-hidden rounded-xl border border-line/80 bg-warm-alt">
-                    {propertyCover ? (
-                      <OptimizedImage src={propertyCover} alt={propertyTitle ?? "Property"} width={400} height={300} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-secondary">
-                        No image
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-primary">{propertyTitle ?? "Property"}</div>
-                    {propertyLocation ? (
-                      <div className="mt-1 flex items-center gap-1 text-xs text-secondary">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {propertyLocation}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3">
-                  <div className="rounded-xl border border-line/80 bg-white/60 p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        Dates
-                      </div>
-                      <Link href={editDatesHref} className="text-xs font-semibold text-brand">
-                        Edit
-                      </Link>
-                    </div>
-                    <div className="mt-1 text-sm text-primary">
-                      {fmtShortDate(detailCheckIn)} – {fmtShortDate(detailCheckOut)}
-                    </div>
-                    {detailNights != null ? (
-                      <div className="mt-1 text-xs text-secondary">{detailNights} nights</div>
-                    ) : null}
-                  </div>
-
-                  <div className="rounded-xl border border-line/80 bg-white/60 p-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
-                      <Users className="h-3.5 w-3.5" />
-                      Guests
-                    </div>
-                    <div className="mt-1 text-sm text-primary">{detailGuests ?? "—"}</div>
-                  </div>
-
-                  <div className="rounded-xl border border-line/80 bg-white/60 p-3">
-                    <div className="text-xs font-semibold text-secondary">Price breakdown</div>
-                    <div className="mt-2 space-y-2 text-xs text-secondary">
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Base price</span>
-                        <span className="font-semibold text-primary">
-                          {moneyFromCents(nightlySubtotal, detailCurrency)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Cleaning fee</span>
-                        <span className="font-semibold text-primary">
-                          {moneyFromCents(cleaningFee, detailCurrency)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Taxes</span>
-                        <span className="font-semibold text-primary">
-                          {moneyFromCents(taxes, detailCurrency)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4 border-t border-line/60 pt-2 text-sm font-semibold text-primary">
-                        <span>Total</span>
-                        <span>{moneyFromCents(computedTotal, detailCurrency)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="mt-4 rounded-xl border border-line/80 bg-white/60 px-4 py-3 text-xs text-secondary">
-                Booking summary is unavailable.
-              </div>
-            )}
-          </div>
+      {/* Error states */}
+      {state.kind === "error" && (
+        <div className="rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+          {state.message}
         </div>
-      </div>
+      )}
+      {detailState.kind === "error" && (
+        <div className="rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+          {detailState.message}
+        </div>
+      )}
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-        <Link
-          href="/account/bookings"
-          className="inline-flex items-center justify-center rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:opacity-95"
+      {/* Cancel — subtle text button */}
+      {canCancel && isPending && (
+        <button
+          type="button"
+          onClick={() => void onCancel()}
+          disabled={state.kind !== "idle"}
+          className="text-xs text-muted transition hover:text-danger disabled:opacity-50"
         >
-          View my bookings
-        </Link>
-
-        <Link
-          href={`/account/bookings/${encodeURIComponent(props.bookingId)}`}
-          className="inline-flex items-center justify-center rounded-2xl border border-line/80 bg-surface/70 px-4 py-2 text-sm font-semibold text-primary hover:bg-surface"
-        >
-          Booking details
-        </Link>
-
-        <Link
-          href="/properties"
-          className="inline-flex items-center justify-center rounded-2xl border border-line/80 bg-surface/70 px-4 py-2 text-sm font-semibold text-primary hover:bg-surface"
-        >
-          Continue browsing
-        </Link>
-      </div>
+          {state.kind === "cancelling" ? "Cancelling…" : "Cancel this booking"}
+        </button>
+      )}
     </div>
   );
 }

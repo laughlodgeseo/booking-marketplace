@@ -128,7 +128,7 @@ body {
   color: var(--text-primary);
   font-size: 16px;
   line-height: 1.55;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .font-site {

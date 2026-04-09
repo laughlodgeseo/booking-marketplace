@@ -484,7 +484,7 @@ export default async function PropertyDetailPage(props: PageProps) {
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[rgb(var(--color-bg-rgb)/0.7)]">
+    <main className="relative min-h-screen overflow-x-clip bg-[rgb(var(--color-bg-rgb)/0.7)]">
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(detailJsonLd)}
       </script>
@@ -704,7 +704,7 @@ export default async function PropertyDetailPage(props: PageProps) {
               </section>
             </div>
 
-            <aside className="lg:sticky lg:top-24 lg:col-span-5 lg:self-start xl:col-span-4">
+            <aside className="lg:col-span-5 xl:col-span-4">
               <QuotePanelBatchA
                 propertyId={p.id}
                 slug={p.slug}

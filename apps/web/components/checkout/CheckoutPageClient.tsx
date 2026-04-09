@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronRight,
   CreditCard,
+  Lock,
   LogIn,
   ShieldCheck,
   UserPlus,
@@ -200,7 +202,7 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
   function renderStep1() {
     if (authStatus === "loading") {
       return (
-        <div className="flex items-center gap-3 py-8 text-sm text-secondary">
+        <div className="flex items-center gap-3 py-2 text-sm text-secondary">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
           Checking your session…
         </div>
@@ -209,10 +211,12 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
 
     if (authStatus === "authenticated") {
       return (
-        <div className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/8 px-5 py-4">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+        <div className="flex items-center gap-3 rounded-2xl bg-success/10 px-4 py-3.5 ring-1 ring-success/25">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.30)]">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
           <div>
-            <div className="text-sm font-semibold text-primary">You&apos;re signed in</div>
+            <div className="text-sm font-semibold text-primary">Signed in</div>
             <div className="text-xs text-secondary">{user?.email ?? "Authenticated"}</div>
           </div>
         </div>
@@ -221,44 +225,39 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
 
     return (
       <div className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-primary">Sign in to continue</h2>
-          <p className="mt-1.5 text-sm text-secondary">
-            You&apos;ll need an account to complete your booking. Your selected dates and guests are saved.
-          </p>
-        </div>
+        <p className="text-sm text-secondary">
+          Sign in or create an account to complete your booking. Your selected dates are saved.
+        </p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href={loginHref}
-            className="group flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:border-brand hover:shadow-md"
+            className="group flex items-center gap-4 rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-5 py-4 ring-1 ring-black/[0.07] transition hover:ring-brand/40 hover:shadow-[0_8px_24px_rgba(79,70,229,0.10)]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand/15">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(79,70,229,0.28)] transition group-hover:shadow-[0_6px_20px_rgba(79,70,229,0.38)]">
               <LogIn className="h-5 w-5" />
             </div>
-            <div>
+            <div className="flex-1">
               <div className="font-semibold text-primary">Sign in</div>
-              <div className="mt-0.5 text-sm text-secondary">I already have an account</div>
+              <div className="mt-0.5 text-xs text-secondary">I have an account</div>
             </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
           </Link>
 
           <Link
             href={signupHref}
-            className="group flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:border-brand hover:shadow-md"
+            className="group flex items-center gap-4 rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-5 py-4 ring-1 ring-black/[0.07] transition hover:ring-brand/40 hover:shadow-[0_8px_24px_rgba(79,70,229,0.10)]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand/15">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 text-white shadow-[0_4px_14px_rgba(124,58,237,0.28)] transition group-hover:shadow-[0_6px_20px_rgba(124,58,237,0.38)]">
               <UserPlus className="h-5 w-5" />
             </div>
-            <div>
+            <div className="flex-1">
               <div className="font-semibold text-primary">Create account</div>
-              <div className="mt-0.5 text-sm text-secondary">New to RentProperty</div>
+              <div className="mt-0.5 text-xs text-secondary">New to Laugh &amp; Lodge</div>
             </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
           </Link>
         </div>
-
-        <p className="text-xs text-muted">
-          After signing in or creating an account you&apos;ll automatically return here to complete your booking.
-        </p>
       </div>
     );
   }
@@ -277,23 +276,52 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
     if (authStatus !== "authenticated") {
       return (
         <div className="rounded-2xl border border-line bg-warm-alt px-5 py-4 text-sm text-secondary">
-          Complete sign in first to proceed to payment.
+          Please sign in first to continue to payment.
         </div>
       );
     }
 
     if (reserveError) {
+      const isConflict =
+        /progress|in use|active hold|another|conflict/i.test(reserveError);
+      const isUnavailable =
+        /unavailable|not available|already booked|occupied/i.test(reserveError);
+
       return (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-danger/30 bg-danger/8 px-5 py-4 text-sm text-danger">
-            {reserveError}
+          <div className="rounded-2xl bg-danger/8 px-5 py-4 ring-1 ring-danger/20">
+            <div className="text-sm font-semibold text-danger">
+              {isConflict
+                ? "Reservation session conflict"
+                : isUnavailable
+                  ? "Dates unavailable"
+                  : "Unable to secure dates"}
+            </div>
+            <p className="mt-1 text-xs text-danger/80">
+              {isConflict
+                ? "You may have an active reservation in progress. Wait a moment, then try again — or return to the property and start fresh."
+                : isUnavailable
+                  ? "These dates are no longer available. Please return to the property and select different dates."
+                  : reserveError}
+            </p>
           </div>
-          <button
-            onClick={() => { setReserveError(null); void createHold(); }}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
-          >
-            Try again
-          </button>
+
+          <div className="flex flex-wrap gap-2">
+            {!isUnavailable && (
+              <button
+                onClick={() => { setReserveError(null); void createHold(); }}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
+              >
+                Try again
+              </button>
+            )}
+            <a
+              href={backHref}
+              className="inline-flex items-center gap-2 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-2 text-sm font-semibold text-secondary ring-1 ring-black/8 transition hover:text-primary"
+            >
+              Back to property
+            </a>
+          </div>
         </div>
       );
     }
@@ -303,9 +331,9 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
       return (
         <div className="space-y-4">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-primary">Secure your dates</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-primary">Reserve your dates</h2>
             <p className="mt-1.5 text-sm text-secondary">
-              We&apos;ll place a temporary hold on your selected dates while you complete payment. You won&apos;t be charged yet.
+              We&apos;ll temporarily hold your selected dates while you complete payment. You won&apos;t be charged yet.
             </p>
           </div>
 
@@ -319,7 +347,7 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
             onClick={() => void createHold()}
             disabled={reserveBusy || !datesValid}
             className={classNames(
-              "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-sm transition",
+              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold shadow-sm transition",
               reserveBusy || !datesValid
                 ? "cursor-not-allowed bg-warm-alt text-muted"
                 : "bg-brand text-accent-text hover:bg-brand-hover",
@@ -328,12 +356,12 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
             {reserveBusy ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-text/40 border-t-accent-text" />
-                Securing dates…
+                Reserving dates…
               </>
             ) : (
               <>
                 <ShieldCheck className="h-4 w-4" />
-                Hold dates &amp; continue to payment
+                Reserve dates &amp; continue
               </>
             )}
           </button>
@@ -355,29 +383,28 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
   // ── Step 3: Informational (PendingPaymentCard handles actual confirmation + redirect) ──
   function renderStep3() {
     return (
-      <div className="rounded-2xl border border-line bg-warm-alt px-5 py-5 text-sm text-secondary">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-5 w-5 text-success" />
-          <span className="font-semibold text-primary">Booking confirmed</span>
+      <div className="flex items-start gap-4 rounded-2xl bg-success/10 px-5 py-5 ring-1 ring-success/20">
+        <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-success" />
+        <div>
+          <div className="font-semibold text-primary">You&apos;re all set!</div>
+          <p className="mt-1 text-sm text-secondary">
+            Your booking is confirmed. Redirecting to your booking details…
+          </p>
         </div>
-        <p className="mt-2">
-          Your booking has been confirmed via Stripe webhook verification. You&apos;ll be redirected to your booking details.
-        </p>
       </div>
     );
   }
 
-  const steps: Array<{ id: Step; label: string; icon: React.ReactNode }> = [
-    { id: 1, label: "Sign in", icon: <LogIn className="h-4 w-4" /> },
-    { id: 2, label: "Payment", icon: <CreditCard className="h-4 w-4" /> },
-    { id: 3, label: "Confirmed", icon: <CheckCircle2 className="h-4 w-4" /> },
-  ];
-
   return (
     <>
       <main className="min-h-screen bg-transparent">
-        <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
-          {/* Back link */}
+        {/* Decorative bg glow */}
+        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+          <div className="absolute -top-40 left-1/4 h-125 w-125 rounded-full bg-linear-to-br from-indigo-500/8 to-violet-500/5 blur-3xl" />
+          <div className="absolute bottom-20 right-1/4 h-100 w-100 rounded-full bg-linear-to-tl from-violet-500/6 to-brand/5 blur-3xl" />
+        </div>
+        <div className="mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+          {/* Back */}
           <Link
             href={backHref}
             className="inline-flex items-center gap-1.5 text-sm text-secondary transition hover:text-primary"
@@ -386,82 +413,137 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
             {props.slug ? "Back to property" : "Back to properties"}
           </Link>
 
-          <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]">
-            {/* ── LEFT: Step flow ─────────────────────────────────────────── */}
-            <div className="min-w-0">
-              {/* Page title */}
-              <div className="mb-6">
-                <h1 className="text-3xl font-semibold tracking-tight text-primary">Checkout</h1>
-                {datesValid && nights !== null && (
-                  <p className="mt-1 text-sm text-secondary">
-                    {nights} night{nights !== 1 ? "s" : ""} &middot; {guests} guest{guests !== 1 ? "s" : ""}
-                  </p>
-                )}
-              </div>
+          <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]">
+            {/* ── LEFT: stacked step cards ── */}
+            <div className="space-y-3">
 
-              {/* Step indicator */}
-              <div className="mb-8">
-                <div className="flex items-center gap-0">
-                  {steps.map((s, idx) => {
-                    const done = step > s.id;
-                    const active = step === s.id;
-                    return (
-                      <div key={s.id} className="flex flex-1 items-center last:flex-none">
-                        {/* Step bubble */}
-                        <div className="flex flex-col items-center gap-1.5">
-                          <div
-                            className={classNames(
-                              "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-300",
-                              done
-                                ? "border-success bg-success text-white"
-                                : active
-                                  ? "border-brand bg-brand text-accent-text shadow-md shadow-brand/20"
-                                  : "border-line bg-surface text-muted",
-                            )}
-                          >
-                            {done ? <CheckCircle2 className="h-4 w-4" /> : s.icon}
-                          </div>
-                          <span
-                            className={classNames(
-                              "text-xs font-medium",
-                              done ? "text-success" : active ? "text-primary" : "text-muted",
-                            )}
-                          >
-                            {s.label}
-                          </span>
-                        </div>
-
-                        {/* Connector line */}
-                        {idx < steps.length - 1 && (
-                          <div
-                            className={classNames(
-                              "mx-2 mb-5 h-0.5 flex-1 rounded-full transition-all duration-500",
-                              done ? "bg-success" : "bg-line",
-                            )}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
+              {/* ─── Card 1: Account ─── */}
+              <div className={[
+                "overflow-hidden rounded-3xl transition-all duration-300",
+                step > 1
+                  ? "premium-card-tinted ring-1 ring-success/20 shadow-[0_8px_32px_rgba(11,15,25,0.08)]"
+                  : "premium-card premium-card-tinted ring-2 ring-brand/20 shadow-[0_20px_60px_rgba(79,70,229,0.13)]",
+              ].join(" ")}>
+                {/* Gradient top bar */}
+                <div className={[
+                  "h-[3px]",
+                  step > 1
+                    ? "bg-linear-to-r from-emerald-400 to-teal-500"
+                    : "bg-linear-to-r from-indigo-500 via-violet-500 to-purple-500",
+                ].join(" ")} />
+                <div className="flex items-center gap-4 p-6 pb-4">
+                  <div
+                    className={[
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300",
+                      step > 1
+                        ? "bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.30)]"
+                        : "bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-[0_6px_20px_rgba(79,70,229,0.35)]",
+                    ].join(" ")}
+                  >
+                    {step > 1 ? <CheckCircle2 className="h-5 w-5" /> : <span className="text-sm font-bold">1</span>}
+                  </div>
+                  <span className="text-base font-semibold text-primary">Account</span>
+                </div>
+                <div className="px-6 pb-6">
+                  {renderStep1()}
                 </div>
               </div>
 
-              {/* Step content card */}
-              <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-                {step === 1 && renderStep1()}
-                {step === 2 && renderStep2()}
-                {step === 3 && renderStep3()}
+              {/* ─── Card 2: Payment ─── */}
+              <div className={[
+                "overflow-hidden rounded-3xl transition-all duration-300",
+                step > 2
+                  ? "premium-card-tinted ring-1 ring-success/20 shadow-[0_8px_32px_rgba(11,15,25,0.08)]"
+                  : step === 2
+                    ? "premium-card premium-card-tinted ring-2 ring-brand/20 shadow-[0_20px_60px_rgba(79,70,229,0.13)]"
+                    : "premium-card-tinted opacity-70 ring-1 ring-black/8 shadow-[0_4px_16px_rgba(11,15,25,0.06)]",
+              ].join(" ")}>
+                {/* Gradient top bar — only when active or done */}
+                {step >= 2 && (
+                  <div className={[
+                    "h-[3px]",
+                    step > 2
+                      ? "bg-linear-to-r from-emerald-400 to-teal-500"
+                      : "bg-linear-to-r from-indigo-500 via-violet-500 to-purple-500",
+                  ].join(" ")} />
+                )}
+                <div className="flex items-center gap-4 p-6 pb-4">
+                  <div
+                    className={[
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300",
+                      step > 2
+                        ? "bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.30)]"
+                        : step === 2
+                          ? "bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-[0_6px_20px_rgba(79,70,229,0.35)]"
+                          : "bg-line/30 text-muted",
+                    ].join(" ")}
+                  >
+                    {step > 2 ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : step === 2 ? (
+                      <CreditCard className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                  </div>
+                  <span className={`text-base font-semibold ${step >= 2 ? "text-primary" : "text-muted"}`}>
+                    Payment
+                  </span>
+                </div>
+                <div className="px-6 pb-6">
+                  {step >= 2 ? renderStep2() : (
+                    <p className="text-sm text-muted">Complete the account step to continue.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ─── Card 3: Confirmation ─── */}
+              <div className={[
+                "overflow-hidden rounded-3xl transition-all duration-300",
+                step === 3
+                  ? "premium-card-tinted ring-1 ring-success/20 shadow-[0_8px_32px_rgba(11,15,25,0.08)]"
+                  : "premium-card-tinted opacity-70 ring-1 ring-black/8 shadow-[0_4px_16px_rgba(11,15,25,0.06)]",
+              ].join(" ")}>
+                {step === 3 && (
+                  <div className="h-[3px] bg-linear-to-r from-emerald-400 to-teal-500" />
+                )}
+                <div className={`flex items-center gap-4 p-6 ${step === 3 ? "pb-4" : ""}`}>
+                  <div
+                    className={[
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300",
+                      step === 3
+                        ? "bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.30)]"
+                        : "bg-line/30 text-muted",
+                    ].join(" ")}
+                  >
+                    {step === 3 ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <span className="text-sm font-bold">3</span>
+                    )}
+                  </div>
+                  <span className={`text-base font-semibold ${step === 3 ? "text-primary" : "text-muted"}`}>
+                    Confirmation
+                  </span>
+                </div>
+                {step === 3 && (
+                  <div className="px-6 pb-6">
+                    {renderStep3()}
+                  </div>
+                )}
               </div>
 
               {/* Security note */}
-              <div className="mt-4 flex items-center gap-2 text-xs text-muted">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                Secured by Stripe. Your payment details are encrypted end-to-end.
+              <div className="flex items-center justify-center pt-2">
+                <div className="flex items-center gap-1.5 rounded-full bg-success/8 px-3.5 py-1.5 ring-1 ring-success/15">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-success" />
+                  <span className="text-xs font-medium text-success/90">Payments secured by Stripe</span>
+                </div>
               </div>
             </div>
 
-            {/* ── RIGHT: Sticky property summary ──────────────────────────── */}
-            <div className="lg:sticky lg:top-24">
+            {/* ── RIGHT: sticky property summary ── */}
+            <div className="lg:sticky lg:top-22">
               <CheckoutPropertySummary
                 slug={props.slug}
                 propertyId={props.propertyId}
@@ -475,10 +557,10 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
         </div>
       </main>
 
-      {/* Inline edit modal */}
       {editModalOpen && (
         <CheckoutEditModal
           propertyId={props.propertyId}
+          slug={props.slug}
           initialCheckIn={checkIn}
           initialCheckOut={checkOut}
           initialGuests={guests}

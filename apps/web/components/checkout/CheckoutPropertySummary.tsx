@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { CalendarDays, MapPin, Pencil, Star, Users } from "lucide-react";
+import { CalendarDays, MapPin, Pencil, Users } from "lucide-react";
 import { getPropertyBySlug } from "@/lib/api/properties";
 import { quoteProperty, type Quote } from "@/lib/booking/bookingFlow";
 import type { PropertyDetail } from "@/lib/types/property";
@@ -145,9 +145,9 @@ export function CheckoutPropertySummary({
   const displayCurrency = quote?.currency ?? property?.currency ?? "AED";
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-xl shadow-black/5">
+    <div className="overflow-hidden rounded-3xl bg-surface ring-1 ring-black/[0.07] shadow-[0_12px_40px_rgba(11,15,25,0.10)]">
       {/* Property hero image */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-warm-alt">
+      <div className="relative aspect-video w-full overflow-hidden bg-warm-alt">
         {propLoading ? (
           <div className="h-full w-full animate-pulse bg-line/40" />
         ) : heroSrc ? (
@@ -184,54 +184,58 @@ export function CheckoutPropertySummary({
               </div>
             )}
 
-            {/* Rating + beds */}
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-secondary">
-              <span className="flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-                <span className="font-medium text-primary">New listing</span>
-              </span>
-              {property.bedrooms && (
-                <span>{property.bedrooms} bed{property.bedrooms !== 1 ? "s" : ""}</span>
-              )}
-              {property.maxGuests && (
-                <span className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  Up to {property.maxGuests} guests
-                </span>
-              )}
-            </div>
+            {/* Property meta — beds & guests only (no rating field in API) */}
+            {(property.bedrooms || property.maxGuests) && (
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-secondary">
+                {property.bedrooms && (
+                  <span>{property.bedrooms} bedroom{property.bedrooms !== 1 ? "s" : ""}</span>
+                )}
+                {property.bathrooms && (
+                  <span>{property.bathrooms} bath{property.bathrooms !== 1 ? "s" : ""}</span>
+                )}
+                {property.maxGuests && (
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    Up to {property.maxGuests} guests
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
 
         {/* Divider */}
-        <div className="my-4 border-t border-line" />
+        <div className="my-4 border-t border-black/6" />
 
         {/* Dates + guests with edit button */}
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <CalendarDays className="h-4 w-4 shrink-0 text-secondary" />
-              <span className="text-primary">
-                {isValidDate(checkIn) && isValidDate(checkOut) ? (
-                  <>
-                    {fmtShortDate(checkIn)}{" "}
-                    <span className="text-muted">→</span>{" "}
-                    {fmtShortDate(checkOut)}
-                    {nights !== null && (
-                      <span className="ml-1.5 text-xs text-muted">
-                        ({nights} night{nights !== 1 ? "s" : ""})
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-muted">No dates selected</span>
-                )}
-              </span>
-            </div>
+          <div className="space-y-2.5">
+            {/* Check-in / Check-out row */}
+            {isValidDate(checkIn) && isValidDate(checkOut) ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-3 py-2 ring-1 ring-black/6">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Check-in</div>
+                  <div className="mt-0.5 text-sm font-semibold text-primary">{fmtShortDate(checkIn)}</div>
+                </div>
+                <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-3 py-2 ring-1 ring-black/6">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Check-out</div>
+                  <div className="mt-0.5 text-sm font-semibold text-primary">{fmtShortDate(checkOut)}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <CalendarDays className="h-4 w-4 shrink-0" />
+                No dates selected
+              </div>
+            )}
 
-            <div className="flex items-center gap-2 text-sm">
-              <Users className="h-4 w-4 shrink-0 text-secondary" />
-              <span className="text-primary">
+            {/* Nights + Guests row */}
+            <div className="flex flex-wrap items-center gap-3 text-xs text-secondary">
+              {nights !== null && (
+                <span className="font-medium text-primary">{nights} night{nights !== 1 ? "s" : ""}</span>
+              )}
+              <span className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
                 {guests} guest{guests !== 1 ? "s" : ""}
               </span>
             </div>
@@ -239,7 +243,7 @@ export function CheckoutPropertySummary({
 
           <button
             onClick={onEdit}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-warm-alt px-3 py-1.5 text-xs font-semibold text-secondary transition hover:border-brand hover:text-brand"
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-3 py-1.5 text-xs font-semibold text-secondary ring-1 ring-black/8 transition hover:text-brand hover:ring-brand/40"
           >
             <Pencil className="h-3 w-3" />
             Edit
@@ -247,7 +251,7 @@ export function CheckoutPropertySummary({
         </div>
 
         {/* Divider */}
-        <div className="my-4 border-t border-line" />
+        <div className="my-4 border-t border-black/6" />
 
         {/* Price breakdown */}
         <div className="space-y-3">
@@ -260,7 +264,7 @@ export function CheckoutPropertySummary({
               <SkeletonLine w="3/4" />
             </div>
           ) : quoteError ? (
-            <p className="text-xs text-danger">{quoteError}</p>
+            <p className="text-xs text-secondary">Pricing unavailable — your dates are reserved.</p>
           ) : quote ? (
             <div className="space-y-2 text-sm">
               {/* Nightly */}
@@ -294,10 +298,10 @@ export function CheckoutPropertySummary({
                 </div>
               )}
 
-              {/* Taxes */}
+              {/* VAT */}
               {quote.breakdown.taxes > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-secondary">Taxes</span>
+                  <span className="text-secondary">VAT (5%)</span>
                   <span className="font-medium text-primary">
                     {fmtCurrency(quote.breakdown.taxes, displayCurrency)}
                   </span>
@@ -305,7 +309,7 @@ export function CheckoutPropertySummary({
               )}
 
               {/* Total */}
-              <div className="border-t border-line pt-3">
+              <div className="border-t border-black/6 pt-3">
                 <div className="flex justify-between">
                   <span className="font-semibold text-primary">Total</span>
                   <span className="text-lg font-bold text-primary">
@@ -318,13 +322,8 @@ export function CheckoutPropertySummary({
                   </div>
                 )}
               </div>
-
-              {/* canBook warning */}
-              {!quote.canBook && quote.reasons.length > 0 && (
-                <div className="rounded-xl border border-danger/30 bg-danger/8 px-3 py-2.5 text-xs text-danger">
-                  {quote.reasons[0]}
-                </div>
-              )}
+              {/* NOTE: canBook=false is expected here — the user's own active hold
+                  temporarily marks these dates as unavailable. Do not show a warning. */}
             </div>
           ) : (
             <p className="text-xs text-muted">
@@ -334,6 +333,7 @@ export function CheckoutPropertySummary({
             </p>
           )}
         </div>
+
       </div>
     </div>
   );

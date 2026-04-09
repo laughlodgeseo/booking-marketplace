@@ -48,10 +48,9 @@ const COPY = {
     livePricingHint: "Price updates live as you select dates and guests.",
     loadingPrice: "Updating price...",
     reserve: "Reserve",
-    reserveAndContinue: "Reserve and continue",
-    reserving: "Reserving...",
-    holdNote:
-      "You won't be charged yet. We create a temporary hold, then continue to secure checkout for payment.",
+    reserveAndContinue: "Reserve",
+    reserving: "Reserving…",
+    holdNote: "You won't be charged yet.",
     checkAvailability: "Check availability",
     viewDetails: "View details",
     closeBookingPanel: "Close booking panel",
@@ -70,7 +69,7 @@ const COPY = {
     serviceFee: "Service fee",
     taxes: "Taxes",
     total: "Total",
-    signInToReserve: "Sign in to reserve",
+    signInToReserve: "Reserve",
     confirmAndPay: "Confirm & pay",
   },
   ar: {
@@ -85,10 +84,9 @@ const COPY = {
     livePricingHint: "يتم تحديث السعر مباشرة عند اختيار التواريخ وعدد الضيوف.",
     loadingPrice: "جارٍ تحديث السعر...",
     reserve: "احجز",
-    reserveAndContinue: "احجز وتابع",
-    reserving: "جارٍ إنشاء الحجز المؤقت...",
-    holdNote:
-      "لن يتم تحصيل أي مبلغ الآن. ننشئ حجزاً مؤقتاً ثم ننتقل إلى صفحة دفع آمنة.",
+    reserveAndContinue: "احجز",
+    reserving: "جارٍ الحجز…",
+    holdNote: "لن يتم تحصيل أي مبلغ الآن.",
     checkAvailability: "تحقق من التوافر",
     viewDetails: "عرض التفاصيل",
     closeBookingPanel: "إغلاق لوحة الحجز",
@@ -107,7 +105,7 @@ const COPY = {
     serviceFee: "رسوم الخدمة",
     taxes: "الضرائب",
     total: "الإجمالي",
-    signInToReserve: "سجّل الدخول للحجز",
+    signInToReserve: "احجز",
     confirmAndPay: "تأكيد والدفع",
   },
 } as const;
@@ -385,10 +383,9 @@ export default function QuotePanelBatchA(props: {
   const reserveCtaLabel =
     reserveBusy || authStatus === "loading"
       ? copy.reserving
-      : authStatus === "authenticated"
-        ? copy.reserveAndContinue
-        : copy.signInToReserve;
+      : copy.reserve;
 
+  // Allow unauthenticated users to proceed — checkout page handles sign-in inline
   const canReserve =
     Boolean(canQuote) &&
     Boolean(quote) &&
@@ -433,8 +430,8 @@ export default function QuotePanelBatchA(props: {
     setCalendarMonth((current) => (isSameMonth(current, normalized) ? current : normalized));
   }, []);
 
-  const buildLoginNextPath = useCallback(() => {
-    // After login, land on the new /checkout page so the hold is created there
+  /** Build the /checkout URL with current selection (no holdId — checkout page handles hold creation) */
+  const buildCheckoutUrl = useCallback(() => {
     const qp = new URLSearchParams();
     qp.set("propertyId", props.propertyId);
     if (checkIn) qp.set("checkIn", checkIn);
@@ -444,22 +441,17 @@ export default function QuotePanelBatchA(props: {
     return `/checkout?${qp.toString()}`;
   }, [checkIn, checkOut, guests, props.propertyId, props.slug]);
 
-  const redirectToLogin = useCallback(() => {
-    const qp = new URLSearchParams();
-    qp.set("role", "customer");
-    qp.set("next", buildLoginNextPath());
-    router.push(`/login?${qp.toString()}`);
-  }, [buildLoginNextPath, router]);
-
   const onReserve = useCallback(async () => {
     if (!canQuote || !quote || !quote.canBook || reserveBusy) return;
 
+    // Not signed in → go straight to checkout; the Account card handles sign-in/sign-up inline.
+    // After auth, the checkout page redirects back to itself with the same params.
     if (authStatus !== "authenticated") {
-      setReserveError(copy.loginRequired);
-      redirectToLogin();
+      router.push(buildCheckoutUrl());
       return;
     }
 
+    // Authenticated → create the hold first, then go to checkout with holdId
     setReserveBusy(true);
     setReserveError(null);
 
@@ -474,7 +466,7 @@ export default function QuotePanelBatchA(props: {
       const qp = new URLSearchParams();
       qp.set("propertyId", props.propertyId);
       qp.set("holdId", reserved.holdId);
-      qp.set("slug", props.slug);
+      if (props.slug) qp.set("slug", props.slug);
       qp.set("guests", String(guests));
       qp.set("checkIn", checkIn);
       qp.set("checkOut", checkOut);
@@ -482,8 +474,8 @@ export default function QuotePanelBatchA(props: {
       router.push(`/checkout?${qp.toString()}`);
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        setReserveError(copy.loginRequired);
-        redirectToLogin();
+        // Token may have expired — go to checkout without hold; it'll re-auth
+        router.push(buildCheckoutUrl());
         return;
       }
       setReserveError(error instanceof Error ? error.message : copy.reserveError);
@@ -492,16 +484,15 @@ export default function QuotePanelBatchA(props: {
     }
   }, [
     authStatus,
+    buildCheckoutUrl,
     canQuote,
     checkIn,
     checkOut,
-    copy.loginRequired,
     copy.reserveError,
     guests,
     props.propertyId,
     props.slug,
     quote,
-    redirectToLogin,
     reserveBusy,
     router,
     selectedCurrency,
@@ -526,55 +517,72 @@ export default function QuotePanelBatchA(props: {
   const breakdown = quote?.breakdown ?? null;
 
   const breakdownCard = (
-    <div className="mt-3 rounded-2xl border border-line/70 bg-[rgb(var(--color-bg-rgb)/0.84)] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{pricingTitle}</div>
-          <div className="mt-1 text-lg font-semibold text-primary">
-            {quote ? formatMoney(quote.totalAmount, quote.currency) : displayedNightPrice}
-          </div>
-          {quote ? (
-            <div className="text-xs text-secondary">
-              {quote.nights} {copy.nights} • {formatIsoForUi(quote.checkIn, locale)} - {formatIsoForUi(quote.checkOut, locale)}
-            </div>
-          ) : (
-            <div className="text-xs text-secondary">{copy.exactTotal}</div>
-          )}
-        </div>
-        <div className="text-right text-xs text-secondary">
-          {copy.fromPerNight} {displayedNightPrice}
-          <div>{copy.perNight}</div>
-        </div>
+    <div className="mt-5 border-t border-line/30 pt-5">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+          {pricingTitle}
+        </span>
+        {quoteState === "loading" && (
+          <Loader2 className="h-3 w-3 animate-spin text-muted" />
+        )}
       </div>
 
-      {quote && breakdown ? (
-        <div className="mt-3 space-y-2 border-t border-line/70 pt-3 text-sm text-secondary">
-          <div className="flex items-center justify-between">
-            <span>
-              {copy.base} ({breakdown.nights} {copy.nights})
+      {quoteState === "loading" && !quote ? (
+        <div className="animate-pulse space-y-3">
+          {[70, 55, 55].map((w, i) => (
+            <div key={i} className="flex justify-between">
+              <div className="h-3 rounded-full bg-line/50" style={{ width: `${w}%` }} />
+              <div className="h-3 w-16 rounded-full bg-line/50" />
+            </div>
+          ))}
+          <div className="mt-4 flex justify-between border-t border-line/30 pt-4">
+            <div className="h-4 w-1/4 rounded-full bg-line/50" />
+            <div className="h-4 w-24 rounded-full bg-line/50" />
+          </div>
+        </div>
+      ) : !quote ? (
+        <p className="text-sm text-secondary/70">{copy.exactTotal}</p>
+      ) : breakdown ? (
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-secondary">
+              {copy.base} · {breakdown.nights} {copy.nights}
             </span>
-            <span className="font-semibold text-primary">{formatMoney(breakdown.baseAmount, quote.currency)}</span>
+            <span className="font-semibold text-primary">
+              {formatMoney(breakdown.baseAmount, quote.currency)}
+            </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span>{copy.cleaning}</span>
-            <span className="font-semibold text-primary">{formatMoney(breakdown.cleaningFee, quote.currency)}</span>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-secondary">{copy.cleaning}</span>
+            <span className="font-semibold text-primary">
+              {formatMoney(breakdown.cleaningFee, quote.currency)}
+            </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span>{copy.serviceFee}</span>
-            <span className="font-semibold text-primary">{formatMoney(breakdown.serviceFee, quote.currency)}</span>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-secondary">{copy.serviceFee}</span>
+            <span className="font-semibold text-primary">
+              {formatMoney(breakdown.serviceFee, quote.currency)}
+            </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span>{copy.taxes}</span>
-            <span className="font-semibold text-primary">{formatMoney(breakdown.taxes, quote.currency)}</span>
-          </div>
-          <div className="flex items-center justify-between border-t border-line/70 pt-2 text-base font-semibold text-primary">
+          {breakdown.taxes > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-secondary">
+                {locale === "ar" ? "ضريبة القيمة المضافة (5%)" : "VAT (5%)"}
+              </span>
+              <span className="font-semibold text-primary">
+                {formatMoney(breakdown.taxes, quote.currency)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-between border-t border-line/30 pt-3 text-base font-bold text-primary">
             <span>{copy.total}</span>
             <span>{formatMoney(breakdown.total, quote.currency)}</span>
           </div>
-
-          {quote.currency !== "AED" ? (
-            <div className="text-right text-[11px] text-muted">{formatBaseAed(quote.totalAmountAed)}</div>
-          ) : null}
+          {quote.currency !== "AED" && (
+            <div className="text-right text-[11px] text-muted">
+              {formatBaseAed(quote.totalAmountAed)}
+            </div>
+          )}
         </div>
       ) : null}
     </div>
@@ -582,58 +590,80 @@ export default function QuotePanelBatchA(props: {
 
   return (
     <>
-      <div className="hidden lg:block">
-        <div className="premium-card premium-card-tinted rounded-3xl border border-white/70 p-5 shadow-[0_20px_56px_rgba(11,15,25,0.14)] sm:p-6">
-          <div className="flex items-end justify-between gap-3">
+      {/* ── DESKTOP ── */}
+      <div
+        className={[
+          "hidden lg:block lg:sticky",
+          desktopCalendarOpen ? "lg:top-6" : "lg:top-[88px]",
+          "transition-[top] duration-300 ease-in-out",
+        ].join(" ")}
+      >
+        <div className="premium-card premium-card-tinted rounded-3xl border border-white/60 p-6 shadow-[0_24px_64px_rgba(11,15,25,0.18)] ring-1 ring-white/40">
+          {/* Price + currency switcher */}
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{copy.fromPerNight}</div>
-              <div className="mt-1 text-2xl font-semibold text-primary">{displayedNightPrice}</div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                {copy.fromPerNight}
+              </p>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-3xl font-bold tracking-tight text-primary">{displayedNightPrice}</span>
+                <span className="text-sm text-secondary">{copy.perNight}</span>
+              </div>
             </div>
-            <div className="text-xs text-secondary">{copy.perNight}</div>
+            <div className="mt-0.5 shrink-0">
+              <CurrencySwitcher compact />
+            </div>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-line/70 bg-surface/90">
-            <div className="grid grid-cols-2">
+          {/* Date + guest selector */}
+          <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-black/[0.08] dark:ring-white/[0.08]">
+            <div className="grid grid-cols-2 divide-x divide-black/[0.07] dark:divide-white/[0.07]">
               <button
                 type="button"
                 onClick={() => openCalendar("checkin")}
-                className="flex min-h-[78px] flex-col items-start justify-center gap-1 border-r border-line/70 px-4 text-left transition hover:bg-accent-soft/12"
+                className="group flex min-h-[76px] flex-col justify-center gap-0.5 px-4 py-3 text-left transition-colors duration-150 hover:bg-accent-soft/8"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{copy.checkIn}</span>
-                <span className="text-sm font-semibold text-primary">{checkInLabel}</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted transition-colors group-hover:text-primary">
+                  {copy.checkIn}
+                </span>
+                <span className={`mt-0.5 text-sm font-semibold ${checkIn ? "text-primary" : "text-secondary/60"}`}>
+                  {checkInLabel}
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => openCalendar("checkout")}
-                className="flex min-h-[78px] flex-col items-start justify-center gap-1 px-4 text-left transition hover:bg-accent-soft/12"
+                className="group flex min-h-[76px] flex-col justify-center gap-0.5 px-4 py-3 text-left transition-colors duration-150 hover:bg-accent-soft/8"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{copy.checkOut}</span>
-                <span className="text-sm font-semibold text-primary">{checkOutLabel}</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted transition-colors group-hover:text-primary">
+                  {copy.checkOut}
+                </span>
+                <span className={`mt-0.5 text-sm font-semibold ${checkOut ? "text-primary" : "text-secondary/60"}`}>
+                  {checkOutLabel}
+                </span>
               </button>
             </div>
 
-            <div className="flex items-center justify-between border-t border-line/70 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+            <div className="flex items-center justify-between border-t border-black/[0.07] px-4 py-3 dark:border-white/[0.07]">
+              <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted" />
-                {copy.guests}
+                <span className="text-sm font-semibold text-primary">{copy.guests}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setGuests((value) => clampGuests(value - 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-line/70 bg-surface text-primary hover:bg-accent-soft/20"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] transition hover:ring-black/20 active:scale-95 dark:ring-white/[0.08]"
                   aria-label="decrease guests"
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
-
-                <span className="min-w-8 text-center text-sm font-semibold text-primary">{guests}</span>
-
+                <span className="w-6 text-center text-sm font-semibold text-primary">{guests}</span>
                 <button
                   type="button"
                   onClick={() => setGuests((value) => clampGuests(value + 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-line/70 bg-surface text-primary hover:bg-accent-soft/20"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] transition hover:ring-black/20 active:scale-95 dark:ring-white/[0.08]"
                   aria-label="increase guests"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -643,12 +673,13 @@ export default function QuotePanelBatchA(props: {
           </div>
 
           {desktopCalendarOpen ? (
-            <div className="mt-3 rounded-2xl border border-line/70 bg-surface/95 p-3">
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-secondary">
-                <span>{copy.calendar}</span>
-                {calendarLoading ? <span>{copy.availabilityLoading}</span> : null}
-              </div>
-
+            <div className="mt-4">
+              {calendarLoading ? (
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {copy.availabilityLoading}
+                </div>
+              ) : null}
               <DateRangePicker
                 value={dateRangeValue}
                 onChange={updateDates}
@@ -663,237 +694,241 @@ export default function QuotePanelBatchA(props: {
                   setDesktopCalendarOpen(false);
                 }}
                 onVisibleMonthChange={handleVisibleMonthChange}
-                numberOfMonths={2}
-                maxMonthsAhead={4}
+                numberOfMonths={1}
+                maxMonthsAhead={6}
                 compact
               />
             </div>
           ) : null}
 
           {calendarError ? (
-            <div className="mt-3 rounded-xl border border-warning/30 bg-warning/12 px-3 py-2 text-xs text-warning">
+            <div className="mt-3 rounded-xl bg-warning/10 px-3 py-2.5 text-xs text-warning ring-1 ring-warning/20">
               {calendarError}
             </div>
           ) : null}
 
-          {availabilityUntilLabel ? (
-            <div className="mt-2 text-xs text-secondary">
-              {copy.availabilityUntil} {availabilityUntilLabel}
-            </div>
-          ) : null}
-
-          <div className="mt-3">
-            <CurrencySwitcher compact />
-          </div>
-
           {breakdownCard}
 
           {quoteError ? (
-            <div className="mt-3 rounded-xl border border-danger/25 bg-danger/12 px-4 py-3 text-xs text-danger">{quoteError}</div>
+            <div className="mt-3 rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+              {quoteError}
+            </div>
           ) : null}
 
           {quoteUnavailableReason ? (
-            <div className="mt-3 rounded-xl border border-warning/25 bg-warning/12 px-4 py-3 text-xs text-warning">
+            <div className="mt-3 rounded-xl bg-warning/8 px-4 py-3 text-xs text-warning ring-1 ring-warning/20">
               {quoteUnavailableReason}
             </div>
           ) : null}
 
           {reserveError ? (
-            <div className="mt-3 rounded-xl border border-danger/25 bg-danger/12 px-4 py-3 text-xs text-danger">{reserveError}</div>
+            <div className="mt-3 rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+              {reserveError}
+            </div>
           ) : null}
 
           <button
             type="button"
             onClick={() => void onReserve()}
             disabled={!canReserve}
-            className="site-cta-primary mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-accent-text disabled:cursor-not-allowed disabled:opacity-60"
+            className="site-cta-primary mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-accent-text shadow-[0_4px_16px_rgba(79,70,229,0.28)] transition hover:shadow-[0_6px_24px_rgba(79,70,229,0.36)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
           >
             {reserveBusy || authStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {reserveCtaLabel}
           </button>
 
-          <div className="mt-3 text-xs text-secondary">{copy.holdNote}</div>
-          <div className="mt-1 text-xs text-secondary">{copy.livePricingHint}</div>
-          <div className="mt-1 text-xs text-secondary">{copy.confirmAndPay}</div>
+          <p className="mt-3 text-center text-xs text-secondary/70">{copy.holdNote}</p>
         </div>
       </div>
 
+      {/* ── MOBILE ── */}
       <div className="lg:hidden">
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-[rgb(var(--color-surface-rgb)/0.98)]">
+        {/* Fixed bottom bar */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line/50 bg-surface/[0.97] pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
-              <p className="text-[11px] text-secondary">{copy.fromPerNight}</p>
-              <p className="truncate text-sm font-semibold text-primary">{quote ? formatMoney(quote.totalAmount, quote.currency) : displayedNightPrice}</p>
-              <p className="truncate text-xs text-secondary">{dateSummary}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">{copy.fromPerNight}</p>
+              <p className="truncate text-base font-bold text-primary">
+                {quote ? formatMoney(quote.totalAmount, quote.currency) : displayedNightPrice}
+              </p>
+              {quote ? (
+                <p className="truncate text-[11px] text-secondary">
+                  {quote.nights} {copy.nights} · {formatIsoForUi(quote.checkIn, locale)} – {formatIsoForUi(quote.checkOut, locale)}
+                </p>
+              ) : (
+                <p className="truncate text-[11px] text-secondary">{dateSummary}</p>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => setMobileOpen((value) => !value)}
-              className="site-cta-primary inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-accent-text"
+              className="site-cta-primary inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-bold text-accent-text shadow-[0_4px_14px_rgba(79,70,229,0.3)]"
             >
               {quote ? copy.viewDetails : copy.checkAvailability}
-              <ChevronDown className={`h-4 w-4 transition ${mobileOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${mobileOpen ? "rotate-180" : ""}`} />
             </button>
           </div>
         </div>
 
         {mobileOpen ? (
           <div className="fixed inset-0 z-50">
+            {/* Backdrop */}
             <button
               type="button"
               aria-label={copy.closeBookingPanel}
               onClick={() => setMobileOpen(false)}
-              className="absolute inset-0 bg-black/45"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             />
 
-            <div className="absolute inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-22px_62px_rgba(11,15,25,0.28)]">
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-primary">{copy.checkAvailability}</p>
-                  <p className="mt-1 text-xs text-secondary">{copy.exactTotal}</p>
+            {/* Bottom sheet */}
+            <div className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-3xl bg-surface shadow-[0_-24px_64px_rgba(11,15,25,0.32)]">
+              {/* Sticky header with drag handle */}
+              <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm">
+                <div className="flex justify-center pb-2 pt-3">
+                  <div className="h-1 w-10 rounded-full bg-line/50" />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileOpen(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line/70 bg-surface text-primary"
-                  aria-label={copy.closeBookingPanel}
-                >
-                  <ChevronDown className="h-4 w-4 -rotate-90" />
-                </button>
-              </div>
-
-              <div className="overflow-hidden rounded-2xl border border-line/70 bg-surface/90">
-                <div className="grid grid-cols-2">
+                <div className="flex items-center justify-between gap-4 px-5 pb-3">
+                  <div>
+                    <p className="text-sm font-bold text-primary">{copy.checkAvailability}</p>
+                    <p className="mt-0.5 text-xs text-secondary/70">{copy.exactTotal}</p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      openCalendar("checkin");
-                      setMobileCalendarOpen(true);
-                    }}
-                    className="flex min-h-[74px] flex-col items-start justify-center gap-1 border-r border-line/70 px-4 text-left"
+                    onClick={() => setMobileOpen(false)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-muted ring-1 ring-line/60 transition hover:bg-accent-soft/10"
+                    aria-label={copy.closeBookingPanel}
                   >
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{copy.checkIn}</span>
-                    <span className="text-sm font-semibold text-primary">{checkInLabel}</span>
+                    <ChevronDown className="h-4 w-4 -rotate-90" />
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openCalendar("checkout");
-                      setMobileCalendarOpen(true);
-                    }}
-                    className="flex min-h-[74px] flex-col items-start justify-center gap-1 px-4 text-left"
-                  >
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{copy.checkOut}</span>
-                    <span className="text-sm font-semibold text-primary">{checkOutLabel}</span>
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-line/70 px-4 py-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                    <Users className="h-4 w-4 text-muted" />
-                    {copy.guests}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setGuests((value) => clampGuests(value - 1))}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-line/70 bg-surface text-primary"
-                      aria-label="decrease guests"
-                    >
-                      <Minus className="h-3.5 w-3.5" />
-                    </button>
-                    <span className="min-w-8 text-center text-sm font-semibold text-primary">{guests}</span>
-                    <button
-                      type="button"
-                      onClick={() => setGuests((value) => clampGuests(value + 1))}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-line/70 bg-surface text-primary"
-                      aria-label="increase guests"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
                 </div>
               </div>
 
-              {mobileCalendarOpen ? (
-                <div className="mt-3 rounded-2xl border border-line/70 bg-surface/95 p-3">
-                  <div className="mb-2 flex items-center justify-between text-xs font-semibold text-secondary">
-                    <div className="inline-flex items-center gap-2">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {copy.calendar}
+              <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-1">
+                {/* Date + guest selector */}
+                <div className="overflow-hidden rounded-2xl ring-1 ring-black/[0.08] dark:ring-white/[0.08]">
+                  <div className="grid grid-cols-2 divide-x divide-black/[0.07] dark:divide-white/[0.07]">
+                    <button
+                      type="button"
+                      onClick={() => { openCalendar("checkin"); setMobileCalendarOpen(true); }}
+                      className="flex min-h-[72px] flex-col justify-center gap-0.5 px-4 py-3 text-left"
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{copy.checkIn}</span>
+                      <span className={`mt-0.5 text-sm font-semibold ${checkIn ? "text-primary" : "text-secondary/60"}`}>{checkInLabel}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { openCalendar("checkout"); setMobileCalendarOpen(true); }}
+                      className="flex min-h-[72px] flex-col justify-center gap-0.5 px-4 py-3 text-left"
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{copy.checkOut}</span>
+                      <span className={`mt-0.5 text-sm font-semibold ${checkOut ? "text-primary" : "text-secondary/60"}`}>{checkOutLabel}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-black/[0.07] px-4 py-3 dark:border-white/[0.07]">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted" />
+                      <span className="text-sm font-semibold text-primary">{copy.guests}</span>
                     </div>
-                    {calendarLoading ? <span>{copy.availabilityLoading}</span> : null}
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setGuests((value) => clampGuests(value - 1))}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] active:scale-95"
+                        aria-label="decrease guests"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="w-5 text-center text-sm font-semibold text-primary">{guests}</span>
+                      <button
+                        type="button"
+                        onClick={() => setGuests((value) => clampGuests(value + 1))}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] active:scale-95"
+                        aria-label="increase guests"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-
-                  <DateRangePicker
-                    value={dateRangeValue}
-                    onChange={updateDates}
-                    minDate={today}
-                    maxDate={maxSelectableDate ?? undefined}
-                    disabledDates={unavailableDates}
-                    mode="sequential"
-                    selectionPhase={selectionPhase}
-                    onSelectionPhaseChange={setSelectionPhase}
-                    onComplete={() => {
-                      setSelectionPhase("checkin");
-                      setMobileCalendarOpen(false);
-                    }}
-                    onVisibleMonthChange={handleVisibleMonthChange}
-                    numberOfMonths={1}
-                    maxMonthsAhead={4}
-                    compact
-                  />
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setMobileCalendarOpen(true)}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line/70 bg-surface px-4 py-3 text-sm font-semibold text-primary"
-                >
-                  <CalendarDays className="h-4 w-4" />
-                  {copy.calendar}
-                </button>
-              )}
 
-              {calendarError ? (
-                <div className="mt-3 rounded-xl border border-warning/30 bg-warning/12 px-3 py-2 text-xs text-warning">
-                  {calendarError}
-                </div>
-              ) : null}
+                {mobileCalendarOpen ? (
+                  <div className="mt-4">
+                    {calendarLoading ? (
+                      <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {copy.availabilityLoading}
+                      </div>
+                    ) : null}
+                    <DateRangePicker
+                      value={dateRangeValue}
+                      onChange={updateDates}
+                      minDate={today}
+                      maxDate={maxSelectableDate ?? undefined}
+                      disabledDates={unavailableDates}
+                      mode="sequential"
+                      selectionPhase={selectionPhase}
+                      onSelectionPhaseChange={setSelectionPhase}
+                      onComplete={() => { setSelectionPhase("checkin"); setMobileCalendarOpen(false); }}
+                      onVisibleMonthChange={handleVisibleMonthChange}
+                      numberOfMonths={1}
+                      maxMonthsAhead={4}
+                      compact
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setMobileCalendarOpen(true)}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-semibold text-primary ring-1 ring-black/[0.08] transition hover:bg-accent-soft/8"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                    {copy.calendar}
+                  </button>
+                )}
 
-              {breakdownCard}
+                {calendarError ? (
+                  <div className="mt-3 rounded-xl bg-warning/10 px-3 py-2.5 text-xs text-warning ring-1 ring-warning/20">
+                    {calendarError}
+                  </div>
+                ) : null}
 
-              {quoteError ? (
-                <div className="mt-3 rounded-xl border border-danger/25 bg-danger/12 px-4 py-3 text-xs text-danger">{quoteError}</div>
-              ) : null}
+                {breakdownCard}
 
-              {quoteUnavailableReason ? (
-                <div className="mt-3 rounded-xl border border-warning/25 bg-warning/12 px-4 py-3 text-xs text-warning">
-                  {quoteUnavailableReason}
-                </div>
-              ) : null}
+                {quoteError ? (
+                  <div className="mt-3 rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+                    {quoteError}
+                  </div>
+                ) : null}
 
-              {reserveError ? (
-                <div className="mt-3 rounded-xl border border-danger/25 bg-danger/12 px-4 py-3 text-xs text-danger">{reserveError}</div>
-              ) : null}
+                {quoteUnavailableReason ? (
+                  <div className="mt-3 rounded-xl bg-warning/8 px-4 py-3 text-xs text-warning ring-1 ring-warning/20">
+                    {quoteUnavailableReason}
+                  </div>
+                ) : null}
+
+                {reserveError ? (
+                  <div className="mt-3 rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+                    {reserveError}
+                  </div>
+                ) : null}
 
               <button
                 type="button"
                 onClick={() => void onReserve()}
                 disabled={!canReserve}
-                className="site-cta-primary mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-accent-text disabled:cursor-not-allowed disabled:opacity-60"
+                className="site-cta-primary mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-accent-text shadow-[0_4px_14px_rgba(79,70,229,0.28)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
               >
                 {reserveBusy || authStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {reserveCtaLabel}
               </button>
 
-              <div className="mt-3 text-xs text-secondary">{copy.holdNote}</div>
-              <div className="mt-1 text-xs text-secondary">{copy.livePricingHint}</div>
-              <div className="mt-3">
+              <p className="mt-3 text-center text-xs text-secondary/70">{copy.holdNote}</p>
+              <div className="mt-4">
                 <CurrencySwitcher compact />
+              </div>
               </div>
             </div>
           </div>

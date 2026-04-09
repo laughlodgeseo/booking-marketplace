@@ -47,165 +47,57 @@ export default async function CheckoutPage(props: PageProps) {
   return (
     <main className="min-h-screen bg-transparent">
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-12 sm:px-6 sm:pt-14 lg:px-8">
-        <div className="premium-card premium-card-dark rounded-3xl p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-primary">
-              {isAr ? "إتمام الحجز" : "Checkout"}
+            <h1 className="text-2xl font-semibold tracking-tight text-primary">
+              {isAr ? "إتمام الحجز" : "Complete your booking"}
             </h1>
-            <p className="mt-2 text-sm text-secondary">
-              {isDirectBooking ? (
-                isAr ? (
-                  <>
-                    أكمل الدفع لحجزك. يصبح الحجز{" "}
-                    <span className="font-semibold">مؤكداً</span> فقط بعد التحقق من أحداث الدفع.
-                  </>
-                ) : (
-                  <>
-                    Complete payment for your booking. Booking becomes{" "}
-                    <span className="font-semibold">CONFIRMED</span> only after verified payment events.
-                  </>
-                )
-              ) : isAr ? (
-                <>
-                  حوّل الحجز المؤقت إلى حجز فعلي. يصبح الحجز{" "}
-                  <span className="font-semibold">مؤكداً</span> فقط بعد التحقق من أحداث الدفع.
-                </>
-              ) : (
-                <>
-                  Convert your hold into a booking. Booking becomes{" "}
-                  <span className="font-semibold">CONFIRMED</span> only after verified payment events.
-                </>
-              )}
+            <p className="mt-1 text-sm text-secondary">
+              {isAr ? "راجع تفاصيل إقامتك وأكمل الدفع." : "Review your stay details and complete payment."}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Link
               href={backToPropertyHref}
-              className="inline-flex items-center justify-center rounded-full border border-inverted/35 bg-transparent px-4 py-2 text-xs font-semibold text-inverted transition hover:bg-accent-soft/16"
+              className="inline-flex items-center justify-center rounded-full border border-line bg-surface px-4 py-2 text-xs font-semibold text-primary transition hover:bg-warm-alt"
             >
               {isAr ? "العودة إلى العقار" : "Back to property"}
             </Link>
-
-            <Link
-              href="/properties"
-              className="inline-flex items-center justify-center rounded-full border border-inverted/35 bg-transparent px-4 py-2 text-xs font-semibold text-inverted transition hover:bg-accent-soft/16"
-            >
-              {isAr ? "تصفح الإقامات" : "Browse stays"}
-            </Link>
           </div>
         </div>
-        </div>
 
-        <div className="premium-card premium-card-tinted mt-6 rounded-2xl p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-sm font-semibold text-primary">
-                {isAr ? "مسار الحجز" : "Your reservation flow"}
-              </div>
-              <p className="mt-1 text-xs text-secondary">
-                {isDirectBooking
-                  ? isAr
-                    ? "أنت تُكمل الدفع لحجز موجود. التأكيد يتم فقط بعد التحقق من Webhook."
-                    : "You are completing payment for an existing booking. Confirmation happens only after verified webhooks."
-                  : isAr
-                    ? "الحجز المؤقت يمنع التداخل، والحجز النهائي مرتبط بالدفع ومؤكد عبر Webhook."
-                    : "A hold prevents double booking. Final confirmation is done through verified payment webhooks."}
-              </p>
-            </div>
-
-            <div className="flex flex-col items-end gap-2">
+        {/* Stay details card */}
+        {hasStayDates && (
+          <div className="premium-card premium-card-tinted mt-6 rounded-2xl p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="text-sm font-semibold text-primary">{isAr ? "تفاصيل الإقامة" : "Your stay"}</div>
               <CurrencySwitcher compact />
-              <div className="flex flex-wrap justify-end gap-2">
-                {isDirectBooking ? (
-                  <div className="rounded-full border border-line bg-warm-alt px-4 py-2 text-xs font-semibold text-primary">
-                    {isAr ? "معرف الحجز:" : "Booking ID:"} <span className="font-mono">{propertyId}</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="rounded-full border border-line bg-warm-alt px-4 py-2 text-xs font-semibold text-primary">
-                      {isAr ? "معرف العقار:" : "Property ID:"} <span className="font-mono">{propertyId}</span>
-                    </div>
-
-                    {holdId ? (
-                      <div className="rounded-full border border-line bg-warm-alt px-4 py-2 text-xs font-semibold text-primary">
-                        {isAr ? "معرف الحجز المؤقت:" : "Hold ID:"} <span className="font-mono">{holdId}</span>
-                      </div>
-                    ) : null}
-                  </>
-                )}
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.72)] px-4 py-3 text-xs text-secondary">
+                <span className="block font-semibold text-primary">{isAr ? "تاريخ الوصول" : "Check-in"}</span>
+                {checkIn}
+              </div>
+              <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.72)] px-4 py-3 text-xs text-secondary">
+                <span className="block font-semibold text-primary">{isAr ? "تاريخ المغادرة" : "Check-out"}</span>
+                {checkOut}
+              </div>
+              <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.72)] px-4 py-3 text-xs text-secondary">
+                <span className="block font-semibold text-primary">{isAr ? "الضيوف" : "Guests"}</span>
+                {guestsSafe}{typeof nights === "number" ? ` · ${nights} ${isAr ? "ليالٍ" : "nights"}` : ""}
               </div>
             </div>
           </div>
-
-          <ol className="mt-5 grid gap-3 text-sm text-secondary sm:grid-cols-3">
-            <li className="premium-card premium-card-tinted rounded-2xl p-4">
-              <div className="text-xs font-semibold text-muted">{isAr ? "الخطوة 1" : "Step 1"}</div>
-              <div className="mt-1 font-semibold text-primary">{isAr ? "تسجيل الدخول" : "Authentication"}</div>
-              <div className="mt-1 text-xs text-secondary">
-                {isAr
-                  ? "تحويلك لتسجيل الدخول يتم مع الحفاظ على تفاصيل الحجز."
-                  : "Login redirects keep your selected stay details."}
-              </div>
-            </li>
-
-            <li className="premium-card premium-card-tinted rounded-2xl p-4">
-              <div className="text-xs font-semibold text-muted">{isAr ? "الخطوة 2" : "Step 2"}</div>
-              <div className="mt-1 font-semibold text-primary">{isAr ? "طريقة الدفع" : "Payment method"}</div>
-              <div className="mt-1 text-xs text-secondary">
-                {isDirectBooking
-                  ? isAr
-                    ? "أدخل تفاصيل البطاقة للدفع."
-                    : "Enter card details to pay."
-                  : isAr
-                    ? "تأكيد طريقة الدفع وإنشاء نية الدفع."
-                    : "Confirm payment method and start the payment intent."}
-              </div>
-            </li>
-
-            <li className="premium-card premium-card-tinted rounded-2xl p-4">
-              <div className="text-xs font-semibold text-muted">{isAr ? "الخطوة 3" : "Step 3"}</div>
-              <div className="mt-1 font-semibold text-primary">{isAr ? "التأكيد" : "Confirmation"}</div>
-              <div className="mt-1 text-xs text-secondary">
-                {isAr ? "يتم تأكيد الحجز عبر Webhook." : "Webhooks confirm booking."}
-              </div>
-            </li>
-          </ol>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
-              <span className="font-semibold text-primary">{isAr ? "تاريخ الوصول:" : "Check-in:"}</span>{" "}
-              {hasStayDates ? checkIn : "—"}
-            </div>
-            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
-              <span className="font-semibold text-primary">{isAr ? "تاريخ المغادرة:" : "Check-out:"}</span>{" "}
-              {hasStayDates ? checkOut : "—"}
-            </div>
-            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
-              <span className="font-semibold text-primary">{isAr ? "الضيوف:" : "Guests:"}</span> {guestsSafe}
-              {typeof nights === "number" ? (
-                <span className="ml-1">
-                  • {nights} {isAr ? "ليالٍ" : "nights"}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
-            <span className="font-semibold">{isAr ? "مهم:" : "Important:"}</span>{" "}
-            {isAr
-              ? "إذا فشل الدفع أو انتهت المهلة، قد يُلغى الحجز تلقائياً ويتم تحرير التوافر بأمان."
-              : "if payment fails or expires, the booking may be cancelled automatically and availability is released safely."}
-          </div>
-        </div>
+        )}
 
         {isDirectBooking ? (
           <div className="mt-6">
             <PendingPaymentCard bookingId={propertyId} status="PENDING_PAYMENT" />
           </div>
         ) : (
-          <div className="mt-6">
+          <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
             <CreateBookingCardBatchA propertyId={propertyId} holdId={holdId} guests={guestsSafe} />
           </div>
         )}

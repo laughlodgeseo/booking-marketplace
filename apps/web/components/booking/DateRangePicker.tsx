@@ -89,7 +89,7 @@ export default function DateRangePicker(props: {
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const isNarrowViewport = viewportWidth !== null ? viewportWidth < 768 : false;
   const monthsToRender = requestedMonths > 1 && isNarrowViewport ? 1 : requestedMonths;
-  const navigationStep = monthsToRender > 1 ? monthsToRender : 1;
+  const navigationStep = 1; // Always navigate one month at a time for sequential UX
   const maxMonthsAhead = props.maxMonthsAhead ?? 18;
   const onVisibleMonthChange = props.onVisibleMonthChange;
   const lastNotifiedMonthRef = useRef<Date | null>(null);
@@ -164,13 +164,32 @@ export default function DateRangePicker(props: {
 
     const picked = startOfDay(day);
     const pickedISO = toISO(picked);
+    const currentPhase = props.selectionPhase ?? "checkin";
 
+    // CHECKOUT PHASE: respect explicit phase — lets edit-modal select checkout directly
+    // even when both dates are already set (avoids unwanted check-in reset on first click)
+    if (currentPhase === "checkout" && fromDate) {
+      if (isBefore(picked, fromDate) || isEqual(picked, fromDate)) {
+        // Clicked on/before check-in → restart selection from this date
+        props.onChange({ from: pickedISO, to: null });
+        props.onSelectionPhaseChange?.("checkout");
+        return;
+      }
+      // Valid date after check-in → select as checkout
+      props.onChange({ from: props.value.from, to: pickedISO });
+      props.onSelectionPhaseChange?.("checkin");
+      props.onComplete?.();
+      return;
+    }
+
+    // CHECKIN PHASE (or no check-in yet): start a fresh selection
     if (!fromDate || toDate) {
       props.onChange({ from: pickedISO, to: null });
       props.onSelectionPhaseChange?.("checkout");
       return;
     }
 
+    // Check-in set, checkout pending
     if (isBefore(picked, fromDate) || isEqual(picked, fromDate)) {
       props.onChange({ from: pickedISO, to: null });
       props.onSelectionPhaseChange?.("checkout");

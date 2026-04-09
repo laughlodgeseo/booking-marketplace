@@ -174,90 +174,53 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-xs font-semibold tracking-wide text-muted">{isAr ? "إتمام الحجز" : "Checkout"}</div>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-primary">
-            {isAr ? "إنشاء الحجز" : "Create booking"}
-          </h2>
-          <p className="mt-2 text-sm text-secondary">
-            {isAr ? (
-              <>
-                سيتم تحويل الحجز المؤقت <span className="font-semibold">النشط</span> إلى حجز فعلي. يطبق الخادم قواعد
-                سلامة المخزون.
-              </>
-            ) : (
-              <>
-                This will convert your <span className="font-semibold">active</span> hold into a booking. Inventory
-                safety rules are enforced by the backend.
-              </>
-            )}
-          </p>
+    <div className="space-y-5">
+      {/* Status banner when not ready */}
+      {!canCreate && (
+        <div className="rounded-2xl border border-danger/30 bg-danger/8 px-4 py-3 text-sm text-danger">
+          {isAr ? "الحجز المؤقت مفقود. يرجى العودة واختيار التواريخ مجدداً." : "Reservation hold is missing. Please go back and select your dates again."}
         </div>
+      )}
 
-        <div className={classNames("rounded-xl border px-3 py-1.5 text-xs font-semibold", canCreate ? "border-line bg-warm-alt text-secondary" : "border-danger/30 bg-danger/12 text-danger")}>
-          {canCreate ? (isAr ? "جاهز" : "READY") : isAr ? "الحجز المؤقت مفقود" : "MISSING HOLD"}
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-line bg-warm-alt p-4">
-          <div className="text-xs font-semibold text-secondary">{isAr ? "العقار" : "Property"}</div>
-          <div className="mt-1 text-sm font-semibold text-primary break-all">{propertyId || "—"}</div>
-        </div>
-
-        <div className="rounded-xl border border-line bg-warm-alt p-4">
-          <div className="text-xs font-semibold text-secondary">{isAr ? "الحجز المؤقت" : "Hold"}</div>
-          <div className="mt-1 text-sm font-semibold text-primary break-all">{holdId || "—"}</div>
-        </div>
-
-        <div className="rounded-xl border border-line bg-warm-alt p-4">
-          <div className="text-xs font-semibold text-secondary">{isAr ? "الضيوف" : "Guests"}</div>
-          <div className="mt-1 text-sm font-semibold text-primary">{props.guests}</div>
-        </div>
+      {/* Intro */}
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight text-primary">
+          {isAr ? "تأكيد حجزك" : "Confirm your reservation"}
+        </h2>
+        <p className="mt-1.5 text-sm text-secondary">
+          {isAr
+            ? "تواريخك محجوزة مؤقتاً. انقر أدناه لتأكيد الحجز والانتقال إلى صفحة الدفع."
+            : "Your dates are temporarily held. Click below to confirm your reservation and proceed to payment."}
+        </p>
       </div>
 
       {view.kind === "error" ? (
-        <div className="mt-4 rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
+        <div className="rounded-xl border border-danger/30 bg-danger/8 px-4 py-3 text-sm text-danger">
           {view.message}
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => void onCreate()}
-          disabled={!canCreate || view.kind === "creating"}
-          className={classNames(
-            "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold shadow-sm",
-            !canCreate || view.kind === "creating"
-              ? "cursor-not-allowed bg-warm-alt text-muted"
-              : "bg-brand text-accent-text hover:bg-brand-hover"
-          )}
-        >
-          {view.kind === "creating"
-            ? isAr
-              ? "جارٍ الإنشاء…"
-              : "Creating…"
-            : isAr
-              ? "إنشاء الحجز"
-              : "Create booking"}
-        </button>
+      <button
+        type="button"
+        onClick={() => void onCreate()}
+        disabled={!canCreate || view.kind === "creating"}
+        className={classNames(
+          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold shadow-sm transition",
+          !canCreate || view.kind === "creating"
+            ? "cursor-not-allowed bg-warm-alt text-muted"
+            : "bg-brand text-accent-text hover:bg-brand-hover"
+        )}
+      >
+        {view.kind === "creating"
+          ? isAr ? "جارٍ التأكيد…" : "Confirming…"
+          : isAr ? "تأكيد والانتقال للدفع" : "Confirm & go to payment"}
+      </button>
 
-        <Link
-          href="/properties"
-          className="inline-flex items-center justify-center rounded-xl border border-line bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt"
-        >
-          {isAr ? "العودة للتصفح" : "Back to browsing"}
-        </Link>
-      </div>
-
-      <div className="mt-4 text-xs leading-5 text-muted">
+      <p className="text-xs text-muted">
         {isAr
-          ? "إذا انتهت صلاحية الحجز المؤقت ستظهر رسالة آمنة مع طلب إعادة التحقق من التواريخ."
-          : "If the hold has expired, you'll be shown a safe message and asked to re-check dates."}
-      </div>
+          ? "لن يتم تحصيل أي رسوم حتى إتمام عملية الدفع بنجاح."
+          : "You won't be charged until payment is successfully completed."}
+      </p>
     </div>
   );
 }

@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addMonths, format, startOfMonth } from "date-fns";
 import { useLocale } from "next-intl";
 import { getPropertyCalendarBySlug } from "@/lib/api/properties";
 import { SharedAvailabilityCalendar } from "@/components/calendar/SharedAvailabilityCalendar";
 import { normalizeLocale } from "@/lib/i18n/config";
+
+type CachedEntry = {
+  days: Array<{ date: string; status: "AVAILABLE" | "BOOKED" | "HOLD" | "BLOCKED" }>;
+  from: string;
+  to: string;
+  fetchedAt: number;
+};
+const CALENDAR_CACHE = new Map<string, CachedEntry>();
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 type CalendarState =
   | { kind: "loading" }
@@ -37,16 +46,30 @@ export default function PublicPropertyCalendar({ slug }: { slug: string }) {
   const isAr = locale === "ar";
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [state, setState] = useState<CalendarState>({ kind: "loading" });
+  const inFlightRef = useRef<string | null>(null);
 
   useEffect(() => {
     let alive = true;
+    const from = toIsoDay(startOfMonth(month));
+    const to = toIsoDay(addMonths(startOfMonth(month), 1));
+    const cacheKey = `${slug}:${from}:${to}`;
+
+    // Serve from cache if fresh
+    const cached = CALENDAR_CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      setState({ kind: "ready", days: cached.days, from: cached.from, to: cached.to });
+      return;
+    }
+
+    // Avoid duplicate in-flight requests
+    if (inFlightRef.current === cacheKey) return;
+    inFlightRef.current = cacheKey;
 
     async function load() {
-      setState({ kind: "loading" });
-      const from = toIsoDay(startOfMonth(month));
-      const to = toIsoDay(addMonths(startOfMonth(month), 1));
+      setState((prev) => (prev.kind === "ready" ? prev : { kind: "loading" }));
       const res = await getPropertyCalendarBySlug(slug, { from, to });
       if (!alive) return;
+      inFlightRef.current = null;
 
       if (!res.ok) {
         setState({
@@ -56,12 +79,14 @@ export default function PublicPropertyCalendar({ slug }: { slug: string }) {
         return;
       }
 
-      setState({
-        kind: "ready",
+      const entry: CachedEntry = {
         days: res.data.days ?? [],
         from: res.data.from,
         to: res.data.to,
-      });
+        fetchedAt: Date.now(),
+      };
+      CALENDAR_CACHE.set(cacheKey, entry);
+      setState({ kind: "ready", days: entry.days, from: entry.from, to: entry.to });
     }
 
     void load();

@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { startOfDay } from "date-fns";
 import { CalendarDays, Loader2, Minus, Plus, X } from "lucide-react";
 import { quoteProperty, type Quote } from "@/lib/booking/bookingFlow";
 import { useCurrency } from "@/lib/currency/CurrencyProvider";
+import DateRangePicker, {
+  type DateRangeValue,
+  type DateSelectionPhase,
+} from "@/components/booking/DateRangePicker";
 
 type CheckoutEditModalProps = {
   propertyId: string;
+  slug?: string;
   initialCheckIn: string;
   initialCheckOut: string;
   initialGuests: number;
@@ -31,12 +37,10 @@ function fmtCurrency(amount: number, currency: string): string {
   }
 }
 
-function getTodayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function CheckoutEditModal({
   propertyId,
+  slug: _slug,
   initialCheckIn,
   initialCheckOut,
   initialGuests,
@@ -48,6 +52,12 @@ export function CheckoutEditModal({
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);
   const [guests, setGuests] = useState(initialGuests);
+
+  const today = startOfDay(new Date());
+  const [selectionPhase, setSelectionPhase] = useState<DateSelectionPhase>(
+    initialCheckIn ? "checkout" : "checkin"
+  );
+  const dateRangeValue: DateRangeValue = { from: checkIn || null, to: checkOut || null };
 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -106,7 +116,8 @@ export function CheckoutEditModal({
         )
       : null;
 
-  const today = getTodayStr();
+  // Allow confirming regardless of canBook — the user is editing their OWN hold,
+  // so the backend seeing those dates as "held" is expected and not a real block.
   const canConfirm = isValidDate(checkIn) && isValidDate(checkOut) && checkOut > checkIn;
   const displayCurrency = quote?.currency ?? selectedCurrency ?? "AED";
 
@@ -120,93 +131,119 @@ export function CheckoutEditModal({
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={handleBackdropClick}
     >
-      <div className="w-full max-w-md rounded-t-3xl bg-surface shadow-2xl sm:rounded-3xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface shadow-[0_-24px_64px_rgba(11,15,25,0.28)] sm:max-h-[88vh] sm:rounded-3xl">
+        {/* Header — fixed */}
+        <div className="flex shrink-0 items-center justify-between border-b border-black/[0.07] px-6 py-4">
           <h2 className="text-base font-semibold text-primary">Edit your stay</h2>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-warm-alt text-secondary transition hover:text-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--color-bg-rgb)/0.7)] text-secondary ring-1 ring-black/8 transition hover:text-primary"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
-          {/* Date range */}
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Date range picker */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
               <CalendarDays className="h-3.5 w-3.5" />
               Dates
+              {nights !== null && (
+                <span className="ml-1 normal-case font-normal text-secondary">
+                  · {nights} night{nights !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-secondary">Check-in</label>
-                <input
-                  type="date"
-                  value={checkIn}
-                  min={today}
-                  onChange={(e) => {
-                    setCheckIn(e.target.value);
-                    // Auto-clear checkout if it's before new check-in
-                    if (checkOut && e.target.value >= checkOut) {
-                      setCheckOut("");
-                    }
-                  }}
-                  className="w-full rounded-xl border border-line bg-warm-alt px-3 py-2.5 text-sm text-primary outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-secondary">Check-out</label>
-                <input
-                  type="date"
-                  value={checkOut}
-                  min={checkIn || today}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-warm-alt px-3 py-2.5 text-sm text-primary outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
+            {/* Selected dates display */}
+            <div className="grid grid-cols-2 overflow-hidden rounded-2xl ring-1 ring-black/8">
+              <button
+                type="button"
+                onClick={() => {
+                  // Switching to check-in: clear both dates and start fresh
+                  setSelectionPhase("checkin");
+                  setCheckIn("");
+                  setCheckOut("");
+                }}
+                className={[
+                  "flex flex-col justify-center gap-0.5 px-4 py-3 text-left transition-colors",
+                  selectionPhase === "checkin" ? "bg-brand/8" : "hover:bg-[rgb(var(--color-bg-rgb)/0.6)]",
+                ].join(" ")}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Check-in</span>
+                <span className={`text-sm font-semibold ${checkIn ? "text-primary" : "text-secondary/60"}`}>
+                  {checkIn ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(`${checkIn}T00:00:00`)) : "Add date"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectionPhase("checkout")}
+                className={[
+                  "flex flex-col justify-center gap-0.5 border-l border-black/[0.07] px-4 py-3 text-left transition-colors",
+                  selectionPhase === "checkout" ? "bg-brand/8" : "hover:bg-[rgb(var(--color-bg-rgb)/0.6)]",
+                ].join(" ")}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Check-out</span>
+                <span className={`text-sm font-semibold ${checkOut ? "text-primary" : "text-secondary/60"}`}>
+                  {checkOut ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(`${checkOut}T00:00:00`)) : "Add date"}
+                </span>
+              </button>
             </div>
 
-            {nights !== null && (
-              <p className="text-xs text-muted">
-                {nights} night{nights !== 1 ? "s" : ""}
-              </p>
-            )}
+            {/* Calendar */}
+            <DateRangePicker
+              value={dateRangeValue}
+              onChange={(next) => {
+                setCheckIn(next.from ?? "");
+                setCheckOut(next.to ?? "");
+                if (!next.from) setSelectionPhase("checkin");
+                else if (!next.to) setSelectionPhase("checkout");
+              }}
+              minDate={today}
+              disabledDates={[]}
+              mode="sequential"
+              selectionPhase={selectionPhase}
+              onSelectionPhaseChange={setSelectionPhase}
+              onComplete={() => setSelectionPhase("checkout")}
+              numberOfMonths={1}
+              maxMonthsAhead={6}
+              allowClear={false}
+              compact
+            />
           </div>
 
           {/* Guests counter */}
-          <div className="space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Guests</div>
-            <div className="flex items-center justify-between rounded-xl border border-line bg-warm-alt px-4 py-2.5">
-              <span className="text-sm font-medium text-primary">
+          <div className="flex items-center justify-between rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-5 py-3.5 ring-1 ring-black/8">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted">Guests</div>
+              <div className="mt-0.5 text-sm font-semibold text-primary">
                 {guests} guest{guests !== 1 ? "s" : ""}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setGuests((g) => Math.max(1, g - 1))}
-                  disabled={guests <= 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface text-secondary transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-                <span className="w-6 text-center text-sm font-semibold text-primary">{guests}</span>
-                <button
-                  onClick={() => setGuests((g) => Math.min(20, g + 1))}
-                  disabled={guests >= 20}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface text-secondary transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
               </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                disabled={guests <= 1}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/8 transition hover:ring-black/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="w-5 text-center text-sm font-semibold text-primary">{guests}</span>
+              <button
+                onClick={() => setGuests((g) => Math.min(20, g + 1))}
+                disabled={guests >= 20}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/8 transition hover:ring-black/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
 
           {/* Live price preview */}
           {(quoteLoading || quote) && (
-            <div className="rounded-xl border border-line bg-warm-alt px-4 py-3">
+            <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-3 ring-1 ring-black/8">
               {quoteLoading ? (
                 <div className="flex items-center gap-2 text-sm text-secondary">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -238,31 +275,29 @@ export function CheckoutEditModal({
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-line pt-2 font-semibold text-primary">
+                  <div className="flex justify-between border-t border-black/6 pt-2 font-semibold text-primary">
                     <span>Total</span>
                     <span>{fmtCurrency(quote.totalAmount, displayCurrency)}</span>
                   </div>
-                  {!quote.canBook && quote.reasons.length > 0 && (
-                    <p className="pt-1 text-xs text-danger">{quote.reasons[0]}</p>
-                  )}
+                  {/* canBook may be false because the user's own hold occupies these dates — suppress warning */}
                 </div>
               ) : null}
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 border-t border-line px-6 pb-6 pt-4">
+        {/* Actions — fixed at bottom */}
+        <div className="flex shrink-0 gap-3 border-t border-black/[0.07] px-6 pb-6 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border border-line bg-warm-alt px-4 py-2.5 text-sm font-semibold text-secondary transition hover:bg-surface"
+            className="flex-1 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-2.5 text-sm font-semibold text-secondary ring-1 ring-black/8 transition hover:bg-surface"
           >
             Cancel
           </button>
           <button
             onClick={() => void handleConfirm()}
             disabled={!canConfirm || confirmBusy}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-accent-text shadow-sm transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="site-cta-primary flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-accent-text shadow-[0_4px_14px_rgba(79,70,229,0.28)] transition disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
           >
             {confirmBusy ? (
               <>
