@@ -926,8 +926,9 @@ function LocationPanel(props: {
   const [lat, setLat] = useState(String(props.value.lat ?? ""));
   const [lng, setLng] = useState(String(props.value.lng ?? ""));
 
-  const latNum = Number(lat);
-  const lngNum = Number(lng);
+  // Use NaN for empty strings so that 0 is never treated as a valid coordinate
+  const latNum = lat.trim() !== "" ? Number(lat) : NaN;
+  const lngNum = lng.trim() !== "" ? Number(lng) : NaN;
   const canSave = city.trim().length > 0 && Number.isFinite(latNum) && Number.isFinite(lngNum);
 
   return (

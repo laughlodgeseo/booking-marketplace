@@ -168,6 +168,9 @@ async function reverseGeocode(geocoder: google.maps.Geocoder, point: LatLng): Pr
   return address || null;
 }
 
+// Dubai city centre — default for UAE-focused marketplace
+const DUBAI_CENTER: LatLng = { lat: 25.2048, lng: 55.2708 };
+
 export function PortalMapPicker(props: {
   value: PickerValue;
   onChange: (next: PickerChange) => void;
@@ -182,66 +185,89 @@ export function PortalMapPicker(props: {
   const handleRef = useRef<MapHandle | null>(null);
   const onChangeRef = useRef(props.onChange);
 
+  // Refs used inside persistent map event listeners so we never need to
+  // re-attach listeners (which would introduce the stale-closure / cancelled bug).
+  const disabledRef = useRef(props.disabled ?? false);
+  const mountedRef = useRef(true);
+
   const apiKey = ENV.googleMapsApiKey;
   const mapIdRef = useRef<string | null>(ENV.googleMapsMapId);
-  const fallbackCenter = useMemo<LatLng>(() => ({ lat: 25.2048, lng: 55.2708 }), []);
 
   const selected = useMemo<LatLng>(() => {
     if (typeof props.value.lat === "number" && typeof props.value.lng === "number") {
       return { lat: props.value.lat, lng: props.value.lng };
     }
-    return fallbackCenter;
-  }, [fallbackCenter, props.value.lat, props.value.lng]);
+    return DUBAI_CENTER;
+  }, [props.value.lat, props.value.lng]);
 
-  useEffect(() => {
-    onChangeRef.current = props.onChange;
-  }, [props.onChange]);
+  // Keep refs up-to-date with latest prop values
+  useEffect(() => { onChangeRef.current = props.onChange; }, [props.onChange]);
+  useEffect(() => { disabledRef.current = props.disabled ?? false; }, [props.disabled]);
+  // Track unmount so async geocoding never fires setState after cleanup
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
+  // ── Initialize map ONCE ─────────────────────────────────────────────────────
+  // `selected` is intentionally excluded from deps. Including it caused the
+  // effect's cleanup to set `cancelled = true` every time the user clicked the
+  // map (because the parent re-renders with new lat/lng, changing `selected`).
+  // That permanently broke the applySelection closure — coordinates reached the
+  // parent only on the first click; every subsequent click was silently dropped.
+  //
+  // Fix: run init once per API key, use `mountedRef` for the unmount guard, and
+  // use `disabledRef` for the disabled check so listeners stay valid for the
+  // component lifetime without being re-created.
   useEffect(() => {
     if (!apiKey || !mapRef.current) return;
     const mapsApiKey = apiKey;
-    let cancelled = false;
+
+    // Snapshot initial coordinates at mount time for the map centre / marker.
+    const initCenter: LatLng =
+      props.value.lat != null && props.value.lng != null
+        ? { lat: props.value.lat, lng: props.value.lng }
+        : DUBAI_CENTER;
 
     async function init() {
       try {
         await loadGoogleMaps(mapsApiKey);
-        if (cancelled || !mapRef.current) return;
+        if (!mountedRef.current || !mapRef.current) return;
 
         if (!handleRef.current) {
           const MapCtor = await resolveMapConstructor();
-          if (cancelled || !mapRef.current) return;
+          if (!mountedRef.current || !mapRef.current) return;
 
           const map = new MapCtor(mapRef.current, {
-            center: selected,
-            zoom: 12,
+            center: initCenter,
+            zoom: 14,
             disableDefaultUI: false,
             clickableIcons: false,
             gestureHandling: "greedy",
             ...(mapIdRef.current ? { mapId: mapIdRef.current } : {}),
           });
 
-          const marker = createPickerMarker(map, selected, mapIdRef.current);
-
+          const marker = createPickerMarker(map, initCenter, mapIdRef.current);
           const geocoder = new google.maps.Geocoder();
 
+          // applySelection is created once and stays valid for the component
+          // lifetime. It uses mountedRef (not a closure-captured `cancelled`)
+          // so re-renders never invalidate it.
           const applySelection = async (point: LatLng) => {
             marker.setPosition(point);
             map.panTo(point);
             const address = await reverseGeocode(geocoder, point);
-            if (cancelled) return;
+            if (!mountedRef.current) return;
             setResolvedAddress(address);
             onChangeRef.current({ lat: point.lat, lng: point.lng, address });
           };
 
           map.addListener("click", (event: google.maps.MapMouseEvent) => {
-            if (props.disabled) return;
+            if (disabledRef.current) return;
             const point = event.latLng;
             if (!point) return;
             void applySelection({ lat: point.lat(), lng: point.lng() });
           });
 
           marker.addDragEndListener(() => {
-            if (props.disabled) return;
+            if (disabledRef.current) return;
             const pos = marker.getPosition();
             if (!pos) return;
             void applySelection({ lat: pos.lat(), lng: pos.lng() });
@@ -250,20 +276,18 @@ export function PortalMapPicker(props: {
           handleRef.current = { map, marker, geocoder };
         }
 
-        setReady(true);
+        if (mountedRef.current) setReady(true);
       } catch (err) {
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         setError(err instanceof Error ? err.message : "Failed to load map.");
       }
     }
 
     void init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey]); // re-init only if API key changes — intentionally excludes other deps
 
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, props.disabled, selected]);
-
+  // ── Sync map view when parent externally updates coordinates ────────────────
   useEffect(() => {
     const handle = handleRef.current;
     if (!handle || !ready) return;
@@ -291,7 +315,7 @@ export function PortalMapPicker(props: {
     <div className={props.className ?? "space-y-3"}>
       <div
         ref={mapRef}
-        className="h-[320px] w-full overflow-hidden rounded-2xl border border-line/70 bg-warm-base"
+        className="h-80 w-full overflow-hidden rounded-2xl border border-line/70 bg-warm-base"
       />
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="rounded-xl border border-line/70 bg-surface px-3 py-2 text-xs text-secondary">
