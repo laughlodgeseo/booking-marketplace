@@ -158,7 +158,7 @@ export function CheckoutEditModal({
             </div>
 
             {/* Selected dates display */}
-            <div className="grid grid-cols-2 overflow-hidden rounded-2xl ring-1 ring-black/8">
+            <div className="grid grid-cols-2 overflow-hidden rounded-2xl bg-surface ring-1 ring-black/10">
               <button
                 type="button"
                 onClick={() => {
@@ -169,7 +169,7 @@ export function CheckoutEditModal({
                 }}
                 className={[
                   "flex flex-col justify-center gap-0.5 px-4 py-3 text-left transition-colors",
-                  selectionPhase === "checkin" ? "bg-brand/8" : "hover:bg-[rgb(var(--color-bg-rgb)/0.6)]",
+                  selectionPhase === "checkin" ? "bg-brand/8" : "hover:bg-warm-alt",
                 ].join(" ")}
               >
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Check-in</span>
@@ -181,8 +181,8 @@ export function CheckoutEditModal({
                 type="button"
                 onClick={() => setSelectionPhase("checkout")}
                 className={[
-                  "flex flex-col justify-center gap-0.5 border-l border-black/[0.07] px-4 py-3 text-left transition-colors",
-                  selectionPhase === "checkout" ? "bg-brand/8" : "hover:bg-[rgb(var(--color-bg-rgb)/0.6)]",
+                  "flex flex-col justify-center gap-0.5 border-l border-line/40 px-4 py-3 text-left transition-colors",
+                  selectionPhase === "checkout" ? "bg-brand/8" : "hover:bg-warm-alt",
                 ].join(" ")}
               >
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Check-out</span>
@@ -215,7 +215,7 @@ export function CheckoutEditModal({
           </div>
 
           {/* Guests counter */}
-          <div className="flex items-center justify-between rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-5 py-3.5 ring-1 ring-black/8">
+          <div className="flex items-center justify-between rounded-2xl bg-warm-alt px-5 py-3.5 ring-1 ring-black/10">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-muted">Guests</div>
               <div className="mt-0.5 text-sm font-semibold text-primary">
@@ -243,7 +243,7 @@ export function CheckoutEditModal({
 
           {/* Live price preview */}
           {(quoteLoading || quote) && (
-            <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-3 ring-1 ring-black/8">
+            <div className="rounded-xl bg-warm-alt px-4 py-3 ring-1 ring-black/10">
               {quoteLoading ? (
                 <div className="flex items-center gap-2 text-sm text-secondary">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -290,7 +290,7 @@ export function CheckoutEditModal({
         <div className="flex shrink-0 gap-3 border-t border-black/[0.07] px-6 pb-6 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-2.5 text-sm font-semibold text-secondary ring-1 ring-black/8 transition hover:bg-surface"
+            className="flex-1 rounded-xl bg-warm-alt px-4 py-2.5 text-sm font-semibold text-secondary ring-1 ring-black/10 transition hover:bg-line/30"
           >
             Cancel
           </button>

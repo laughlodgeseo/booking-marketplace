@@ -223,8 +223,7 @@ export default function DateRangePicker(props: {
   }
 
   const rootClassName = [
-    "rounded-[1.6rem] border border-white/80 bg-[rgb(var(--color-surface-rgb)/0.96)] shadow-[0_18px_46px_rgba(11,15,25,0.12)]",
-    "backdrop-blur-[6px]",
+    "rounded-[1.6rem] border border-line/30 bg-surface shadow-[0_8px_24px_rgba(11,15,25,0.08)]",
     isCompact ? "p-3" : "p-4",
     props.className ?? "",
   ]
@@ -248,8 +247,8 @@ export default function DateRangePicker(props: {
   const fitWrapperClass = isTwoMonths ? "mx-auto w-fit max-w-full" : "";
   const monthsViewportClass =
     monthsToRender > 1
-      ? "relative overflow-hidden rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,238,227,0.72))] p-2 shadow-soft md:p-3"
-      : "relative overflow-hidden rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,238,227,0.72))] p-2 shadow-soft min-h-[328px]";
+      ? "relative overflow-hidden rounded-2xl border border-line/20 bg-warm-alt p-2 shadow-soft md:p-3"
+      : "relative overflow-hidden rounded-2xl border border-line/20 bg-warm-alt p-2 shadow-soft min-h-[328px]";
 
   return (
     <div className={rootClassName}>
@@ -270,7 +269,7 @@ export default function DateRangePicker(props: {
             }
             disabled={!canGoPrev}
             aria-label={isAr ? "الشهر السابق" : "Previous month"}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-[rgb(var(--color-surface-rgb)/0.9)] text-primary shadow-sm transition hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line/30 bg-surface text-primary shadow-sm transition hover:bg-warm-alt hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -288,7 +287,7 @@ export default function DateRangePicker(props: {
             }
             disabled={!canGoNext}
             aria-label={isAr ? "الشهر التالي" : "Next month"}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-[rgb(var(--color-surface-rgb)/0.9)] text-primary shadow-sm transition hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line/30 bg-surface text-primary shadow-sm transition hover:bg-warm-alt hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

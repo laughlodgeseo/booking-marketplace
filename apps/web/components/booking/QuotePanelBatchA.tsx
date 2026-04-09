@@ -784,7 +784,7 @@ export default function QuotePanelBatchA(props: {
             {/* Bottom sheet */}
             <div className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-3xl bg-surface shadow-[0_-24px_64px_rgba(11,15,25,0.32)]">
               {/* Sticky header with drag handle */}
-              <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm">
+              <div className="sticky top-0 z-10 bg-surface border-b border-line/30">
                 <div className="flex justify-center pb-2 pt-3">
                   <div className="h-1 w-10 rounded-full bg-line/50" />
                 </div>
@@ -806,12 +806,15 @@ export default function QuotePanelBatchA(props: {
 
               <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-1">
                 {/* Date + guest selector */}
-                <div className="overflow-hidden rounded-2xl ring-1 ring-black/[0.08] dark:ring-white/[0.08]">
-                  <div className="grid grid-cols-2 divide-x divide-black/[0.07] dark:divide-white/[0.07]">
+                <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-black/10">
+                  <div className="grid grid-cols-2 divide-x divide-line/40">
                     <button
                       type="button"
                       onClick={() => { openCalendar("checkin"); setMobileCalendarOpen(true); }}
-                      className="flex min-h-[72px] flex-col justify-center gap-0.5 px-4 py-3 text-left"
+                      className={[
+                        "flex min-h-18 flex-col justify-center gap-0.5 px-4 py-3 text-left transition-colors",
+                        selectionPhase === "checkin" && checkIn === "" ? "bg-brand/6" : "hover:bg-warm-alt/70",
+                      ].join(" ")}
                     >
                       <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{copy.checkIn}</span>
                       <span className={`mt-0.5 text-sm font-semibold ${checkIn ? "text-primary" : "text-secondary/60"}`}>{checkInLabel}</span>
@@ -820,14 +823,17 @@ export default function QuotePanelBatchA(props: {
                     <button
                       type="button"
                       onClick={() => { openCalendar("checkout"); setMobileCalendarOpen(true); }}
-                      className="flex min-h-[72px] flex-col justify-center gap-0.5 px-4 py-3 text-left"
+                      className={[
+                        "flex min-h-18 flex-col justify-center gap-0.5 px-4 py-3 text-left transition-colors",
+                        selectionPhase === "checkout" && checkOut === "" ? "bg-brand/6" : "hover:bg-warm-alt/70",
+                      ].join(" ")}
                     >
                       <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{copy.checkOut}</span>
                       <span className={`mt-0.5 text-sm font-semibold ${checkOut ? "text-primary" : "text-secondary/60"}`}>{checkOutLabel}</span>
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-black/[0.07] px-4 py-3 dark:border-white/[0.07]">
+                  <div className="flex items-center justify-between border-t border-line/40 px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted" />
                       <span className="text-sm font-semibold text-primary">{copy.guests}</span>
