@@ -7,110 +7,35 @@ import type { MapPoint } from "@/lib/types/search";
 type LatLng = { lat: number; lng: number };
 type ViewportBounds = { north: number; south: number; east: number; west: number };
 
-type MapMarkerHandle = {
-  clear: () => void;
-};
+type MarkerHandle = { remove: () => void };
+type MapHandle = { map: google.maps.Map; markers: MarkerHandle[] };
 
-type MapHandle = {
-  map: google.maps.Map;
-  markers: MapMarkerHandle[];
-};
+// ── Script loader ─────────────────────────────────────────────────────────────
+let _scriptPromise: Promise<void> | null = null;
 
-type GoogleMapsWithMarkerLib = typeof google.maps & {
-  marker?: {
-    AdvancedMarkerElement?: typeof google.maps.marker.AdvancedMarkerElement;
-  };
-};
-type GoogleMapsWithImportLibrary = typeof google.maps & {
-  importLibrary?: (libraryName: string) => Promise<unknown>;
-};
-
-let _mapsInitPromise: Promise<void> | null = null;
-
-function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  if (_mapsInitPromise) return _mapsInitPromise;
-
-  _mapsInitPromise = new Promise<void>((resolve, reject) => {
-    // If already loaded (route transitions / strict mode), resolve immediately.
-    if (typeof window !== "undefined" && (window as unknown as { google?: unknown }).google) {
-      resolve();
-      return;
-    }
-
-    const existing = document.querySelector<HTMLScriptElement>('script[data-google-maps-loader="1"]');
+function loadMapsScript(apiKey: string): Promise<void> {
+  if (_scriptPromise) return _scriptPromise;
+  _scriptPromise = new Promise<void>((resolve, reject) => {
+    if ((window as unknown as { google?: unknown }).google) { resolve(); return; }
+    const existing = document.querySelector<HTMLScriptElement>('[data-gm-loader]');
     if (existing) {
-      if (typeof window !== "undefined" && (window as unknown as { google?: { maps?: unknown } }).google?.maps) {
-        resolve();
-        return;
-      }
       existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Google Maps script failed to load.")));
+      existing.addEventListener("error", () => reject(new Error("Maps script failed")));
       return;
     }
-
-    const script = document.createElement("script");
-    script.async = true;
-    script.defer = true;
-    script.dataset.googleMapsLoader = "1";
-
-    // Classic loader. Works reliably across versions.
-    // NOTE: `libraries=marker` enables marker library (for future AdvancedMarker usage).
-    const params = new URLSearchParams({
-      key: apiKey,
-      v: "weekly",
-      libraries: "marker",
-    });
-
-    script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
-
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Google Maps script failed to load."));
-
-    document.head.appendChild(script);
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=marker`;
+    s.async = true;
+    s.defer = true;
+    s.dataset.gmLoader = "1";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Maps script failed to load"));
+    document.head.appendChild(s);
   });
-
-  return _mapsInitPromise;
+  return _scriptPromise;
 }
 
-async function resolveMapConstructor(): Promise<typeof google.maps.Map> {
-  const mapsWithImport = google.maps as GoogleMapsWithImportLibrary;
-
-  if (typeof mapsWithImport.importLibrary === "function") {
-    const mapsLib = (await mapsWithImport.importLibrary("maps")) as google.maps.MapsLibrary;
-    try {
-      await mapsWithImport.importLibrary("marker");
-    } catch {
-      // Marker library is optional for fallback markers.
-    }
-    if (typeof mapsLib.Map === "function") return mapsLib.Map;
-  }
-
-  if (typeof google.maps.Map === "function") return google.maps.Map;
-
-  await new Promise<void>((resolve, reject) => {
-    const deadline = Date.now() + 2500;
-    const tick = () => {
-      if (typeof google.maps.Map === "function") {
-        resolve();
-        return;
-      }
-      if (Date.now() >= deadline) {
-        reject(new Error("Google Maps Map constructor unavailable after script load."));
-        return;
-      }
-      window.setTimeout(tick, 50);
-    };
-    tick();
-  });
-
-  return google.maps.Map;
-}
-
-function clearMarkers(markers: MapMarkerHandle[]) {
-  for (const m of markers) m.clear();
-  markers.length = 0;
-}
-
+// ── Card HTML ─────────────────────────────────────────────────────────────────
 function formatMoney(amount: number, currency: string): string {
   try {
     return new Intl.NumberFormat(undefined, {
@@ -123,126 +48,137 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-type PinCardDom = {
-  root: HTMLDivElement;
-};
-
-function createPinCard(args: {
+function buildCard(args: {
   title: string;
   priceText: string;
   imageUrl: string | null;
   imageAlt: string;
   meta: string | null;
   expanded: boolean;
-  emphasized: boolean;
-}): PinCardDom {
-  const root = document.createElement("div");
-  root.style.display = "flex";
-  root.style.alignItems = "center";
-  root.style.gap = args.expanded ? "10px" : "6px";
-  root.style.maxWidth = args.expanded ? "310px" : "150px";
-  root.style.width = args.expanded ? "310px" : "150px";
-  root.style.padding = args.expanded ? "8px" : "5px";
-  root.style.borderRadius = args.expanded ? "16px" : "12px";
-  root.style.border = args.emphasized
-    ? "1px solid rgba(79,70,229,0.9)"
-    : "1px solid rgba(15,23,42,0.16)";
-  root.style.background = "rgba(255,255,255,0.98)";
-  root.style.backdropFilter = "blur(3px)";
-  root.style.boxShadow = args.emphasized
-    ? "0 16px 34px rgba(79,70,229,0.28)"
-    : "0 12px 28px rgba(15,23,42,0.2)";
-  root.style.transform = args.expanded ? "scale(1.02)" : "scale(1)";
-  root.style.transition = "transform 160ms ease, box-shadow 160ms ease, width 160ms ease";
-  root.style.cursor = "pointer";
+}): HTMLDivElement {
+  const card = document.createElement("div");
+  const w = args.expanded ? "280px" : "156px";
+  card.style.cssText = `
+    display:flex;align-items:center;gap:8px;
+    width:${w};padding:${args.expanded ? "8px 10px 8px 8px" : "5px 8px 5px 6px"};
+    border-radius:${args.expanded ? "16px" : "12px"};
+    border:${args.expanded ? "1.5px solid rgba(79,70,229,0.85)" : "1.5px solid rgba(15,23,42,0.18)"};
+    background:#fff;
+    box-shadow:${args.expanded ? "0 12px 32px rgba(79,70,229,0.28)" : "0 6px 20px rgba(15,23,42,0.22)"};
+    cursor:pointer;user-select:none;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  `.replace(/\s+/g, " ").trim();
 
+  // Thumbnail
   const thumb = document.createElement("div");
-  thumb.style.width = args.expanded ? "96px" : "36px";
-  thumb.style.height = args.expanded ? "72px" : "36px";
-  thumb.style.flex = args.expanded ? "0 0 96px" : "0 0 36px";
-  thumb.style.overflow = "hidden";
-  thumb.style.borderRadius = args.expanded ? "12px" : "9px";
-  thumb.style.background = "linear-gradient(140deg, #e2e8f0, #cbd5e1)";
-  thumb.style.position = "relative";
-  thumb.style.boxShadow = "inset 0 0 0 1px rgba(15,23,42,0.08)";
-
+  const ts = args.expanded ? "84px" : "38px";
+  thumb.style.cssText = `width:${ts};height:${args.expanded ? "64px" : "38px"};flex-shrink:0;overflow:hidden;border-radius:${args.expanded ? "10px" : "7px"};background:linear-gradient(140deg,#e2e8f0,#cbd5e1);`;
   if (args.imageUrl) {
     const img = document.createElement("img");
     img.src = args.imageUrl;
     img.alt = args.imageAlt;
     img.loading = "lazy";
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+    img.onerror = () => { img.style.display = "none"; };
     thumb.appendChild(img);
+  } else {
+    thumb.style.display = "flex";
+    thumb.style.alignItems = "center";
+    thumb.style.justifyContent = "center";
+    thumb.style.fontSize = "20px";
+    thumb.textContent = "🏠";
   }
 
-  const content = document.createElement("div");
-  content.style.minWidth = "0";
-  content.style.display = "flex";
-  content.style.flexDirection = "column";
-  content.style.gap = args.expanded ? "4px" : "2px";
+  // Text
+  const body = document.createElement("div");
+  body.style.cssText = "min-width:0;flex:1;display:flex;flex-direction:column;gap:2px;";
 
-  const title = document.createElement("div");
-  title.textContent = args.title;
-  title.style.fontSize = args.expanded ? "12px" : "10px";
-  title.style.fontWeight = "700";
-  title.style.lineHeight = "1.2";
-  title.style.color = "#0f172a";
-  title.style.display = "-webkit-box";
-  title.style.webkitLineClamp = args.expanded ? "2" : "1";
-  title.style.webkitBoxOrient = "vertical";
-  title.style.overflow = "hidden";
+  const titleEl = document.createElement("div");
+  titleEl.textContent = args.title;
+  titleEl.style.cssText = `font-size:${args.expanded ? "12px" : "11px"};font-weight:700;color:#0f172a;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${args.expanded ? 2 : 1};-webkit-box-orient:vertical;line-height:1.25;`;
 
-  const price = document.createElement("div");
-  price.textContent = args.priceText;
-  price.style.fontSize = args.expanded ? "12px" : "10px";
-  price.style.fontWeight = "700";
-  price.style.color = "#3730a3";
-  price.style.whiteSpace = "nowrap";
+  const priceEl = document.createElement("div");
+  priceEl.textContent = args.priceText;
+  priceEl.style.cssText = `font-size:${args.expanded ? "13px" : "12px"};font-weight:800;color:#3730a3;white-space:nowrap;`;
 
-  content.appendChild(title);
+  body.appendChild(titleEl);
 
   if (args.expanded && args.meta) {
-    const meta = document.createElement("div");
-    meta.textContent = args.meta;
-    meta.style.fontSize = "10px";
-    meta.style.fontWeight = "500";
-    meta.style.color = "#64748b";
-    meta.style.display = "-webkit-box";
-    meta.style.webkitLineClamp = "1";
-    meta.style.webkitBoxOrient = "vertical";
-    meta.style.overflow = "hidden";
-    content.appendChild(meta);
+    const metaEl = document.createElement("div");
+    metaEl.textContent = args.meta;
+    metaEl.style.cssText = "font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+    body.appendChild(metaEl);
   }
 
-  const footer = document.createElement("div");
-  footer.style.display = "flex";
-  footer.style.alignItems = "center";
-  footer.style.justifyContent = args.expanded ? "space-between" : "flex-start";
-  footer.style.gap = "6px";
-  footer.appendChild(price);
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:2px;";
+  row.appendChild(priceEl);
 
   if (args.expanded) {
     const cta = document.createElement("span");
-    cta.textContent = "View";
-    cta.style.fontSize = "10px";
-    cta.style.fontWeight = "700";
-    cta.style.color = "#1e1b4b";
-    cta.style.background = "rgba(99,102,241,0.16)";
-    cta.style.padding = "3px 7px";
-    cta.style.borderRadius = "999px";
-    cta.style.border = "1px solid rgba(99,102,241,0.28)";
-    footer.appendChild(cta);
+    cta.textContent = "View →";
+    cta.style.cssText = "font-size:10px;font-weight:700;color:#1e1b4b;background:rgba(99,102,241,0.14);padding:2px 7px;border-radius:999px;border:1px solid rgba(99,102,241,0.3);white-space:nowrap;";
+    row.appendChild(cta);
   }
 
-  content.appendChild(footer);
-
-  root.appendChild(thumb);
-  root.appendChild(content);
-  return { root };
+  body.appendChild(row);
+  card.appendChild(thumb);
+  card.appendChild(body);
+  return card;
 }
 
+// ── OverlayView-based card marker ─────────────────────────────────────────────
+// Works without a Map ID. Positions a DOM card at a lat/lng.
+function createCardMarker(args: {
+  map: google.maps.Map;
+  position: google.maps.LatLng;
+  card: HTMLDivElement;
+  zIndex: number;
+  onClick: () => void;
+}): MarkerHandle {
+  const { map, position, card, zIndex, onClick } = args;
+
+  // Wrapper absolutely positioned over the map canvas
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = `position:absolute;z-index:${zIndex};transform:translate(-50%,-100%);margin-top:-6px;pointer-events:auto;`;
+  wrapper.appendChild(card);
+
+  card.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
+
+  // We need google.maps.OverlayView — available after script load
+  const OverlayView = google.maps.OverlayView;
+
+  // Dynamic subclass (safe: google.maps is loaded at this point)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const overlay = new (class extends OverlayView {
+    onAdd() {
+      const panes = this.getPanes();
+      panes?.overlayMouseTarget.appendChild(wrapper);
+    }
+    draw() {
+      const proj = this.getProjection();
+      if (!proj) return;
+      const pt = proj.fromLatLngToDivPixel(position);
+      if (!pt) return;
+      wrapper.style.left = `${pt.x}px`;
+      wrapper.style.top = `${pt.y}px`;
+    }
+    onRemove() {
+      wrapper.parentNode?.removeChild(wrapper);
+    }
+  })() as InstanceType<typeof OverlayView> & { setMap: (m: google.maps.Map | null) => void };
+
+  overlay.setMap(map);
+
+  return {
+    remove: () => {
+      card.removeEventListener("click", onClick);
+      overlay.setMap(null);
+    },
+  };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function GoogleMap(props: {
   center: LatLng;
   zoom: number;
@@ -256,77 +192,61 @@ export default function GoogleMap(props: {
   viewportDebounceMs?: number;
 }) {
   const {
-    center,
-    zoom,
-    points,
-    className,
-    onMarkerClick,
-    onMarkerOpen,
-    hoveredSlug,
-    activeSlug,
-    onViewportChanged,
-    viewportDebounceMs,
+    center, zoom, points, className,
+    onMarkerClick, onMarkerOpen,
+    hoveredSlug, activeSlug,
+    onViewportChanged, viewportDebounceMs,
   } = props;
 
   const elRef = useRef<HTMLDivElement | null>(null);
   const handleRef = useRef<MapHandle | null>(null);
-
   const [ready, setReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [markerHoverSlug, setMarkerHoverSlug] = useState<string | null>(null);
+  const [hoverSlug, setHoverSlug] = useState<string | null>(null);
 
   const apiKey = ENV.googleMapsApiKey;
-  const mapIdRef = useRef<string | null>(ENV.googleMapsMapId);
-  const safeClassName = className ?? "h-[520px] w-full rounded-2xl";
+  const mapId = ENV.googleMapsMapId;
+  const safeClass = className ?? "h-[520px] w-full rounded-2xl";
+  const canInit = useMemo(() => Boolean(apiKey?.trim()), [apiKey]);
 
-  const canInit = useMemo(() => Boolean(apiKey && apiKey.trim().length > 0), [apiKey]);
-
-  // Init map once
+  // ── Init map ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!canInit) return;
-    if (!apiKey) return;
-    if (!elRef.current) return;
+    if (!canInit || !apiKey || !elRef.current) return;
+    if (handleRef.current) { setReady(true); return; }
 
     let cancelled = false;
-
     (async () => {
       try {
-        await loadGoogleMapsScript(apiKey);
-        if (cancelled) return;
-        if (!elRef.current) return;
+        await loadMapsScript(apiKey);
+        if (cancelled || !elRef.current) return;
 
-        // StrictMode safe: don't recreate map if already created
-        if (handleRef.current) {
-          setReady(true);
-          return;
-        }
+        // Resolve Map constructor
+        const gm = google.maps as typeof google.maps & { importLibrary?: (n: string) => Promise<unknown> };
+        const MapCtor = typeof gm.importLibrary === "function"
+          ? ((await gm.importLibrary("maps")) as { Map: typeof google.maps.Map }).Map
+          : google.maps.Map;
 
-        const MapCtor = await resolveMapConstructor();
         if (cancelled || !elRef.current) return;
 
         const map = new MapCtor(elRef.current, {
-          center,
-          zoom,
+          center, zoom,
           disableDefaultUI: true,
           clickableIcons: false,
           gestureHandling: "greedy",
-          ...(mapIdRef.current ? { mapId: mapIdRef.current } : {}),
+          ...(mapId ? { mapId } : {}),
         });
 
         handleRef.current = { map, markers: [] };
         setReady(true);
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Unknown Google Maps error";
-        setErrorMsg(msg);
+      } catch (e) {
+        if (!cancelled) setErrorMsg(e instanceof Error ? e.message : "Unknown error");
       }
     })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, canInit]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, canInit, center, zoom]);
-
-  // Update center/zoom
+  // ── Sync center / zoom ──────────────────────────────────────────────────────
   useEffect(() => {
     const h = handleRef.current;
     if (!h || !ready) return;
@@ -334,176 +254,85 @@ export default function GoogleMap(props: {
     h.map.setZoom(zoom);
   }, [center, zoom, ready]);
 
-  // Render markers when points change
+  // ── Render card markers via OverlayView ─────────────────────────────────────
   useEffect(() => {
     const h = handleRef.current;
     if (!h || !ready) return;
 
-    clearMarkers(h.markers);
-
-    const mapId = mapIdRef.current;
-    const mapsWithMarkerLib = google.maps as GoogleMapsWithMarkerLib;
-    const AdvancedMarkerCtor = mapId ? mapsWithMarkerLib.marker?.AdvancedMarkerElement : undefined;
+    // Clear old markers
+    for (const m of h.markers) m.remove();
+    h.markers.length = 0;
 
     for (const p of points) {
-      const position = { lat: p.lat, lng: p.lng };
-      const slug = p.slug;
-      const priceText =
-        typeof p.priceFrom === "number"
-          ? formatMoney(p.priceFrom, p.currency)
-          : `${p.currency} --`;
+      const slug = p.slug ?? null;
+      if (!slug) continue;
+
+      const isExpanded = slug === hoveredSlug || slug === activeSlug || slug === hoverSlug;
+      const priceText = typeof p.priceFrom === "number"
+        ? formatMoney(p.priceFrom, p.currency)
+        : `${p.currency} --`;
       const title = (p.title ?? "Property").trim() || "Property";
       const metaParts: string[] = [];
       if (typeof p.bedrooms === "number" && p.bedrooms > 0) metaParts.push(`${p.bedrooms} bd`);
       if (typeof p.bathrooms === "number" && p.bathrooms > 0) metaParts.push(`${p.bathrooms} ba`);
       if (p.area?.trim()) metaParts.push(p.area.trim());
-      const isExpanded = Boolean(slug && (slug === hoveredSlug || slug === activeSlug || slug === markerHoverSlug));
-      const isEmphasized = isExpanded;
 
-      if (AdvancedMarkerCtor) {
-        try {
-          const card = createPinCard({
-            title,
-            priceText,
-            imageUrl: p.coverImage?.url ?? null,
-            imageAlt: p.coverImage?.alt ?? title,
-            meta: metaParts.length > 0 ? metaParts.join(" • ") : null,
-            expanded: isExpanded,
-            emphasized: isEmphasized,
-          });
-          const content = card.root;
+      const card = buildCard({
+        title,
+        priceText,
+        imageUrl: p.coverImage?.url ?? null,
+        imageAlt: p.coverImage?.alt ?? title,
+        meta: metaParts.length > 0 ? metaParts.join(" · ") : null,
+        expanded: isExpanded,
+      });
 
-          const onEnter =
-            slug
-              ? () => {
-                  setMarkerHoverSlug(slug);
-                }
-              : null;
-          const onLeave =
-            slug
-              ? () => {
-                  setMarkerHoverSlug((prev) => (prev === slug ? null : prev));
-                }
-              : null;
+      // Hover expand
+      card.addEventListener("pointerenter", () => setHoverSlug(slug));
+      card.addEventListener("pointerleave", () => setHoverSlug((s) => s === slug ? null : s));
 
-          if (onEnter && onLeave) {
-            content.addEventListener("pointerenter", onEnter);
-            content.addEventListener("pointerleave", onLeave);
-          }
+      const navigate = () => {
+        if (onMarkerOpen) onMarkerOpen(slug);
+        else if (onMarkerClick) onMarkerClick(slug);
+      };
 
-          const openClickListener =
-            onMarkerOpen && slug && isExpanded
-              ? (event: Event) => {
-                  event.stopPropagation();
-                  onMarkerOpen(slug);
-                }
-              : null;
-          if (openClickListener) {
-            content.addEventListener("click", openClickListener);
-          }
-
-          const marker = new AdvancedMarkerCtor({
-            map: h.map,
-            position,
-            title,
-            content,
-            gmpClickable: Boolean(onMarkerClick && slug),
-          });
-
-          let clickListener: google.maps.MapsEventListener | null = null;
-          if (onMarkerClick && slug && typeof marker.addListener === "function") {
-            clickListener = marker.addListener("gmp-click", () => onMarkerClick(slug));
-          }
-
-          h.markers.push({
-            clear: () => {
-              if (openClickListener) {
-                content.removeEventListener("click", openClickListener);
-              }
-              if (onEnter && onLeave) {
-                content.removeEventListener("pointerenter", onEnter);
-                content.removeEventListener("pointerleave", onLeave);
-              }
-              clickListener?.remove();
-              marker.map = null;
-            },
-          });
-          continue;
-        } catch {
-          // Fall through to classic markers if advanced marker rendering fails.
-        }
-      }
-
-      const marker = new google.maps.Marker({
+      const position = new google.maps.LatLng(p.lat, p.lng);
+      const handle = createCardMarker({
         map: h.map,
         position,
-        title,
-        label: {
-          text: priceText,
-          fontSize: "12px",
-          fontWeight: "600",
-        },
-        zIndex: isEmphasized ? 20 : undefined,
+        card,
+        zIndex: isExpanded ? 999 : 1,
+        onClick: navigate,
       });
 
-      const clickListener =
-        onMarkerClick && slug
-          ? marker.addListener("click", () => onMarkerClick(slug))
-          : null;
-
-      h.markers.push({
-        clear: () => {
-          clickListener?.remove();
-          marker.setMap(null);
-        },
-      });
+      h.markers.push(handle);
     }
-  }, [activeSlug, hoveredSlug, markerHoverSlug, onMarkerClick, onMarkerOpen, points, ready]);
+  }, [activeSlug, hoveredSlug, hoverSlug, onMarkerClick, onMarkerOpen, points, ready]);
 
-  // Emit viewport changes after pan/zoom settles.
+  // ── Viewport emitter ────────────────────────────────────────────────────────
   useEffect(() => {
     const h = handleRef.current;
     if (!h || !ready || !onViewportChanged) return;
-
-    const debounceMs = viewportDebounceMs ?? 450;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
+    const ms = viewportDebounceMs ?? 450;
+    let t: ReturnType<typeof setTimeout> | null = null;
     const emit = () => {
       const bounds = h.map.getBounds();
       if (!bounds) return;
-
       const ne = bounds.getNorthEast();
       const sw = bounds.getSouthWest();
-
-      const payload: ViewportBounds = {
-        north: ne.lat(),
-        south: sw.lat(),
-        east: ne.lng(),
-        west: sw.lng(),
-      };
-
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        void onViewportChanged?.(payload);
-      }, debounceMs);
+      if (t) clearTimeout(t);
+      t = setTimeout(() => void onViewportChanged({ north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng() }), ms);
     };
-
-    const listener = h.map.addListener("idle", emit);
+    const l = h.map.addListener("idle", emit);
     emit();
-
-    return () => {
-      listener.remove();
-      if (timer) clearTimeout(timer);
-    };
+    return () => { l.remove(); if (t) clearTimeout(t); };
   }, [onViewportChanged, viewportDebounceMs, ready]);
 
+  // ── Error / loading states ──────────────────────────────────────────────────
   if (!apiKey) {
     return (
-      <div className={safeClassName}>
+      <div className={safeClass}>
         <div className="grid h-full w-full place-items-center rounded-2xl border border-line bg-warm-alt p-6 text-sm text-secondary">
-          Add{" "}
-          <code className="mx-1 rounded bg-surface px-1">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}
-          to enable map.
+          Add <code className="mx-1 rounded bg-surface px-1">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to enable the map.
         </div>
       </div>
     );
@@ -511,15 +340,14 @@ export default function GoogleMap(props: {
 
   if (errorMsg) {
     return (
-      <div className={safeClassName}>
+      <div className={safeClass}>
         <div className="grid h-full w-full place-items-center rounded-2xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">
-          <div className="max-w-[520px] text-center">
+          <div className="max-w-130 text-center">
             <div className="font-semibold">Google Maps failed to load</div>
-            <div className="mt-2 break-words text-xs text-danger/90">{errorMsg}</div>
-            <div className="mt-3 text-xs text-danger/80">
-              Check: billing enabled, Maps JavaScript API is enabled, and key referrers include
-              <code>http://localhost:3000/*</code>, <code>https://rentpropertyuae.com/*</code>,
-              and <code>https://www.rentpropertyuae.com/*</code>.
+            <div className="mt-2 wrap-break-word text-xs opacity-90">{errorMsg}</div>
+            <div className="mt-3 text-xs opacity-80">
+              Check: billing enabled, Maps JavaScript API enabled, and key referrers include{" "}
+              <code>http://localhost:3000/*</code> and <code>https://rentpropertyuae.com/*</code>.
             </div>
           </div>
         </div>
@@ -527,5 +355,5 @@ export default function GoogleMap(props: {
     );
   }
 
-  return <div ref={elRef} className={safeClassName} />;
+  return <div ref={elRef} className={safeClass} />;
 }

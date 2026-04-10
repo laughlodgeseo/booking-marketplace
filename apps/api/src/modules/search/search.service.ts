@@ -857,28 +857,37 @@ export class SearchService {
         bathrooms: true,
         basePrice: true,
         currency: true,
+        media: {
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+          select: { url: true, alt: true },
+        },
       },
     });
 
     const points = rows
       .filter((r) => r.lat !== null && r.lng !== null)
-      .map((r) => ({
-        propertyId: r.id,
-        lat: r.lat!,
-        lng: r.lng!,
-        priceFrom: this.toDisplayAmount(r.basePrice, fx.rate),
-        currency: displayCurrency,
-        priceFromAed: r.basePrice,
-        fxRate: fx.rate,
-        fxAsOf: fx.asOfDate,
-        fxProvider: fx.provider,
-        slug: r.slug,
-        title: r.title,
-        city: r.city,
-        area: r.area,
-        bedrooms: r.bedrooms,
-        bathrooms: r.bathrooms,
-      }));
+      .map((r) => {
+        const cover = r.media?.[0] ?? null;
+        return {
+          propertyId: r.id,
+          lat: r.lat!,
+          lng: r.lng!,
+          priceFrom: this.toDisplayAmount(r.basePrice, fx.rate),
+          currency: displayCurrency,
+          priceFromAed: r.basePrice,
+          fxRate: fx.rate,
+          fxAsOf: fx.asOfDate,
+          fxProvider: fx.provider,
+          slug: r.slug,
+          title: r.title,
+          city: r.city,
+          area: r.area,
+          bedrooms: r.bedrooms,
+          bathrooms: r.bathrooms,
+          coverImage: cover ? { url: cover.url, alt: cover.alt ?? null } : null,
+        };
+      });
 
     const result: SearchMapViewportResult = {
       ok: true,
