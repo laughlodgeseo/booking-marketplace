@@ -1,38 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 type SocialLoginButtonsProps = {
   onGoogleLogin: (credential: string) => Promise<void>;
   disabled?: boolean;
 };
 
-type GoogleCredentialResponse = { credential: string };
-
-type GoogleWindow = typeof window & {
-  google?: {
-    accounts?: {
-      id?: {
-        initialize: (config: {
-          client_id: string;
-          callback: (response: GoogleCredentialResponse) => void;
-          auto_select?: boolean;
-          cancel_on_tap_outside?: boolean;
-        }) => void;
-        renderButton: (
-          parent: HTMLElement,
-          options: {
-            type?: "standard" | "icon";
-            theme?: "outline" | "filled_blue" | "filled_black";
-            size?: "large" | "medium" | "small";
-            text?: "signin_with" | "signup_with" | "continue_with" | "signin";
-            shape?: "rectangular" | "pill" | "circle" | "square";
-            width?: number;
-          },
-        ) => void;
-      };
-    };
-  };
+type OAuthMessage = {
+  type: "google-oauth-callback";
+  idToken: string | null;
+  error: string | null;
 };
 
 export function SocialLoginButtons({
@@ -40,112 +18,108 @@ export function SocialLoginButtons({
   disabled = false,
 }: SocialLoginButtonsProps) {
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [loginError, setLoginError] = useState<string | null>(null);
-
-  // Off-screen div that holds Google's real rendered button
-  const hiddenRef = useRef<HTMLDivElement>(null);
-
-  // Keep a stable ref to the callback so we don't re-run the init effect
-  const callbackRef = useRef(onGoogleLogin);
-  useEffect(() => {
-    callbackRef.current = onGoogleLogin;
-  }, [onGoogleLogin]);
-
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
-
-  useEffect(() => {
-    if (!clientId) {
-      setInitError("Google Client ID is not configured.");
-      return;
-    }
-
-    const init = (): boolean => {
-      const gsi = (window as GoogleWindow).google?.accounts?.id;
-      if (!gsi || !hiddenRef.current) return false;
-
-      gsi.initialize({
-        client_id: clientId,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-        callback: async (response: GoogleCredentialResponse) => {
-          if (!response.credential) {
-            setLoading(false);
-            return;
-          }
-          setLoginError(null);
-          try {
-            await callbackRef.current(response.credential);
-          } catch (err) {
-            setLoginError(err instanceof Error ? err.message : "Sign in failed. Please try again.");
-            setLoading(false);
-          }
-        },
-      });
-
-      // Render Google's real button (off-screen). This is what opens
-      // the proper Google account-selector popup when triggered.
-      gsi.renderButton(hiddenRef.current, {
-        type: "standard",
-        theme: "outline",
-        size: "large",
-        text: "continue_with",
-      });
-
-      setReady(true);
-      return true;
-    };
-
-    // GSI script loads asynchronously — poll until it's ready
-    if (!init()) {
-      const interval = setInterval(() => {
-        if (init()) clearInterval(interval);
-      }, 200);
-      const timeout = setTimeout(() => {
-        clearInterval(interval);
-        if (!ready) setInitError("Google Sign In failed to load. Please refresh.");
-      }, 10_000);
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  const [error, setError] = useState<string | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const handleClick = () => {
     if (disabled || loading) return;
-    setLoginError(null);
 
-    // Trigger Google's rendered button — opens the proper popup
-    const btn = hiddenRef.current?.querySelector<HTMLElement>("[role='button']");
-    if (btn) {
-      setLoading(true);
-      btn.click();
-    } else {
-      setLoginError("Google Sign In is still loading. Please try again in a moment.");
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setError("Google Sign In is not configured.");
+      return;
     }
+
+    // Clean up any previous listener
+    cleanupRef.current?.();
+    cleanupRef.current = null;
+    setError(null);
+
+    // Build the Google OAuth URL — opens the proper account-selector popup
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "id_token",
+      scope: "openid email profile",
+      nonce,
+      prompt: "select_account",
+    });
+
+    const w = 500;
+    const h = 620;
+    const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
+    const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
+    const features = `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=no`;
+
+    const popup = window.open(
+      `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
+      "google-signin",
+      features,
+    );
+
+    if (!popup || popup.closed) {
+      setError("Popup was blocked. Please allow popups for this site and try again.");
+      return;
+    }
+
+    setLoading(true);
+
+    // Listen for the token posted back from /auth/google/callback
+    const handleMessage = (event: MessageEvent<OAuthMessage>) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "google-oauth-callback") return;
+
+      cleanup();
+
+      if (event.data.error) {
+        setError("Google sign in was cancelled.");
+        setLoading(false);
+        return;
+      }
+
+      if (!event.data.idToken) {
+        setError("No credential returned by Google. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      onGoogleLogin(event.data.idToken)
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Sign in failed. Please try again.");
+        })
+        .finally(() => setLoading(false));
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    // Also clean up if the user just closes the popup without signing in
+    const pollClosed = setInterval(() => {
+      if (popup.closed) {
+        cleanup();
+        setLoading(false);
+      }
+    }, 500);
+
+    function cleanup() {
+      clearInterval(pollClosed);
+      window.removeEventListener("message", handleMessage);
+      cleanupRef.current = null;
+    }
+
+    cleanupRef.current = cleanup;
   };
 
   return (
     <div className="flex flex-col gap-2.5">
-      {/*
-        Off-screen container for the GSI-rendered button.
-        Must NOT use display:none or visibility:hidden — Google's script
-        needs the element to be technically visible to render into it.
-      */}
-      <div
-        ref={hiddenRef}
-        aria-hidden="true"
-        style={{ position: "fixed", top: 0, left: "-9999px", width: "250px", height: "50px" }}
-      />
-
-      {/* Our styled "Continue with Google" button */}
       <button
         type="button"
         onClick={handleClick}
-        disabled={disabled || loading || Boolean(initError)}
+        disabled={disabled || loading}
         className={[
           "group relative flex w-full items-center justify-center gap-3",
           "rounded-xl border px-4 py-3",
@@ -159,7 +133,6 @@ export function SocialLoginButtons({
           "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-[0_1px_4px_rgba(15,23,42,0.08)]",
         ].join(" ")}
       >
-        {/* Icon or spinner */}
         <span className="flex h-5 w-5 shrink-0 items-center justify-center">
           {loading ? (
             <span className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
@@ -195,17 +168,13 @@ export function SocialLoginButtons({
           {loading ? "Signing in…" : "Continue with Google"}
         </span>
 
-        {/* Subtle right-arrow that fades in on hover */}
         <span className="absolute right-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100 text-indigo-400 text-xs">
           →
         </span>
       </button>
 
-      {/* Error states */}
-      {(loginError ?? initError) && (
-        <p className="text-center text-xs text-rose-600">
-          {loginError ?? initError}
-        </p>
+      {error && (
+        <p className="text-center text-xs text-rose-600">{error}</p>
       )}
     </div>
   );
