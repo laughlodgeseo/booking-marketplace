@@ -79,7 +79,7 @@ export default function PortalMessagesView(props: Props) {
   const loadThreadsRef = useRef<(() => Promise<void>) | null>(null);
 
   // WebSocket real-time integration
-  const { connected, status: wsStatus, sendMessage: wsSendMessage, sendTyping } = useMessagingSocket({
+  const { status: wsStatus, sendTyping } = useMessagingSocket({
     threadId: selectedId,
     onNewMessage: useCallback((msg: { id: string; body: string; createdAt: string; senderId: string; sender: { id: string; email: string; fullName: string | null; role: "ADMIN" | "VENDOR" | "CUSTOMER" } }) => {
       setThreadState((prev) => {
@@ -192,6 +192,7 @@ export default function PortalMessagesView(props: Props) {
     return () => {
       alive = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props, selectedId]);
 
   const threadItems = useMemo(() => {

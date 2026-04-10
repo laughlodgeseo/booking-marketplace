@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   addDays,
   format,
@@ -162,7 +162,6 @@ export default function QuotePanelBatchA(props: {
   priceFromAed?: number;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { status: authStatus } = useAuth();
 
@@ -353,13 +352,6 @@ export default function QuotePanelBatchA(props: {
     if (!isValid(parsed)) return null;
     return subDays(startOfDay(parsed), 1);
   }, [calendarWindow?.to]);
-  const availabilityUntilLabel = useMemo(() => {
-    if (!calendarWindow?.to) return null;
-    const parsed = parseISO(calendarWindow.to);
-    if (!isValid(parsed)) return null;
-    return formatIsoForUi(toIsoDay(subDays(parsed, 1)), locale);
-  }, [calendarWindow?.to, locale]);
-
   const displayedNightPrice = useMemo(() => {
     if (typeof props.priceFromAed === "number") {
       return formatFromAed(props.priceFromAed, {

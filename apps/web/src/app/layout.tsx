@@ -5,6 +5,7 @@ import {
   Noto_Naskh_Arabic,
   Tajawal,
 } from "next/font/google";
+import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import Providers from "./providers";
@@ -94,6 +95,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           locale === "ar" ? "font-arabic-locale" : "",
         ].join(" ")}
       >
+        {/* Google Identity Services — loaded lazily so it never blocks page render */}
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="lazyOnload"
+        />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
             <AuthProvider>

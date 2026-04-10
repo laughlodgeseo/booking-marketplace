@@ -187,16 +187,6 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
   }
 
   const datesValid = isValidDate(checkIn) && isValidDate(checkOut);
-  const nights = datesValid
-    ? Math.max(
-        1,
-        Math.round(
-          (new Date(`${checkOut}T00:00:00Z`).getTime() -
-            new Date(`${checkIn}T00:00:00Z`).getTime()) /
-            86_400_000,
-        ),
-      )
-    : null;
 
   // ── Step 1: Auth content ─────────────────────────────────────────────────────
   function renderStep1() {

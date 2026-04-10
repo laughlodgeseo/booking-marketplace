@@ -57,6 +57,7 @@ export default function PublicPropertyCalendar({ slug }: { slug: string }) {
     // Serve from cache if fresh
     const cached = CALENDAR_CACHE.get(cacheKey);
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ kind: "ready", days: cached.days, from: cached.from, to: cached.to });
       return;
     }

@@ -66,10 +66,11 @@ export default function StripeProvider(props: StripeProviderProps) {
   }, [stripePromise, validationError]);
 
   const initError = validationError ?? asyncError;
+  const { onError } = props;
 
   useEffect(() => {
-    if (initError) props.onError?.(initError);
-  }, [initError, props.onError]);
+    if (initError) onError?.(initError);
+  }, [initError, onError]);
 
   const options: StripeElementsOptionsClientSecret = useMemo(
     () => ({

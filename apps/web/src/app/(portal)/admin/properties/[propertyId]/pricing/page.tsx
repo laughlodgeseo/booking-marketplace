@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";

@@ -7,11 +7,12 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { useMemo, useState } from "react";
 import { login, signup } from "@/lib/auth/authApi";
+import { useAuth } from "@/lib/auth/auth-context";
 import { setAccessToken } from "@/lib/auth/tokenStore";
 import type { AuthUiRole } from "@/components/auth/authFlow";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
-import { googleLogin, appleLogin } from "@/lib/api/oauth";
+import { googleLogin } from "@/lib/api/oauth";
 
 type SignupDraft = {
   role: AuthUiRole;
@@ -109,6 +110,7 @@ const COPY = {
 
 export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
   const router = useRouter();
+  const { refresh } = useAuth();
   const locale = normalizeLocale(useLocale());
   const copy = COPY[locale];
   const arrowClass = locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100";
@@ -144,20 +146,10 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
     const res = await googleLogin(credential, backendRole);
     if (res.ok) {
       setAccessToken(res.data.accessToken);
+      await refresh();
       router.push(nextPath);
     } else {
-      setError(res.message ?? "Google login failed");
-    }
-  }
-
-  async function handleAppleLogin(idToken: string, fullName?: string) {
-    setError(null);
-    const res = await appleLogin(idToken, fullName, backendRole);
-    if (res.ok) {
-      setAccessToken(res.data.accessToken);
-      router.push(nextPath);
-    } else {
-      setError(res.message ?? "Apple login failed");
+      setError(res.message ?? "Google sign in failed");
     }
   }
 
@@ -343,7 +335,6 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
 
       <SocialLoginButtons
         onGoogleLogin={handleGoogleLogin}
-        onAppleLogin={handleAppleLogin}
         disabled={loading}
       />
     </div>

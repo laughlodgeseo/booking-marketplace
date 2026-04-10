@@ -224,6 +224,7 @@ export function AdminPropertyEditor(props: {
     property.minNights,
     property.slug,
     property.title,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
 
   useEffect(() => {

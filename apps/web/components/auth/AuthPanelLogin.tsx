@@ -12,7 +12,7 @@ import { setAccessToken } from "@/lib/auth/tokenStore";
 import type { AuthUiRole } from "@/components/auth/authFlow";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
-import { googleLogin, appleLogin } from "@/lib/api/oauth";
+import { googleLogin } from "@/lib/api/oauth";
 
 interface AuthPanelLoginProps {
   role: AuthUiRole;
@@ -101,18 +101,6 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
       router.push(nextPath);
     } else {
       setError(res.message ?? "Google login failed");
-    }
-  }
-
-  async function handleAppleLogin(idToken: string, fullName?: string) {
-    setError(null);
-    const res = await appleLogin(idToken, fullName, backendRole);
-    if (res.ok) {
-      setAccessToken(res.data.accessToken);
-      await refresh();
-      router.push(nextPath);
-    } else {
-      setError(res.message ?? "Apple login failed");
     }
   }
 
@@ -222,7 +210,6 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
 
       <SocialLoginButtons
         onGoogleLogin={handleGoogleLogin}
-        onAppleLogin={handleAppleLogin}
         disabled={loading}
       />
     </div>

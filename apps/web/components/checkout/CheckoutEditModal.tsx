@@ -40,7 +40,7 @@ function fmtCurrency(amount: number, currency: string): string {
 
 export function CheckoutEditModal({
   propertyId,
-  slug: _slug,
+  slug: _slug, // eslint-disable-line @typescript-eslint/no-unused-vars
   initialCheckIn,
   initialCheckOut,
   initialGuests,

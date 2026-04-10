@@ -22,13 +22,3 @@ export function googleLogin(
   });
 }
 
-export function appleLogin(
-  idToken: string,
-  fullName?: string,
-  role?: string,
-): Promise<HttpResult<OAuthResult>> {
-  return apiFetch("/auth/oauth/apple", {
-    method: "POST",
-    body: { idToken, fullName, role },
-  });
-}

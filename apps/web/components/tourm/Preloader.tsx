@@ -34,9 +34,9 @@ type Timeline = {
 };
 
 const SESSION_KEY = "ll_preloader_seen_v1";
-const DESKTOP_TOTAL_MS = 2600;
-const MOBILE_TOTAL_MS = 2200;
-const MAX_DURATION_MS = 4000;
+const DESKTOP_TOTAL_MS = 3000;
+const MOBILE_TOTAL_MS = 3000;
+const MAX_DURATION_MS = 5000;
 const LUX_EASE = [0.22, 1, 0.36, 1] as const;
 
 function clamp(n: number, min: number, max: number): number {
@@ -142,7 +142,7 @@ export default function Preloader(props: PreloaderProps) {
   const pathname = usePathname();
   const shouldReduceMotion = useReducedMotion();
   const isDev = process.env.NODE_ENV === "development";
-  const configuredMinDurationMs = clamp(props.minDurationMs ?? 2600, 1600, 5500);
+  const configuredMinDurationMs = clamp(props.minDurationMs ?? 3000, 1600, 5500);
   const oncePerSession = props.oncePerSession ?? true;
 
   const [mounted, setMounted] = useState(false);

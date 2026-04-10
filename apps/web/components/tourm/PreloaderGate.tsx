@@ -1,61 +1,23 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-
-type MaybeConnection = {
-  effectiveType?: string;
-  saveData?: boolean;
-};
-
-type NavigatorWithHints = Navigator & {
-  connection?: MaybeConnection;
-  deviceMemory?: number;
-};
 
 const Preloader = dynamic(() => import("@/components/tourm/Preloader"), {
   ssr: false,
   loading: () => null,
 });
 
-function shouldEnablePreloader(): boolean {
-  const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-  if (!isDesktop) return false;
-
-  const nav = navigator as NavigatorWithHints;
-  const connection = nav.connection;
-  const isConstrainedNetwork =
-    connection?.saveData === true ||
-    connection?.effectiveType === "slow-2g" ||
-    connection?.effectiveType === "2g" ||
-    connection?.effectiveType === "3g";
-
-  if (isConstrainedNetwork) return false;
-  if (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4) return false;
-  if (typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4) return false;
-
-  return true;
-}
+/** Paths where the preloader would interrupt a critical flow — skip there. */
+const SKIP_PREFIXES = ["/checkout", "/payment"];
 
 export default function PreloaderGate() {
   const pathname = usePathname();
+  const path = (pathname ?? "").toLowerCase();
+  const isSkipped = SKIP_PREFIXES.some((prefix) => path.startsWith(prefix));
 
-  const enabled = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    if (!shouldEnablePreloader()) return false;
+  if (isSkipped) return null;
 
-    const path = (pathname ?? "").toLowerCase();
-    const isTransactionalPath =
-      path.startsWith("/checkout") ||
-      path.startsWith("/payment") ||
-      path.startsWith("/login") ||
-      path.startsWith("/signup");
-
-    if (isTransactionalPath) return false;
-    return true;
-  }, [pathname]);
-
-  if (!enabled) return null;
-  return <Preloader />;
+  // 3 000 ms minimum — oncePerSession is handled inside Preloader via sessionStorage
+  return <Preloader minDurationMs={3000} oncePerSession />;
 }

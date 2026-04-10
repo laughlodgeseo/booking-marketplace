@@ -14,7 +14,7 @@ import { UserRole } from '@prisma/client';
 /**
  * OAuth controller — handles token-based social login (SPA-friendly).
  *
- * Frontend obtains an ID token from Google/Apple SDK,
+ * Frontend obtains an ID token from Google Identity Services (GSI),
  * sends it here, and receives JWT tokens in return.
  */
 @Controller('auth/oauth')
@@ -67,43 +67,6 @@ export class OAuthController {
   }
 
   /**
-   * Apple Sign-In: verify Apple ID token and issue JWT.
-   * Frontend uses Apple JS SDK to get the authorization code/ID token.
-   */
-  @Post('apple')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  async apple(
-    @Body() body: { idToken: string; fullName?: string; role?: UserRole },
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    if (!body.idToken) {
-      throw new BadRequestException('Apple ID token is required.');
-    }
-
-    const payload = this.decodeAppleToken(body.idToken);
-
-    if (!payload.email) {
-      throw new BadRequestException('Apple account has no email.');
-    }
-
-    const result = await this.auth.oauthLogin({
-      provider: 'apple',
-      providerId: payload.sub,
-      email: payload.email,
-      fullName: body.fullName, // Apple only sends name on first login
-      role: body.role,
-    });
-
-    this.setRefreshCookie(res, result.refreshToken);
-
-    return {
-      user: result.user,
-      accessToken: result.accessToken,
-      isNewUser: result.isNewUser,
-    };
-  }
-
-  /**
    * Decode Google ID token (JWT).
    * IMPORTANT: In production, verify signature against Google's JWKS:
    * https://www.googleapis.com/oauth2/v3/certs
@@ -123,6 +86,7 @@ export class OAuthController {
         sub?: string;
         email?: string;
         iss?: string;
+        aud?: string;
         exp?: number;
         name?: string;
         picture?: string;
@@ -137,6 +101,12 @@ export class OAuthController {
         payload.iss !== 'https://accounts.google.com'
       ) {
         throw new Error('Invalid issuer');
+      }
+
+      // Verify audience matches our Client ID (prevents tokens from other apps being accepted)
+      const expectedAud = process.env.GOOGLE_CLIENT_ID;
+      if (expectedAud && payload.aud !== expectedAud) {
+        throw new Error('Token audience mismatch');
       }
 
       // Check expiry
@@ -155,42 +125,6 @@ export class OAuthController {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn(`Google token decode failed: ${msg}`);
       throw new BadRequestException('Invalid Google credential.');
-    }
-  }
-
-  /**
-   * Decode Apple ID token (JWT).
-   * IMPORTANT: In production, verify signature against Apple's JWKS:
-   * https://appleid.apple.com/auth/keys
-   */
-  private decodeAppleToken(token: string): {
-    sub: string;
-    email: string;
-  } {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) throw new Error('Invalid JWT format');
-      const payload = JSON.parse(
-        Buffer.from(parts[1], 'base64url').toString('utf-8'),
-      ) as { sub?: string; email?: string; iss?: string; exp?: number };
-
-      if (!payload.sub || !payload.email) {
-        throw new Error('Missing required claims');
-      }
-      if (payload.iss !== 'https://appleid.apple.com') {
-        throw new Error('Invalid issuer');
-      }
-
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
-        throw new Error('Token expired');
-      }
-
-      return { sub: payload.sub, email: payload.email };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.warn(`Apple token decode failed: ${msg}`);
-      throw new BadRequestException('Invalid Apple ID token.');
     }
   }
 

@@ -1,124 +1,212 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type SocialLoginButtonsProps = {
   onGoogleLogin: (credential: string) => Promise<void>;
-  onAppleLogin: (idToken: string, fullName?: string) => Promise<void>;
   disabled?: boolean;
 };
 
-type GoogleNotification = {
-  isNotDisplayed: () => boolean;
-  isSkippedMoment: () => boolean;
-};
+type GoogleCredentialResponse = { credential: string };
 
 type GoogleWindow = typeof window & {
   google?: {
     accounts?: {
       id?: {
-        prompt: (callback: (n: GoogleNotification) => void) => void;
+        initialize: (config: {
+          client_id: string;
+          callback: (response: GoogleCredentialResponse) => void;
+          auto_select?: boolean;
+          cancel_on_tap_outside?: boolean;
+        }) => void;
+        renderButton: (
+          parent: HTMLElement,
+          options: {
+            type?: "standard" | "icon";
+            theme?: "outline" | "filled_blue" | "filled_black";
+            size?: "large" | "medium" | "small";
+            text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+            shape?: "rectangular" | "pill" | "circle" | "square";
+            width?: number;
+          },
+        ) => void;
       };
-    };
-  };
-};
-
-type AppleAuthResponse = {
-  authorization?: { id_token?: string };
-  user?: { name?: { firstName?: string; lastName?: string } };
-};
-
-type AppleWindow = typeof window & {
-  AppleID?: {
-    auth?: {
-      signIn: () => Promise<AppleAuthResponse>;
     };
   };
 };
 
 export function SocialLoginButtons({
   onGoogleLogin,
-  onAppleLogin,
   disabled = false,
 }: SocialLoginButtonsProps) {
-  const [loading, setLoading] = useState<"google" | "apple" | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const handleGoogle = async () => {
-    if (loading || disabled) return;
-    setLoading("google");
-    try {
-      // Use Google Identity Services (GSI) to get credential
-      if (typeof window !== "undefined" && (window as GoogleWindow).google?.accounts?.id) {
-        (window as GoogleWindow).google!.accounts!.id!.prompt(
-          async (notification: GoogleNotification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              setLoading(null);
-            }
-          },
-        );
-        // The callback is set up in the parent via google.accounts.id.initialize
-      } else {
-        // Fallback: show a message
-        console.warn("Google Identity Services not loaded");
-        setLoading(null);
-      }
-    } catch {
-      setLoading(null);
+  // Off-screen div that holds Google's real rendered button
+  const hiddenRef = useRef<HTMLDivElement>(null);
+
+  // Keep a stable ref to the callback so we don't re-run the init effect
+  const callbackRef = useRef(onGoogleLogin);
+  useEffect(() => {
+    callbackRef.current = onGoogleLogin;
+  }, [onGoogleLogin]);
+
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+  useEffect(() => {
+    if (!clientId) {
+      setInitError("Google Client ID is not configured.");
+      return;
     }
-  };
 
-  const handleApple = async () => {
-    if (loading || disabled) return;
-    setLoading("apple");
-    try {
-      if (typeof window !== "undefined" && (window as AppleWindow).AppleID?.auth) {
-        const response = await (window as AppleWindow).AppleID!.auth!.signIn();
-        const idToken = response.authorization?.id_token;
-        const fullName = response.user
-          ? `${response.user.name?.firstName ?? ""} ${response.user.name?.lastName ?? ""}`.trim()
-          : undefined;
+    const init = (): boolean => {
+      const gsi = (window as GoogleWindow).google?.accounts?.id;
+      if (!gsi || !hiddenRef.current) return false;
 
-        if (idToken) {
-          await onAppleLogin(idToken, fullName);
-        }
-      } else {
-        console.warn("Apple Sign In JS not loaded");
-      }
-    } catch {
-      // User cancelled or error
-    } finally {
-      setLoading(null);
+      gsi.initialize({
+        client_id: clientId,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        callback: async (response: GoogleCredentialResponse) => {
+          if (!response.credential) {
+            setLoading(false);
+            return;
+          }
+          setLoginError(null);
+          try {
+            await callbackRef.current(response.credential);
+          } catch (err) {
+            setLoginError(err instanceof Error ? err.message : "Sign in failed. Please try again.");
+            setLoading(false);
+          }
+        },
+      });
+
+      // Render Google's real button (off-screen). This is what opens
+      // the proper Google account-selector popup when triggered.
+      gsi.renderButton(hiddenRef.current, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+      });
+
+      setReady(true);
+      return true;
+    };
+
+    // GSI script loads asynchronously — poll until it's ready
+    if (!init()) {
+      const interval = setInterval(() => {
+        if (init()) clearInterval(interval);
+      }, 200);
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        if (!ready) setInitError("Google Sign In failed to load. Please refresh.");
+      }, 10_000);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  const handleClick = () => {
+    if (disabled || loading) return;
+    setLoginError(null);
+
+    // Trigger Google's rendered button — opens the proper popup
+    const btn = hiddenRef.current?.querySelector<HTMLElement>("[role='button']");
+    if (btn) {
+      setLoading(true);
+      btn.click();
+    } else {
+      setLoginError("Google Sign In is still loading. Please try again in a moment.");
     }
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
+      {/*
+        Off-screen container for the GSI-rendered button.
+        Must NOT use display:none or visibility:hidden — Google's script
+        needs the element to be technically visible to render into it.
+      */}
+      <div
+        ref={hiddenRef}
+        aria-hidden="true"
+        style={{ position: "fixed", top: 0, left: "-9999px", width: "250px", height: "50px" }}
+      />
+
+      {/* Our styled "Continue with Google" button */}
       <button
         type="button"
-        onClick={handleGoogle}
-        disabled={disabled || loading !== null}
-        className="flex items-center justify-center gap-3 w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={handleClick}
+        disabled={disabled || loading || Boolean(initError)}
+        className={[
+          "group relative flex w-full items-center justify-center gap-3",
+          "rounded-xl border px-4 py-3",
+          "text-sm font-semibold text-slate-700",
+          "bg-white shadow-[0_1px_4px_rgba(15,23,42,0.08)]",
+          "border-slate-200/90",
+          "transition-all duration-200 ease-out",
+          "hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-[0_4px_16px_rgba(99,102,241,0.14)] hover:-translate-y-[2px]",
+          "active:translate-y-0 active:shadow-[0_1px_4px_rgba(15,23,42,0.08)] active:bg-indigo-50/70",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2",
+          "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-[0_1px_4px_rgba(15,23,42,0.08)]",
+        ].join(" ")}
       >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-        </svg>
-        {loading === "google" ? "Signing in..." : "Continue with Google"}
+        {/* Icon or spinner */}
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+          {loading ? (
+            <span className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+          ) : (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 18 18"
+              fill="none"
+              className="transition-transform duration-200 group-hover:scale-110"
+            >
+              <path
+                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+                fill="#4285F4"
+              />
+              <path
+                d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"
+                fill="#34A853"
+              />
+              <path
+                d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                fill="#EA4335"
+              />
+            </svg>
+          )}
+        </span>
+
+        <span className="transition-colors duration-150 group-hover:text-indigo-800">
+          {loading ? "Signing in…" : "Continue with Google"}
+        </span>
+
+        {/* Subtle right-arrow that fades in on hover */}
+        <span className="absolute right-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100 text-indigo-400 text-xs">
+          →
+        </span>
       </button>
 
-      <button
-        type="button"
-        onClick={handleApple}
-        disabled={disabled || loading !== null}
-        className="flex items-center justify-center gap-3 w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-white bg-black hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 21" fill="currentColor">
-          <path d="M14.94 11.117c-.024-2.605 2.125-3.858 2.221-3.918-1.21-1.769-3.092-2.012-3.763-2.04-1.602-.162-3.126.943-3.938.943-.812 0-2.068-.919-3.397-.895-1.748.026-3.358 1.016-4.258 2.581-1.816 3.15-.465 7.817 1.304 10.373.865 1.251 1.897 2.657 3.252 2.607 1.305-.053 1.798-.844 3.376-.844 1.577 0 2.021.844 3.399.818 1.404-.026 2.293-1.275 3.151-2.53.992-1.452 1.401-2.858 1.426-2.932-.031-.013-2.737-1.05-2.764-4.163zM12.348 3.375C13.073 2.496 13.563 1.3 13.432.1c-1.032.042-2.283.687-3.023 1.554-.663.768-1.243 1.995-1.088 3.172 1.152.09 2.327-.585 3.027-1.451z"/>
-        </svg>
-        {loading === "apple" ? "Signing in..." : "Continue with Apple"}
-      </button>
+      {/* Error states */}
+      {(loginError ?? initError) && (
+        <p className="text-center text-xs text-rose-600">
+          {loginError ?? initError}
+        </p>
+      )}
     </div>
   );
 }

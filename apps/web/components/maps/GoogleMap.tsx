@@ -149,7 +149,6 @@ function createCardMarker(args: {
   const OverlayView = google.maps.OverlayView;
 
   // Dynamic subclass (safe: google.maps is loaded at this point)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const overlay = new (class extends OverlayView {
     onAdd() {
       const panes = this.getPanes();

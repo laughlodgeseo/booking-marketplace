@@ -5,12 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
-  CalendarDays,
   CreditCard,
-  MapPin,
-  ShieldCheck,
   Timer,
-  Users,
 } from "lucide-react";
 import { useBookingPoll } from "@/components/checkout/useBookingPoll";
 import CheckoutForm from "@/components/payment/CheckoutForm";
@@ -23,8 +19,6 @@ import {
   type BookingListItem,
   type BookingDetail,
 } from "@/lib/api/bookings";
-import { PromoCodeInput } from "@/components/checkout/PromoCodeInput";
-import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 type ViewState =
   | { kind: "idle" }
@@ -50,34 +44,8 @@ type DetailState =
   | { kind: "unauthorized" }
   | { kind: "error"; message: string };
 
-function classNames(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
-
 function upper(s: string): string {
   return (s ?? "").toUpperCase();
-}
-
-function fmtDate(s: string | null | undefined): string {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  return d.toLocaleString();
-}
-
-function fmtShortDate(s: string | null | undefined): string {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(d);
-  } catch {
-    return s;
-  }
 }
 
 function isoDay(s: string | null | undefined): string | null {
@@ -389,12 +357,7 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   const taxes = 0;
   const computedTotal =
     detailTotal != null ? detailTotal : nightlySubtotal != null ? nightlySubtotal + (cleaningFee ?? 0) + taxes : null;
-  const propertyTitle = bookingDetail?.property?.title ?? null;
   const propertySlug = bookingDetail?.property?.slug ?? null;
-  const propertyCover = bookingDetail?.property?.coverUrl ?? null;
-  const propertyLocation = bookingDetail?.property
-    ? [bookingDetail.property.city, bookingDetail.property.area].filter(Boolean).join(", ")
-    : null;
 
   const totalText = moneyFromCents(
     computedTotal ?? effectiveLatest?.totalAmount ?? null,
@@ -405,10 +368,6 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
       ? ((intentState.publishableKey ?? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").trim())
       : "";
   const isTestMode = resolvedPublishableKey.startsWith("pk_test_");
-
-  const stepAuthStatus = authRequired ? "needs" : "done";
-  const stepPaymentStatus = isConfirmed ? "done" : isPending ? "active" : "idle";
-  const stepConfirmStatus = isConfirmed ? "done" : "idle";
 
   const editDatesHref = useMemo(() => {
     if (!propertySlug) return "/properties";
