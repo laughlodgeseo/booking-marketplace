@@ -7,6 +7,7 @@ import { PrismaModule } from '../modules/prisma/prisma.module';
 import { NotificationsModule } from '../modules/notifications/notifications.module';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { PricingModule } from '../modules/pricing/pricing.module';
+import { DubaiTaxService } from '../common/pricing/dubai-tax.service';
 
 @Module({
   imports: [
@@ -15,8 +16,7 @@ import { PricingModule } from '../modules/pricing/pricing.module';
     PricingModule,
   ],
   controllers: [BookingsController],
-  providers: [BookingsService, PrismaService, CancellationPolicyService],
-  // PricingService is provided via PricingModule import
+  providers: [BookingsService, PrismaService, CancellationPolicyService, DubaiTaxService],
   exports: [BookingsService],
 })
 export class BookingsModule {}

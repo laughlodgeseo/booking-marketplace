@@ -2,6 +2,7 @@ import { AvailabilityService } from './availability.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FxRatesService } from '../fx/fx-rates.service';
 import { PricingService } from '../pricing/pricing.service';
+import { DubaiTaxService } from '../../common/pricing/dubai-tax.service';
 
 describe('AvailabilityService currency snapshot flow', () => {
   function buildService() {
@@ -51,8 +52,15 @@ describe('AvailabilityService currency snapshot flow', () => {
       }),
     } as unknown as PricingService;
 
+    const dubaiTax = {
+      calculate: jest.fn().mockReturnValue({
+        baseTotal: 2000, cleaningFee: 200, serviceCharge: 200, municipalityFee: 140,
+        tourismFee: 120, subtotalBeforeVat: 2660, vat: 133, tourismDirham: 20, total: 2813,
+      }),
+    } as unknown as DubaiTaxService;
+
     return {
-      service: new AvailabilityService(prisma, fxRates, pricing),
+      service: new AvailabilityService(prisma, fxRates, pricing, dubaiTax),
       prisma,
       fxRates,
     };
@@ -98,15 +106,25 @@ describe('AvailabilityService currency snapshot flow', () => {
         nightlySubtotal: 500,
         baseAmount: 500,
         cleaningFee: 50,
-        serviceFee: 0,
-        taxes: 0,
+        serviceCharge: 50,
+        municipalityFee: 35,
+        tourismFee: 30,
+        vat: 33,
+        tourismDirham: 5,
+        serviceFee: 50,
+        taxes: 103,
         total: 550,
         basePricePerNightAed: 1000,
         nightlySubtotalAed: 2000,
         baseAmountAed: 2000,
         cleaningFeeAed: 200,
-        serviceFeeAed: 0,
-        taxesAed: 0,
+        serviceChargeAed: 200,
+        municipalityFeeAed: 140,
+        tourismFeeAed: 120,
+        vatAed: 133,
+        tourismDirhamAed: 20,
+        serviceFeeAed: 200,
+        taxesAed: 413,
         totalAed: 2200,
         nightlyBreakdown: [
           { date: '2026-03-10', price: 1000, ruleId: null },
@@ -128,7 +146,8 @@ describe('AvailabilityService currency snapshot flow', () => {
       fxRate: 0.25,
       fxAsOfDate: '2026-02-20',
       fxProvider: 'spec',
-    });
+      quotedBreakdown: null,
+    } as any);
 
     const result = await service.reserve(
       { id: 'customer_1' },

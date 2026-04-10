@@ -186,6 +186,7 @@ export default function QuotePanelBatchA(props: {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [reserveBusy, setReserveBusy] = useState(false);
   const [reserveError, setReserveError] = useState<string | null>(null);
+  const [taxesOpen, setTaxesOpen] = useState(false);
 
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [calendarError, setCalendarError] = useState<string | null>(null);
@@ -544,36 +545,95 @@ export default function QuotePanelBatchA(props: {
         <p className="text-sm text-secondary/70">{copy.exactTotal}</p>
       ) : breakdown ? (
         <div className="space-y-2.5">
+          {/* Nightly subtotal */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-secondary">
-              {copy.base} · {breakdown.nights} {copy.nights}
+              {breakdown.nights} {copy.nights} × {formatMoney(breakdown.basePricePerNight, quote.currency)}
             </span>
             <span className="font-semibold text-primary">
-              {formatMoney(breakdown.baseAmount, quote.currency)}
+              {formatMoney(breakdown.nightlySubtotal, quote.currency)}
             </span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-secondary">{copy.cleaning}</span>
-            <span className="font-semibold text-primary">
-              {formatMoney(breakdown.cleaningFee, quote.currency)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-secondary">{copy.serviceFee}</span>
-            <span className="font-semibold text-primary">
-              {formatMoney(breakdown.serviceFee, quote.currency)}
-            </span>
-          </div>
-          {breakdown.taxes > 0 && (
+
+          {/* Cleaning fee */}
+          {breakdown.cleaningFee > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-secondary">
-                {locale === "ar" ? "ضريبة القيمة المضافة (5%)" : "VAT (5%)"}
-              </span>
+              <span className="text-secondary">{copy.cleaning}</span>
               <span className="font-semibold text-primary">
-                {formatMoney(breakdown.taxes, quote.currency)}
+                {formatMoney(breakdown.cleaningFee, quote.currency)}
               </span>
             </div>
           )}
+
+          {/* Taxes & fees — collapsible */}
+          {(breakdown.serviceCharge > 0 || breakdown.municipalityFee > 0 || breakdown.tourismFee > 0 || breakdown.vat > 0 || breakdown.tourismDirham > 0) && (
+            <>
+              <button
+                type="button"
+                onClick={() => setTaxesOpen((o) => !o)}
+                className="flex w-full items-center justify-between text-sm"
+              >
+                <span className="flex items-center gap-1 text-secondary underline decoration-dotted underline-offset-2">
+                  {locale === "ar" ? "الضرائب والرسوم" : "Taxes & fees"}
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${taxesOpen ? "rotate-180" : ""}`} />
+                </span>
+                <span className="font-semibold text-primary">
+                  {formatMoney(breakdown.serviceCharge + breakdown.municipalityFee + breakdown.tourismFee + breakdown.vat + breakdown.tourismDirham, quote.currency)}
+                </span>
+              </button>
+
+              {taxesOpen && (
+                <div className="space-y-2 rounded-xl bg-warm-alt px-3 py-2.5">
+                  {breakdown.serviceCharge > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-secondary" title="Tourism authority service charge — 10% of base">
+                        {locale === "ar" ? "رسوم الخدمة (10%)" : "Service charge (10%)"}
+                      </span>
+                      <span className="text-primary">{formatMoney(breakdown.serviceCharge, quote.currency)}</span>
+                    </div>
+                  )}
+                  {breakdown.municipalityFee > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-secondary" title="Dubai municipality fee — 7% of base">
+                        {locale === "ar" ? "رسوم البلدية (7%)" : "Municipality fee (7%)"}
+                      </span>
+                      <span className="text-primary">{formatMoney(breakdown.municipalityFee, quote.currency)}</span>
+                    </div>
+                  )}
+                  {breakdown.tourismFee > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-secondary" title="Dubai tourism fee — 6% of base">
+                        {locale === "ar" ? "رسوم السياحة (6%)" : "Tourism fee (6%)"}
+                      </span>
+                      <span className="text-primary">{formatMoney(breakdown.tourismFee, quote.currency)}</span>
+                    </div>
+                  )}
+                  {breakdown.vat > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-secondary" title="Value Added Tax — 5% of subtotal including fees">
+                        {locale === "ar" ? "ضريبة القيمة المضافة (5%)" : "VAT (5%)"}
+                      </span>
+                      <span className="text-primary">{formatMoney(breakdown.vat, quote.currency)}</span>
+                    </div>
+                  )}
+                  {breakdown.tourismDirham > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-secondary" title="Tourism Dirham: fixed per room per night, capped at 30 nights">
+                        {locale === "ar" ? "درهم السياحة" : "Tourism Dirham"}
+                      </span>
+                      <span className="text-primary">
+                        {quote.currency === "AED"
+                          ? formatMoney(breakdown.tourismDirham, "AED")
+                          : `AED ${breakdown.tourismDirhamAed.toLocaleString()}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Total */}
           <div className="flex items-center justify-between border-t border-line/30 pt-3 text-base font-bold text-primary">
             <span>{copy.total}</span>
             <span>{formatMoney(breakdown.total, quote.currency)}</span>

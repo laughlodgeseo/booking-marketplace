@@ -8,6 +8,7 @@ import { QuoteController } from './controllers/quote.controller';
 import { ReserveController } from './controllers/reserve.controller';
 import { FxModule } from '../fx/fx.module';
 import { PricingModule } from '../pricing/pricing.module';
+import { DubaiTaxService } from '../../common/pricing/dubai-tax.service';
 
 @Module({
   imports: [PrismaModule, FxModule, PricingModule],
@@ -18,7 +19,7 @@ import { PricingModule } from '../pricing/pricing.module';
     QuoteController,
     ReserveController,
   ],
-  providers: [AvailabilityService],
+  providers: [AvailabilityService, DubaiTaxService],
   exports: [AvailabilityService],
 })
 export class AvailabilityModule {}

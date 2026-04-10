@@ -26,6 +26,7 @@ import { CancellationPolicyService } from './policies/cancellation.policy';
 import { NotificationsService } from '../modules/notifications/notifications.service';
 import { buildOverlapFilter } from '../common/date-range';
 import { PricingService } from '../modules/pricing/pricing.service';
+import { DubaiTaxService } from '../common/pricing/dubai-tax.service';
 
 const PAYMENT_WINDOW_MINUTES = 15;
 
@@ -38,6 +39,7 @@ export class BookingsService {
     private readonly cancellationPolicy: CancellationPolicyService,
     private readonly notifications: NotificationsService,
     private readonly pricing: PricingService,
+    private readonly dubaiTax: DubaiTaxService,
   ) {}
 
   // ---------------------------
@@ -50,10 +52,7 @@ export class BookingsService {
   }) {
     const property = await this.prisma.property.findUnique({
       where: { id: params.propertyId },
-      select: {
-        basePrice: true,
-        cleaningFee: true,
-      },
+      select: { basePrice: true, cleaningFee: true, starRating: true },
     });
 
     if (!property) throw new NotFoundException('Property not found.');
@@ -64,17 +63,22 @@ export class BookingsService {
 
     if (nights <= 0) throw new BadRequestException('Invalid date range.');
 
-    // Use PricingService as single source of truth (applies rules per night)
+    // PricingService is the single source of truth for nightly rates (rules etc.)
     const { subtotal } = await this.pricing.calculateTotal(
       params.propertyId,
       params.checkIn,
       params.checkOut,
     );
-    const fees = property.cleaningFee ?? 0;
 
-    return {
-      totalAed: subtotal + fees,
-    };
+    // Apply full Dubai tax breakdown — same calculation as the quote endpoint
+    const breakdown = this.dubaiTax.calculate({
+      baseTotalAed: subtotal,
+      nights,
+      cleaningFeeAed: property.cleaningFee ?? 0,
+      starRating: property.starRating,
+    });
+
+    return { totalAed: breakdown.total, breakdown };
   }
 
   // ---------------------------
@@ -201,6 +205,13 @@ export class BookingsService {
               ? hold.quotedTotalDisplay
               : Math.round(totalAmountAed * fxRate);
 
+          // Use breakdown from hold (set during reserve) or fall back to recomputed breakdown.
+          // Spread into a plain object so Prisma's InputJsonObject index signature is satisfied.
+          const priceBreakdown: Record<string, number> =
+            hold.quotedBreakdown != null
+              ? { ...(hold.quotedBreakdown as Record<string, number>) }
+              : { ...fallbackQuote.breakdown };
+
           const booking = await tx.booking.create({
             data: {
               customerId: args.userId,
@@ -220,6 +231,7 @@ export class BookingsService {
               fxAsOfDate: hold.fxAsOfDate ?? null,
               fxProvider: hold.fxProvider ?? null,
               idempotencyKey,
+              priceBreakdown,
               expiresAt: new Date(
                 Date.now() + PAYMENT_WINDOW_MINUTES * 60 * 1000,
               ),

@@ -14,6 +14,7 @@ import { PrismaService } from '../modules/prisma/prisma.service';
 import { CancellationPolicyService } from './policies/cancellation.policy';
 import { NotificationsService } from '../modules/notifications/notifications.service';
 import { PricingService } from '../modules/pricing/pricing.service';
+import { DubaiTaxService } from '../common/pricing/dubai-tax.service';
 
 describe('BookingsService critical paths', () => {
   function buildService(deps?: {
@@ -38,9 +39,15 @@ describe('BookingsService critical paths', () => {
     const pricing = {
       calculateTotal: jest.fn().mockResolvedValue({ nightlyBreakdown: [], subtotal: 0 }),
     } as unknown as PricingService;
+    const dubaiTax = {
+      calculate: jest.fn().mockReturnValue({
+        baseTotal: 0, cleaningFee: 0, serviceCharge: 0, municipalityFee: 0,
+        tourismFee: 0, subtotalBeforeVat: 0, vat: 0, tourismDirham: 0, total: 0,
+      }),
+    } as unknown as DubaiTaxService;
 
     return {
-      service: new BookingsService(prisma, cancellationPolicy, notifications, pricing),
+      service: new BookingsService(prisma, cancellationPolicy, notifications, pricing, dubaiTax),
       prisma,
       cancellationPolicy,
       notifications,

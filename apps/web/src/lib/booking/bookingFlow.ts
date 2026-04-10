@@ -6,13 +6,26 @@ export type QuoteBreakdown = {
   nightlySubtotal: number;
   baseAmount: number;
   cleaningFee: number;
+  // Granular Dubai fees (display currency)
+  serviceCharge: number;   // 10% of base
+  municipalityFee: number; // 7% of base
+  tourismFee: number;      // 6% of base
+  vat: number;             // 5% of subtotal-before-VAT
+  tourismDirham: number;   // Fixed/night by star rating (capped 30 nights)
+  // Legacy aliases kept for backward compat
   serviceFee: number;
   taxes: number;
   total: number;
+  // AED canonical amounts
   basePricePerNightAed: number;
   nightlySubtotalAed: number;
   baseAmountAed: number;
   cleaningFeeAed: number;
+  serviceChargeAed: number;
+  municipalityFeeAed: number;
+  tourismFeeAed: number;
+  vatAed: number;
+  tourismDirhamAed: number;
   serviceFeeAed: number;
   taxesAed: number;
   totalAed: number;
@@ -53,6 +66,11 @@ type QuoteApiResponse = {
     nightlySubtotal?: number;
     baseAmount?: number;
     cleaningFee?: number;
+    serviceCharge?: number;
+    municipalityFee?: number;
+    tourismFee?: number;
+    vat?: number;
+    tourismDirham?: number;
     serviceFee?: number;
     taxes?: number;
     total?: number;
@@ -60,6 +78,11 @@ type QuoteApiResponse = {
     nightlySubtotalAed?: number;
     baseAmountAed?: number;
     cleaningFeeAed?: number;
+    serviceChargeAed?: number;
+    municipalityFeeAed?: number;
+    tourismFeeAed?: number;
+    vatAed?: number;
+    tourismDirhamAed?: number;
     serviceFeeAed?: number;
     taxesAed?: number;
     totalAed?: number;
@@ -141,7 +164,12 @@ export async function quoteProperty(propertyId: string, input: QuoteInput): Prom
     nightlySubtotal,
     baseAmount: numberOr(d.breakdown?.baseAmount, nightlySubtotal),
     cleaningFee: numberOr(d.breakdown?.cleaningFee, 0),
-    serviceFee: numberOr(d.breakdown?.serviceFee, 0),
+    serviceCharge: numberOr(d.breakdown?.serviceCharge, 0),
+    municipalityFee: numberOr(d.breakdown?.municipalityFee, 0),
+    tourismFee: numberOr(d.breakdown?.tourismFee, 0),
+    vat: numberOr(d.breakdown?.vat, 0),
+    tourismDirham: numberOr(d.breakdown?.tourismDirham, 0),
+    serviceFee: numberOr(d.breakdown?.serviceFee, numberOr(d.breakdown?.serviceCharge, 0)),
     taxes: numberOr(d.breakdown?.taxes, 0),
     total,
     basePricePerNightAed: numberOr(
@@ -156,9 +184,29 @@ export async function quoteProperty(propertyId: string, input: QuoteInput): Prom
       d.breakdown?.cleaningFeeAed,
       d.currency === "AED" ? numberOr(d.breakdown?.cleaningFee, 0) : Math.round(numberOr(d.breakdown?.cleaningFee, 0) / fxRate),
     ),
+    serviceChargeAed: numberOr(
+      d.breakdown?.serviceChargeAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.serviceCharge, 0) : Math.round(numberOr(d.breakdown?.serviceCharge, 0) / fxRate),
+    ),
+    municipalityFeeAed: numberOr(
+      d.breakdown?.municipalityFeeAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.municipalityFee, 0) : Math.round(numberOr(d.breakdown?.municipalityFee, 0) / fxRate),
+    ),
+    tourismFeeAed: numberOr(
+      d.breakdown?.tourismFeeAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.tourismFee, 0) : Math.round(numberOr(d.breakdown?.tourismFee, 0) / fxRate),
+    ),
+    vatAed: numberOr(
+      d.breakdown?.vatAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.vat, 0) : Math.round(numberOr(d.breakdown?.vat, 0) / fxRate),
+    ),
+    tourismDirhamAed: numberOr(
+      d.breakdown?.tourismDirhamAed,
+      d.currency === "AED" ? numberOr(d.breakdown?.tourismDirham, 0) : Math.round(numberOr(d.breakdown?.tourismDirham, 0) / fxRate),
+    ),
     serviceFeeAed: numberOr(
       d.breakdown?.serviceFeeAed,
-      d.currency === "AED" ? numberOr(d.breakdown?.serviceFee, 0) : Math.round(numberOr(d.breakdown?.serviceFee, 0) / fxRate),
+      d.currency === "AED" ? numberOr(d.breakdown?.serviceFee, numberOr(d.breakdown?.serviceCharge, 0)) : Math.round(numberOr(d.breakdown?.serviceFee, numberOr(d.breakdown?.serviceCharge, 0)) / fxRate),
     ),
     taxesAed: numberOr(
       d.breakdown?.taxesAed,
@@ -242,7 +290,12 @@ export async function reserveHold(propertyId: string, input: QuoteInput): Promis
         nightlySubtotal: numberOr(q.breakdown?.nightlySubtotal, total),
         baseAmount: numberOr(q.breakdown?.baseAmount, numberOr(q.breakdown?.nightlySubtotal, total)),
         cleaningFee: numberOr(q.breakdown?.cleaningFee, 0),
-        serviceFee: numberOr(q.breakdown?.serviceFee, 0),
+        serviceCharge: numberOr(q.breakdown?.serviceCharge, 0),
+        municipalityFee: numberOr(q.breakdown?.municipalityFee, 0),
+        tourismFee: numberOr(q.breakdown?.tourismFee, 0),
+        vat: numberOr(q.breakdown?.vat, 0),
+        tourismDirham: numberOr(q.breakdown?.tourismDirham, 0),
+        serviceFee: numberOr(q.breakdown?.serviceFee, numberOr(q.breakdown?.serviceCharge, 0)),
         taxes: numberOr(q.breakdown?.taxes, 0),
         total,
         basePricePerNightAed: numberOr(
@@ -263,9 +316,29 @@ export async function reserveHold(propertyId: string, input: QuoteInput): Promis
           q.breakdown?.cleaningFeeAed,
           q.currency === "AED" ? numberOr(q.breakdown?.cleaningFee, 0) : Math.round(numberOr(q.breakdown?.cleaningFee, 0) / fxRate),
         ),
+        serviceChargeAed: numberOr(
+          q.breakdown?.serviceChargeAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.serviceCharge, 0) : Math.round(numberOr(q.breakdown?.serviceCharge, 0) / fxRate),
+        ),
+        municipalityFeeAed: numberOr(
+          q.breakdown?.municipalityFeeAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.municipalityFee, 0) : Math.round(numberOr(q.breakdown?.municipalityFee, 0) / fxRate),
+        ),
+        tourismFeeAed: numberOr(
+          q.breakdown?.tourismFeeAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.tourismFee, 0) : Math.round(numberOr(q.breakdown?.tourismFee, 0) / fxRate),
+        ),
+        vatAed: numberOr(
+          q.breakdown?.vatAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.vat, 0) : Math.round(numberOr(q.breakdown?.vat, 0) / fxRate),
+        ),
+        tourismDirhamAed: numberOr(
+          q.breakdown?.tourismDirhamAed,
+          q.currency === "AED" ? numberOr(q.breakdown?.tourismDirham, 0) : Math.round(numberOr(q.breakdown?.tourismDirham, 0) / fxRate),
+        ),
         serviceFeeAed: numberOr(
           q.breakdown?.serviceFeeAed,
-          q.currency === "AED" ? numberOr(q.breakdown?.serviceFee, 0) : Math.round(numberOr(q.breakdown?.serviceFee, 0) / fxRate),
+          q.currency === "AED" ? numberOr(q.breakdown?.serviceFee, numberOr(q.breakdown?.serviceCharge, 0)) : Math.round(numberOr(q.breakdown?.serviceFee, numberOr(q.breakdown?.serviceCharge, 0)) / fxRate),
         ),
         taxesAed: numberOr(
           q.breakdown?.taxesAed,

@@ -362,6 +362,16 @@ export class PaymentsService {
         ? `booking:${booking.id}:${cleanIdempotencyKey}`
         : `booking:${booking.id}`;
 
+      // Attach Dubai tax breakdown to Stripe metadata for auditing / reconciliation
+      const breakdownMeta: Record<string, string> = {};
+      if ((booking as { priceBreakdown?: unknown }).priceBreakdown != null) {
+        const bd = (booking as { priceBreakdown: Record<string, unknown> }).priceBreakdown;
+        breakdownMeta['breakdown'] = JSON.stringify(bd);
+        for (const key of ['baseTotal', 'cleaningFee', 'serviceCharge', 'municipalityFee', 'tourismFee', 'vat', 'tourismDirham']) {
+          if (typeof bd[key] === 'number') breakdownMeta[key] = String(bd[key]);
+        }
+      }
+
       const stripePayload = {
         amount: this.toStripeMinorUnits(amount, currency),
         currency,
@@ -371,6 +381,7 @@ export class PaymentsService {
           userId: booking.customerId,
           bookingAmount: String(bookingAmount),
           depositAmount: String(depositAmount),
+          ...breakdownMeta,
         },
       };
 

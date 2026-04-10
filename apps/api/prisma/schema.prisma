@@ -672,6 +672,10 @@ model Property {
   cleaningFee Int    @default(0)
   currency    String @default("AED")
 
+  /// Hotel/apartment star rating (1–5). Used for Dubai Tourism Dirham calculation.
+  /// Defaults to 3 (standard apartment) when not explicitly set.
+  starRating  Int?   @default(3)
+
   minNights      Int     @default(1)
   maxNights      Int?
   checkInFromMin Int?
@@ -1166,6 +1170,10 @@ model Booking {
   idempotencyKey     String?
   idempotencyRecords BookingIdempotency[]
 
+  /// Full Dubai tax breakdown snapshot (JSON).
+  /// Stored at booking creation so the charged amount is always auditable.
+  priceBreakdown Json?
+
   payment Payment?
 
   createdAt DateTime @default(now())
@@ -1290,6 +1298,9 @@ model PropertyHold {
   fxRate             Decimal  @default(1) @db.Decimal(18, 8)
   fxAsOfDate         DateTime?
   fxProvider         String?
+
+  /// Full Dubai tax breakdown snapshot (AED). Propagated to Booking on conversion.
+  quotedBreakdown Json?
 
   createdById String
   createdBy   User   @relation("HoldCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)

@@ -26,6 +26,7 @@ import {
   normalizeDisplayCurrency,
   type DisplayCurrency,
 } from '../../common/i18n/locale';
+import { DubaiTaxService } from '../../common/pricing/dubai-tax.service';
 
 type QuoteDto = {
   checkIn: string;
@@ -45,6 +46,8 @@ type HoldPricingSnapshot = {
   fxRate: number;
   fxAsOfDate: string | null;
   fxProvider: string | null;
+  /** Full AED breakdown snapshot — stored on hold and propagated to booking. */
+  quotedBreakdown?: Record<string, number> | null;
 };
 
 @Injectable()
@@ -53,6 +56,7 @@ export class AvailabilityService {
     private readonly prisma: PrismaService,
     private readonly fxRates: FxRatesService,
     private readonly pricing: PricingService,
+    private readonly dubaiTax: DubaiTaxService,
   ) {}
 
   // -----------------------------
@@ -458,6 +462,7 @@ export class AvailabilityService {
             ? isoDayToUtcDate(pricingSnapshot.fxAsOfDate)
             : null,
           fxProvider: pricingSnapshot?.fxProvider ?? null,
+          quotedBreakdown: pricingSnapshot?.quotedBreakdown ?? undefined,
         },
         select: {
           id: true,
@@ -472,6 +477,7 @@ export class AvailabilityService {
           fxRate: true,
           fxAsOfDate: true,
           fxProvider: true,
+          quotedBreakdown: true,
         },
       });
 
@@ -510,6 +516,7 @@ export class AvailabilityService {
         currency: true,
         maxGuests: true,
         status: true,
+        starRating: true,
       },
     });
 
@@ -578,18 +585,36 @@ export class AvailabilityService {
         ? Math.round(nightlySubtotalAed / nightsCount)
         : property.basePrice;
 
+    // ── Dubai Tax Calculation ─────────────────────────────────────────────────
     const cleaningFeeAed = property.cleaningFee ?? 0;
-    const serviceFeeAed = 0;
-    const taxesAed = 0;
-    const totalAed =
-      nightlySubtotalAed + cleaningFeeAed + serviceFeeAed + taxesAed;
+    const dubaiBreakdown = this.dubaiTax.calculate({
+      baseTotalAed: nightlySubtotalAed,
+      nights: nightsCount,
+      cleaningFeeAed,
+      starRating: property.starRating,
+    });
 
-    const nightlySubtotal = this.toDisplayAmount(nightlySubtotalAed, fx.rate);
-    const cleaningFee = this.toDisplayAmount(cleaningFeeAed, fx.rate);
-    const serviceFee = this.toDisplayAmount(serviceFeeAed, fx.rate);
-    const taxes = this.toDisplayAmount(taxesAed, fx.rate);
-    const total = this.toDisplayAmount(totalAed, fx.rate);
-    const basePricePerNight = this.toDisplayAmount(avgNightlyPriceAed, fx.rate);
+    // Legacy single-field aliases (backward compatible with older consumers)
+    const serviceFeeAed = dubaiBreakdown.serviceCharge;
+    const taxesAed =
+      dubaiBreakdown.municipalityFee +
+      dubaiBreakdown.tourismFee +
+      dubaiBreakdown.vat +
+      dubaiBreakdown.tourismDirham;
+    const totalAed = dubaiBreakdown.total;
+
+    // Display-currency equivalents (apply FX rate)
+    const r = fx.rate;
+    const nightlySubtotal = this.toDisplayAmount(nightlySubtotalAed, r);
+    const cleaningFee = this.toDisplayAmount(cleaningFeeAed, r);
+    const serviceFee = this.toDisplayAmount(dubaiBreakdown.serviceCharge, r);
+    const municipalityFee = this.toDisplayAmount(dubaiBreakdown.municipalityFee, r);
+    const tourismFee = this.toDisplayAmount(dubaiBreakdown.tourismFee, r);
+    const vat = this.toDisplayAmount(dubaiBreakdown.vat, r);
+    const tourismDirham = this.toDisplayAmount(dubaiBreakdown.tourismDirham, r);
+    const taxes = this.toDisplayAmount(taxesAed, r);
+    const total = this.toDisplayAmount(totalAed, r);
+    const basePricePerNight = this.toDisplayAmount(avgNightlyPriceAed, r);
 
     return {
       ok: true,
@@ -610,13 +635,26 @@ export class AvailabilityService {
         nightlySubtotal,
         baseAmount: nightlySubtotal,
         cleaningFee,
+        // Granular Dubai fees (display currency)
+        serviceCharge: serviceFee,
+        municipalityFee,
+        tourismFee,
+        vat,
+        tourismDirham,
+        // Legacy aliases — sum of all government fees
         serviceFee,
         taxes,
         total,
+        // AED canonical amounts
         basePricePerNightAed: avgNightlyPriceAed,
         nightlySubtotalAed,
         baseAmountAed: nightlySubtotalAed,
         cleaningFeeAed,
+        serviceChargeAed: dubaiBreakdown.serviceCharge,
+        municipalityFeeAed: dubaiBreakdown.municipalityFee,
+        tourismFeeAed: dubaiBreakdown.tourismFee,
+        vatAed: dubaiBreakdown.vat,
+        tourismDirhamAed: dubaiBreakdown.tourismDirham,
         serviceFeeAed,
         taxesAed,
         totalAed,
@@ -662,11 +700,32 @@ export class AvailabilityService {
     const breakdown = quote.breakdown as {
       total: number;
       totalAed?: number;
+      baseAmountAed?: number;
+      cleaningFeeAed?: number;
+      serviceChargeAed?: number;
+      municipalityFeeAed?: number;
+      tourismFeeAed?: number;
+      vatAed?: number;
+      tourismDirhamAed?: number;
     };
     const fxRate = typeof quote.fxRate === 'number' ? quote.fxRate : 1;
     const fxAsOfDate = typeof quote.fxAsOf === 'string' ? quote.fxAsOf : null;
     const fxProvider =
       typeof quote.fxProvider === 'string' ? quote.fxProvider : null;
+
+    // Build AED breakdown snapshot to persist on the hold (and later the booking)
+    const quotedBreakdown: Record<string, number> = {
+      baseTotal: breakdown.baseAmountAed ?? 0,
+      cleaningFee: breakdown.cleaningFeeAed ?? 0,
+      serviceCharge: breakdown.serviceChargeAed ?? 0,
+      municipalityFee: breakdown.municipalityFeeAed ?? 0,
+      tourismFee: breakdown.tourismFeeAed ?? 0,
+      vat: breakdown.vatAed ?? 0,
+      tourismDirham: breakdown.tourismDirhamAed ?? 0,
+      total: typeof breakdown.totalAed === 'number'
+        ? breakdown.totalAed
+        : Math.round(breakdown.total / fxRate),
+    };
 
     const hold = await this.createHold(
       user,
@@ -677,15 +736,13 @@ export class AvailabilityService {
         ttlMinutes: dto.ttlMinutes ?? 15,
       },
       {
-        quotedTotalAed:
-          typeof breakdown.totalAed === 'number'
-            ? breakdown.totalAed
-            : Math.round(breakdown.total / fxRate),
+        quotedTotalAed: quotedBreakdown.total,
         quotedTotalDisplay: breakdown.total,
         displayCurrency: this.resolveDisplayCurrency(dto.currency, context),
         fxRate,
         fxAsOfDate,
         fxProvider,
+        quotedBreakdown,
       },
     );
 

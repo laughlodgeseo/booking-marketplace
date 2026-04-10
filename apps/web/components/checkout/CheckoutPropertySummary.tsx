@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { CalendarDays, MapPin, Pencil, Users } from "lucide-react";
+import { CalendarDays, ChevronDown, MapPin, Pencil, Users } from "lucide-react";
 import { getPropertyBySlug } from "@/lib/api/properties";
 import { quoteProperty, type Quote } from "@/lib/booking/bookingFlow";
 import type { PropertyDetail } from "@/lib/types/property";
@@ -66,6 +66,7 @@ export function CheckoutPropertySummary({
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [taxesOpen, setTaxesOpen] = useState(false);
 
   // ── Fetch property details ──────────────────────────────────────────────────
   useEffect(() => {
@@ -267,11 +268,11 @@ export function CheckoutPropertySummary({
             <p className="text-xs text-secondary">Pricing unavailable — your dates are reserved.</p>
           ) : quote ? (
             <div className="space-y-2 text-sm">
-              {/* Nightly */}
+              {/* Nightly subtotal */}
               <div className="flex justify-between">
                 <span className="text-secondary">
-                  {fmtCurrency(quote.breakdown.basePricePerNight, displayCurrency)}{" "}
-                  × {quote.breakdown.nights} night{quote.breakdown.nights !== 1 ? "s" : ""}
+                  {quote.breakdown.nights} night{quote.breakdown.nights !== 1 ? "s" : ""}{" "}
+                  × {fmtCurrency(quote.breakdown.basePricePerNight, displayCurrency)}
                 </span>
                 <span className="font-medium text-primary">
                   {fmtCurrency(quote.breakdown.nightlySubtotal, displayCurrency)}
@@ -288,24 +289,65 @@ export function CheckoutPropertySummary({
                 </div>
               )}
 
-              {/* Service fee */}
-              {quote.breakdown.serviceFee > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-secondary">Service fee</span>
-                  <span className="font-medium text-primary">
-                    {fmtCurrency(quote.breakdown.serviceFee, displayCurrency)}
-                  </span>
-                </div>
-              )}
+              {/* Taxes & fees — collapsible */}
+              {(quote.breakdown.serviceCharge > 0 || quote.breakdown.municipalityFee > 0 || quote.breakdown.tourismFee > 0 || quote.breakdown.vat > 0 || quote.breakdown.tourismDirham > 0) && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setTaxesOpen((o) => !o)}
+                    className="flex w-full items-center justify-between"
+                  >
+                    <span className="flex items-center gap-1 text-secondary underline decoration-dotted underline-offset-2">
+                      Taxes & fees
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${taxesOpen ? "rotate-180" : ""}`} />
+                    </span>
+                    <span className="font-medium text-primary">
+                      {fmtCurrency(
+                        quote.breakdown.serviceCharge + quote.breakdown.municipalityFee + quote.breakdown.tourismFee + quote.breakdown.vat + quote.breakdown.tourismDirham,
+                        displayCurrency,
+                      )}
+                    </span>
+                  </button>
 
-              {/* VAT */}
-              {quote.breakdown.taxes > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-secondary">VAT (5%)</span>
-                  <span className="font-medium text-primary">
-                    {fmtCurrency(quote.breakdown.taxes, displayCurrency)}
-                  </span>
-                </div>
+                  {taxesOpen && (
+                    <div className="space-y-2 rounded-xl bg-warm-alt px-3 py-2.5">
+                      {quote.breakdown.serviceCharge > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-secondary" title="Tourism authority service charge — 10% of base">Service charge (10%)</span>
+                          <span className="text-primary">{fmtCurrency(quote.breakdown.serviceCharge, displayCurrency)}</span>
+                        </div>
+                      )}
+                      {quote.breakdown.municipalityFee > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-secondary" title="Dubai municipality fee — 7% of base">Municipality fee (7%)</span>
+                          <span className="text-primary">{fmtCurrency(quote.breakdown.municipalityFee, displayCurrency)}</span>
+                        </div>
+                      )}
+                      {quote.breakdown.tourismFee > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-secondary" title="Dubai tourism fee — 6% of base">Tourism fee (6%)</span>
+                          <span className="text-primary">{fmtCurrency(quote.breakdown.tourismFee, displayCurrency)}</span>
+                        </div>
+                      )}
+                      {quote.breakdown.vat > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-secondary" title="Value Added Tax — 5% of subtotal including fees">VAT (5%)</span>
+                          <span className="text-primary">{fmtCurrency(quote.breakdown.vat, displayCurrency)}</span>
+                        </div>
+                      )}
+                      {quote.breakdown.tourismDirham > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-secondary" title="Tourism Dirham: fixed per room per night, capped at 30 nights">Tourism Dirham</span>
+                          <span className="text-primary">
+                            {displayCurrency === "AED"
+                              ? fmtCurrency(quote.breakdown.tourismDirham, "AED")
+                              : `AED ${quote.breakdown.tourismDirhamAed.toLocaleString()}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Total */}
