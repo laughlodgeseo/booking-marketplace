@@ -13,6 +13,41 @@ type Props = {
   busyKey: string;
 };
 
+const PROPERTY_AMENITY_KEYS: AmenityKey[] = [
+  "WIFI",
+  "WIFI_BACKUP",
+  "AIR_CONDITIONING",
+  "HEATING",
+  "KITCHEN",
+  "MICROWAVE",
+  "OVEN",
+  "KETTLE",
+  "REFRIGERATOR",
+  "WASHER",
+  "DRYER",
+  "HOT_WATER",
+  "POOL",
+  "GYM",
+  "PARKING_FREE",
+  "ELEVATOR",
+  "SECURITY",
+  "DOORMAN",
+  "CCTV",
+  "SMOKE_ALARM",
+  "FIRE_EXTINGUISHER",
+  "FIRST_AID",
+  "WORKSPACE",
+  "FAMILY_FRIENDLY",
+  "PET_FRIENDLY",
+  "NO_SMOKING",
+  "BALCONY",
+  "SEA_VIEW",
+  "CITY_VIEW",
+  "CONCIERGE",
+  "NETFLIX",
+  "COFFEE",
+];
+
 const PRESETS: Array<{ city: string; area: string; label: string }> = [
   { city: "Dubai", area: "Dubai Marina", label: "Dubai Marina" },
   { city: "Dubai", area: "Downtown", label: "Downtown" },
@@ -34,21 +69,9 @@ export default function FiltersPanel(props: Props) {
   }, [props.query.amenities]);
 
   const amenityList = useMemo(() => {
-    const preferred: AmenityKey[] = [
-      "WIFI",
-      "POOL",
-      "GYM",
-      "PARKING_FREE",
-      "AIR_CONDITIONING",
-      "KITCHEN",
-      "ELEVATOR",
-      "PET_FRIENDLY",
-      "NO_SMOKING",
-      "SEA_VIEW",
-      "BALCONY",
-      "CONCIERGE",
-    ];
-    return preferred.filter((k) => Boolean(AMENITY_CATALOG[k])).map((k) => AMENITY_CATALOG[k]);
+    return PROPERTY_AMENITY_KEYS
+      .filter((key) => Boolean(AMENITY_CATALOG[key]))
+      .map((key) => AMENITY_CATALOG[key]);
   }, []);
 
   const hasAnyFilter = useMemo(() => {

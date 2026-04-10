@@ -30,10 +30,21 @@ const ALL_CATEGORIES: MediaCategory[] = [
   "BATHROOM",
   "KITCHEN",
   "DINING",
+  "ENTRY",
+  "HALLWAY",
+  "STUDY",
+  "LAUNDRY",
   "BALCONY",
-  "AMENITIES",
-  "BUILDING",
+  "TERRACE",
   "VIEW",
+  "EXTERIOR",
+  "BUILDING",
+  "NEIGHBORHOOD",
+  "POOL",
+  "GYM",
+  "PARKING",
+  "AMENITY",
+  "FLOOR_PLAN",
   "OTHER",
 ];
 
@@ -73,6 +84,8 @@ export function MediaManager({ property, onChanged }: Props) {
   const [busy, setBusy] = useState<null | string>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
+  const [uploadBatch, setUploadBatch] = useState<{ current: number; total: number } | null>(null);
 
   const [otherCategory, setOtherCategory] = useState<MediaCategory>("OTHER");
 
@@ -102,30 +115,40 @@ export function MediaManager({ property, onChanged }: Props) {
 
     setError(null);
     setUploadProgress(null);
+    setUploadingFileName(null);
+    setUploadBatch(null);
     setBusy(`Uploading to ${category}...`);
 
     try {
-      // Fetch direct-upload params once for the batch
-      const params = await getCloudinaryUploadParams(property.id, "vendor");
-
       const created: VendorPropertyMedia[] = [];
       const fileArray = Array.from(files);
 
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
+        setUploadBatch({ current: i + 1, total: fileArray.length });
+        setUploadingFileName(file.name);
         setBusy(`Uploading ${i + 1} / ${fileArray.length}...`);
         setUploadProgress(0);
 
         let item: VendorPropertyMedia;
+        const params = await getCloudinaryUploadParams(property.id, "vendor").catch(
+          () => ({ mode: "server" } as const),
+        );
 
         if (params.mode === "cloudinary") {
-          // Direct browser → Cloudinary upload (no server timeout risk)
-          const url = await uploadFileToCloudinary(file, params, (pct) =>
-            setUploadProgress(pct),
-          );
-          item = await registerVendorPropertyMedia(property.id, url);
+          try {
+            const url = await uploadFileToCloudinary(file, params, (pct) => {
+              setUploadProgress(pct);
+            });
+            item = await registerVendorPropertyMedia(property.id, url);
+          } catch {
+            // Cloud uploads can fail due preset/signature/CDN issues; keep UX resilient.
+            setBusy(`Cloud upload failed, retrying ${i + 1} / ${fileArray.length} via server...`);
+            setUploadProgress(null);
+            item = await uploadVendorPropertyMedia(property.id, file);
+          }
         } else {
-          // Cloudinary not configured → fall back to server-side upload
+          setUploadProgress(null);
           item = await uploadVendorPropertyMedia(property.id, file);
         }
 
@@ -134,6 +157,7 @@ export function MediaManager({ property, onChanged }: Props) {
       }
 
       // Tag each uploaded item with the requested category
+      setBusy("Finalizing categories...");
       const tagged: VendorPropertyMedia[] = [];
       for (const item of created) {
         const updated = await updateVendorPropertyMediaCategory(property.id, item.id, category);
@@ -153,6 +177,8 @@ export function MediaManager({ property, onChanged }: Props) {
     } finally {
       setBusy(null);
       setUploadProgress(null);
+      setUploadingFileName(null);
+      setUploadBatch(null);
     }
   }
 
@@ -240,7 +266,7 @@ export function MediaManager({ property, onChanged }: Props) {
 
     return (
       <div className="rounded-2xl border border-line/80 bg-surface p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <div className="text-sm font-semibold text-primary">{props.title}</div>
@@ -258,7 +284,7 @@ export function MediaManager({ property, onChanged }: Props) {
             <div className="mt-1 text-xs text-muted">{count} uploaded</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <input
               ref={(el) => {
                 inputsRef.current[props.category] = el;
@@ -276,7 +302,11 @@ export function MediaManager({ property, onChanged }: Props) {
             />
             <label
               htmlFor={`upload-${props.category}`}
-              className="cursor-pointer rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
+              className={cn(
+                "cursor-pointer rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text shadow-sm transition-all",
+                "hover:-translate-y-0.5 hover:bg-brand-hover active:translate-y-0",
+                busy ? "pointer-events-none opacity-60" : "",
+              )}
             >
               Upload
             </label>
@@ -292,7 +322,37 @@ export function MediaManager({ property, onChanged }: Props) {
   }, []);
 
   return (
-    <section className="space-y-4">
+    <section className="relative space-y-4">
+      {/* Upload overlay — covers the whole section while busy */}
+      {busy && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-2xl bg-surface/90 backdrop-blur-sm">
+          <div className="h-12 w-12 rounded-full border-2 border-brand/20 border-t-brand animate-spin" />
+          <div className="text-sm font-semibold text-primary">{busy}</div>
+          {uploadBatch ? (
+            <div className="max-w-[92%] text-center text-xs text-secondary">
+              File {uploadBatch.current} of {uploadBatch.total}
+              {uploadingFileName ? (
+                <>
+                  {" "}
+                  • <span className="font-semibold text-primary break-all">{uploadingFileName}</span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+          {uploadProgress !== null && (
+            <div className="w-56 overflow-hidden rounded-full bg-line/40 h-1.5">
+              <div
+                className="h-full rounded-full bg-brand transition-all duration-150"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+          {uploadProgress !== null && (
+            <div className="text-xs text-muted">{uploadProgress}%</div>
+          )}
+        </div>
+      )}
+
       <div className="rounded-2xl border border-line/80 bg-surface p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -304,20 +364,6 @@ export function MediaManager({ property, onChanged }: Props) {
             </p>
           </div>
         </div>
-
-        {busy ? (
-          <div className="mt-4 space-y-2 rounded-xl border border-line/80 bg-warm-base p-3">
-            <div className="text-sm text-secondary">{busy}</div>
-            {uploadProgress !== null ? (
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-line/40">
-                <div
-                  className="h-full rounded-full bg-brand transition-all duration-150"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         {error ? (
           <div className="mt-4 whitespace-pre-wrap rounded-xl border border-danger/30 bg-danger/12 p-3 text-sm text-danger">
@@ -334,7 +380,7 @@ export function MediaManager({ property, onChanged }: Props) {
 
         {/* Other uploader with selectable category */}
         <div className="rounded-2xl border border-line/80 bg-surface p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <div className="text-sm font-semibold text-primary">Other photos</div>
@@ -345,14 +391,14 @@ export function MediaManager({ property, onChanged }: Props) {
               <div className="mt-1 text-xs text-muted">Upload cover, balcony, view, amenities, building, etc.</div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <select
                 value={otherCategory}
                 onChange={(e) => {
                   const v = e.target.value;
                   if (isMediaCategory(v)) setOtherCategory(v);
                 }}
-                className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary"
+                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary sm:w-auto"
               >
                 {otherCategoryOptions.map((c) => (
                   <option key={c} value={c}>
@@ -378,7 +424,11 @@ export function MediaManager({ property, onChanged }: Props) {
               />
               <label
                 htmlFor="upload-other"
-                className="cursor-pointer rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
+                className={cn(
+                  "cursor-pointer rounded-xl bg-brand px-4 py-2 text-center text-sm font-semibold text-accent-text shadow-sm transition-all",
+                  "hover:-translate-y-0.5 hover:bg-brand-hover active:translate-y-0",
+                  busy ? "pointer-events-none opacity-60" : "",
+                )}
               >
                 Upload
               </label>

@@ -68,13 +68,13 @@ export function JsonDrawer(props: {
 
       <aside
         className={cn(
-          "absolute inset-x-0 bottom-0 flex h-[92vh] max-h-[95vh] flex-col overflow-hidden rounded-t-[30px] border-t border-line/40 bg-warm-base/98 shadow-[0_-24px_60px_rgba(33,39,53,0.26)]",
-          "lg:inset-y-0 lg:right-0 lg:left-auto lg:h-full lg:max-h-none lg:w-[560px] lg:rounded-none lg:rounded-l-[30px] lg:border-l lg:border-t-0",
+          "absolute inset-x-0 bottom-0 flex h-[92vh] max-h-[95vh] flex-col overflow-hidden rounded-t-[30px] border-t border-line/24 bg-[linear-gradient(180deg,rgba(246,240,230,0.98),rgba(241,233,220,0.95))] shadow-[0_-24px_60px_rgba(33,39,53,0.26)] ring-1 ring-line/22",
+          "lg:inset-y-0 lg:right-0 lg:left-auto lg:h-full lg:max-h-none lg:w-[560px] lg:rounded-none lg:rounded-l-[30px] lg:border-l lg:border-line/32 lg:border-t-0",
         )}
         role="dialog"
         aria-modal="true"
       >
-        <div className="sticky top-0 z-10 border-b border-line/35 bg-warm-base/98 px-4 pb-3 pt-[calc(0.9rem+env(safe-area-inset-top))] sm:px-5">
+        <div className="sticky top-0 z-10 border-b border-line/26 bg-warm-base/96 px-4 pb-3 pt-[calc(0.9rem+env(safe-area-inset-top))] sm:px-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-primary">{props.title}</div>
@@ -89,7 +89,7 @@ export function JsonDrawer(props: {
                   onClick={() => {
                     void copyJson();
                   }}
-                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-line/40 bg-warm-base/95 px-3 text-xs font-semibold text-primary shadow-sm hover:bg-accent-soft/22"
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-warm-base/95 px-3 text-xs font-semibold text-primary ring-1 ring-line/30 shadow-sm transition hover:bg-accent-soft/22"
                 >
                   {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                   Copy JSON
@@ -98,7 +98,7 @@ export function JsonDrawer(props: {
               <button
                 type="button"
                 onClick={props.onClose}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line/40 bg-warm-base/95 text-primary shadow-sm hover:bg-accent-soft/22"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-warm-base/95 text-primary ring-1 ring-line/30 shadow-sm transition hover:bg-accent-soft/22"
                 aria-label="Close details drawer"
               >
                 <X className="h-5 w-5" />
@@ -122,7 +122,7 @@ export function JsonDrawer(props: {
         </div>
 
         {props.footer ? (
-          <div className="sticky bottom-0 border-t border-line/35 bg-warm-base/98 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5">
+          <div className="sticky bottom-0 border-t border-line/26 bg-warm-base/96 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-5">
             {props.footer}
           </div>
         ) : null}

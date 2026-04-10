@@ -130,7 +130,7 @@ export function PortalShell(props: {
   }
 
   return (
-    <div className="portal-density min-h-screen">
+    <div className="portal-density min-h-screen overflow-x-clip">
       {/* Background layer (portal-wide) */}
       <div className="pointer-events-none fixed inset-0 -z-10 portal-shell-bg" />
 
@@ -170,7 +170,7 @@ export function PortalShell(props: {
         </div>
       </div>
 
-      <div className={cn("fixed inset-0 z-[70] lg:hidden", mobileNavOpen ? "" : "pointer-events-none")}>
+      <div className={cn("fixed inset-0 z-[70] overflow-x-hidden lg:hidden", mobileNavOpen ? "" : "pointer-events-none")}>
         <button
           type="button"
           aria-label={tPortal("shell.closeNavigation")}
@@ -256,7 +256,7 @@ export function PortalShell(props: {
       </div>
 
       {/* Layout */}
-      <div className="mx-auto grid max-w-[1400px] gap-4 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pt-6 lg:grid-cols-[300px_1fr] lg:gap-6 lg:px-8 lg:pb-16 lg:pt-6">
+      <div className="mx-auto grid w-full max-w-[1400px] gap-4 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pt-6 lg:grid-cols-[300px_1fr] lg:gap-6 lg:px-8 lg:pb-16 lg:pt-6">
         <PortalSidebar
           title={props.title}
           subtitle={props.subtitle}
@@ -267,7 +267,7 @@ export function PortalShell(props: {
 
         <main className="min-w-0">
           {/* Main shell card */}
-          <div className="portal-card overflow-hidden rounded-3xl bg-warm-base/92 lg:bg-surface/90">
+          <div className="portal-card max-w-full overflow-hidden rounded-3xl bg-warm-base/92 lg:bg-surface/90">
             {/* Header band: increase contrast so it reads clearly on ivory */}
             <div className="relative bg-[linear-gradient(135deg,rgba(245,239,228,0.78),rgba(239,231,218,0.7))] px-4 py-4 sm:px-6 sm:py-5">
               {/* Top accent line */}

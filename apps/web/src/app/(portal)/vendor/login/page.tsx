@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/http";
@@ -75,6 +76,10 @@ function VendorLoginContent() {
   const sp = useSearchParams();
 
   const nextPath = useMemo(() => safePath(sp.get("next")), [sp]);
+  const forgotHref = useMemo(() => {
+    const qs = new URLSearchParams({ role: "vendor", next: nextPath, dir: "forward" });
+    return `/forgot?${qs.toString()}`;
+  }, [nextPath]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -181,6 +186,12 @@ function VendorLoginContent() {
             >
               {busy ? tPortal("vendorLogin.signingIn") : tPortal("vendorLogin.signIn")}
             </button>
+
+            <div className="text-right">
+              <Link href={forgotHref} className="text-xs font-semibold text-brand hover:underline">
+                Forgot password?
+              </Link>
+            </div>
 
             <p className="text-xs text-muted">
               {tPortal("vendorLogin.authNote")}

@@ -425,6 +425,28 @@ textarea {
   .portal-density {
     font-size: 15px;
     line-height: 1.5;
+    overflow-x: clip;
+  }
+
+  .portal-density section,
+  .portal-density article,
+  .portal-density .portal-card {
+    max-width: 100%;
+  }
+
+  .portal-density button:not(:disabled),
+  .portal-density a.inline-flex {
+    transition:
+      transform 160ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease;
+  }
+
+  .portal-density button:not(:disabled):active,
+  .portal-density a.inline-flex:active {
+    transform: translateY(1px) scale(0.99);
   }
 
   @media (max-width: 1023px) {

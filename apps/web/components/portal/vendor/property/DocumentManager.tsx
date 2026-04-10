@@ -84,6 +84,7 @@ export function DocumentManager({ property, onChanged }: Props) {
   const [busy, setBusy] = useState<null | string>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<PropertyDocumentType>("OWNERSHIP_PROOF");
+  const [uploadingDocName, setUploadingDocName] = useState<string | null>(null);
 
   const latestMap = useMemo(() => latestByType(property.documents), [property.documents]);
 
@@ -97,6 +98,7 @@ export function DocumentManager({ property, onChanged }: Props) {
     if (!file) return;
 
     setError(null);
+    setUploadingDocName(file.name);
     setBusy(`Uploading ${prettyDocType(type)}...`);
 
     try {
@@ -107,6 +109,7 @@ export function DocumentManager({ property, onChanged }: Props) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
     } finally {
       setBusy(null);
+      setUploadingDocName(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -211,7 +214,13 @@ export function DocumentManager({ property, onChanged }: Props) {
 
       {busy ? (
         <div className="rounded-xl border border-line bg-warm-alt p-3 text-sm text-secondary">
-          {busy}
+          <div className="flex items-center gap-2">
+            <span className="h-4 w-4 rounded-full border-2 border-brand/25 border-t-brand animate-spin" />
+            <span>{busy}</span>
+          </div>
+          {uploadingDocName ? (
+            <div className="mt-1 text-xs text-muted break-all">File: {uploadingDocName}</div>
+          ) : null}
         </div>
       ) : null}
 
@@ -240,7 +249,7 @@ export function DocumentManager({ property, onChanged }: Props) {
               </div>
 
               {uploaded ? (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-warm-alt p-3">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warm-alt p-3">
                   <div className="min-w-0 text-xs text-secondary">
                     <div className="truncate font-semibold text-primary">
                       {uploaded.originalName ?? "Unnamed file"}
@@ -248,30 +257,32 @@ export function DocumentManager({ property, onChanged }: Props) {
                     <div className="mt-1">{uploaded.mimeType ?? "Unknown mime"}</div>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => void view(uploaded)}
-                    className="shrink-0 rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
-                  >
-                    View
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => void download(uploaded)}
-                    className="shrink-0 rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-50"
-                  >
-                    Download
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => void remove(uploaded)}
-                    className="shrink-0 rounded-xl border border-danger/30 bg-danger/12 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/12 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void view(uploaded)}
+                      className="shrink-0 rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void download(uploaded)}
+                      className="shrink-0 rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-50"
+                    >
+                      Download
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void remove(uploaded)}
+                      className="shrink-0 rounded-xl border border-danger/30 bg-danger/12 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/12 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-3 rounded-xl bg-warm-alt p-3 text-xs text-secondary">
@@ -294,7 +305,7 @@ export function DocumentManager({ property, onChanged }: Props) {
           <ul className="space-y-2">
             {property.documents.map((document) => (
               <li key={document.id} className="rounded-xl border border-line bg-surface p-4">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-primary">
                       {prettyDocType(document.type)}
@@ -305,30 +316,32 @@ export function DocumentManager({ property, onChanged }: Props) {
                     <div className="mt-1 text-xs text-muted">ID: {document.id}</div>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => view(document)}
-                    className="shrink-0 rounded-xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
-                  >
-                    View
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => void download(document)}
-                    className="shrink-0 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-50"
-                  >
-                    Download
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => void remove(document)}
-                    className="shrink-0 rounded-xl border border-danger/30 bg-danger/12 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/12 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => view(document)}
+                      className="shrink-0 rounded-xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void download(document)}
+                      className="shrink-0 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-50"
+                    >
+                      Download
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void remove(document)}
+                      className="shrink-0 rounded-xl border border-danger/30 bg-danger/12 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/12 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}

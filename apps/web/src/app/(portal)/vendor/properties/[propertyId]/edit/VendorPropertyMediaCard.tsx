@@ -288,10 +288,21 @@ function RoomSection(props: {
                     <option value="BATHROOM">Bathroom</option>
                     <option value="KITCHEN">Kitchen</option>
                     <option value="DINING">Dining</option>
+                    <option value="ENTRY">Entry</option>
+                    <option value="HALLWAY">Hallway</option>
+                    <option value="STUDY">Study</option>
+                    <option value="LAUNDRY">Laundry</option>
                     <option value="BALCONY">Balcony</option>
+                    <option value="TERRACE">Terrace</option>
+                    <option value="EXTERIOR">Exterior</option>
                     <option value="BUILDING">Building</option>
+                    <option value="NEIGHBORHOOD">Neighborhood</option>
                     <option value="VIEW">View</option>
-                    <option value="AMENITIES">Amenities</option>
+                    <option value="POOL">Pool</option>
+                    <option value="GYM">Gym</option>
+                    <option value="PARKING">Parking</option>
+                    <option value="AMENITY">Amenity</option>
+                    <option value="FLOOR_PLAN">Floor plan</option>
                     <option value="OTHER">Other</option>
                     <option value="COVER">Cover</option>
                   </select>

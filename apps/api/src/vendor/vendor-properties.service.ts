@@ -278,6 +278,7 @@ export class VendorPropertiesService {
 
   async listAmenitiesCatalog() {
     const amenities = await this.prisma.amenity.findMany({
+      where: { isActive: true },
       orderBy: [{ groupId: 'asc' }, { name: 'asc' }],
       include: { group: true },
     });

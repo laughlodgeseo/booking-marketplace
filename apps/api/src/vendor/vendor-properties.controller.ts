@@ -245,7 +245,7 @@ export class VendorPropertiesController {
     FileInterceptor('file', {
       storage: imageUploadStorage,
       fileFilter: imageFileFilter,
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
     }),
   )
   async uploadMedia(
@@ -320,7 +320,7 @@ export class VendorPropertiesController {
     FileInterceptor('file', {
       storage: documentUploadStorage,
       fileFilter: documentFileFilter,
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+      limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
     }),
   )
   async uploadDocument(

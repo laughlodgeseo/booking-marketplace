@@ -44,6 +44,7 @@ export default function AccountDocumentsPage() {
   const [uploadType, setUploadType] = useState<CustomerDocumentType>("PASSPORT");
   const [uploadNotes, setUploadNotes] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -71,6 +72,7 @@ export default function AccountDocumentsPage() {
     }
 
     setBusy("Uploading document...");
+    setUploadingFileName(uploadFile.name);
     setMessage(null);
     try {
       await uploadUserCustomerDocument({
@@ -86,6 +88,7 @@ export default function AccountDocumentsPage() {
       setMessage(error instanceof Error ? error.message : "Failed to upload document");
     } finally {
       setBusy(null);
+      setUploadingFileName(null);
     }
   }
 
@@ -200,7 +203,7 @@ export default function AccountDocumentsPage() {
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="text-xs text-secondary">
-                  Accepted files: PDF, JPG, PNG, WEBP (max 10MB)
+                  Accepted files: PDF, JPG, PNG, WEBP, HEIC (max 15MB)
                 </div>
                 <button
                   type="button"
@@ -211,7 +214,17 @@ export default function AccountDocumentsPage() {
                   Upload
                 </button>
               </div>
-              {busy ? <div className="mt-3 text-xs font-semibold text-secondary">{busy}</div> : null}
+              {busy ? (
+                <div className="mt-3 rounded-xl border border-line/70 bg-warm-base p-3 text-xs font-semibold text-secondary">
+                  <div className="flex items-center gap-2">
+                    <span className="h-4 w-4 rounded-full border-2 border-brand/25 border-t-brand animate-spin" />
+                    <span>{busy}</span>
+                  </div>
+                  {uploadingFileName ? (
+                    <div className="mt-1 text-[11px] text-muted break-all">File: {uploadingFileName}</div>
+                  ) : null}
+                </div>
+              ) : null}
               {message ? (
                 <div className="mt-3 rounded-xl border border-line/70 bg-warm-base p-3 text-sm text-secondary">
                   {message}
@@ -253,7 +266,7 @@ export default function AccountDocumentsPage() {
                             <div className="mt-1 text-xs text-secondary">Admin note: {doc.reviewNotes}</div>
                           ) : null}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <StatusPill status={doc.status}>{doc.status}</StatusPill>
                           <Link
                             href={`/account/documents/${encodeURIComponent(doc.id)}`}

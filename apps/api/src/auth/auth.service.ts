@@ -175,8 +175,24 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
+    let ok = await verifyPassword(password, user.passwordHash);
+
+    // Common UX issue: users copy/paste a password with accidental whitespace.
+    if (!ok) {
+      const trimmedPassword = password.trim();
+      if (trimmedPassword !== password) {
+        ok = await verifyPassword(trimmedPassword, user.passwordHash);
+      }
+    }
+
+    if (!ok) {
+      if (user.authProvider) {
+        throw new UnauthorizedException(
+          `Invalid credentials. This account is linked to ${user.authProvider} sign-in.`,
+        );
+      }
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     const accessToken = await this.signAccessToken(
       user.id,

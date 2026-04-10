@@ -165,7 +165,7 @@ export class UserPortalController {
     FileInterceptor('file', {
       storage: bookingDocumentUploadStorage,
       fileFilter: documentFileFilter,
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 15 * 1024 * 1024 },
     }),
   )
   async uploadBookingDocument(
@@ -229,7 +229,7 @@ export class UserPortalController {
     FileInterceptor('file', {
       storage: customerDocumentUploadStorage,
       fileFilter: documentFileFilter,
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 15 * 1024 * 1024 },
     }),
   )
   async uploadCustomerDocument(

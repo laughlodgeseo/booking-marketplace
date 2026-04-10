@@ -89,7 +89,7 @@ type AmenitySeed = {
   sortOrder: number;
 };
 
-const DEMO_PASSWORD = 'password123';
+const DEMO_PASSWORD = (process.env.SEED_PASSWORD ?? 'Password123!').trim() || 'Password123!';
 const DEMO_PROPERTY_SLUG_PREFIX = 'demo-';
 
 const BOOKING_WINDOW_START = new Date('2026-02-22T00:00:00.000Z');
@@ -587,31 +587,83 @@ const PROPERTY_SPECS: PropertySeedSpec[] = [
 
 const AMENITY_GROUPS = [
   { key: 'ESSENTIALS', name: 'Essentials', sortOrder: 10 },
-  { key: 'BUILDING', name: 'Building', sortOrder: 20 },
-  { key: 'OUTDOOR', name: 'Outdoor', sortOrder: 30 },
+  { key: 'KITCHEN', name: 'Kitchen', sortOrder: 20 },
+  { key: 'BATHROOM', name: 'Bathroom', sortOrder: 30 },
+  { key: 'BEDROOM_LAUNDRY', name: 'Bedroom & Laundry', sortOrder: 40 },
+  { key: 'HEATING_COOLING', name: 'Heating & Cooling', sortOrder: 50 },
+  { key: 'ENTERTAINMENT', name: 'Entertainment', sortOrder: 60 },
+  { key: 'FAMILY', name: 'Family', sortOrder: 70 },
+  { key: 'BUILDING', name: 'Building', sortOrder: 80 },
+  { key: 'OUTDOOR', name: 'Outdoor', sortOrder: 90 },
+  { key: 'SAFETY', name: 'Safety', sortOrder: 100 },
 ];
 
 const AMENITIES: AmenitySeed[] = [
   { key: 'WIFI', name: 'Wi-Fi', groupKey: 'ESSENTIALS', sortOrder: 10 },
+  { key: 'TOWELS', name: 'Towels', groupKey: 'ESSENTIALS', sortOrder: 20 },
+  { key: 'BED_LINENS', name: 'Bed linens', groupKey: 'ESSENTIALS', sortOrder: 30 },
+  { key: 'SHAMPOO', name: 'Shampoo', groupKey: 'ESSENTIALS', sortOrder: 40 },
+  {
+    key: 'BASIC_TOILETRIES',
+    name: 'Basic toiletries',
+    groupKey: 'ESSENTIALS',
+    sortOrder: 50,
+  },
+
+  { key: 'KITCHEN', name: 'Kitchen', groupKey: 'KITCHEN', sortOrder: 10 },
+  { key: 'REFRIGERATOR', name: 'Refrigerator', groupKey: 'KITCHEN', sortOrder: 20 },
+  { key: 'MICROWAVE', name: 'Microwave', groupKey: 'KITCHEN', sortOrder: 30 },
+  { key: 'OVEN', name: 'Oven', groupKey: 'KITCHEN', sortOrder: 40 },
+  { key: 'STOVE', name: 'Stove', groupKey: 'KITCHEN', sortOrder: 50 },
+  { key: 'KETTLE', name: 'Kettle', groupKey: 'KITCHEN', sortOrder: 60 },
+  { key: 'COFFEE_MAKER', name: 'Coffee maker', groupKey: 'KITCHEN', sortOrder: 70 },
+  {
+    key: 'DISHES_CUTLERY',
+    name: 'Dishes & cutlery',
+    groupKey: 'KITCHEN',
+    sortOrder: 80,
+  },
+
+  { key: 'HOT_WATER', name: 'Hot water', groupKey: 'BATHROOM', sortOrder: 10 },
+  { key: 'HAIR_DRYER', name: 'Hair dryer', groupKey: 'BATHROOM', sortOrder: 20 },
+
+  { key: 'HANGERS', name: 'Hangers', groupKey: 'BEDROOM_LAUNDRY', sortOrder: 10 },
+  { key: 'IRON', name: 'Iron', groupKey: 'BEDROOM_LAUNDRY', sortOrder: 20 },
+  {
+    key: 'WASHING_MACHINE',
+    name: 'Washing machine',
+    groupKey: 'BEDROOM_LAUNDRY',
+    sortOrder: 30,
+  },
+
   {
     key: 'AIR_CONDITIONING',
     name: 'Air conditioning',
-    groupKey: 'ESSENTIALS',
+    groupKey: 'HEATING_COOLING',
     sortOrder: 20,
   },
-  { key: 'TV', name: 'TV', groupKey: 'ESSENTIALS', sortOrder: 30 },
-  { key: 'KITCHEN', name: 'Kitchen', groupKey: 'ESSENTIALS', sortOrder: 40 },
-  { key: 'POOL', name: 'Pool', groupKey: 'BUILDING', sortOrder: 10 },
+  { key: 'HEATING', name: 'Heating', groupKey: 'HEATING_COOLING', sortOrder: 30 },
+  { key: 'TV', name: 'TV', groupKey: 'ENTERTAINMENT', sortOrder: 10 },
+  { key: 'NETFLIX', name: 'Netflix', groupKey: 'ENTERTAINMENT', sortOrder: 20 },
+
+  { key: 'BABY_COT', name: 'Baby cot / crib', groupKey: 'FAMILY', sortOrder: 10 },
+  { key: 'HIGH_CHAIR', name: 'High chair', groupKey: 'FAMILY', sortOrder: 20 },
+
+  { key: 'ELEVATOR', name: 'Elevator', groupKey: 'BUILDING', sortOrder: 10 },
   { key: 'GYM', name: 'Gym', groupKey: 'BUILDING', sortOrder: 20 },
-  { key: 'PARKING', name: 'Parking', groupKey: 'BUILDING', sortOrder: 30 },
-  { key: 'ELEVATOR', name: 'Elevator', groupKey: 'BUILDING', sortOrder: 40 },
+  { key: 'POOL', name: 'Pool', groupKey: 'BUILDING', sortOrder: 30 },
+  { key: 'PARKING', name: 'Free parking', groupKey: 'BUILDING', sortOrder: 40 },
+  { key: 'DOORMAN', name: 'Doorman', groupKey: 'BUILDING', sortOrder: 50 },
+
   { key: 'BALCONY', name: 'Balcony', groupKey: 'OUTDOOR', sortOrder: 10 },
   {
     key: 'SMOKE_ALARM',
     name: 'Smoke alarm',
-    groupKey: 'ESSENTIALS',
-    sortOrder: 50,
+    groupKey: 'SAFETY',
+    sortOrder: 10,
   },
+  { key: 'FIRE_EXTINGUISHER', name: 'Fire extinguisher', groupKey: 'SAFETY', sortOrder: 20 },
+  { key: 'FIRST_AID_KIT', name: 'First aid kit', groupKey: 'SAFETY', sortOrder: 30 },
 ];
 
 function stableUuid(seed: string): string {
@@ -654,9 +706,25 @@ function maskedEmiratesId(index: number): string {
 
 function pickAmenityKeys(index: number): string[] {
   const pools: string[][] = [
-    ['WIFI', 'AIR_CONDITIONING', 'TV', 'KITCHEN', 'POOL', 'GYM', 'PARKING', 'ELEVATOR', 'BALCONY', 'SMOKE_ALARM'],
-    ['WIFI', 'AIR_CONDITIONING', 'TV', 'KITCHEN', 'POOL', 'PARKING', 'BALCONY', 'SMOKE_ALARM'],
-    ['WIFI', 'AIR_CONDITIONING', 'TV', 'KITCHEN', 'GYM', 'ELEVATOR', 'BALCONY', 'SMOKE_ALARM'],
+    [
+      'WIFI', 'TOWELS', 'BED_LINENS', 'AIR_CONDITIONING', 'TV', 'NETFLIX',
+      'KITCHEN', 'REFRIGERATOR', 'MICROWAVE', 'OVEN', 'KETTLE',
+      'HOT_WATER', 'WASHING_MACHINE', 'POOL', 'GYM', 'PARKING',
+      'ELEVATOR', 'BALCONY', 'SMOKE_ALARM', 'FIRE_EXTINGUISHER', 'FIRST_AID_KIT',
+    ],
+    [
+      'WIFI', 'TOWELS', 'SHAMPOO', 'AIR_CONDITIONING', 'HEATING', 'TV',
+      'KITCHEN', 'REFRIGERATOR', 'MICROWAVE', 'STOVE',
+      'HOT_WATER', 'HAIR_DRYER', 'IRON', 'POOL', 'PARKING',
+      'DOORMAN', 'ELEVATOR', 'BALCONY', 'SMOKE_ALARM', 'FIRST_AID_KIT',
+    ],
+    [
+      'WIFI', 'BED_LINENS', 'BASIC_TOILETRIES', 'AIR_CONDITIONING', 'TV', 'NETFLIX',
+      'KITCHEN', 'DISHES_CUTLERY', 'COFFEE_MAKER',
+      'HOT_WATER', 'WASHING_MACHINE', 'HANGERS',
+      'GYM', 'ELEVATOR', 'DOORMAN', 'BALCONY',
+      'SMOKE_ALARM', 'FIRE_EXTINGUISHER',
+    ],
   ];
   return pools[index % pools.length];
 }

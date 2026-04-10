@@ -13,14 +13,17 @@ export function documentFileFilter(
   const allowedMime = new Set([
     'application/pdf',
     'image/jpeg',
+    'image/jpg',
     'image/png',
     'image/webp',
+    'image/heic',
+    'image/heif',
   ]);
 
   if (!allowedMime.has(file.mimetype)) {
     return cb(
       new BadRequestException(
-        'Invalid document type. Allowed: PDF, JPG, PNG, WEBP.',
+        'Invalid document type. Allowed: PDF, JPG, PNG, WEBP, HEIC.',
       ),
       false,
     );

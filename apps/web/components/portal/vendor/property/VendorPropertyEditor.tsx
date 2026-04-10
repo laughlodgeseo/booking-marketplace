@@ -303,7 +303,7 @@ export default function VendorPropertyEditor(props: {
           <div>
             <div className="text-lg font-semibold text-primary">{property.title || "Untitled property"}</div>
             <div className="mt-1 text-sm text-secondary">
-              ID: <span className="font-mono">{property.id}</span>
+              ID: <span className="font-mono break-all">{property.id}</span>
             </div>
           </div>
 

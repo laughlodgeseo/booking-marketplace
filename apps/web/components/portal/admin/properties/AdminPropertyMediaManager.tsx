@@ -85,6 +85,8 @@ export function AdminPropertyMediaManager(props: {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
+  const [uploadBatch, setUploadBatch] = useState<{ current: number; total: number } | null>(null);
   const [otherCategory, setOtherCategory] = useState<MediaCategory>("COVER");
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -127,30 +129,40 @@ export function AdminPropertyMediaManager(props: {
     if (!files || files.length === 0) return;
     setError(null);
     setUploadProgress(null);
+    setUploadingFileName(null);
+    setUploadBatch(null);
     setBusy(`Uploading to ${category}...`);
 
     try {
-      // Fetch direct-upload params once (reused for all files in the batch)
-      const params = await getCloudinaryUploadParams(props.propertyId, "admin");
-
       const created: AdminMediaItem[] = [];
       const fileArray = Array.from(files);
 
       for (let i = 0; i < fileArray.length; i++) {
         const f = fileArray[i];
+        setUploadBatch({ current: i + 1, total: fileArray.length });
+        setUploadingFileName(f.name);
         setBusy(`Uploading ${i + 1} / ${fileArray.length}...`);
         setUploadProgress(0);
 
         let item: AdminMediaItem;
+        const params = await getCloudinaryUploadParams(props.propertyId, "admin").catch(
+          () => ({ mode: "server" } as const),
+        );
 
         if (params.mode === "cloudinary") {
-          // Direct browser → Cloudinary upload (no server timeout risk)
-          const url = await uploadFileToCloudinary(f, params, (pct) =>
-            setUploadProgress(pct),
-          );
-          item = await registerAdminPropertyMedia(props.propertyId, url);
+          try {
+            const url = await uploadFileToCloudinary(f, params, (pct) => {
+              setUploadProgress(pct);
+            });
+            item = await registerAdminPropertyMedia(props.propertyId, url);
+          } catch {
+            // Keep upload resilient when cloud credentials/presets/CDN fail.
+            setBusy(`Cloud upload failed, retrying ${i + 1} / ${fileArray.length} via server...`);
+            setUploadProgress(null);
+            item = await uploadAdminPropertyMedia(props.propertyId, f);
+          }
         } else {
-          // Cloudinary not configured → fall back to server-side upload
+          setUploadProgress(null);
           item = await uploadAdminPropertyMedia(props.propertyId, f);
         }
 
@@ -158,6 +170,7 @@ export function AdminPropertyMediaManager(props: {
         setUploadProgress(null);
       }
 
+      setBusy("Finalizing categories...");
       const tagged: AdminMediaItem[] = [];
       for (const it of created) {
         const upd = await updateAdminPropertyMediaCategory(props.propertyId, it.id, category);
@@ -171,12 +184,14 @@ export function AdminPropertyMediaManager(props: {
       ].sort((a, b) => a.sortOrder - b.sortOrder);
 
       setNext(next);
-      clearInput(inputKey);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
+      clearInput(inputKey);
       setBusy(null);
       setUploadProgress(null);
+      setUploadingFileName(null);
+      setUploadBatch(null);
     }
   }
 
@@ -292,7 +307,7 @@ export function AdminPropertyMediaManager(props: {
 
     return (
       <div className="rounded-2xl border border-line/80 bg-surface p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <div className="text-sm font-semibold text-primary">{propsUpload.title}</div>
@@ -310,7 +325,7 @@ export function AdminPropertyMediaManager(props: {
             <div className="mt-1 text-xs text-muted">{count} uploaded</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <input
               ref={(el) => {
                 inputsRef.current[propsUpload.inputId] = el;
@@ -328,9 +343,10 @@ export function AdminPropertyMediaManager(props: {
             <label
               htmlFor={propsUpload.inputId}
               className={cn(
-                "cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold",
+                "cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition-all",
+                "hover:-translate-y-0.5 active:translate-y-0",
                 busy
-                  ? "bg-accent-soft text-secondary"
+                  ? "pointer-events-none bg-accent-soft text-secondary"
                   : "bg-brand text-accent-text hover:bg-brand-hover",
               )}
             >
@@ -343,29 +359,45 @@ export function AdminPropertyMediaManager(props: {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
+      {/* Upload overlay */}
+      {busy && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-3xl bg-surface/90 backdrop-blur-sm">
+          <div className="h-12 w-12 rounded-full border-2 border-brand/20 border-t-brand animate-spin" />
+          <div className="text-sm font-semibold text-primary">{busy}</div>
+          {uploadBatch ? (
+            <div className="max-w-[92%] text-center text-xs text-secondary">
+              File {uploadBatch.current} of {uploadBatch.total}
+              {uploadingFileName ? (
+                <>
+                  {" "}
+                  • <span className="font-semibold text-primary break-all">{uploadingFileName}</span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+          {uploadProgress !== null && (
+            <div className="w-56 overflow-hidden rounded-full bg-line/40 h-1.5">
+              <div
+                className="h-full rounded-full bg-brand transition-all duration-150"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+          {uploadProgress !== null && (
+            <div className="text-xs text-muted">{uploadProgress}%</div>
+          )}
+        </div>
+      )}
+
       <div className="rounded-3xl border border-line/50 bg-surface p-5 shadow-sm">
         <div>
           <div className="text-sm font-semibold text-primary">Images</div>
           <div className="mt-1 text-sm text-secondary">
-            Vendor-style upload blocks with required categories:
+            Upload blocks with required categories:
             <span className="font-semibold"> LIVING_ROOM, BEDROOM, BATHROOM, KITCHEN</span>.
           </div>
         </div>
-
-        {busy ? (
-          <div className="mt-4 space-y-2 rounded-2xl border border-line/80 bg-warm-base p-3">
-            <div className="text-sm text-secondary">{busy}</div>
-            {uploadProgress !== null ? (
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-line/40">
-                <div
-                  className="h-full rounded-full bg-brand transition-all duration-150"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         {error ? (
           <div className="mt-4 rounded-2xl border border-danger/30 bg-danger/12 p-3 text-sm text-danger whitespace-pre-wrap">
@@ -387,7 +419,7 @@ export function AdminPropertyMediaManager(props: {
         ))}
 
         <div className="rounded-2xl border border-line/80 bg-surface p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <div className="text-sm font-semibold text-primary">Other photos</div>
@@ -400,14 +432,14 @@ export function AdminPropertyMediaManager(props: {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <select
                 value={otherCategory}
                 onChange={(event) => {
                   const value = event.target.value;
                   if (isMediaCategory(value)) setOtherCategory(value);
                 }}
-                className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary"
+                className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary sm:w-auto"
                 disabled={busy !== null}
               >
                 {optionalCategories.map((category) => (
@@ -434,9 +466,10 @@ export function AdminPropertyMediaManager(props: {
               <label
                 htmlFor="admin-create-upload-other"
                 className={cn(
-                  "cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold",
+                  "cursor-pointer rounded-xl px-4 py-2 text-center text-sm font-semibold shadow-sm transition-all",
+                  "hover:-translate-y-0.5 active:translate-y-0",
                   busy
-                    ? "bg-accent-soft text-secondary"
+                    ? "pointer-events-none bg-accent-soft text-secondary"
                     : "bg-brand text-accent-text hover:bg-brand-hover",
                 )}
               >
@@ -511,7 +544,7 @@ export function AdminPropertyMediaManager(props: {
                   <button
                     type="button"
                     onClick={() => void move(m.id, 1)}
-                    disabled={busy !== null}
+                    disabled={busy !== null || m.sortOrder === sorted.length - 1}
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-line/80 bg-surface text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt disabled:opacity-50"
                   >
                     <ChevronDown className="h-4 w-4" />

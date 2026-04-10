@@ -2,15 +2,26 @@ import type { CurrencyCode } from "./search";
 
 export type MediaCategory =
   | "COVER"
-  | "BEDROOM"
   | "LIVING_ROOM"
-  | "KITCHEN"
+  | "BEDROOM"
   | "BATHROOM"
+  | "KITCHEN"
   | "DINING"
+  | "ENTRY"
+  | "HALLWAY"
+  | "STUDY"
+  | "LAUNDRY"
   | "BALCONY"
-  | "AMENITIES"
-  | "BUILDING"
+  | "TERRACE"
   | "VIEW"
+  | "EXTERIOR"
+  | "BUILDING"
+  | "NEIGHBORHOOD"
+  | "POOL"
+  | "GYM"
+  | "PARKING"
+  | "AMENITY"
+  | "FLOOR_PLAN"
   | "OTHER";
 
 export type PropertyMedia = {
