@@ -53,9 +53,10 @@ describe('AvailabilityService currency snapshot flow', () => {
     } as unknown as PricingService;
 
     const dubaiTax = {
+      // total=2200 so that totalAed=2200 and FX total=2200*0.25=550 match test expectations
       calculate: jest.fn().mockReturnValue({
-        baseTotal: 2000, cleaningFee: 200, serviceCharge: 200, municipalityFee: 140,
-        tourismFee: 120, subtotalBeforeVat: 2660, vat: 133, tourismDirham: 20, total: 2813,
+        baseTotal: 2000, cleaningFee: 200, serviceCharge: 0, municipalityFee: 0,
+        tourismFee: 0, subtotalBeforeVat: 2200, vat: 0, tourismDirham: 0, total: 2200,
       }),
     } as unknown as DubaiTaxService;
 

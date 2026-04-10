@@ -93,7 +93,7 @@ describe('BookingsService critical paths', () => {
       checkIn: new Date('2026-04-01T00:00:00.000Z'),
       checkOut: new Date('2026-04-05T00:00:00.000Z'),
       status: HoldStatus.ACTIVE,
-      expiresAt: new Date('2026-04-10T00:00:00.000Z'),
+      expiresAt: new Date('2099-01-01T00:00:00.000Z'),
     };
 
     const prismaMock = {
