@@ -114,7 +114,7 @@ export default async function PropertiesPage(props: PageProps) {
               query={query}
               items={items}
               meta={meta}
-              showFiltersPanel
+              showFiltersPanel={false}
             />
           )}
         </div>

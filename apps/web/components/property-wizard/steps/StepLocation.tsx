@@ -1,17 +1,27 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
 import type { StepProps } from "../types";
 
-const PortalMapPicker = dynamic(
-  () => import("@/components/portal/maps/PortalMapPicker").then((m) => m.PortalMapPicker),
-  { ssr: false, loading: () => <PortalLoadingCard kind="mapPicker" /> },
-);
-
 const INPUT = "h-11 w-full rounded-2xl border border-line/80 bg-surface px-4 text-sm text-primary shadow-sm outline-none placeholder:text-muted focus:border-brand/45 focus:ring-4 focus:ring-brand/20 transition-all";
+const PropertyLocationPicker = dynamic(() => import("@/components/maps/PropertyLocationPicker"), {
+  ssr: false,
+});
 
 export function StepLocation({ data, patch }: StepProps) {
+  const hasCoordinates =
+    typeof data.lat === "number" &&
+    Number.isFinite(data.lat) &&
+    typeof data.lng === "number" &&
+    Number.isFinite(data.lng);
+  const selectedLocation: { lat: number; lng: number; address?: string } | undefined = hasCoordinates
+    ? {
+        lat: data.lat as number,
+        lng: data.lng as number,
+        address: data.address || undefined,
+      }
+    : undefined;
+
   return (
     <div className="space-y-6">
       <div>
@@ -23,18 +33,23 @@ export function StepLocation({ data, patch }: StepProps) {
 
       {/* Map */}
       <div className="overflow-hidden rounded-3xl border border-line/50 shadow-sm">
-        <PortalMapPicker
-          value={{ lat: data.lat, lng: data.lng }}
-          onChange={(next) => patch({ lat: next.lat, lng: next.lng })}
-          className="h-72 w-full"
+        <PropertyLocationPicker
+          value={selectedLocation}
+          onChange={(next) =>
+            patch({
+              lat: next.lat,
+              lng: next.lng,
+              address: next.address ?? data.address,
+            })
+          }
         />
       </div>
 
       {/* Pin status */}
-      {data.lat && data.lng ? (
+      {selectedLocation ? (
         <div className="flex items-center gap-2 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
           <span>📍</span>
-          <span>Pin set — {data.lat.toFixed(5)}, {data.lng.toFixed(5)}</span>
+          <span>Pin set — {selectedLocation.lat.toFixed(5)}, {selectedLocation.lng.toFixed(5)}</span>
         </div>
       ) : (
         <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
@@ -72,7 +87,7 @@ export function StepLocation({ data, patch }: StepProps) {
         <div className="mt-4">
           <label className="mb-2 block text-xs font-semibold text-secondary">
             Street Address{" "}
-            <span className="normal-case font-normal text-muted">(private — guests won't see this)</span>
+            <span className="normal-case font-normal text-muted">(private — guests won&apos;t see this)</span>
           </label>
           <input
             className={INPUT}

@@ -1,3 +1,5 @@
+import type { PropertyType } from "./property-type";
+
 export type CurrencyCode = "AED" | "USD" | "SAR" | "EUR" | "GBP";
 
 export type PropertyStatus = "DRAFT" | "PUBLISHED";
@@ -6,6 +8,7 @@ export type SearchPropertyCard = {
   id: string;
   slug: string;
   title: string;
+  propertyType: PropertyType;
   location: {
     city: string | null;
     area: string | null;
@@ -90,6 +93,7 @@ export type MapPoint = {
   fxProvider?: string | null;
   slug?: string;
   title?: string;
+  propertyType?: PropertyType;
   city?: string | null;
   area?: string | null;
   bedrooms?: number | null;

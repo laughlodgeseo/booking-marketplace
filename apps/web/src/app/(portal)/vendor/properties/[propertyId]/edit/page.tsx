@@ -19,10 +19,7 @@ export default function VendorPropertyEditPage() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
-    if (!propertyId) {
-      setState({ kind: "error", message: "Missing property id in route." });
-      return;
-    }
+    if (!propertyId) return;
 
     let alive = true;
     async function load() {
@@ -39,6 +36,18 @@ export default function VendorPropertyEditPage() {
     void load();
     return () => { alive = false; };
   }, [propertyId]);
+
+  if (!propertyId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#0B0F19" }}>
+        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-8 max-w-md text-center">
+          <div className="text-2xl mb-3">⚠</div>
+          <div className="text-base font-semibold text-white mb-2">Could not load property</div>
+          <p className="text-sm text-white/50">Missing property id in route.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (state.kind === "loading" || state.kind === "idle") {
     return (

@@ -40,6 +40,15 @@ enum PropertyStatus {
   ARCHIVED
 }
 
+enum PropertyType {
+  APARTMENT
+  VILLA
+  STUDIO
+  TOWNHOUSE
+  PENTHOUSE
+  CHALET
+}
+
 enum BookingStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -653,6 +662,7 @@ model Property {
 
   title       String
   slug        String  @unique
+  propertyType PropertyType @default(APARTMENT)
   description String?
 
   city    String
@@ -718,6 +728,7 @@ model Property {
   @@index([vendorId])
   @@index([createdByAdminId])
   @@index([city])
+  @@index([propertyType])
   @@index([status])
   @@index([createdAt])
   @@index([locationId])

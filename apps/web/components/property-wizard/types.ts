@@ -1,6 +1,8 @@
 import type { VendorPropertyDetail } from "@/lib/api/portal/vendor";
+import type { PropertyType } from "@/lib/types/property-type";
 
 export type WizardState = {
+  propertyType: PropertyType;
   title: string;
   description: string;
   city: string;

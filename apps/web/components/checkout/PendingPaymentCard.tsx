@@ -48,15 +48,6 @@ function upper(s: string): string {
   return (s ?? "").toUpperCase();
 }
 
-function isoDay(s: string | null | undefined): string | null {
-  if (!s) return null;
-  const match = s.match(/^\d{4}-\d{2}-\d{2}/);
-  if (match) return match[0];
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
-}
-
 function fmtCountdown(ms: number): string {
   const sec = Math.ceil(ms / 1000);
   const m = Math.floor(sec / 60);
@@ -333,10 +324,6 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
           ),
         )
       : null);
-  const detailGuests =
-    bookingDetail && Number.isFinite(bookingDetail.adults + bookingDetail.children)
-      ? bookingDetail.adults + bookingDetail.children
-      : null;
   const fxRateRaw = bookingDetail?.fxRate;
   const fxRate =
     typeof fxRateRaw === "number" && Number.isFinite(fxRateRaw) && fxRateRaw > 0 ? fxRateRaw : null;
@@ -357,8 +344,6 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   const taxes = 0;
   const computedTotal =
     detailTotal != null ? detailTotal : nightlySubtotal != null ? nightlySubtotal + (cleaningFee ?? 0) + taxes : null;
-  const propertySlug = bookingDetail?.property?.slug ?? null;
-
   const totalText = moneyFromCents(
     computedTotal ?? effectiveLatest?.totalAmount ?? null,
     detailCurrency ?? effectiveLatest?.currency ?? null,
@@ -368,17 +353,6 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
       ? ((intentState.publishableKey ?? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").trim())
       : "";
   const isTestMode = resolvedPublishableKey.startsWith("pk_test_");
-
-  const editDatesHref = useMemo(() => {
-    if (!propertySlug) return "/properties";
-    const qp = new URLSearchParams();
-    const checkInDay = isoDay(detailCheckIn);
-    const checkOutDay = isoDay(detailCheckOut);
-    if (checkInDay) qp.set("checkIn", checkInDay);
-    if (checkOutDay) qp.set("checkOut", checkOutDay);
-    if (detailGuests != null) qp.set("guests", String(detailGuests));
-    return `/properties/${encodeURIComponent(propertySlug)}${qp.toString() ? `?${qp}` : ""}`;
-  }, [detailCheckIn, detailCheckOut, detailGuests, propertySlug]);
 
   return (
     <div className="space-y-5">

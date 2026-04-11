@@ -153,6 +153,13 @@ html[dir="rtl"] body {
   text-align: right;
 }
 
+/* Google Maps + utility CSS frameworks compatibility.
+   Tailwind preflight sets `img { max-width: 100% }`, which can break map tiles. */
+.gm-style img,
+.gm-style .gm-style-iw img {
+  max-width: none !important;
+}
+
 /* DayPicker hardening: prevent caption/nav overlap and accidental vertical stacking */
 .rdp-root {
   width: 100%;

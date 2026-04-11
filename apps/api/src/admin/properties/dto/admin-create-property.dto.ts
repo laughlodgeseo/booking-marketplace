@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNumber,
   IsObject,
@@ -9,6 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { PropertyType } from '@prisma/client';
 import type { PropertyTranslationsInput } from '../../../vendor/vendor-properties.dto';
 
 export class AdminCreatePropertyDto {
@@ -28,6 +30,10 @@ export class AdminCreatePropertyDto {
   @IsString()
   @MaxLength(180)
   slug?: string;
+
+  @IsOptional()
+  @IsEnum(PropertyType)
+  propertyType?: PropertyType;
 
   @IsOptional()
   @IsString()

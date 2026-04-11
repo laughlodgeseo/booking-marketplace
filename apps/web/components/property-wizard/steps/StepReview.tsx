@@ -5,8 +5,8 @@ import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import {
   submitVendorPropertyForReview,
   publishVendorProperty,
-  type VendorPropertyDetail,
 } from "@/lib/api/portal/vendor";
+import { propertyTypeLabel } from "@/lib/types/property-type";
 import type { StepProps } from "../types";
 
 type SubmitState =
@@ -91,6 +91,7 @@ export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
       )}
 
       <Section title="Listing basics">
+        <ReviewRow label="Type" value={propertyTypeLabel(data.propertyType)} />
         <ReviewRow label="Title" value={data.title} />
         <ReviewRow label="Description" value={data.description ? `${data.description.slice(0, 60)}…` : null} />
         <ReviewRow label="City" value={data.city} />

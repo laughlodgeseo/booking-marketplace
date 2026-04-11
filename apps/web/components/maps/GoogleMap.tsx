@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ENV } from "@/lib/env";
 import type { MapPoint } from "@/lib/types/search";
+import { propertyTypeLabel } from "@/lib/types/property-type";
 
 type LatLng = { lat: number; lng: number };
 type ViewportBounds = { north: number; south: number; east: number; west: number };
@@ -13,13 +14,38 @@ type MapHandle = { map: google.maps.Map; markers: MarkerHandle[] };
 // ── Script loader ─────────────────────────────────────────────────────────────
 let _scriptPromise: Promise<void> | null = null;
 
+function hasGoogleMapsReady(): boolean {
+  return typeof window !== "undefined" && Boolean((window as unknown as { google?: { maps?: unknown } }).google?.maps);
+}
+
+function waitForGoogleMapsReady(timeoutMs = 3000): Promise<void> {
+  if (hasGoogleMapsReady()) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    const tick = () => {
+      if (hasGoogleMapsReady()) {
+        resolve();
+        return;
+      }
+      if (Date.now() >= deadline) {
+        reject(new Error("Maps script loaded but google.maps is unavailable"));
+        return;
+      }
+      window.setTimeout(tick, 40);
+    };
+    tick();
+  });
+}
+
 function loadMapsScript(apiKey: string): Promise<void> {
   if (_scriptPromise) return _scriptPromise;
   _scriptPromise = new Promise<void>((resolve, reject) => {
-    if ((window as unknown as { google?: unknown }).google) { resolve(); return; }
+    if (hasGoogleMapsReady()) { resolve(); return; }
     const existing = document.querySelector<HTMLScriptElement>('[data-gm-loader]');
     if (existing) {
-      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("load", () => {
+        void waitForGoogleMapsReady().then(resolve).catch(reject);
+      });
       existing.addEventListener("error", () => reject(new Error("Maps script failed")));
       return;
     }
@@ -28,7 +54,9 @@ function loadMapsScript(apiKey: string): Promise<void> {
     s.async = true;
     s.defer = true;
     s.dataset.gmLoader = "1";
-    s.onload = () => resolve();
+    s.onload = () => {
+      void waitForGoogleMapsReady().then(resolve).catch(reject);
+    };
     s.onerror = () => reject(new Error("Maps script failed to load"));
     document.head.appendChild(s);
   });
@@ -272,6 +300,7 @@ export default function GoogleMap(props: {
         : `${p.currency} --`;
       const title = (p.title ?? "Property").trim() || "Property";
       const metaParts: string[] = [];
+      if (p.propertyType) metaParts.push(propertyTypeLabel(p.propertyType));
       if (typeof p.bedrooms === "number" && p.bedrooms > 0) metaParts.push(`${p.bedrooms} bd`);
       if (typeof p.bathrooms === "number" && p.bathrooms > 0) metaParts.push(`${p.bathrooms} ba`);
       if (p.area?.trim()) metaParts.push(p.area.trim());

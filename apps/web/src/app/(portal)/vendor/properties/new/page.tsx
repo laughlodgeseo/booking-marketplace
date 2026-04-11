@@ -1,13 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { PropertyWizard } from "@/components/property-wizard/PropertyWizard";
 import type { VendorPropertyDetail } from "@/lib/api/portal/vendor";
 
 export default function VendorNewPropertyPage() {
-  const router = useRouter();
-
   function handleCreated(property: VendorPropertyDetail) {
     // Update URL to edit route without losing wizard state
     window.history.replaceState(

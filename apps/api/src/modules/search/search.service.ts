@@ -86,6 +86,7 @@ type SearchCard = {
   id: string;
   slug: string;
   title: string;
+  propertyType: string;
   location: {
     city: string | null;
     area: string | null;
@@ -139,6 +140,7 @@ type SearchPoint = {
   fxProvider?: string | null;
   slug?: string;
   title?: string;
+  propertyType?: string;
   city?: string | null;
   area?: string | null;
   bedrooms?: number;
@@ -586,6 +588,7 @@ export class SearchService {
           id: true,
           slug: true,
           title: true,
+          propertyType: true,
           city: true,
           area: true,
           translations: {
@@ -685,6 +688,7 @@ export class SearchService {
         id: p.id,
         slug: p.slug,
         title: translation?.title ?? p.title,
+        propertyType: p.propertyType,
         location: {
           city: p.city,
           area: translation?.areaLabel ?? p.area,
@@ -769,6 +773,7 @@ export class SearchService {
         id: true,
         slug: true,
         title: true,
+        propertyType: true,
         city: true,
         area: true,
         lat: true,
@@ -794,6 +799,7 @@ export class SearchService {
         fxProvider: fx.provider,
         slug: r.slug,
         title: r.title,
+        propertyType: r.propertyType,
         city: r.city,
         area: r.area,
         bedrooms: r.bedrooms,
@@ -849,6 +855,7 @@ export class SearchService {
         id: true,
         slug: true,
         title: true,
+        propertyType: true,
         city: true,
         area: true,
         lat: true,
@@ -881,6 +888,7 @@ export class SearchService {
           fxProvider: fx.provider,
           slug: r.slug,
           title: r.title,
+          propertyType: r.propertyType,
           city: r.city,
           area: r.area,
           bedrooms: r.bedrooms,

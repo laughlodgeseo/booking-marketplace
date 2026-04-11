@@ -26,6 +26,7 @@ import { StepAmenities } from "./steps/StepAmenities";
 import { StepPricing } from "./steps/StepPricing";
 import { AdminStepImages } from "./steps/admin/AdminStepImages";
 import { AdminStepPublish } from "./steps/admin/AdminStepPublish";
+import { PROPERTY_TYPE_LABELS } from "@/lib/types/property-type";
 
 // -------------------------------------------------------------------
 // Admin wizard steps (6 steps — no separate review, admin publishes direct)
@@ -53,6 +54,7 @@ function buildSlug(title: string): string {
 }
 
 const DEFAULT_STATE: WizardState = {
+  propertyType: "APARTMENT",
   title: "", description: "", city: "Dubai", area: "", address: "",
   lat: null, lng: null, bedrooms: 1, bathrooms: 1, maxGuests: 2,
   selectedAmenityIds: [], basePrice: 25000, cleaningFee: 0,
@@ -145,7 +147,7 @@ export function AdminPropertyWizard() {
 
       if (stepIndex === 0) {
         const input = {
-          title, slug: buildSlug(data.title), city,
+          title, slug: buildSlug(data.title), city, propertyType: data.propertyType,
           description: data.description.trim() || null,
           area: data.area.trim() || null,
           basePrice: data.basePrice, currency: data.currency,
@@ -195,7 +197,7 @@ export function AdminPropertyWizard() {
         const title = data.title.trim() || "Untitled Property";
         const city  = data.city.trim() || "Dubai";
         target = await createAdminProperty({
-          title, slug: buildSlug(data.title), city,
+          title, slug: buildSlug(data.title), city, propertyType: data.propertyType,
           description: data.description.trim() || null,
           area: data.area.trim() || null,
           address: data.address.trim() || null,
@@ -407,6 +409,9 @@ export function AdminPropertyWizard() {
               <div className="rounded-3xl border border-line/50 bg-surface p-5 shadow-sm">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted mb-3">Created listing</div>
                 <div className="text-sm font-semibold text-primary truncate">{data.title || "Untitled"}</div>
+                <div className="mt-1 inline-flex items-center rounded-full bg-accent-soft/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
+                  {PROPERTY_TYPE_LABELS[data.propertyType]}
+                </div>
                 <div className="mt-1.5 flex items-center gap-3 text-xs text-muted">
                   <span>🛏 {data.bedrooms}</span>
                   <span>🚿 {data.bathrooms}</span>

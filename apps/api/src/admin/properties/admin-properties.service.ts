@@ -364,6 +364,7 @@ export class AdminPropertiesService {
             createdByAdminId: adminId,
             title: dto.title.trim(),
             slug,
+            propertyType: dto.propertyType,
             description: dto.description?.trim() || null,
             city: dto.city.trim(),
             area: dto.area?.trim() || null,
@@ -457,6 +458,7 @@ export class AdminPropertiesService {
         // keep createdByAdminId as original creator; we don't overwrite here
         title: dto.title?.trim(),
         slug,
+        propertyType: dto.propertyType,
         description: dto.description?.trim(),
         city: dto.city?.trim(),
         area: dto.area?.trim(),

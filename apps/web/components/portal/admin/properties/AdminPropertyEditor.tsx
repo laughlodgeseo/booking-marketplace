@@ -21,15 +21,16 @@ import {
 import { AdminPropertyMediaManager } from "@/components/portal/admin/properties/AdminPropertyMediaManager";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SelectableTile } from "@/components/portal/ui/SelectableTile";
-import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
+import {
+  PROPERTY_TYPE_LABELS,
+  PROPERTY_TYPE_VALUES,
+  normalizePropertyType,
+  type PropertyType,
+} from "@/lib/types/property-type";
 
-const PortalMapPicker = dynamic(
-  () => import("@/components/portal/maps/PortalMapPicker").then((mod) => mod.PortalMapPicker),
-  {
-    ssr: false,
-    loading: () => <PortalLoadingCard kind="mapPicker" />,
-  },
-);
+const PropertyLocationPicker = dynamic(() => import("@/components/maps/PropertyLocationPicker"), {
+  ssr: false,
+});
 
 type TabKey = "basics" | "location" | "amenities" | "photos" | "documents" | "review";
 
@@ -60,6 +61,7 @@ type EditableAdminProperty = AdminPropertyDetail & {
 
   title?: string;
   slug?: string;
+  propertyType?: PropertyType;
   description?: string | null;
 
   city?: string;
@@ -165,6 +167,7 @@ export function AdminPropertyEditor(props: {
   const [preview, setPreview] = useState<{ url: string; mime: string } | null>(null);
 
   const [basics, setBasics] = useState({
+    propertyType: normalizePropertyType(property.propertyType),
     title: property.title ?? "",
     slug: property.slug ?? "",
     description: property.description ?? "",
@@ -196,6 +199,7 @@ export function AdminPropertyEditor(props: {
   useEffect(() => {
     const ar = propertyTranslation(property, "ar");
     setBasics({
+      propertyType: normalizePropertyType(property.propertyType),
       title: property.title ?? "",
       slug: property.slug ?? "",
       description: property.description ?? "",
@@ -211,21 +215,7 @@ export function AdminPropertyEditor(props: {
       minNights: String(property.minNights ?? 1),
       maxNights: property.maxNights == null ? "" : String(property.maxNights),
     });
-  }, [
-    property.bathrooms,
-    property.basePrice,
-    property.bedrooms,
-    property.cleaningFee,
-    property.currency,
-    property.description,
-    property.translations,
-    property.maxGuests,
-    property.maxNights,
-    property.minNights,
-    property.slug,
-    property.title,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ]);
+  }, [property]);
 
   useEffect(() => {
     setLocation({
@@ -276,6 +266,7 @@ export function AdminPropertyEditor(props: {
 
   async function saveBasics() {
     const payload: AdminPropertyUpdateInput = {
+      propertyType: normalizePropertyType(basics.propertyType),
       title: basics.title.trim(),
       slug: basics.slug.trim(),
       description: basics.description.trim() || null,
@@ -468,10 +459,12 @@ export function AdminPropertyEditor(props: {
     }
   }
 
+  const locationLat = toOptionalNumber(location.lat);
+  const locationLng = toOptionalNumber(location.lng);
   const canSaveLocation =
     location.city.trim().length > 0 &&
-    toOptionalNumber(location.lat) !== null &&
-    toOptionalNumber(location.lng) !== null;
+    locationLat !== null &&
+    locationLng !== null;
 
   return (
     <div className="space-y-6">
@@ -496,6 +489,9 @@ export function AdminPropertyEditor(props: {
               <StatusPill status={property.status ?? "UNKNOWN"}>{property.status ?? "UNKNOWN"}</StatusPill>
               <StatusPill tone={property.createdByAdminId ? "success" : "neutral"}>
                 {property.createdByAdminId ? "Admin-owned" : "Vendor-owned"}
+              </StatusPill>
+              <StatusPill tone="neutral" className="bg-accent-soft/45">
+                {PROPERTY_TYPE_LABELS[normalizePropertyType(property.propertyType)]}
               </StatusPill>
             </div>
           </div>
@@ -538,6 +534,25 @@ export function AdminPropertyEditor(props: {
         <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
           <h3 className="text-base font-semibold text-primary">Basics</h3>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Property type">
+              <select
+                value={normalizePropertyType(basics.propertyType)}
+                onChange={(event) =>
+                  setBasics((current) => ({
+                    ...current,
+                    propertyType: normalizePropertyType(event.target.value as PropertyType),
+                  }))
+                }
+                className="h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm font-medium text-primary"
+                disabled={busy !== null}
+              >
+                {PROPERTY_TYPE_VALUES.map((value) => (
+                  <option key={value} value={value}>
+                    {PROPERTY_TYPE_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="Title">
               <input
                 value={basics.title}
@@ -722,12 +737,16 @@ export function AdminPropertyEditor(props: {
           </div>
 
           <div className="mt-4">
-            <PortalMapPicker
-              value={{
-                lat: toOptionalNumber(location.lat),
-                lng: toOptionalNumber(location.lng),
-                address: location.address || null,
-              }}
+            <PropertyLocationPicker
+              value={
+                locationLat !== null && locationLng !== null
+                  ? {
+                      lat: locationLat,
+                      lng: locationLng,
+                      address: location.address || undefined,
+                    }
+                  : undefined
+              }
               onChange={(next) =>
                 setLocation((current) => ({
                   ...current,

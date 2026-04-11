@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/http";
 import type { HttpResult } from "@/lib/http";
 import type { PortalCalendarResponse } from "@/lib/api/portal/calendar";
+import type { PropertyType } from "@/lib/types/property-type";
 
 function unwrap<T>(res: HttpResult<T>): T {
   if (!res.ok) throw new Error(res.message);
@@ -1050,6 +1051,7 @@ export type MediaCategory =
 export type AdminPropertyCreateInput = {
   title: string;
   slug: string;
+  propertyType?: PropertyType;
   description?: string | null;
 
   city: string;
@@ -1184,6 +1186,7 @@ export type AdminPropertyDetail = Record<string, unknown> & {
   id: string;
   title?: string;
   slug?: string;
+  propertyType?: PropertyType;
   status?: string;
   city?: string;
   area?: string | null;

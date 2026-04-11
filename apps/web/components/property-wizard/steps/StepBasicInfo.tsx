@@ -1,14 +1,16 @@
 "use client";
 
 import type { StepProps } from "../types";
+import type { PropertyType } from "@/lib/types/property-type";
+import { PROPERTY_TYPE_LABELS } from "@/lib/types/property-type";
 
 const PROPERTY_TYPES = [
-  { icon: "🏢", label: "Apartment", value: "apartment" },
-  { icon: "🏠", label: "Villa",     value: "villa"      },
-  { icon: "🏨", label: "Studio",    value: "studio"     },
-  { icon: "🏡", label: "Townhouse", value: "townhouse"  },
-  { icon: "🌊", label: "Penthouse", value: "penthouse"  },
-  { icon: "🛖", label: "Chalet",    value: "chalet"     },
+  { icon: "🏢", value: "APARTMENT" as PropertyType },
+  { icon: "🏠", value: "VILLA" as PropertyType },
+  { icon: "🏨", value: "STUDIO" as PropertyType },
+  { icon: "🏡", value: "TOWNHOUSE" as PropertyType },
+  { icon: "🌊", value: "PENTHOUSE" as PropertyType },
+  { icon: "🛖", value: "CHALET" as PropertyType },
 ];
 
 const INPUT = "h-11 w-full rounded-2xl border border-line/80 bg-surface px-4 text-sm text-primary shadow-sm outline-none placeholder:text-muted focus:border-brand/45 focus:ring-4 focus:ring-brand/20 transition-all";
@@ -30,21 +32,29 @@ export function StepBasicInfo({ data, patch }: StepProps) {
         </div>
         <div className="grid grid-cols-3 gap-3">
           {PROPERTY_TYPES.map((type) => {
-            const selected = data.title.toLowerCase().includes(type.value) || (type.value === "apartment");
+            const selected = data.propertyType === type.value;
             return (
               <button
                 key={type.value}
                 type="button"
+                onClick={() => patch({ propertyType: type.value })}
+                aria-pressed={selected}
                 className={[
-                  "flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-all duration-200",
+                  "group relative flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-all duration-200 active:scale-[0.99]",
                   selected
-                    ? "border-brand/40 bg-accent-soft/15 shadow-sm shadow-brand/8"
-                    : "border-line/60 bg-warm-base hover:border-brand/25 hover:bg-accent-soft/8",
+                    ? "border-brand bg-brand text-accent-text shadow-[0_12px_30px_rgba(79,70,229,0.28)] ring-2 ring-brand/30"
+                    : "border-line/60 bg-warm-base text-secondary hover:border-brand/30 hover:bg-accent-soft/10 hover:text-primary",
                 ].join(" ")}
               >
+                <span
+                  className={[
+                    "absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full transition-all",
+                    selected ? "bg-accent-text shadow-[0_0_0_4px_rgba(255,255,255,0.22)]" : "bg-line/70",
+                  ].join(" ")}
+                />
                 <span className="text-2xl">{type.icon}</span>
-                <span className={`text-xs font-semibold ${selected ? "text-brand" : "text-secondary"}`}>
-                  {type.label}
+                <span className={`text-xs font-semibold ${selected ? "text-accent-text" : "text-secondary group-hover:text-primary"}`}>
+                  {PROPERTY_TYPE_LABELS[type.value]}
                 </span>
               </button>
             );

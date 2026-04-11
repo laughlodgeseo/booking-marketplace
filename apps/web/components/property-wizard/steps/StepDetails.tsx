@@ -52,7 +52,7 @@ export function StepDetails({ data, patch }: StepProps) {
       <div>
         <h2 className="text-xl font-semibold text-primary">Property details</h2>
         <p className="mt-1 text-sm text-secondary">
-          How many guests can stay, and what's the room configuration?
+          How many guests can stay, and what&apos;s the room configuration?
         </p>
       </div>
 

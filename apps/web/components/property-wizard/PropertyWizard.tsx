@@ -22,11 +22,13 @@ import { StepAmenities } from "./steps/StepAmenities";
 import { StepPricing } from "./steps/StepPricing";
 import { StepImages } from "./steps/StepImages";
 import { StepReview } from "./steps/StepReview";
+import { normalizePropertyType, PROPERTY_TYPE_LABELS } from "@/lib/types/property-type";
 
 // -------------------------------------------------------------------
 // Default state
 // -------------------------------------------------------------------
 const DEFAULT_STATE: WizardState = {
+  propertyType: "APARTMENT",
   title: "", description: "", city: "Dubai", area: "", address: "",
   lat: null, lng: null, bedrooms: 1, bathrooms: 1, maxGuests: 2,
   selectedAmenityIds: [], basePrice: 25000, cleaningFee: 0,
@@ -35,6 +37,7 @@ const DEFAULT_STATE: WizardState = {
 
 function propertyToState(p: VendorPropertyDetail): WizardState {
   return {
+    propertyType: normalizePropertyType(p.propertyType),
     title: p.title ?? "",
     description: p.description ?? "",
     city: p.city ?? "Dubai",
@@ -100,7 +103,7 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
       const city  = data.city.trim() || "Dubai";
 
       if (stepIndex === 0) {
-        const input = { title, description: data.description.trim() || undefined, city, area: data.area.trim() || null, basePrice: data.basePrice, cleaningFee: data.cleaningFee, currency: data.currency };
+        const input = { title, propertyType: data.propertyType, description: data.description.trim() || undefined, city, area: data.area.trim() || null, basePrice: data.basePrice, cleaningFee: data.cleaningFee, currency: data.currency };
         updated = property ? await updateVendorPropertyDraft(property.id, input) : await createVendorPropertyDraft({ ...input, lat: null, lng: null });
         if (!property) onCreated?.(updated);
       } else if (stepIndex === 1 && property) {
@@ -267,6 +270,9 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
               <div className="rounded-3xl border border-line/50 bg-surface p-5 shadow-sm">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted mb-3">Your listing</div>
                 <div className="text-sm font-semibold text-primary truncate">{data.title || "Untitled"}</div>
+                <div className="mt-1 inline-flex items-center rounded-full bg-accent-soft/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
+                  {PROPERTY_TYPE_LABELS[data.propertyType]}
+                </div>
                 <div className="mt-1.5 flex items-center gap-3 text-xs text-muted">
                   <span>🛏 {data.bedrooms}</span>
                   <span>🚿 {data.bathrooms}</span>

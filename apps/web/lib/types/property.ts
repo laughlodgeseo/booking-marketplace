@@ -1,4 +1,5 @@
 import type { CurrencyCode } from "./search";
+import type { PropertyType } from "./property-type";
 
 export type MediaCategory =
   | "COVER"
@@ -67,6 +68,7 @@ export type PropertyDetail = {
   id: string;
   slug: string;
   title: string;
+  propertyType?: PropertyType;
   subtitle: string | null;
 
   description: string | null;

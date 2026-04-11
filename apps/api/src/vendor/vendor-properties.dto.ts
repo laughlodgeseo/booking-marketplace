@@ -11,7 +11,11 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { PropertyDocumentType, PropertyMediaCategory } from '@prisma/client';
+import {
+  PropertyDocumentType,
+  PropertyMediaCategory,
+  PropertyType,
+} from '@prisma/client';
 
 export type PropertyTranslationInput = {
   title?: string;
@@ -33,6 +37,10 @@ export class CreatePropertyDto {
   @IsString()
   @MaxLength(180)
   slug?: string;
+
+  @IsOptional()
+  @IsEnum(PropertyType)
+  propertyType?: PropertyType;
 
   @IsOptional()
   @IsString()
@@ -134,6 +142,10 @@ export class UpdatePropertyDto {
   @IsString()
   @MaxLength(180)
   slug?: string;
+
+  @IsOptional()
+  @IsEnum(PropertyType)
+  propertyType?: PropertyType;
 
   @IsOptional()
   @IsString()

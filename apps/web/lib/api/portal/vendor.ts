@@ -3,6 +3,7 @@ import { apiFetch } from "@/lib/http";
 import type { HttpResult } from "@/lib/http";
 import type { MediaCategory } from "@/lib/types/property";
 import type { PortalCalendarResponse } from "@/lib/api/portal/calendar";
+import type { PropertyType } from "@/lib/types/property-type";
 
 function unwrap<T>(res: HttpResult<T>): T {
   if (!res.ok) {
@@ -259,6 +260,7 @@ export type VendorPropertyDetail = {
   id: string;
   title: string;
   slug: string;
+  propertyType: PropertyType;
   description: string | null;
 
   city: string;
@@ -305,6 +307,7 @@ export type VendorPropertyDetail = {
 export type VendorPropertyDraftInput = {
   title: string;
   slug?: string;
+  propertyType?: PropertyType;
   description?: string;
 
   city: string;

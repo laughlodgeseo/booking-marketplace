@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { SearchResponse } from "@/lib/types/search";
 import { WishlistHeart } from "@/components/property/WishlistHeart";
+import { propertyTypeLabel } from "@/lib/types/property-type";
 
 type Item = SearchResponse["items"][number];
 type CardOrientation = "vertical" | "horizontal";
@@ -52,6 +53,7 @@ export default function TourmPropertyCard({
   const isHorizontal = orientation === "horizontal";
   const router = useRouter();
   const rawTitle = (item.title ?? t("defaultTitle")).trim();
+  const propertyType = propertyTypeLabel(item.propertyType);
   const titleParts = rawTitle
     .split("•")
     .map((part) => part.trim())
@@ -326,8 +328,11 @@ export default function TourmPropertyCard({
         ) : null}
       </div>
 
-      <div className={isHorizontal ? "flex flex-1 flex-col gap-3 p-4 md:p-5 lg:p-6" : "flex flex-1 flex-col gap-3 p-4 md:p-5"}>
+        <div className={isHorizontal ? "flex flex-1 flex-col gap-3 p-4 md:p-5 lg:p-6" : "flex flex-1 flex-col gap-3 p-4 md:p-5"}>
         <div className="flex-1 flex flex-col gap-2.5">
+          <div className="inline-flex items-center self-start rounded-full bg-indigo-100/85 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+            {propertyType}
+          </div>
           <h3 className="line-clamp-2 text-base font-semibold leading-snug tracking-tight text-primary md:text-xl">
             <Link href={`/properties/${item.slug}`} className="transition hover:text-secondary">
               {title}

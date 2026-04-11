@@ -403,6 +403,7 @@ export class VendorPropertiesService {
             vendorId: vendorUserId,
             title: dto.title.trim(),
             slug,
+            propertyType: dto.propertyType,
             description: dto.description?.trim() || null,
             city: dto.city.trim(),
             area: dto.area?.trim() || null,
@@ -475,6 +476,7 @@ export class VendorPropertiesService {
       data: {
         title: dto.title?.trim(),
         slug,
+        propertyType: dto.propertyType,
         description: dto.description?.trim(),
         city: dto.city?.trim(),
         area: dto.area?.trim(),

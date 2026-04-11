@@ -85,6 +85,7 @@ export default function PropertiesSearchShell(props: Props) {
           ...point,
           slug: point.slug ?? fromCard.slug,
           title: point.title ?? fromCard.title,
+          propertyType: point.propertyType ?? fromCard.propertyType,
           area: point.area ?? fromCard.location?.area ?? null,
           city: point.city ?? fromCard.location?.city ?? null,
           bedrooms: point.bedrooms ?? fromCard.capacity?.bedrooms ?? null,

@@ -29,15 +29,16 @@ import { MediaManager } from "@/components/portal/vendor/property/MediaManager";
 import { DocumentManager } from "@/components/portal/vendor/property/DocumentManager";
 import { ReviewChecklistCard, computeGates } from "@/components/portal/vendor/property/ReviewChecklistCard";
 import { SelectableTile } from "@/components/portal/ui/SelectableTile";
-import { PortalLoadingCard } from "@/components/portal/ui/PortalLoadingCard";
+import {
+  PROPERTY_TYPE_LABELS,
+  PROPERTY_TYPE_VALUES,
+  normalizePropertyType,
+  type PropertyType,
+} from "@/lib/types/property-type";
 
-const PortalMapPicker = dynamic(
-  () => import("@/components/portal/maps/PortalMapPicker").then((mod) => mod.PortalMapPicker),
-  {
-    ssr: false,
-    loading: () => <PortalLoadingCard kind="mapPicker" />,
-  },
-);
+const PropertyLocationPicker = dynamic(() => import("@/components/maps/PropertyLocationPicker"), {
+  ssr: false,
+});
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -52,6 +53,7 @@ function toDraftInput(p: VendorPropertyDetail): VendorPropertyDraftInput {
   return {
     title: p.title ?? "",
     slug: p.slug ?? "",
+    propertyType: normalizePropertyType(p.propertyType),
     description: p.description ?? "",
     city: p.city ?? "",
     area: p.area ?? null,
@@ -304,6 +306,9 @@ export default function VendorPropertyEditor(props: {
             <div className="text-lg font-semibold text-primary">{property.title || "Untitled property"}</div>
             <div className="mt-1 text-sm text-secondary">
               ID: <span className="font-mono break-all">{property.id}</span>
+            </div>
+            <div className="mt-2 inline-flex items-center rounded-full bg-accent-soft/45 px-3 py-1 text-xs font-semibold text-brand">
+              {PROPERTY_TYPE_LABELS[normalizePropertyType(property.propertyType)]}
             </div>
           </div>
 
@@ -677,6 +682,7 @@ function BasicsPanel(props: {
 }) {
   const [v, setV] = useState<VendorPropertyDraftInput>(props.value);
   const ar = v.translations?.ar ?? {};
+  const propertyType = normalizePropertyType(v.propertyType);
 
   return (
     <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
@@ -688,6 +694,26 @@ function BasicsPanel(props: {
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Property type">
+          <select
+            value={propertyType}
+            onChange={(e) =>
+              setV((p) => ({
+                ...p,
+                propertyType: normalizePropertyType(e.target.value as PropertyType),
+              }))
+            }
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-primary"
+            disabled={props.disabled}
+          >
+            {PROPERTY_TYPE_VALUES.map((value) => (
+              <option key={value} value={value}>
+                {PROPERTY_TYPE_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </Field>
+
         <Field label="Title">
           <input
             value={v.title}
@@ -990,12 +1016,12 @@ function LocationPanel(props: {
       </div>
 
       <div className="mt-4">
-        <PortalMapPicker
-          value={{
-            lat: Number.isFinite(latNum) ? latNum : null,
-            lng: Number.isFinite(lngNum) ? lngNum : null,
-            address: address.trim().length ? address.trim() : null,
-          }}
+        <PropertyLocationPicker
+          value={
+            Number.isFinite(latNum) && Number.isFinite(lngNum)
+              ? { lat: latNum, lng: lngNum, address: address || undefined }
+              : undefined
+          }
           onChange={(next) => {
             setLat(String(next.lat));
             setLng(String(next.lng));

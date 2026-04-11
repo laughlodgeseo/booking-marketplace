@@ -13,6 +13,7 @@
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
     "@lottiefiles/dotlottie-react": "^0.18.1",
+    "@react-google-maps/api": "^2.20.8",
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.10.0",
     "clsx": "^2.1.1",
@@ -39,6 +40,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.5",
+    "eslint-module-utils": "^2.12.1",
     "eslint-plugin-import": "^2.32.0",
     "tailwindcss": "^4",
     "typescript": "^5"

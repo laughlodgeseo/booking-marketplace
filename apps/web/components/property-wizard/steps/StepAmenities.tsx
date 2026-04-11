@@ -76,7 +76,7 @@ export function StepAmenities({ data, patch, fetchCatalog = getAmenitiesCatalog 
         <div>
           <h2 className="text-xl font-semibold text-primary">What does your property offer?</h2>
           <p className="mt-1 text-sm text-secondary">
-            All amenities are selected by default — simply remove what doesn't apply.
+            All amenities are selected by default — simply remove what does not apply.
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -133,13 +133,20 @@ export function StepAmenities({ data, patch, fetchCatalog = getAmenitiesCatalog 
                       key={amenity.id}
                       type="button"
                       onClick={() => toggle(amenity.id)}
+                      aria-pressed={selected}
                       className={[
-                        "flex items-center gap-2.5 rounded-2xl border px-3.5 py-3 text-left text-sm transition-all duration-200",
+                        "group relative flex items-center gap-2.5 rounded-2xl border px-3.5 py-3 text-left text-sm transition-all duration-200 active:scale-[0.99]",
                         selected
-                          ? "border-brand/35 bg-accent-soft/15 text-brand shadow-sm"
-                          : "border-line/60 bg-warm-base text-secondary hover:border-brand/25 hover:bg-accent-soft/8 hover:text-primary",
+                          ? "border-brand bg-brand text-accent-text shadow-[0_10px_24px_rgba(79,70,229,0.24)]"
+                          : "border-line/60 bg-warm-base text-secondary hover:border-brand/30 hover:bg-accent-soft/10 hover:text-primary",
                       ].join(" ")}
                     >
+                      <span
+                        className={[
+                          "absolute right-2.5 top-2.5 h-2 w-2 rounded-full transition-all",
+                          selected ? "bg-accent-text" : "bg-line/70",
+                        ].join(" ")}
+                      />
                       <span className="text-base shrink-0">
                         {amenityIcon(amenity.key, amenity.icon)}
                       </span>
