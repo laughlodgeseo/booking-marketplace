@@ -228,6 +228,12 @@ enum ActivationInvoiceStatus {
   CANCELLED
 }
 
+enum PropertyActivationPaymentStatus {
+  UNPAID
+  IN_PROGRESS
+  PAID
+}
+
 //
 // ✅ Operator Services Layer (V1) enums
 //
@@ -694,6 +700,9 @@ model Property {
   isInstantBook  Boolean @default(false)
 
   status PropertyStatus @default(DRAFT)
+  activationFee Int?
+  activationFeeCurrency String @default("USD")
+  activationPaymentStatus PropertyActivationPaymentStatus @default(UNPAID)
   reviewHistory Json @default("[]")
   lastSubmittedAt DateTime?
   lastReviewedAt DateTime?
@@ -739,6 +748,7 @@ model Property {
   @@index([city, area])
   @@index([basePrice])
   @@index([bedrooms, bathrooms, maxGuests])
+  @@index([activationPaymentStatus])
   // ✅ Search performance indexes (NEW)
   @@index([status, city, area], map: "idx_property_status_city_area")
   @@index([status, lat, lng], map: "idx_property_status_lat_lng")
@@ -1718,6 +1728,8 @@ model PropertyActivationInvoice {
 
   provider    PaymentProvider @default(MANUAL)
   providerRef String?
+  stripePaymentIntentId String?
+  lastError String?
 
   createdAt DateTime  @default(now())
   paidAt    DateTime?
@@ -1727,6 +1739,8 @@ model PropertyActivationInvoice {
   @@index([vendorId])
   @@index([status])
   @@index([propertyId, status])
+  @@index([stripePaymentIntentId])
+  @@unique([stripePaymentIntentId])
 }
 
 model ServicePlan {

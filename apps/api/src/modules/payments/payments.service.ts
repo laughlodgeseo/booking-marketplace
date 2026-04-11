@@ -36,6 +36,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsService } from '../../bookings/bookings.service';
 import { EventBusService } from '../../events/event-bus.service';
 import { DomainEventType } from '../../events/domain-events';
+import { ActivationPaymentService } from './activation-payment.service';
 import type Stripe from 'stripe';
 
 type Actor = { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
@@ -69,6 +70,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly manualProvider: ManualPaymentsProvider,
     private readonly stripeProvider: StripePaymentsProvider,
+    private readonly activationPayments: ActivationPaymentService,
     private readonly notifications: NotificationsService,
     private readonly bookings: BookingsService,
     private readonly eventBus: EventBusService,
@@ -1425,6 +1427,10 @@ export class PaymentsService {
     eventId: string;
     paymentIntent: Stripe.PaymentIntent;
   }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
+      return this.activationPayments.handleStripePaymentIntentSucceeded(args);
+    }
+
     const txResult = await this.prisma.$transaction(
       async (tx) => {
         const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
@@ -1566,6 +1572,10 @@ export class PaymentsService {
     eventId: string;
     paymentIntent: Stripe.PaymentIntent;
   }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
+      return this.activationPayments.handleStripePaymentIntentFailed(args);
+    }
+
     const txResult = await this.prisma.$transaction(async (tx) => {
       const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
       if (!ctx) return { ignored: true } as const;
@@ -1671,6 +1681,10 @@ export class PaymentsService {
     eventId: string;
     paymentIntent: Stripe.PaymentIntent;
   }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
+      return this.activationPayments.handleStripePaymentIntentProcessing(args);
+    }
+
     const txResult = await this.prisma.$transaction(async (tx) => {
       const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
       if (!ctx) return { ignored: true } as const;
@@ -1745,6 +1759,10 @@ export class PaymentsService {
     eventId: string;
     paymentIntent: Stripe.PaymentIntent;
   }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
+    if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
+      return this.activationPayments.handleStripePaymentIntentCanceled(args);
+    }
+
     const txResult = await this.prisma.$transaction(async (tx) => {
       const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
       if (!ctx) return { ignored: true } as const;

@@ -6,12 +6,11 @@ import {
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import {
-  ActivationInvoiceStatus,
   BookingStatus,
   LocaleCode,
   NotificationType,
-  PaymentProvider,
   PropertyMediaCategory,
+  PropertyActivationPaymentStatus,
   Prisma,
   PropertyDeletionRequestStatus,
   PropertyUnpublishRequestStatus,
@@ -29,6 +28,7 @@ import {
   UpdateMediaCategoryDto,
 } from '../../vendor/vendor-properties.dto';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { ActivationPaymentService } from '../../modules/payments/activation-payment.service';
 import {
   appendReviewHistoryEntry,
   computePropertyChanges,
@@ -38,6 +38,8 @@ import {
 } from '../../common/property-review-history';
 
 type ReviewDto = {
+  activationFee?: number;
+  activationFeeCurrency?: string;
   notes?: string;
   note?: string;
   reason?: string;
@@ -49,6 +51,7 @@ export class AdminPropertiesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly activationPayments: ActivationPaymentService,
   ) {}
 
   // -------------------------
@@ -237,15 +240,29 @@ export class AdminPropertiesService {
     return issues;
   }
 
-  private activationDepositAmountMinor(): number {
-    const raw = Number(process.env.ACTIVATION_DEPOSIT_AMOUNT_MINOR || '25000');
-    if (!Number.isFinite(raw) || raw < 0) return 25000;
-    return Math.trunc(raw);
+  private parseActivationFeeMinor(input: unknown): number {
+    const parsed = typeof input === 'number' ? input : Number(input);
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException(
+        'activationFee is required and must be a positive integer in minor units.',
+      );
+    }
+    return parsed;
   }
 
-  private activationDepositCurrency(): string {
-    const v = (process.env.ACTIVATION_DEPOSIT_CURRENCY || 'AED').trim();
-    return v.length > 0 ? v : 'AED';
+  private normalizeActivationCurrency(input: unknown): string {
+    const normalized =
+      typeof input === 'string' && input.trim().length > 0
+        ? input.trim().toUpperCase()
+        : 'USD';
+
+    if (!/^[A-Z]{3}$/.test(normalized)) {
+      throw new BadRequestException(
+        'activationFeeCurrency must be a 3-letter currency code.',
+      );
+    }
+
+    return normalized;
   }
 
   private normalizeTranslationString(input: unknown): string | null {
@@ -495,6 +512,7 @@ export class AdminPropertiesService {
             status: publishNow
               ? PropertyStatus.PUBLISHED
               : PropertyStatus.APPROVED,
+            activationPaymentStatus: PropertyActivationPaymentStatus.PAID,
           },
           include: {
             media: { orderBy: { sortOrder: 'asc' } },
@@ -1157,26 +1175,47 @@ export class AdminPropertiesService {
         );
       }
 
-      const requiresActivation = !prop.createdByAdminId;
+      const wasActivationPaid =
+        prop.activationPaymentStatus === PropertyActivationPaymentStatus.PAID;
+      const requiresActivation = !prop.createdByAdminId && !wasActivationPaid;
+      const activationFeeMinor = requiresActivation
+        ? this.parseActivationFeeMinor(dto.activationFee)
+        : null;
+      const activationCurrency = requiresActivation
+        ? this.normalizeActivationCurrency(dto.activationFeeCurrency)
+        : null;
+
       const nextStatus = requiresActivation
         ? PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT
         : PropertyStatus.APPROVED;
       const snapshot = await this.buildReviewSnapshot(tx, propertyId);
       const now = new Date();
 
+      const propertyUpdateData: Prisma.PropertyUpdateInput = {
+        status: nextStatus,
+        lastReviewedAt: now,
+        reviewHistory: appendReviewHistoryEntry(prop.reviewHistory, {
+          action: 'APPROVED',
+          note,
+          adminId,
+          createdAt: now,
+          snapshot,
+        }),
+      };
+
+      if (requiresActivation && activationFeeMinor && activationCurrency) {
+        propertyUpdateData.activationFee = activationFeeMinor;
+        propertyUpdateData.activationFeeCurrency = activationCurrency;
+        propertyUpdateData.activationPaymentStatus =
+          PropertyActivationPaymentStatus.UNPAID;
+      } else if (prop.createdByAdminId) {
+        propertyUpdateData.activationPaymentStatus =
+          PropertyActivationPaymentStatus.PAID;
+      }
+
       const updated = await tx.property.update({
         where: { id: propertyId },
-        data: {
-          status: nextStatus,
-          lastReviewedAt: now,
-          reviewHistory: appendReviewHistoryEntry(prop.reviewHistory, {
-            action: 'APPROVED',
-            note,
-            adminId,
-            createdAt: now,
-            snapshot,
-          }),
-        },
+        data: propertyUpdateData,
       });
 
       await tx.propertyReview.create({
@@ -1189,40 +1228,27 @@ export class AdminPropertiesService {
         },
       });
 
-      if (requiresActivation) {
-        const existingInvoice = await tx.propertyActivationInvoice.findFirst({
-          where: {
-            propertyId,
-            vendorId: prop.vendorId,
-            status: {
-              in: [
-                ActivationInvoiceStatus.PENDING,
-                ActivationInvoiceStatus.PROCESSING,
-              ],
-            },
-          },
-          orderBy: [{ createdAt: 'desc' }],
-          select: { id: true },
-        });
-
-        if (!existingInvoice) {
-          await tx.propertyActivationInvoice.create({
-            data: {
-              propertyId,
-              vendorId: prop.vendorId,
-              amount: this.activationDepositAmountMinor(),
-              currency: this.activationDepositCurrency(),
-              status: ActivationInvoiceStatus.PENDING,
-              provider: PaymentProvider.MANUAL,
-            },
-          });
-        }
-      }
-
-      return { ok: true, item: updated, requiresActivation };
+      return {
+        ok: true,
+        item: updated,
+        requiresActivation,
+        activationFeeMinor,
+        activationCurrency,
+      };
     });
 
-    if (result.requiresActivation) {
+    if (
+      result.requiresActivation &&
+      result.activationFeeMinor &&
+      result.activationCurrency
+    ) {
+      await this.activationPayments.ensurePendingInvoice({
+        propertyId,
+        vendorId: result.item.vendorId,
+        amount: result.activationFeeMinor,
+        currency: result.activationCurrency,
+      });
+
       await this.notifications.emit({
         type: NotificationType.PROPERTY_APPROVED_ACTIVATION_REQUIRED,
         entityType: 'property',
@@ -1232,8 +1258,8 @@ export class AdminPropertiesService {
           propertyId,
           title: result.item.title,
           status: result.item.status,
-          activationAmount: this.activationDepositAmountMinor(),
-          currency: this.activationDepositCurrency(),
+          activationAmount: result.activationFeeMinor,
+          currency: result.activationCurrency,
           actionUrl: `/vendor/properties/${propertyId}/activation`,
         },
       });

@@ -223,6 +223,8 @@ export type VendorPropertyActivationInvoice = {
   status: "PENDING" | "PROCESSING" | "PAID" | "FAILED" | "CANCELLED";
   provider: "STRIPE" | "MANUAL" | "OTHER";
   providerRef: string | null;
+  stripePaymentIntentId: string | null;
+  lastError: string | null;
   createdAt: string;
   paidAt: string | null;
   updatedAt: string;
@@ -888,12 +890,18 @@ export async function getVendorPropertyActivation(
 ): Promise<{
   propertyId: string;
   propertyStatus: VendorPropertyStatus;
+  activationFee: number | null;
+  activationFeeCurrency: string;
+  activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
   activationRequired: boolean;
   invoice: VendorPropertyActivationInvoice | null;
 }> {
   const res = await apiFetch<{
     propertyId: string;
     propertyStatus: VendorPropertyStatus;
+    activationFee: number | null;
+    activationFeeCurrency: string;
+    activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
     activationRequired: boolean;
     invoice: VendorPropertyActivationInvoice | null;
   }>(`/vendor/properties/${encodeURIComponent(propertyId)}/activation`, {
@@ -901,6 +909,45 @@ export async function getVendorPropertyActivation(
     credentials: "include",
     cache: "no-store",
   });
+  return unwrap(res);
+}
+
+export async function createVendorActivationPaymentIntent(
+  propertyId: string,
+  input?: { idempotencyKey?: string }
+): Promise<{
+  propertyId: string;
+  propertyStatus: VendorPropertyStatus;
+  activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
+  invoice: VendorPropertyActivationInvoice;
+  clientSecret: string;
+  paymentIntentId: string;
+  publishableKey: string | null;
+  reused: boolean;
+}> {
+  const headers: Record<string, string> = {};
+  const idempotencyKey = input?.idempotencyKey?.trim();
+  if (idempotencyKey) {
+    headers["Idempotency-Key"] = idempotencyKey;
+  }
+
+  const res = await apiFetch<{
+    propertyId: string;
+    propertyStatus: VendorPropertyStatus;
+    activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
+    invoice: VendorPropertyActivationInvoice;
+    clientSecret: string;
+    paymentIntentId: string;
+    publishableKey: string | null;
+    reused: boolean;
+  }>(`/vendor/properties/${encodeURIComponent(propertyId)}/pay-activation`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers,
+    body: {},
+  });
+
   return unwrap(res);
 }
 

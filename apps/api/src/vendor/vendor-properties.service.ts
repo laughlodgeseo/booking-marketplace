@@ -11,6 +11,7 @@ import {
   LocaleCode,
   PaymentProvider,
   Prisma,
+  PropertyActivationPaymentStatus,
   PropertyDeletionRequestStatus,
   PropertyUnpublishRequestStatus,
   PropertyMediaCategory,
@@ -33,6 +34,7 @@ import {
 } from './vendor-properties.dto';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PROPERTY_DOCUMENT_REQUIREMENTS } from '../modules/properties/property-document-requirements';
+import { ActivationPaymentService } from '../modules/payments/activation-payment.service';
 import {
   appendReviewHistoryEntry,
   computePropertyChanges,
@@ -43,7 +45,10 @@ import {
 
 @Injectable()
 export class VendorPropertiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly activationPayments: ActivationPaymentService,
+  ) {}
 
   /* ---------------------------------------------
    * Utilities
@@ -841,17 +846,6 @@ export class VendorPropertiesService {
     };
   }
 
-  private activationDepositAmountMinor(): number {
-    const raw = Number(process.env.ACTIVATION_DEPOSIT_AMOUNT_MINOR || '25000');
-    if (!Number.isFinite(raw) || raw < 0) return 25000;
-    return Math.trunc(raw);
-  }
-
-  private activationDepositCurrency(): string {
-    const v = (process.env.ACTIVATION_DEPOSIT_CURRENCY || 'AED').trim();
-    return v.length > 0 ? v : 'AED';
-  }
-
   private serializeActivationInvoice(
     invoice: {
       id: string;
@@ -862,6 +856,8 @@ export class VendorPropertiesService {
       status: ActivationInvoiceStatus;
       provider: PaymentProvider;
       providerRef: string | null;
+      stripePaymentIntentId: string | null;
+      lastError: string | null;
       createdAt: Date;
       paidAt: Date | null;
       updatedAt: Date;
@@ -889,6 +885,9 @@ export class VendorPropertiesService {
     return {
       propertyId: prop.id,
       propertyStatus: prop.status,
+      activationFee: prop.activationFee ?? null,
+      activationFeeCurrency: prop.activationFeeCurrency,
+      activationPaymentStatus: prop.activationPaymentStatus,
       activationRequired:
         prop.status === PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT,
       invoice: this.serializeActivationInvoice(latest),
@@ -908,45 +907,54 @@ export class VendorPropertiesService {
       );
     }
 
-    const existing = await this.prisma.propertyActivationInvoice.findFirst({
-      where: {
-        propertyId,
-        vendorId: vendorUserId,
-        status: {
-          in: [
-            ActivationInvoiceStatus.PENDING,
-            ActivationInvoiceStatus.PROCESSING,
-          ],
-        },
-      },
-      orderBy: [{ createdAt: 'desc' }],
-    });
-
-    if (existing) {
-      return {
-        propertyId: prop.id,
-        propertyStatus: prop.status,
-        invoice: this.serializeActivationInvoice(existing),
-      };
+    const activationFee = prop.activationFee;
+    if (
+      activationFee == null ||
+      !Number.isInteger(activationFee) ||
+      activationFee <= 0
+    ) {
+      throw new BadRequestException(
+        'Activation fee is not configured. Ask admin to approve with a valid activation fee.',
+      );
     }
 
-    const created = await this.prisma.propertyActivationInvoice.create({
-      data: {
-        propertyId: prop.id,
-        vendorId: vendorUserId,
-        amount: this.activationDepositAmountMinor(),
-        currency: this.activationDepositCurrency(),
-        provider: input?.provider ?? PaymentProvider.MANUAL,
-        providerRef: input?.providerRef?.trim() || null,
-        status: ActivationInvoiceStatus.PENDING,
-      },
+    const ensured = await this.activationPayments.ensurePendingInvoice({
+      propertyId: prop.id,
+      vendorId: vendorUserId,
+      amount: activationFee,
+      currency: prop.activationFeeCurrency,
     });
+
+    const provider = input?.provider ?? PaymentProvider.STRIPE;
+    const invoice =
+      provider === PaymentProvider.STRIPE
+        ? ensured
+        : await this.prisma.propertyActivationInvoice.update({
+            where: { id: ensured.id },
+            data: {
+              provider,
+              providerRef: input?.providerRef?.trim() || null,
+            },
+          });
 
     return {
       propertyId: prop.id,
       propertyStatus: prop.status,
-      invoice: this.serializeActivationInvoice(created),
+      invoice: this.serializeActivationInvoice(invoice),
     };
+  }
+
+  async payActivation(
+    vendorUserId: string,
+    propertyId: string,
+    input?: { idempotencyKey?: string | null },
+  ) {
+    await this.assertOwnership(vendorUserId, propertyId);
+    return this.activationPayments.createOrReuseStripePaymentIntent({
+      propertyId,
+      vendorId: vendorUserId,
+      idempotencyKey: input?.idempotencyKey,
+    });
   }
 
   async confirmActivationManual(
@@ -989,10 +997,14 @@ export class VendorPropertiesService {
     }
 
     if (targetInvoice.status === ActivationInvoiceStatus.PAID) {
+      const latestProperty = await this.prisma.property.findUnique({
+        where: { id: prop.id },
+        select: { status: true },
+      });
       return {
         ok: true,
         invoice: this.serializeActivationInvoice(targetInvoice),
-        propertyStatus: PropertyStatus.APPROVED,
+        propertyStatus: latestProperty?.status ?? prop.status,
       };
     }
 
@@ -1009,7 +1021,10 @@ export class VendorPropertiesService {
 
       const updatedProperty = await tx.property.update({
         where: { id: prop.id },
-        data: { status: PropertyStatus.APPROVED },
+        data: {
+          status: PropertyStatus.PUBLISHED,
+          activationPaymentStatus: PropertyActivationPaymentStatus.PAID,
+        },
         select: { status: true },
       });
 
@@ -1026,13 +1041,19 @@ export class VendorPropertiesService {
   async publish(vendorUserId: string, propertyId: string) {
     const prop = await this.assertOwnership(vendorUserId, propertyId);
 
-    if (prop.status === PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT) {
+    if (
+      prop.status === PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT &&
+      prop.activationPaymentStatus !== PropertyActivationPaymentStatus.PAID
+    ) {
       throw new BadRequestException(
         'Activation payment is required before publishing.',
       );
     }
 
-    if (prop.status !== PropertyStatus.APPROVED) {
+    if (
+      prop.status !== PropertyStatus.APPROVED &&
+      prop.status !== PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT
+    ) {
       throw new BadRequestException(
         'Property must be approved before publishing.',
       );

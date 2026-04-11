@@ -9,9 +9,10 @@ import { AdminReviewsService } from './reviews/admin-reviews.service';
 import { AdminPricingController } from './pricing/admin-pricing.controller';
 import { NotificationsModule } from '../modules/notifications/notifications.module';
 import { PricingModule } from '../modules/pricing/pricing.module';
+import { PaymentsModule } from '../modules/payments/payments.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, PricingModule],
+  imports: [PrismaModule, NotificationsModule, PricingModule, PaymentsModule],
   controllers: [
     AdminPropertiesController,
     AdminVendorsController,

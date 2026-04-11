@@ -8,7 +8,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
-  approveAdminProperty,
+  approveAdminPropertyWithActivationFee,
   getAdminPropertyChanges,
   type AdminPropertyChange,
   type AdminPropertyChangesResponse,
@@ -84,6 +84,7 @@ export default function AdminReviewQueueDetailPage() {
   });
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [activationFeeMajor, setActivationFeeMajor] = useState("50.00");
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -168,7 +169,20 @@ export default function AdminReviewQueueDetailPage() {
     setError(null);
     setBusy("Approving...");
     try {
-      await approveAdminProperty(propertyId);
+      const parsedMajor = Number(activationFeeMajor);
+      if (!Number.isFinite(parsedMajor) || parsedMajor <= 0) {
+        throw new Error("Activation fee must be a positive amount.");
+      }
+      const activationFee = Math.round(parsedMajor * 100);
+      if (!Number.isInteger(activationFee) || activationFee <= 0) {
+        throw new Error("Activation fee must be a valid amount.");
+      }
+
+      await approveAdminPropertyWithActivationFee(propertyId, {
+        activationFee,
+        activationFeeCurrency: "USD",
+        notes: note.trim() || undefined,
+      });
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Approve failed");
@@ -279,6 +293,14 @@ export default function AdminReviewQueueDetailPage() {
                   rows={3}
                   placeholder="Optional admin note for reject/request-changes"
                   className="mt-2 w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary"
+                />
+                <div className="mt-4 text-xs font-semibold text-muted">Activation fee (USD)</div>
+                <input
+                  value={activationFeeMajor}
+                  onChange={(event) => setActivationFeeMajor(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="50.00"
+                  className="mt-2 h-11 w-full rounded-xl border border-line/80 bg-surface px-3 text-sm text-primary"
                 />
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button

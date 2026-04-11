@@ -11,7 +11,6 @@ import { Toolbar } from "@/components/portal/ui/Toolbar";
 import { EmptyState } from "@/components/portal/ui/EmptyState";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
 import {
-  approveAdminProperty,
   getAdminReviewQueue,
   type AdminReviewQueueItem,
   type ReviewQueueStatus,
@@ -25,6 +24,7 @@ type LoadState =
 function toneForStatus(s: ReviewQueueStatus): "neutral" | "success" | "warning" | "danger" {
   if (s === "APPROVED") return "success";
   if (s === "UNDER_REVIEW") return "warning";
+  if (s === "APPROVED_PENDING_ACTIVATION_PAYMENT") return "warning";
   if (s === "CHANGES_REQUESTED") return "danger";
   if (s === "REJECTED") return "danger";
   return "neutral";
@@ -34,16 +34,11 @@ function safeLower(v: string | null | undefined): string {
   return (v ?? "").toLowerCase();
 }
 
-function canApprove(status: ReviewQueueStatus): boolean {
-  return status === "UNDER_REVIEW";
-}
-
 export default function AdminReviewQueuePage() {
   const [status, setStatus] = useState<ReviewQueueStatus>("UNDER_REVIEW");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
 
-  const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
@@ -156,7 +151,13 @@ export default function AdminReviewQueuePage() {
     []
   );
 
-  const statusTabs: ReviewQueueStatus[] = ["UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "REJECTED"];
+  const statusTabs: ReviewQueueStatus[] = [
+    "UNDER_REVIEW",
+    "CHANGES_REQUESTED",
+    "APPROVED_PENDING_ACTIVATION_PAYMENT",
+    "APPROVED",
+    "REJECTED",
+  ];
 
   return (
     <RequireAuth>
@@ -164,11 +165,6 @@ export default function AdminReviewQueuePage() {
         role="admin"
         title="Review Queue"
         subtitle="Approve, reject, or request changes for vendor listings."
-        right={
-          busy ? (
-            <div className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-accent-text">{busy}</div>
-          ) : null
-        }
       >
         <div className="space-y-6">
           <Toolbar
@@ -232,25 +228,6 @@ export default function AdminReviewQueuePage() {
                   >
                     Review
                   </Link>
-
-                  {canApprove(row.status) ? (
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          setBusy("Approving…");
-                          try {
-                            await approveAdminProperty(row.id);
-                            await load();
-                          } finally {
-                            setBusy(null);
-                          }
-                        })();
-                      }}
-                      className="rounded-2xl bg-brand px-3 py-2 text-sm font-semibold text-accent-text shadow-sm hover:opacity-95"
-                    >
-                      Approve
-                    </button>
-                  ) : null}
                 </>
               )}
             />

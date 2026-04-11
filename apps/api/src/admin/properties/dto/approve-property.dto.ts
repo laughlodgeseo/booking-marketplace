@@ -1,6 +1,23 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  Matches,
+} from 'class-validator';
 
 export class ApprovePropertyDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  activationFee?: number;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-zA-Z]{3}$/)
+  activationFeeCurrency?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(2000)

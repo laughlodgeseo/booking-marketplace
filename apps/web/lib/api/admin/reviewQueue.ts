@@ -11,7 +11,12 @@ function unwrap<T>(res: HttpResult<T>): T {
   return res.data;
 }
 
-export type ReviewQueueStatus = "UNDER_REVIEW" | "CHANGES_REQUESTED" | "APPROVED" | "REJECTED";
+export type ReviewQueueStatus =
+  | "UNDER_REVIEW"
+  | "CHANGES_REQUESTED"
+  | "APPROVED"
+  | "APPROVED_PENDING_ACTIVATION_PAYMENT"
+  | "REJECTED";
 
 export type ReviewHistoryAction =
   | "SUBMITTED"
@@ -159,10 +164,38 @@ export async function getAdminReviewQueue(params?: {
  * ✅ Backend verified: POST /admin/properties/:id/approve
  */
 export async function approveAdminProperty(propertyId: string): Promise<AdminReviewQueueItem> {
+  const body: Record<string, unknown> = {};
   const res = await apiFetch<Record<string, unknown>>(`/admin/properties/${encodeURIComponent(propertyId)}/approve`, {
     method: "POST",
     credentials: "include",
     cache: "no-store",
+    body,
+  });
+  const raw = unwrap(res);
+  const item = asRecord(raw.item ?? raw);
+  if (!item) throw new Error("Invalid approve response");
+  return mapItem(item);
+}
+
+export async function approveAdminPropertyWithActivationFee(
+  propertyId: string,
+  input: { activationFee: number; activationFeeCurrency?: string; notes?: string }
+): Promise<AdminReviewQueueItem> {
+  const body: Record<string, unknown> = {
+    activationFee: input.activationFee,
+  };
+  if (typeof input.activationFeeCurrency === "string" && input.activationFeeCurrency.trim()) {
+    body.activationFeeCurrency = input.activationFeeCurrency.trim();
+  }
+  if (typeof input.notes === "string" && input.notes.trim()) {
+    body.notes = input.notes.trim();
+  }
+
+  const res = await apiFetch<Record<string, unknown>>(`/admin/properties/${encodeURIComponent(propertyId)}/approve`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body,
   });
   const raw = unwrap(res);
   const item = asRecord(raw.item ?? raw);

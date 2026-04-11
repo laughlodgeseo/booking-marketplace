@@ -8,6 +8,7 @@ import { BookingsModule } from '../../bookings/bookings.module';
 import { PaymentsController } from './payments.controller';
 import { PaymentsWebhooksController } from './payments.webhooks.controller';
 import { PaymentsService } from './payments.service';
+import { ActivationPaymentService } from './activation-payment.service';
 
 import { ManualPaymentsProvider } from './providers/manual.provider';
 import { StripePaymentsProvider } from './providers/stripe.provider';
@@ -23,7 +24,12 @@ import { QUEUE_NAMES } from '../../infra/queues/queues.constants';
     BullModule.registerQueue({ name: QUEUE_NAMES.STRIPE_WEBHOOK }),
   ],
   controllers: [PaymentsController, PaymentsWebhooksController],
-  providers: [PaymentsService, ManualPaymentsProvider, StripePaymentsProvider],
-  exports: [PaymentsService],
+  providers: [
+    PaymentsService,
+    ActivationPaymentService,
+    ManualPaymentsProvider,
+    StripePaymentsProvider,
+  ],
+  exports: [PaymentsService, ActivationPaymentService, StripePaymentsProvider],
 })
 export class PaymentsModule {}

@@ -5,6 +5,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -239,6 +240,18 @@ export class VendorPropertiesController {
   ) {
     this.assertVendor(req.user);
     return this.service.getActivationStatus(req.user.id, id);
+  }
+
+  @Post(':id/pay-activation')
+  async payActivation(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    this.assertVendor(req.user);
+    return this.service.payActivation(req.user.id, id, {
+      idempotencyKey,
+    });
   }
 
   @Post(':id/activation/invoice')

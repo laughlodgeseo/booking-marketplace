@@ -19,6 +19,7 @@ import { ManualPaymentsProvider } from './providers/manual.provider';
 import { StripePaymentsProvider } from './providers/stripe.provider';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsService } from '../../bookings/bookings.service';
+import { ActivationPaymentService } from './activation-payment.service';
 
 function buildPaymentsService(overrides?: {
   prisma?: Partial<PrismaService>;
@@ -76,10 +77,27 @@ function buildPaymentsService(overrides?: {
     subscribe: jest.fn(),
   } as unknown as import('./../../events/event-bus.service').EventBusService;
 
+  const activationPayments = {
+    isActivationPaymentIntent: jest.fn().mockReturnValue(false),
+    handleStripePaymentIntentSucceeded: jest
+      .fn()
+      .mockResolvedValue({ ok: true, reused: false, ignored: true }),
+    handleStripePaymentIntentFailed: jest
+      .fn()
+      .mockResolvedValue({ ok: true, reused: false, ignored: true }),
+    handleStripePaymentIntentProcessing: jest
+      .fn()
+      .mockResolvedValue({ ok: true, reused: false, ignored: true }),
+    handleStripePaymentIntentCanceled: jest
+      .fn()
+      .mockResolvedValue({ ok: true, reused: false, ignored: true }),
+  } as unknown as ActivationPaymentService;
+
   const service = new PaymentsService(
     prisma,
     manual,
     stripe,
+    activationPayments,
     notifications,
     bookings,
     eventBus,
@@ -507,6 +525,13 @@ describe('PaymentsService', () => {
         prisma,
         {} as ManualPaymentsProvider,
         {} as StripePaymentsProvider,
+        {
+          isActivationPaymentIntent: jest.fn().mockReturnValue(false),
+          handleStripePaymentIntentSucceeded: jest.fn(),
+          handleStripePaymentIntentFailed: jest.fn(),
+          handleStripePaymentIntentProcessing: jest.fn(),
+          handleStripePaymentIntentCanceled: jest.fn(),
+        } as unknown as ActivationPaymentService,
         {
           emit: jest.fn().mockResolvedValue(undefined),
         } as unknown as NotificationsService,
