@@ -489,6 +489,18 @@ describe('PaymentsService', () => {
           ) => fn(tx),
         ),
         customerDocument: { findMany: jest.fn().mockResolvedValue([]) },
+        booking: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: bookingId,
+            payment: {
+              id: paymentId,
+              amount: 1000,
+              currency: 'AED',
+              provider: PaymentProvider.STRIPE,
+            },
+            property: { vendorId: 'vendor_1' },
+          }),
+        },
       } as unknown as PrismaService;
 
       const service = new PaymentsService(

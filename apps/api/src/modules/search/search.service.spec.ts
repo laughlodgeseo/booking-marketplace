@@ -226,7 +226,11 @@ function setupSearchService(
     }),
   };
 
-  const prisma = { property } as unknown as PrismaService;
+  const pricingRule = {
+    findMany: jest.fn().mockResolvedValue([]),
+  };
+
+  const prisma = { property, pricingRule } as unknown as PrismaService;
   const quoteCurrency = options?.quoteCurrency ?? 'AED';
   const rate = options?.rate ?? 1;
   const fxRates = {
