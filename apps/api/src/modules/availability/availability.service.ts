@@ -2,8 +2,14 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
-import { BookingStatus, CalendarDayStatus, HoldStatus } from '@prisma/client';
+import {
+  BookingStatus,
+  CalendarDayStatus,
+  HoldStatus,
+  PropertyStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FxRatesService } from '../fx/fx-rates.service';
 import { PricingService } from '../pricing/pricing.service';
@@ -390,6 +396,17 @@ export class AvailabilityService {
         SELECT 1 as ok
       `;
 
+      // SECURITY: Verify property is published inside the lock so the check is
+      // atomic with the hold creation. Prevents holds on draft/pending listings.
+      const propertyForHold = await tx.property.findUnique({
+        where: { id: propertyId },
+        select: { status: true },
+      });
+      if (!propertyForHold) throw new NotFoundException('Property not found.');
+      if (propertyForHold.status !== PropertyStatus.PUBLISHED) {
+        throw new ForbiddenException('Property is not available for booking.');
+      }
+
       const nights = enumerateNights(checkIn, checkOut);
       if (nights.length <= 0)
         throw new BadRequestException('Invalid date range.');
@@ -521,6 +538,12 @@ export class AvailabilityService {
     });
 
     if (!property) throw new BadRequestException('Property not found.');
+
+    // SECURITY: Only PUBLISHED properties can be quoted or booked.
+    // Prevents pricing data disclosure and holds on draft/pending/suspended listings.
+    if (property.status !== PropertyStatus.PUBLISHED) {
+      throw new ForbiddenException('Property is not available for booking.');
+    }
 
     const guests = dto.guests ?? null;
     const reasons: string[] = [];

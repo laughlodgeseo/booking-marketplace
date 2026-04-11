@@ -1976,3 +1976,22 @@ model PromoCode {
   @@index([code])
   @@index([isActive, validFrom, validTo])
 }
+
+// ── Event Outbox (Phase 3) ────────────────────────────────────────────────────
+// Durable event log for domain events.
+// Background worker polls unprocessed events and pushes them to BullMQ queues,
+// surviving server restarts and ensuring no event is silently dropped.
+
+model EventOutbox {
+  id      String @id @default(cuid())
+  type    String
+  payload String // JSON-encoded event payload
+  processed    Boolean   @default(false)
+  attempts     Int       @default(0)
+  lastAttemptAt DateTime?
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([processed, createdAt])
+  @@index([type, processed])
+}

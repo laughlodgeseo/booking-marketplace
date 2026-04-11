@@ -71,12 +71,18 @@ function buildPaymentsService(overrides?: {
   } as unknown as NotificationsService;
   const bookings = {} as BookingsService;
 
+  const eventBus = {
+    publish: jest.fn(),
+    subscribe: jest.fn(),
+  } as unknown as import('./../../events/event-bus.service').EventBusService;
+
   const service = new PaymentsService(
     prisma,
     manual,
     stripe,
     notifications,
     bookings,
+    eventBus,
   );
 
   return { service, prisma, stripe, notifications };
@@ -493,6 +499,7 @@ describe('PaymentsService', () => {
           emit: jest.fn().mockResolvedValue(undefined),
         } as unknown as NotificationsService,
         {} as BookingsService,
+        { publish: jest.fn(), subscribe: jest.fn() } as unknown as import('./../../events/event-bus.service').EventBusService,
       );
 
       jest

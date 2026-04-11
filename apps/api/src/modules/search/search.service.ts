@@ -650,28 +650,126 @@ export class SearchService {
       );
     }
 
+    // ── Batch Pricing Rules ───────────────────────────────────────────────────
+    // When dates are provided we need rule-adjusted prices for the search cards.
+    // A single batch query avoids N+1 per property; in-memory computation is O(N*M).
+    type SearchPricingRule = {
+      propertyId: string;
+      startDate: Date;
+      endDate: Date;
+      priceMultiplier: number;
+      fixedPrice: number | null;
+      priority: number;
+    };
+
+    // Map<propertyId, sorted-by-priority-desc rules[]>
+    const rulesMap = new Map<string, SearchPricingRule[]>();
+
+    if (stay && dateInfo.checkIn && dateInfo.checkOut && rows.length > 0) {
+      const propertyIds = rows.map((r) => r.id);
+      const allRules = await this.prisma.pricingRule.findMany({
+        where: {
+          propertyId: { in: propertyIds },
+          isActive: true,
+          startDate: { lte: dateInfo.checkOut },
+          endDate: { gte: dateInfo.checkIn },
+        },
+        select: {
+          propertyId: true,
+          startDate: true,
+          endDate: true,
+          priceMultiplier: true,
+          fixedPrice: true,
+          priority: true,
+        },
+        orderBy: { priority: 'desc' },
+      });
+
+      for (const rule of allRules) {
+        if (!rulesMap.has(rule.propertyId)) rulesMap.set(rule.propertyId, []);
+        rulesMap.get(rule.propertyId)!.push({
+          propertyId: rule.propertyId,
+          startDate: rule.startDate,
+          endDate: rule.endDate,
+          priceMultiplier: Number(rule.priceMultiplier),
+          fixedPrice:
+            rule.fixedPrice !== null ? Number(rule.fixedPrice) : null,
+          priority: Number(rule.priority),
+        });
+      }
+    }
+
+    /**
+     * Compute the rule-adjusted nightly total for a property over a date range.
+     * Mirrors PricingService.calculateTotal logic but uses the pre-fetched rules map.
+     * Returns { nightlySum, avgNightlyPrice } in AED.
+     */
+    const computeRuleAdjustedNightlyAed = (
+      propertyId: string,
+      basePrice: number,
+      checkIn: Date,
+      checkOut: Date,
+    ): { nightlySum: number; avgNightlyPrice: number } => {
+      const rules = rulesMap.get(propertyId) ?? [];
+      let nightlySum = 0;
+      let nightCount = 0;
+
+      const cur = new Date(checkIn);
+      while (cur < checkOut) {
+        const matchingRule = rules.find(
+          (r) => cur >= r.startDate && cur <= r.endDate,
+        );
+        const price = matchingRule
+          ? (matchingRule.fixedPrice ??
+            Math.round(basePrice * matchingRule.priceMultiplier))
+          : basePrice;
+        nightlySum += price;
+        nightCount += 1;
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      const avgNightlyPrice =
+        nightCount > 0 ? Math.round(nightlySum / nightCount) : basePrice;
+      return { nightlySum, avgNightlyPrice };
+    };
+
     const items = rows.map((p) => {
       const translation = this.pickTranslation(p.translations, locale);
       const cover = p.media?.[0] ?? null;
-      const nightlyDisplay = this.toDisplayAmount(p.basePrice, fx.rate);
       const cleaningFeeDisplay = this.toDisplayAmount(p.cleaningFee, fx.rate);
-      const totalForStayAed = stay
-        ? p.basePrice * stay.nights + p.cleaningFee
-        : undefined;
+
+      // Compute rule-adjusted prices when dates are available.
+      let nightlyAed = p.basePrice;
+      let totalForStayAed: number | undefined;
+
+      if (stay && dateInfo.checkIn && dateInfo.checkOut) {
+        const { nightlySum, avgNightlyPrice } = computeRuleAdjustedNightlyAed(
+          p.id,
+          p.basePrice,
+          dateInfo.checkIn,
+          dateInfo.checkOut,
+        );
+        nightlyAed = avgNightlyPrice;
+        totalForStayAed = nightlySum + p.cleaningFee;
+      }
+
+      const nightlyDisplay = this.toDisplayAmount(nightlyAed, fx.rate);
       const totalForStayDisplay =
         typeof totalForStayAed === 'number'
           ? this.toDisplayAmount(totalForStayAed, fx.rate)
           : undefined;
 
-      // Portal-driven pricing:
-      // - always return nightly base
-      // - if stay provided: also return total for stay (base*nights + cleaning)
+      // Flag whether pricing rules affected the shown price, so the UI
+      // can optionally render "prices may vary per night" messaging.
+      const hasPricingRules = (rulesMap.get(p.id) ?? []).length > 0;
+
       const price = {
         nightly: nightlyDisplay,
         cleaningFee: cleaningFeeDisplay,
         currency: displayCurrency,
-        nightlyAed: p.basePrice,
+        nightlyAed,
         cleaningFeeAed: p.cleaningFee,
+        hasPricingRules,
         ...(stay
           ? {
               totalForStay: totalForStayDisplay,

@@ -18,8 +18,25 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AdminModule } from './admin/admin.module';
 import { PortalModule } from './portal/portal.module';
 
+// Workers
 import { BookingExpiryWorker } from './workers/booking-expiry.worker';
 import { BookingCompletionWorker } from './workers/booking-completion.worker';
+import { RefundAutoProcessorWorker } from './workers/refund-auto-processor.worker';
+import { AutoPayoutWorker } from './workers/auto-payout.worker';
+import { EventOutboxWorker } from './workers/event-outbox.worker';
+
+// Phase 2 — Event Bus
+import { EventsModule } from './events/events.module';
+
+// Phase 3 — Infrastructure layer
+import { RedisModule } from './infra/redis/redis.module';
+import { QueueModule } from './infra/queues/queue.module';
+import { StorageModule } from './infra/storage/storage.module';
+import { CacheInvalidationModule } from './infra/cache-invalidation/cache-invalidation.module';
+
+// Phase 3 — Event Outbox
+import { EventOutboxService } from './events/outbox/event-outbox.service';
+
 import { SearchModule } from './modules/search/search.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { FxModule } from './modules/fx/fx.module';
@@ -42,20 +59,30 @@ import { MediaModule } from './modules/media/media.module';
 
     ScheduleModule.forRoot(),
 
+    // ── Phase 2: Event Bus (global) ──────────────────────────────────────────
+    EventsModule,
+
+    // ── Phase 3: Infrastructure layer (global) ───────────────────────────────
+    RedisModule,       // Redis client + CacheService (@Global)
+    StorageModule,     // File storage abstraction (@Global)
+    QueueModule,       // BullMQ queues + StripeWebhookProcessor
+    CacheInvalidationModule, // Auto-invalidates cache on domain events
+
+    // ── Core feature modules ─────────────────────────────────────────────────
     PrismaModule,
     AvailabilityModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     AuthModule,
     VendorModule,
-    AdminModule, // ✅ ADMIN WIRED
+    AdminModule,
     HealthModule,
     PropertiesModule,
-    PortalModule, // 🧭 PORTAL WIRED
+    PortalModule,
     BookingsModule,
     OperatorModule,
     PaymentsModule,
 
-    // 🔔 Notifications Layer (V1)
+    // 🔔 Notifications Layer
     NotificationsModule,
 
     // 💸 Finance: Statements + Ledger + Payouts
@@ -78,8 +105,17 @@ import { MediaModule } from './modules/media/media.module';
   ],
   controllers: [AppController],
   providers: [
+    // Cron workers
     BookingExpiryWorker,
     BookingCompletionWorker,
+    RefundAutoProcessorWorker,
+    AutoPayoutWorker,
+    EventOutboxWorker,
+
+    // Event Outbox service (needs PrismaService — available via PrismaModule global)
+    EventOutboxService,
+
+    // Global guard
     {
       provide: APP_GUARD,
       useClass: AppThrottlerGuard,

@@ -4,16 +4,21 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Optional,
   Post,
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
 
 import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { StripePaymentsProvider } from './providers/stripe.provider';
+import { QUEUE_NAMES } from '../../infra/queues/queues.constants';
+import type { StripeWebhookJobPayload } from '../../infra/queues/processors/stripe-webhook.processor';
 
 @ApiTags('payments-webhooks')
 @Controller()
@@ -24,6 +29,13 @@ export class PaymentsWebhooksController {
   constructor(
     private readonly payments: PaymentsService,
     private readonly stripeProvider: StripePaymentsProvider,
+    /**
+     * Queue is @Optional so the controller still works in environments
+     * where Redis / BullMQ is unavailable (falls back to synchronous mode).
+     */
+    @Optional()
+    @InjectQueue(QUEUE_NAMES.STRIPE_WEBHOOK)
+    private readonly stripeWebhookQueue: Queue<StripeWebhookJobPayload> | null,
   ) {}
 
   @Post('webhooks/stripe')
@@ -36,6 +48,7 @@ export class PaymentsWebhooksController {
       throw new BadRequestException('Stripe signature or raw payload missing.');
     }
 
+    // ── Signature verification (synchronous, must happen before any async work) ──
     let event: Stripe.Event;
     try {
       event = this.stripeProvider.constructWebhookEvent({
@@ -47,96 +60,151 @@ export class PaymentsWebhooksController {
       throw new BadRequestException('Invalid Stripe webhook signature.');
     }
 
-    this.logger.log(`stripe_webhook eventType=${event.type}`);
+    this.logger.log(`stripe_webhook received eventType=${event.type} eventId=${event.id}`);
 
-    try {
-      switch (event.type) {
-        case 'checkout.session.completed': {
-          const session = event.data.object;
-          const bookingId = this.readBookingIdFromCheckoutSession(session);
-          this.logger.log(
-            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
-          );
-
-          const result =
-            await this.payments.handleStripeCheckoutSessionCompleted({
-              eventId: event.id,
-              session,
-            });
-
-          this.logger.log(
-            `stripe_webhook transition bookingId=${result.bookingId ?? 'n/a'} bookingStatus=${result.previousBookingStatus ?? 'n/a'}->${result.nextBookingStatus ?? 'n/a'} paymentStatus=${result.previousPaymentStatus ?? 'n/a'}->${result.nextPaymentStatus ?? 'n/a'} reused=${result.reused} ignored=${result.ignored}`,
-          );
-          break;
-        }
-        case 'payment_intent.succeeded': {
-          const paymentIntent = event.data.object;
-          const bookingId =
-            (paymentIntent.metadata?.bookingId ?? '').trim() || null;
-          this.logger.log(
-            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
-          );
-
-          const result =
-            await this.payments.handleStripePaymentIntentSucceeded({
-              eventId: event.id,
-              paymentIntent,
-            });
-
-          this.logger.log(
-            `stripe_webhook handled eventType=${event.type} bookingId=${bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored ?? false}`,
-          );
-          break;
-        }
-        case 'payment_intent.payment_failed': {
-          const paymentIntent = event.data.object;
-          const bookingId =
-            (paymentIntent.metadata?.bookingId ?? '').trim() || null;
-          this.logger.log(
-            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
-          );
-
-          const result =
-            await this.payments.handleStripePaymentIntentFailed({
-              eventId: event.id,
-              paymentIntent,
-            });
-
-          this.logger.log(
-            `stripe_webhook handled eventType=${event.type} bookingId=${bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored ?? false}`,
-          );
-          break;
-        }
-        case 'payment_intent.processing': {
-          const paymentIntent = event.data.object;
-          const bookingId =
-            (paymentIntent.metadata?.bookingId ?? '').trim() || null;
-          this.logger.log(
-            `stripe_webhook eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
-          );
-
-          const result =
-            await this.payments.handleStripePaymentIntentProcessing({
-              eventId: event.id,
-              paymentIntent,
-            });
-
-          this.logger.log(
-            `stripe_webhook handled eventType=${event.type} bookingId=${bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored ?? false}`,
-          );
-          break;
-        }
-        default:
-          this.logger.log(`stripe_webhook ignored eventType=${event.type}`);
+    // ── Async path: enqueue and return 200 immediately ────────────────────────
+    if (this.stripeWebhookQueue) {
+      try {
+        await this.stripeWebhookQueue.add(
+          'process-stripe-event',
+          {
+            eventId: event.id,
+            eventType: event.type,
+            event,
+          },
+          {
+            jobId: event.id,     // deduplication: same Stripe event ID → same job
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 1_000 },
+          },
+        );
+        this.logger.log(
+          `stripe_webhook enqueued eventType=${event.type} eventId=${event.id}`,
+        );
+        return { received: true };
+      } catch (queueError) {
+        // Queue unavailable — fall through to synchronous processing.
+        this.logger.warn(
+          `stripe_webhook queue_unavailable, falling back to sync: ${queueError instanceof Error ? queueError.message : String(queueError)}`,
+        );
       }
+    }
+
+    // ── Synchronous fallback (queue unavailable or not configured) ─────────────
+    try {
+      await this.processSynchronously(event);
     } catch (error: unknown) {
       this.logger.error(
-        `stripe_webhook processing_failed eventType=${event.type}`,
+        `stripe_webhook sync_processing_failed eventType=${event.type}`,
         error instanceof Error ? error.stack : undefined,
       );
     }
 
     return { received: true };
+  }
+
+  /**
+   * Synchronous processing path — used when BullMQ is unavailable.
+   * Mirrors the StripeWebhookProcessor logic exactly.
+   */
+  private async processSynchronously(event: Stripe.Event): Promise<void> {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const bookingId = this.readBookingIdFromCheckoutSession(session);
+        this.logger.log(
+          `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+        );
+        const result = await this.payments.handleStripeCheckoutSessionCompleted({
+          eventId: event.id,
+          session,
+        });
+        this.logger.log(
+          `stripe_webhook_sync handled eventType=${event.type} bookingId=${result.bookingId ?? 'n/a'} reused=${result.reused}`,
+        );
+        break;
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        this.logger.log(
+          `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+        );
+        const result = await this.payments.handleStripePaymentIntentSucceeded({
+          eventId: event.id,
+          paymentIntent,
+        });
+        this.logger.log(
+          `stripe_webhook_sync handled eventType=${event.type} reused=${result.reused}`,
+        );
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object;
+        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        this.logger.log(
+          `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+        );
+        const result = await this.payments.handleStripePaymentIntentFailed({
+          eventId: event.id,
+          paymentIntent,
+        });
+        this.logger.log(
+          `stripe_webhook_sync handled eventType=${event.type} reused=${result.reused}`,
+        );
+        break;
+      }
+
+      case 'payment_intent.processing': {
+        const paymentIntent = event.data.object;
+        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        this.logger.log(
+          `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+        );
+        const result = await this.payments.handleStripePaymentIntentProcessing({
+          eventId: event.id,
+          paymentIntent,
+        });
+        this.logger.log(
+          `stripe_webhook_sync handled eventType=${event.type} reused=${result.reused}`,
+        );
+        break;
+      }
+
+      case 'payment_intent.canceled': {
+        const paymentIntent = event.data.object;
+        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        this.logger.log(
+          `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
+        );
+        const result = await this.payments.handleStripePaymentIntentCanceled({
+          eventId: event.id,
+          paymentIntent,
+        });
+        this.logger.log(
+          `stripe_webhook_sync handled eventType=${event.type} reused=${result.reused}`,
+        );
+        break;
+      }
+
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        this.logger.log(`stripe_webhook_sync eventType=${event.type}`);
+        const result = await this.payments.handleStripeChargeRefunded({
+          eventId: event.id,
+          charge,
+        });
+        this.logger.log(
+          `stripe_webhook_sync handled eventType=${event.type} reused=${result.reused}`,
+        );
+        break;
+      }
+
+      default:
+        this.logger.log(`stripe_webhook_sync ignored eventType=${event.type}`);
+    }
   }
 
   private readHeader(req: Request, name: string): string | null {

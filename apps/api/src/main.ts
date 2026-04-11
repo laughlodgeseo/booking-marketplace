@@ -179,17 +179,25 @@ async function bootstrap() {
   );
 
   /**
-   * Swagger
+   * Swagger — disabled in production to avoid exposing the full API surface.
+   * Enable by setting NODE_ENV != 'production' or SWAGGER_ENABLED=true.
    */
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Booking Marketplace API')
-    .setDescription('API for booking marketplace (customer / vendor / admin)')
-    .setVersion('1.0.0')
-    .addBearerAuth()
-    .build();
+  const swaggerEnabled =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SWAGGER_ENABLED === 'true';
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Booking Marketplace API')
+      .setDescription('API for booking marketplace (customer / vendor / admin)')
+      .setVersion('1.0.0')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+    console.log('📚 Swagger docs: /docs');
+  }
 
   const port = Number(process.env.PORT ?? 10000);
 
@@ -197,7 +205,6 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   console.log(`✅ API running on port ${port}`);
-  console.log(`📚 Swagger docs: /docs`);
 }
 
 void bootstrap();

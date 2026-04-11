@@ -34,6 +34,8 @@ import { ManualPaymentsProvider } from './providers/manual.provider';
 import { StripePaymentsProvider } from './providers/stripe.provider';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsService } from '../../bookings/bookings.service';
+import { EventBusService } from '../../events/event-bus.service';
+import { DomainEventType } from '../../events/domain-events';
 import type Stripe from 'stripe';
 
 type Actor = { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
@@ -69,6 +71,7 @@ export class PaymentsService {
     private readonly stripeProvider: StripePaymentsProvider,
     private readonly notifications: NotificationsService,
     private readonly bookings: BookingsService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   /**
@@ -290,11 +293,15 @@ export class PaymentsService {
 
       const currency = (booking.currency ?? '').trim() || 'AED';
 
-      // Include security deposit if the property has an active deposit policy
+      // Include security deposit if the property has an active deposit policy.
+      // IMPORTANT: depositPolicy.amount is stored in AED (canonical currency).
+      // booking.fxRate is the AED → display-currency multiplier stored at reservation time.
+      // We must convert the deposit to the booking's display currency before adding it
+      // to bookingAmount to avoid mixing currencies in the Stripe charge.
       const depositPolicy = await this.prisma.securityDepositPolicy.findUnique({
         where: { propertyId: booking.propertyId },
       });
-      const depositAmount =
+      const depositAmountAed =
         depositPolicy &&
         depositPolicy.isActive &&
         depositPolicy.mode !== SecurityDepositMode.NONE &&
@@ -302,10 +309,23 @@ export class PaymentsService {
           ? depositPolicy.amount
           : 0;
 
+      // Resolve the FX rate stored on the booking (AED → display currency).
+      // Falls back to 1 (AED bookings) if not set.
+      const bookingFxRateRaw = Number(booking.fxRate?.toString() ?? '1');
+      const bookingFxRate =
+        Number.isFinite(bookingFxRateRaw) && bookingFxRateRaw > 0
+          ? bookingFxRateRaw
+          : 1;
+
+      // Convert deposit from AED to the booking display currency.
+      // When currency = AED, fxRate = 1, so the result is unchanged.
+      const depositAmount =
+        depositAmountAed > 0 ? Math.round(depositAmountAed * bookingFxRate) : 0;
+
       const amount = bookingAmount + depositAmount;
 
       this.logger.log(
-        `createStripeIntent amounts bookingId=${booking.id} bookingAmount=${bookingAmount} depositAmount=${depositAmount} totalCharge=${amount}`,
+        `createStripeIntent amounts bookingId=${booking.id} bookingAmount=${bookingAmount} depositAmountAed=${depositAmountAed} depositAmount=${depositAmount} fxRate=${bookingFxRate} currency=${currency} totalCharge=${amount}`,
       );
 
       const publishableKey = (
@@ -380,7 +400,9 @@ export class PaymentsService {
           bookingId: booking.id,
           userId: booking.customerId,
           bookingAmount: String(bookingAmount),
+          depositAmountAed: String(depositAmountAed),
           depositAmount: String(depositAmount),
+          currency,
           ...breakdownMeta,
         },
       };
@@ -777,6 +799,10 @@ export class PaymentsService {
       txResult.ops,
     );
 
+    if (!txResult.reused && txResult.booking) {
+      this.emitPaymentSucceededDomainEvent(txResult.booking.id);
+    }
+
     return txResult;
   }
 
@@ -868,6 +894,9 @@ export class PaymentsService {
             booking: { select: { customerId: true, propertyId: true } },
           },
         });
+
+        // REFUND + MANAGEMENT_FEE reversal ledger entries for manual refunds.
+        await this.ensureLedgerForSucceededRefund(tx, refund.id);
       } else if (refund.provider === PaymentProvider.STRIPE) {
         const paymentIntentId = payment.stripePaymentIntentId;
         if (!paymentIntentId) {
@@ -947,6 +976,10 @@ export class PaymentsService {
       }
     } catch {
       // non-blocking
+    }
+
+    if (result?.ok && !result.reused && result.refund?.id) {
+      this.emitRefundSucceededDomainEvent(result.refund.id);
     }
 
     return result;
@@ -1519,6 +1552,10 @@ export class PaymentsService {
       txResult.ops,
     );
 
+    if (!txResult.reused && txResult.booking) {
+      this.emitPaymentSucceededDomainEvent(txResult.booking.id);
+    }
+
     return { ok: true, reused: txResult.reused };
   }
 
@@ -1932,31 +1969,48 @@ export class PaymentsService {
           ],
         },
         include: {
-          booking: { select: { customerId: true } },
+          booking: {
+            select: {
+              customerId: true,
+              property: { select: { vendorId: true } },
+            },
+          },
         },
       });
 
       for (const refund of refundsToNotify) {
-        if (!refund.booking?.customerId) continue;
-        try {
-          await this.notifications.emit({
-            type: NotificationType.REFUND_PROCESSED,
-            entityType: 'REFUND',
-            entityId: refund.id,
-            recipientUserId: refund.booking.customerId,
-            payload: {
-              refund: {
-                id: refund.id,
-                bookingId: refund.bookingId,
-                amount: refund.amount,
-                currency: refund.currency,
-                status: refund.status,
+        if (refund.booking?.customerId) {
+          try {
+            await this.notifications.emit({
+              type: NotificationType.REFUND_PROCESSED,
+              entityType: 'REFUND',
+              entityId: refund.id,
+              recipientUserId: refund.booking.customerId,
+              payload: {
+                refund: {
+                  id: refund.id,
+                  bookingId: refund.bookingId,
+                  amount: refund.amount,
+                  currency: refund.currency,
+                  status: refund.status,
+                },
               },
-            },
+            });
+          } catch {
+            // non-blocking
+          }
+        }
+
+        // REFUND + MANAGEMENT_FEE reversal ledger entries for Stripe refunds.
+        try {
+          await this.prisma.$transaction(async (tx) => {
+            await this.ensureLedgerForSucceededRefund(tx, refund.id);
           });
         } catch {
-          // non-blocking
+          // non-critical — idempotent, will succeed on next webhook retry
         }
+
+        this.emitRefundSucceededDomainEvent(refund.id);
       }
     }
 
@@ -2340,6 +2394,7 @@ export class PaymentsService {
         payment: { select: { provider: true, providerRef: true } },
         property: {
           select: {
+            vendorId: true,
             securityDepositPolicy: {
               select: {
                 isActive: true,
@@ -2387,6 +2442,34 @@ export class PaymentsService {
         provider: booking.payment?.provider ?? PaymentProvider.MANUAL,
         providerRef: booking.payment?.providerRef ?? null,
       },
+    });
+
+    // DEPOSIT_AUTH ledger entry: records the deposit hold against the vendor.
+    const vendorId = booking.property.vendorId;
+    const depositAuthIdemKey = `deposit_auth_${booking.id}`;
+    await tx.ledgerEntry.upsert({
+      where: {
+        vendorId_type_idempotencyKey: {
+          vendorId,
+          type: LedgerEntryType.DEPOSIT_AUTH,
+          idempotencyKey: depositAuthIdemKey,
+        },
+      },
+      create: {
+        vendorId,
+        propertyId: booking.propertyId,
+        bookingId: booking.id,
+        type: LedgerEntryType.DEPOSIT_AUTH,
+        direction: LedgerDirection.CREDIT,
+        amount: policy.amount,
+        currency,
+        idempotencyKey: depositAuthIdemKey,
+        metaJson: JSON.stringify({
+          mode: policy.mode,
+          bookingId: booking.id,
+        }),
+      },
+      update: {},
     });
   }
 
@@ -2507,6 +2590,193 @@ export class PaymentsService {
     return Math.round((safeAmount * safeBps) / 10000);
   }
 
+  /**
+   * Creates REFUND (DEBIT) + MANAGEMENT_FEE reversal (CREDIT) ledger entries
+   * when a refund is confirmed as SUCCEEDED.
+   *
+   * Idempotent: safe to call multiple times for the same refundId.
+   * The MANAGEMENT_FEE CREDIT reverses the original commission proportionally
+   * to the refunded amount, keeping net vendor earnings correct.
+   */
+  private async ensureLedgerForSucceededRefund(
+    tx: Prisma.TransactionClient,
+    refundId: string,
+  ): Promise<void> {
+    const refund = await tx.refund.findUnique({
+      where: { id: refundId },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        bookingId: true,
+        paymentId: true,
+        status: true,
+        booking: {
+          select: {
+            propertyId: true,
+            property: {
+              select: {
+                vendorId: true,
+                serviceConfig: {
+                  select: {
+                    vendorAgreement: { select: { agreedManagementFeeBps: true } },
+                    servicePlan: { select: { managementFeeBps: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!refund) return;
+    if (refund.status !== RefundStatus.SUCCEEDED) return;
+    if (!refund.booking?.property) return;
+
+    const vendorId = refund.booking.property.vendorId;
+    const paymentId = refund.paymentId ?? undefined;
+    const currency = refund.currency;
+    const amount = refund.amount;
+    const refundIdemKey = `refund_debit_${refundId}`;
+    const feeReversalIdemKey = `mgmt_fee_reversal_${refundId}`;
+
+    // REFUND (DEBIT): reduces vendor gross earnings by the refunded amount.
+    await tx.ledgerEntry.upsert({
+      where: {
+        vendorId_type_idempotencyKey: {
+          vendorId,
+          type: LedgerEntryType.REFUND,
+          idempotencyKey: refundIdemKey,
+        },
+      },
+      create: {
+        vendorId,
+        propertyId: refund.booking.propertyId,
+        bookingId: refund.bookingId,
+        paymentId,
+        type: LedgerEntryType.REFUND,
+        direction: LedgerDirection.DEBIT,
+        amount,
+        currency,
+        idempotencyKey: refundIdemKey,
+        metaJson: JSON.stringify({
+          refundId,
+          bookingId: refund.bookingId,
+          amount,
+        }),
+      },
+      update: {},
+    });
+
+    // MANAGEMENT_FEE CREDIT (reversal): proportional to the refunded amount.
+    const bps =
+      refund.booking.property.serviceConfig?.vendorAgreement
+        ?.agreedManagementFeeBps ??
+      refund.booking.property.serviceConfig?.servicePlan?.managementFeeBps ??
+      0;
+    const feeReversal = this.computeFeeFromBps(amount, bps);
+
+    if (feeReversal > 0) {
+      await tx.ledgerEntry.upsert({
+        where: {
+          vendorId_type_idempotencyKey: {
+            vendorId,
+            type: LedgerEntryType.MANAGEMENT_FEE,
+            idempotencyKey: feeReversalIdemKey,
+          },
+        },
+        create: {
+          vendorId,
+          propertyId: refund.booking.propertyId,
+          bookingId: refund.bookingId,
+          paymentId,
+          type: LedgerEntryType.MANAGEMENT_FEE,
+          direction: LedgerDirection.CREDIT,
+          amount: feeReversal,
+          currency,
+          idempotencyKey: feeReversalIdemKey,
+          metaJson: JSON.stringify({
+            refundId,
+            bps,
+            feeReversal,
+            note: 'management_fee_reversal',
+          }),
+        },
+        update: {},
+      });
+    }
+  }
+
+  /**
+   * Fire-and-forget: emits PaymentSucceeded domain event after a booking is confirmed.
+   * Runs outside any DB transaction — failures are non-critical.
+   */
+  private emitPaymentSucceededDomainEvent(bookingId: string): void {
+    this.prisma.booking
+      .findUnique({
+        where: { id: bookingId },
+        select: {
+          id: true,
+          payment: {
+            select: { id: true, amount: true, currency: true, provider: true },
+          },
+          property: { select: { vendorId: true } },
+        },
+      })
+      .then((b) => {
+        if (!b?.payment) return;
+        this.eventBus.publish({
+          type: DomainEventType.PAYMENT_SUCCEEDED,
+          bookingId: b.id,
+          paymentId: b.payment.id,
+          vendorId: b.property.vendorId,
+          amount: b.payment.amount,
+          currency: b.payment.currency,
+          provider: b.payment.provider,
+          occurredAt: new Date(),
+        });
+      })
+      .catch(() => {
+        /* non-critical */
+      });
+  }
+
+  /**
+   * Fire-and-forget: emits RefundSucceeded domain event after a refund succeeds.
+   * Runs outside any DB transaction — failures are non-critical.
+   */
+  private emitRefundSucceededDomainEvent(refundId: string): void {
+    this.prisma.refund
+      .findUnique({
+        where: { id: refundId },
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          bookingId: true,
+          paymentId: true,
+          booking: { select: { property: { select: { vendorId: true } } } },
+        },
+      })
+      .then((r) => {
+        if (!r?.booking?.property) return;
+        this.eventBus.publish({
+          type: DomainEventType.REFUND_SUCCEEDED,
+          refundId: r.id,
+          bookingId: r.bookingId,
+          paymentId: r.paymentId ?? '',
+          vendorId: r.booking.property.vendorId,
+          amount: r.amount,
+          currency: r.currency,
+          occurredAt: new Date(),
+        });
+      })
+      .catch(() => {
+        /* non-critical */
+      });
+  }
+
   // ── Security Deposit Admin Operations ──────────────────────────────
 
   async releaseSecurityDeposit(args: {
@@ -2520,7 +2790,14 @@ export class PaymentsService {
 
     const deposit = await this.prisma.securityDeposit.findUnique({
       where: { id: args.depositId },
-      include: { booking: { include: { payment: true } } },
+      include: {
+        booking: {
+          include: {
+            payment: true,
+            property: { select: { vendorId: true } },
+          },
+        },
+      },
     });
     if (!deposit) throw new NotFoundException('Security deposit not found.');
 
@@ -2578,6 +2855,47 @@ export class PaymentsService {
       },
     });
 
+    // DEPOSIT_RELEASE ledger entry: reverses the DEPOSIT_AUTH (deposit returned to customer).
+    const vendorId = deposit.booking?.property?.vendorId;
+    if (vendorId && deposit.amount > 0) {
+      const releaseIdemKey = `deposit_release_${deposit.id}`;
+      try {
+        await this.prisma.ledgerEntry.upsert({
+          where: {
+            vendorId_type_idempotencyKey: {
+              vendorId,
+              type: LedgerEntryType.DEPOSIT_RELEASE,
+              idempotencyKey: releaseIdemKey,
+            },
+          },
+          create: {
+            vendorId,
+            propertyId: deposit.propertyId,
+            bookingId: deposit.bookingId,
+            type: LedgerEntryType.DEPOSIT_RELEASE,
+            direction: LedgerDirection.DEBIT,
+            amount: deposit.amount,
+            currency: deposit.currency,
+            idempotencyKey: releaseIdemKey,
+            metaJson: JSON.stringify({ depositId: deposit.id }),
+          },
+          update: {},
+        });
+      } catch {
+        // non-critical — next retry will succeed due to idempotency key
+      }
+
+      this.eventBus.publish({
+        type: DomainEventType.DEPOSIT_RELEASED,
+        depositId: deposit.id,
+        bookingId: deposit.bookingId,
+        vendorId,
+        amount: deposit.amount,
+        currency: deposit.currency,
+        occurredAt: new Date(),
+      });
+    }
+
     this.logger.log(
       `releaseSecurityDeposit completed depositId=${deposit.id} bookingId=${deposit.bookingId}`,
     );
@@ -2596,6 +2914,9 @@ export class PaymentsService {
 
     const deposit = await this.prisma.securityDeposit.findUnique({
       where: { id: args.depositId },
+      include: {
+        booking: { select: { property: { select: { vendorId: true } } } },
+      },
     });
     if (!deposit) throw new NotFoundException('Security deposit not found.');
 
@@ -2627,6 +2948,47 @@ export class PaymentsService {
         note: args.note ?? deposit.note,
       },
     });
+
+    // DEPOSIT_CLAIM ledger entry: vendor keeps the forfeited deposit.
+    const vendorId = deposit.booking?.property?.vendorId;
+    if (vendorId && claimAmount > 0) {
+      const claimIdemKey = `deposit_claim_${deposit.id}`;
+      try {
+        await this.prisma.ledgerEntry.upsert({
+          where: {
+            vendorId_type_idempotencyKey: {
+              vendorId,
+              type: LedgerEntryType.DEPOSIT_CLAIM,
+              idempotencyKey: claimIdemKey,
+            },
+          },
+          create: {
+            vendorId,
+            propertyId: deposit.propertyId,
+            bookingId: deposit.bookingId,
+            type: LedgerEntryType.DEPOSIT_CLAIM,
+            direction: LedgerDirection.CREDIT,
+            amount: claimAmount,
+            currency: deposit.currency,
+            idempotencyKey: claimIdemKey,
+            metaJson: JSON.stringify({ depositId: deposit.id, claimAmount }),
+          },
+          update: {},
+        });
+      } catch {
+        // non-critical — next retry will succeed due to idempotency key
+      }
+
+      this.eventBus.publish({
+        type: DomainEventType.DEPOSIT_CLAIMED,
+        depositId: deposit.id,
+        bookingId: deposit.bookingId,
+        vendorId,
+        amount: claimAmount,
+        currency: deposit.currency,
+        occurredAt: new Date(),
+      });
+    }
 
     this.logger.log(
       `claimSecurityDeposit completed depositId=${deposit.id} bookingId=${deposit.bookingId} claimAmount=${claimAmount}`,
