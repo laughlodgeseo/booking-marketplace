@@ -4,15 +4,23 @@ import {
   Header,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { UserRole } from '@prisma/client';
 import { PropertiesService } from './properties.service';
 import { ListPropertiesDto } from './dto/list-properties.dto';
 import { PropertyDetailParams } from './dto/property-detail.params';
 import type { AppRequest } from '../../common/i18n/app-request';
+import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../../auth/types/auth-user.type';
 
 @ApiTags('properties')
 @Controller('properties')
@@ -31,6 +39,16 @@ export class PropertiesController {
   @Get('document-requirements')
   documentRequirements() {
     return this.properties.documentRequirements();
+  }
+
+  @Get(':id/preview')
+  @UseGuards(JwtAccessGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.VENDOR)
+  async previewById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.properties.previewById(id, user);
   }
 
   @Get(':slug')

@@ -140,7 +140,7 @@ export default function VendorPropertiesPage() {
               {derived?.filtered.map((property) => {
                 const encodedId = encodeURIComponent(property.id);
                 const editHref = `/vendor/properties/${encodedId}/edit`;
-                const previewHref = `/vendor/properties/${encodedId}`;
+                const previewHref = `/vendor/properties/${encodedId}/preview`;
                 const showContinueEditing =
                   property.status === "DRAFT" || property.status === "CHANGES_REQUESTED";
 

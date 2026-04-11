@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   BookingStatus,
   CalendarDayStatus,
@@ -7,6 +12,7 @@ import {
   LocaleCode,
   Prisma,
   PropertyStatus,
+  UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FxRatesService } from '../fx/fx-rates.service';
@@ -23,6 +29,7 @@ import {
   type DisplayCurrency,
 } from '../../common/i18n/locale';
 import { getPropertyDocumentRequirements } from './property-document-requirements';
+import type { AuthUser } from '../../auth/types/auth-user.type';
 
 type AmenityGroupDto = {
   id: string;
@@ -44,6 +51,40 @@ type AmenityDto = {
 type RequestContext = {
   locale?: AppLocale;
   displayCurrency?: DisplayCurrency;
+};
+
+type PropertyPreviewHost = {
+  id: string;
+  name: string;
+  avatar: string | null;
+};
+
+type PropertyPreviewLocation = {
+  address: string | null;
+  city: string | null;
+  area: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+export type PropertyPreviewDto = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: PropertyStatus;
+  price: number;
+  currency: string;
+  location: PropertyPreviewLocation;
+  images: string[];
+  amenities: string[];
+  host: PropertyPreviewHost;
+  maxGuests: number;
+  bedrooms: number;
+  bathrooms: number;
+  minNights: number;
+  maxNights: number | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 @Injectable()
@@ -91,6 +132,110 @@ export class PropertiesService {
 
   documentRequirements() {
     return getPropertyDocumentRequirements();
+  }
+
+  async previewById(
+    propertyId: string,
+    user: AuthUser,
+  ): Promise<PropertyPreviewDto> {
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.VENDOR) {
+      throw new ForbiddenException('Not allowed.');
+    }
+
+    const property = await this.prisma.property.findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        vendorId: true,
+        title: true,
+        description: true,
+        status: true,
+        basePrice: true,
+        currency: true,
+        city: true,
+        area: true,
+        address: true,
+        lat: true,
+        lng: true,
+        maxGuests: true,
+        bedrooms: true,
+        bathrooms: true,
+        minNights: true,
+        maxNights: true,
+        createdAt: true,
+        updatedAt: true,
+        location: {
+          select: {
+            city: true,
+            area: true,
+            address: true,
+            lat: true,
+            lng: true,
+          },
+        },
+        media: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          select: { url: true },
+        },
+        amenities: {
+          orderBy: { amenity: { name: 'asc' } },
+          select: {
+            amenity: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        vendor: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!property) throw new NotFoundException('Property not found.');
+    if (user.role === UserRole.VENDOR && property.vendorId !== user.id) {
+      throw new ForbiddenException('You do not own this property.');
+    }
+
+    const location: PropertyPreviewLocation = {
+      address: property.location?.address ?? property.address ?? null,
+      city: property.location?.city ?? property.city ?? null,
+      area: property.location?.area ?? property.area ?? null,
+      lat: property.location?.lat ?? property.lat ?? null,
+      lng: property.location?.lng ?? property.lng ?? null,
+    };
+
+    return {
+      id: property.id,
+      title: property.title,
+      description: property.description ?? null,
+      status: property.status,
+      price: property.basePrice,
+      currency: property.currency,
+      location,
+      images: property.media.map((item) => item.url).filter(Boolean),
+      amenities: property.amenities
+        .map((item) => item.amenity.name)
+        .filter((name) => typeof name === 'string' && name.trim().length > 0),
+      host: {
+        id: property.vendor.id,
+        name: property.vendor.fullName?.trim() || property.vendor.email,
+        avatar: property.vendor.avatarUrl ?? null,
+      },
+      maxGuests: property.maxGuests,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      minNights: property.minNights,
+      maxNights: property.maxNights ?? null,
+      createdAt: property.createdAt.toISOString(),
+      updatedAt: property.updatedAt.toISOString(),
+    };
   }
 
   async list(input: ListPropertiesDto, context?: RequestContext) {

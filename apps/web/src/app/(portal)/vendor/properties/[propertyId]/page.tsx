@@ -121,6 +121,7 @@ export default function VendorPropertyHubPage() {
             <div className="text-sm font-semibold text-primary">Actions</div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <HubLink href={`/vendor/properties/${encodeURIComponent(state.data.id)}/edit`} title="Editor" desc="Update listing details, media, amenities, and review submission." />
+              <HubLink href={`/vendor/properties/${encodeURIComponent(state.data.id)}/preview`} title="Preview" desc="Open the shared preview renderer used by admin and vendor." />
               <HubLink href={`/vendor/calendar?propertyId=${encodeURIComponent(state.data.id)}`} title="Calendar" desc="View availability and submit block-date requests." />
               <HubLink href="/vendor/bookings" title="Bookings" desc="See bookings for this property in the bookings workspace." />
               <HubLink href="/vendor/ops-tasks" title="Ops tasks" desc="Track operations task workload and schedule." />
