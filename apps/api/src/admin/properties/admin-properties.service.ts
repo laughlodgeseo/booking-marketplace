@@ -29,8 +29,20 @@ import {
   UpdateMediaCategoryDto,
 } from '../../vendor/vendor-properties.dto';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
+import {
+  appendReviewHistoryEntry,
+  computePropertyChanges,
+  findLastReviewAnchor,
+  parseReviewHistory,
+  toJsonSnapshot,
+} from '../../common/property-review-history';
 
-type ReviewDto = { notes?: string; checklistJson?: string };
+type ReviewDto = {
+  notes?: string;
+  note?: string;
+  reason?: string;
+  checklistJson?: string;
+};
 
 @Injectable()
 export class AdminPropertiesService {
@@ -96,6 +108,101 @@ export class AdminPropertiesService {
     });
     if (!prop) throw new NotFoundException('Property not found.');
     return prop;
+  }
+
+  private async mustFindPropertyTx(
+    tx: Prisma.TransactionClient,
+    propertyId: string,
+  ) {
+    const prop = await tx.property.findUnique({
+      where: { id: propertyId },
+    });
+    if (!prop) throw new NotFoundException('Property not found.');
+    return prop;
+  }
+
+  private reviewNote(dto: ReviewDto): string | null {
+    const note = dto.notes ?? dto.note ?? dto.reason;
+    return typeof note === 'string' && note.trim().length > 0
+      ? note.trim()
+      : null;
+  }
+
+  private async buildReviewSnapshot(
+    db: PrismaService | Prisma.TransactionClient,
+    propertyId: string,
+  ): Promise<Prisma.InputJsonValue> {
+    const property = await db.property.findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        propertyType: true,
+        description: true,
+        city: true,
+        area: true,
+        address: true,
+        lat: true,
+        lng: true,
+        maxGuests: true,
+        bedrooms: true,
+        bathrooms: true,
+        basePrice: true,
+        cleaningFee: true,
+        currency: true,
+        minNights: true,
+        maxNights: true,
+        checkInFromMin: true,
+        checkInToMax: true,
+        checkOutMin: true,
+        isInstantBook: true,
+        status: true,
+        media: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          select: {
+            id: true,
+            url: true,
+            alt: true,
+            sortOrder: true,
+            category: true,
+          },
+        },
+        documents: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            type: true,
+            url: true,
+            storageKey: true,
+            originalName: true,
+            mimeType: true,
+          },
+        },
+        amenities: {
+          orderBy: [{ amenityId: 'asc' }],
+          select: {
+            amenityId: true,
+          },
+        },
+        translations: {
+          orderBy: [{ locale: 'asc' }],
+          select: {
+            locale: true,
+            title: true,
+            description: true,
+            areaLabel: true,
+            tagline: true,
+          },
+        },
+      },
+    });
+
+    if (!property) {
+      throw new NotFoundException('Property not found.');
+    }
+
+    return toJsonSnapshot(property);
   }
 
   private async readinessIssuesAfterMediaDelete(
@@ -477,6 +584,7 @@ export class AdminPropertiesService {
         checkInToMax: dto.checkInToMax,
         checkOutMin: dto.checkOutMin,
         isInstantBook: dto.isInstantBook,
+        lastEditedAt: new Date(),
       },
       include: {
         media: { orderBy: { sortOrder: 'asc' } },
@@ -1028,8 +1136,9 @@ export class AdminPropertiesService {
   }
 
   async approve(adminId: string, propertyId: string, dto: ReviewDto) {
+    const note = this.reviewNote(dto);
     const result = await this.prisma.$transaction(async (tx) => {
-      const prop = await this.mustFindProperty(propertyId);
+      const prop = await this.mustFindPropertyTx(tx, propertyId);
 
       if (prop.status !== PropertyStatus.UNDER_REVIEW) {
         throw new BadRequestException(
@@ -1037,14 +1146,37 @@ export class AdminPropertiesService {
         );
       }
 
+      if (
+        prop.lastReviewedAt &&
+        prop.lastEditedAt &&
+        prop.lastEditedAt > prop.lastReviewedAt &&
+        (!prop.lastSubmittedAt || prop.lastEditedAt > prop.lastSubmittedAt)
+      ) {
+        throw new BadRequestException(
+          'Property has been modified after review.',
+        );
+      }
+
       const requiresActivation = !prop.createdByAdminId;
       const nextStatus = requiresActivation
         ? PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT
         : PropertyStatus.APPROVED;
+      const snapshot = await this.buildReviewSnapshot(tx, propertyId);
+      const now = new Date();
 
       const updated = await tx.property.update({
         where: { id: propertyId },
-        data: { status: nextStatus },
+        data: {
+          status: nextStatus,
+          lastReviewedAt: now,
+          reviewHistory: appendReviewHistoryEntry(prop.reviewHistory, {
+            action: 'APPROVED',
+            note,
+            adminId,
+            createdAt: now,
+            snapshot,
+          }),
+        },
       });
 
       await tx.propertyReview.create({
@@ -1052,7 +1184,7 @@ export class AdminPropertiesService {
           propertyId,
           adminId,
           decision: PropertyReviewDecision.APPROVE,
-          notes: dto.notes ?? null,
+          notes: note,
           checklistJson: dto.checklistJson ?? null,
         },
       });
@@ -1111,8 +1243,9 @@ export class AdminPropertiesService {
   }
 
   async requestChanges(adminId: string, propertyId: string, dto: ReviewDto) {
+    const note = this.reviewNote(dto);
     return this.prisma.$transaction(async (tx) => {
-      const prop = await this.mustFindProperty(propertyId);
+      const prop = await this.mustFindPropertyTx(tx, propertyId);
 
       if (prop.status !== PropertyStatus.UNDER_REVIEW) {
         throw new BadRequestException(
@@ -1120,9 +1253,21 @@ export class AdminPropertiesService {
         );
       }
 
+      const snapshot = await this.buildReviewSnapshot(tx, propertyId);
+      const now = new Date();
       const updated = await tx.property.update({
         where: { id: propertyId },
-        data: { status: PropertyStatus.CHANGES_REQUESTED },
+        data: {
+          status: PropertyStatus.CHANGES_REQUESTED,
+          lastReviewedAt: now,
+          reviewHistory: appendReviewHistoryEntry(prop.reviewHistory, {
+            action: 'CHANGES_REQUESTED',
+            note,
+            adminId,
+            createdAt: now,
+            snapshot,
+          }),
+        },
       });
 
       await tx.propertyReview.create({
@@ -1130,7 +1275,7 @@ export class AdminPropertiesService {
           propertyId,
           adminId,
           decision: PropertyReviewDecision.REQUEST_CHANGES,
-          notes: dto.notes ?? null,
+          notes: note,
           checklistJson: dto.checklistJson ?? null,
         },
       });
@@ -1140,8 +1285,9 @@ export class AdminPropertiesService {
   }
 
   async reject(adminId: string, propertyId: string, dto: ReviewDto) {
+    const note = this.reviewNote(dto);
     return this.prisma.$transaction(async (tx) => {
-      const prop = await this.mustFindProperty(propertyId);
+      const prop = await this.mustFindPropertyTx(tx, propertyId);
 
       if (prop.status !== PropertyStatus.UNDER_REVIEW) {
         throw new BadRequestException(
@@ -1149,9 +1295,21 @@ export class AdminPropertiesService {
         );
       }
 
+      const snapshot = await this.buildReviewSnapshot(tx, propertyId);
+      const now = new Date();
       const updated = await tx.property.update({
         where: { id: propertyId },
-        data: { status: PropertyStatus.REJECTED },
+        data: {
+          status: PropertyStatus.REJECTED,
+          lastReviewedAt: now,
+          reviewHistory: appendReviewHistoryEntry(prop.reviewHistory, {
+            action: 'REJECTED',
+            note,
+            adminId,
+            createdAt: now,
+            snapshot,
+          }),
+        },
       });
 
       await tx.propertyReview.create({
@@ -1159,12 +1317,50 @@ export class AdminPropertiesService {
           propertyId,
           adminId,
           decision: PropertyReviewDecision.REJECT,
-          notes: dto.notes ?? null,
+          notes: note,
           checklistJson: dto.checklistJson ?? null,
         },
       });
 
       return { ok: true, item: updated };
     });
+  }
+
+  async getChanges(propertyId: string) {
+    const property = await this.prisma.property.findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        status: true,
+        reviewHistory: true,
+        lastSubmittedAt: true,
+        lastReviewedAt: true,
+        lastEditedAt: true,
+      },
+    });
+    if (!property) throw new NotFoundException('Property not found.');
+
+    const currentSnapshot = await this.buildReviewSnapshot(this.prisma, propertyId);
+    const reviewHistory = parseReviewHistory(property.reviewHistory);
+    const lastReview = findLastReviewAnchor(reviewHistory);
+    const changes = lastReview
+      ? computePropertyChanges(lastReview.snapshot, currentSnapshot)
+      : [];
+
+    return {
+      propertyId: property.id,
+      status: property.status,
+      baseline: lastReview
+        ? {
+            action: lastReview.action,
+            createdAt: lastReview.createdAt,
+          }
+        : null,
+      changes,
+      reviewHistory,
+      lastSubmittedAt: property.lastSubmittedAt?.toISOString() ?? null,
+      lastReviewedAt: property.lastReviewedAt?.toISOString() ?? null,
+      lastEditedAt: property.lastEditedAt?.toISOString() ?? null,
+    };
   }
 }

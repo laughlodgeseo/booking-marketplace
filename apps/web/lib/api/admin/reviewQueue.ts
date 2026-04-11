@@ -13,6 +13,38 @@ function unwrap<T>(res: HttpResult<T>): T {
 
 export type ReviewQueueStatus = "UNDER_REVIEW" | "CHANGES_REQUESTED" | "APPROVED" | "REJECTED";
 
+export type ReviewHistoryAction =
+  | "SUBMITTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "CHANGES_REQUESTED"
+  | "RESUBMITTED";
+
+export type ReviewHistoryEntry = {
+  action: ReviewHistoryAction;
+  note: string | null;
+  adminId: string | null;
+  createdAt: string;
+  snapshot: unknown;
+};
+
+export type AdminPropertyChange = {
+  field: string;
+  before: unknown;
+  after: unknown;
+};
+
+export type AdminPropertyChangesResponse = {
+  propertyId: string;
+  status: string;
+  baseline: { action: ReviewHistoryAction; createdAt: string } | null;
+  changes: AdminPropertyChange[];
+  reviewHistory: ReviewHistoryEntry[];
+  lastSubmittedAt: string | null;
+  lastReviewedAt: string | null;
+  lastEditedAt: string | null;
+};
+
 export type AdminReviewQueueItem = {
   id: string;
   title: string;
@@ -159,10 +191,19 @@ export async function requestChangesAdminProperty(propertyId: string, note?: str
     method: "POST",
     credentials: "include",
     cache: "no-store",
-    body: note ? { note } : {},
+    body: note ? { notes: note } : {},
   });
   const raw = unwrap(res);
   const item = asRecord(raw.item ?? raw);
   if (!item) throw new Error("Invalid request-changes response");
   return mapItem(item);
+}
+
+export async function getAdminPropertyChanges(propertyId: string): Promise<AdminPropertyChangesResponse> {
+  const res = await apiFetch<AdminPropertyChangesResponse>(`/admin/properties/${encodeURIComponent(propertyId)}/changes`, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
 }

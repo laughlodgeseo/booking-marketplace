@@ -694,6 +694,10 @@ model Property {
   isInstantBook  Boolean @default(false)
 
   status PropertyStatus @default(DRAFT)
+  reviewHistory Json @default("[]")
+  lastSubmittedAt DateTime?
+  lastReviewedAt DateTime?
+  lastEditedAt DateTime @default(now())
 
   media             Media[]
   documents         PropertyDocument[]

@@ -18,6 +18,7 @@ import {
   publishVendorProperty,
   requestVendorPropertyUnpublish,
   requestVendorPropertyDeletion,
+  resubmitVendorPropertyForReview,
   submitVendorPropertyForReview,
   updateVendorPropertyAmenities,
   updateVendorPropertyDraft,
@@ -232,7 +233,10 @@ export default function VendorPropertyEditor(props: {
     setError(null);
     setBusy("Submitting for review...");
     try {
-      const updated = await submitVendorPropertyForReview(property.id);
+      const updated =
+        property.status === "CHANGES_REQUESTED"
+          ? await resubmitVendorPropertyForReview(property.id)
+          : await submitVendorPropertyForReview(property.id);
       setProperty(updated);
       await props.onRefresh();
     } catch (e) {
@@ -446,18 +450,30 @@ export default function VendorPropertyEditor(props: {
               </div>
 
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                {property.status === "CHANGES_REQUESTED" ? (
+                  <div className="w-full rounded-xl border border-warning/30 bg-warning/12 p-3 text-sm text-warning">
+                    Admin requested changes. Update fields/photos/docs, then resubmit for review.
+                  </div>
+                ) : null}
+
                 <button
                   type="button"
-                  disabled={busy !== null || !readiness.allOk}
+                  disabled={
+                    busy !== null ||
+                    !readiness.allOk ||
+                    !(property.status === "DRAFT" || property.status === "CHANGES_REQUESTED")
+                  }
                   onClick={() => void submitForReview()}
                   className={cn(
                     "rounded-xl px-4 py-2 text-sm font-semibold",
-                    busy !== null || !readiness.allOk
+                    busy !== null ||
+                      !readiness.allOk ||
+                      !(property.status === "DRAFT" || property.status === "CHANGES_REQUESTED")
                       ? "bg-warm-alt text-muted"
                       : "bg-brand text-accent-text hover:bg-brand-hover"
                   )}
                 >
-                  Submit for review
+                  {property.status === "CHANGES_REQUESTED" ? "Resubmit for review" : "Submit for review"}
                 </button>
 
                 <button
@@ -656,7 +672,7 @@ export default function VendorPropertyEditor(props: {
               <div className="text-sm font-semibold text-primary">Status</div>
               <div className="mt-2 text-sm text-secondary">{property.status}</div>
               <div className="mt-3 text-xs text-muted">
-                Flow: DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED
+                Flow: DRAFT → UNDER_REVIEW → CHANGES_REQUESTED → RESUBMITTED → UNDER_REVIEW → APPROVED → PUBLISHED
               </div>
             </section>
           </aside>

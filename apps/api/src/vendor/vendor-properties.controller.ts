@@ -157,6 +157,24 @@ export class VendorPropertiesController {
     return this.service.submitForReview(req.user.id, id);
   }
 
+  @Post(':id/resubmit')
+  async resubmitForReview(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    this.assertVendor(req.user);
+    return this.service.resubmitForReview(req.user.id, id);
+  }
+
+  @Get(':id/changes')
+  async getChanges(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    this.assertVendor(req.user);
+    return this.service.getChanges(req.user.id, id);
+  }
+
   @Post(':id/publish')
   async publish(
     @Req() req: { user: JwtUser },

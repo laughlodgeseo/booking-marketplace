@@ -9,6 +9,9 @@ import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   approveAdminProperty,
+  getAdminPropertyChanges,
+  type AdminPropertyChange,
+  type AdminPropertyChangesResponse,
   rejectAdminProperty,
   requestChangesAdminProperty,
 } from "@/lib/api/admin/reviewQueue";
@@ -46,11 +49,39 @@ function getArray(value: unknown, key: string): unknown[] {
   return Array.isArray(field) ? field : [];
 }
 
+function formatChangeValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function humanizeField(path: string): string {
+  if (!path || path === "(root)") return "Listing";
+  return path
+    .replace(/\[(\d+)\]/g, " [$1]")
+    .replace(/\./g, " > ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
 export default function AdminReviewQueueDetailPage() {
   const params = useParams<{ propertyId: string }>();
   const propertyId = typeof params?.propertyId === "string" ? params.propertyId : "";
 
   const [state, setState] = useState<ViewState>({ kind: "loading" });
+  const [changesState, setChangesState] = useState<{
+    loading: boolean;
+    data: AdminPropertyChangesResponse | null;
+    error: string | null;
+  }>({
+    loading: true,
+    data: null,
+    error: null,
+  });
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -62,14 +93,21 @@ export default function AdminReviewQueueDetailPage() {
     }
 
     setState({ kind: "loading" });
+    setChangesState({ loading: true, data: null, error: null });
     try {
-      const data = await getAdminPortalPropertyDetail(propertyId);
+      const [data, changes] = await Promise.all([
+        getAdminPortalPropertyDetail(propertyId),
+        getAdminPropertyChanges(propertyId),
+      ]);
       setState({ kind: "ready", data });
+      setChangesState({ loading: false, data: changes, error: null });
     } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to load property";
       setState({
         kind: "error",
-        message: e instanceof Error ? e.message : "Failed to load property",
+        message,
       });
+      setChangesState({ loading: false, data: null, error: message });
     }
   }, [propertyId]);
 
@@ -90,6 +128,40 @@ export default function AdminReviewQueueDetailPage() {
       .map((item) => asRecord(item))
       .filter((item): item is Record<string, unknown> => item !== null);
   }, [state]);
+
+  const changes = useMemo(() => {
+    if (!changesState.data?.changes) return [] as AdminPropertyChange[];
+    return changesState.data.changes;
+  }, [changesState.data]);
+
+  const changedFields = useMemo(() => {
+    return new Set(changes.map((change) => String(change.field)));
+  }, [changes]);
+
+  const timelineItems = useMemo(() => {
+    const items = changesState.data?.reviewHistory ?? [];
+    return [...items].sort((a, b) => {
+      const aa = Date.parse(a.createdAt);
+      const bb = Date.parse(b.createdAt);
+      if (Number.isNaN(aa) || Number.isNaN(bb)) return 0;
+      return aa - bb;
+    });
+  }, [changesState.data]);
+
+  function isChanged(field: string): boolean {
+    if (changedFields.has(field)) return true;
+    for (const changed of changedFields) {
+      if (
+        changed.startsWith(`${field}.`) ||
+        changed.startsWith(`${field}[`) ||
+        changed.includes(`.${field}.`) ||
+        changed.includes(`.${field}[`)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   async function runApprove() {
     if (!propertyId) return;
@@ -169,8 +241,20 @@ export default function AdminReviewQueueDetailPage() {
             <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-primary">{getString(state.data, "title") ?? "Untitled property"}</h2>
-                  <div className="mt-1 text-xs text-secondary">
+                  <h2
+                    className={[
+                      "inline-block rounded-lg px-2 py-1 text-lg font-semibold text-primary",
+                      isChanged("title") ? "border border-warning/40 bg-warning/12" : "",
+                    ].join(" ")}
+                  >
+                    {getString(state.data, "title") ?? "Untitled property"}
+                  </h2>
+                  <div
+                    className={[
+                      "mt-1 rounded-md px-2 py-1 text-xs text-secondary",
+                      isChanged("city") || isChanged("area") ? "border border-warning/40 bg-warning/12" : "",
+                    ].join(" ")}
+                  >
                     {[getString(state.data, "area"), getString(state.data, "city")].filter(Boolean).join(", ") || "Location unavailable"}
                   </div>
                   <div className="mt-1 font-mono text-xs text-muted">Property ID: {getString(state.data, "id") ?? propertyId}</div>
@@ -181,10 +265,10 @@ export default function AdminReviewQueueDetailPage() {
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Info label="Base price" value={String(getNumber(state.data, "basePrice") ?? "-")} />
-                <Info label="Currency" value={getString(state.data, "currency") ?? "-"} />
-                <Info label="Bedrooms" value={String(getNumber(state.data, "bedrooms") ?? "-")} />
-                <Info label="Bathrooms" value={String(getNumber(state.data, "bathrooms") ?? "-")} />
+                <Info label="Base price" value={String(getNumber(state.data, "basePrice") ?? "-")} highlighted={isChanged("basePrice")} />
+                <Info label="Currency" value={getString(state.data, "currency") ?? "-"} highlighted={isChanged("currency")} />
+                <Info label="Bedrooms" value={String(getNumber(state.data, "bedrooms") ?? "-")} highlighted={isChanged("bedrooms")} />
+                <Info label="Bathrooms" value={String(getNumber(state.data, "bathrooms") ?? "-")} highlighted={isChanged("bathrooms")} />
               </div>
 
               <div className="mt-4 rounded-2xl border border-line/70 bg-warm-base p-4">
@@ -227,6 +311,52 @@ export default function AdminReviewQueueDetailPage() {
                   <div className="mt-3 rounded-xl border border-danger/30 bg-danger/12 p-3 text-sm text-danger">{error}</div>
                 ) : null}
               </div>
+
+              <div className="mt-4 rounded-2xl border border-line/70 bg-warm-base p-4">
+                <div className="text-sm font-semibold text-primary">Changes Since Last Review</div>
+                {changesState.loading ? (
+                  <div className="mt-2 text-sm text-secondary">Loading change summary…</div>
+                ) : changesState.error ? (
+                  <div className="mt-2 rounded-xl border border-danger/30 bg-danger/12 p-3 text-sm text-danger">
+                    {changesState.error}
+                  </div>
+                ) : changes.length === 0 ? (
+                  <div className="mt-2 text-sm text-secondary">No tracked changes found since the last review checkpoint.</div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {changes.map((change, idx) => (
+                      <div key={`${change.field}-${idx}`} className="rounded-xl border border-warning/30 bg-warning/10 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-warning">{humanizeField(change.field)}</div>
+                        <div className="mt-1 text-sm text-secondary">
+                          <span className="font-semibold text-danger">{formatChangeValue(change.before)}</span>
+                          <span className="mx-2 text-muted">→</span>
+                          <span className="font-semibold text-success">{formatChangeValue(change.after)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
+              <div className="text-sm font-semibold text-primary">Review Timeline</div>
+              {timelineItems.length === 0 ? (
+                <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
+                  No review events yet.
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {timelineItems.map((item, idx) => (
+                    <div key={`${item.action}-${item.createdAt}-${idx}`} className="rounded-2xl border border-line/70 bg-warm-base p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        {item.action} · {new Date(item.createdAt).toLocaleString()}
+                      </div>
+                      {item.note ? <div className="mt-1 text-sm text-secondary">{item.note}</div> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
@@ -290,9 +420,14 @@ export default function AdminReviewQueueDetailPage() {
   );
 }
 
-function Info(props: { label: string; value: string }) {
+function Info(props: { label: string; value: string; highlighted?: boolean }) {
   return (
-    <div className="rounded-2xl border border-line/70 bg-warm-base p-4">
+    <div
+      className={[
+        "rounded-2xl border bg-warm-base p-4",
+        props.highlighted ? "border-warning/50 bg-warning/10" : "border-line/70",
+      ].join(" ")}
+    >
       <div className="text-xs font-semibold text-muted">{props.label}</div>
       <div className="mt-1 text-sm font-semibold text-primary">{props.value}</div>
     </div>

@@ -1,40 +1,61 @@
 "use client";
 
-function stepTone(current: string, step: "DRAFT" | "UNDER_REVIEW" | "APPROVED"): "done" | "current" | "todo" {
-  const s = current.toUpperCase();
-  if (step === "DRAFT") return "done";
+type TimelineStep = "DRAFT" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "APPROVED";
+type StepTone = "done" | "current" | "todo";
+
+function normalizeStatus(input: string): string {
+  return input.trim().toUpperCase();
+}
+
+function stepTone(current: string, step: TimelineStep): StepTone {
+  const s = normalizeStatus(current);
+
+  if (step === "DRAFT") {
+    if (s === "DRAFT") return "current";
+    return "done";
+  }
+
   if (step === "UNDER_REVIEW") {
-    if (s.includes("UNDER_REVIEW")) return "current";
-    if (s.includes("APPROV") || s.includes("PUBLISH") || s.includes("CHANGES") || s.includes("REJECT")) return "done";
-    return "todo";
+    if (s === "UNDER_REVIEW") return "current";
+    if (s === "DRAFT") return "todo";
+    return "done";
   }
+
+  if (step === "CHANGES_REQUESTED") {
+    if (s === "CHANGES_REQUESTED") return "current";
+    if (s === "DRAFT" || s === "UNDER_REVIEW") return "todo";
+    return "done";
+  }
+
   if (step === "APPROVED") {
-    if (s.includes("APPROV") || s.includes("PUBLISH")) return "current";
-    if (s.includes("CHANGES") || s.includes("REJECT")) return "todo";
+    if (s === "APPROVED" || s === "APPROVED_PENDING_ACTIVATION_PAYMENT" || s === "PUBLISHED") {
+      return "current";
+    }
     return "todo";
   }
+
   return "todo";
 }
 
 export function VendorPropertyTimeline(props: { status: string }) {
   const current = props.status;
-
-  const steps: Array<{ key: "DRAFT" | "UNDER_REVIEW" | "APPROVED"; title: string; desc: string }> = [
-    { key: "DRAFT", title: "Draft", desc: "Fill basic info, upload required photos + docs." },
-    { key: "UNDER_REVIEW", title: "In review", desc: "Admin checks listing quality and ownership proof." },
-    { key: "APPROVED", title: "Approved", desc: "Listing is approved. Next: publish (later step)." },
+  const steps: Array<{ key: TimelineStep; title: string; desc: string }> = [
+    { key: "DRAFT", title: "Draft", desc: "Prepare listing details, photos, and documents." },
+    { key: "UNDER_REVIEW", title: "Under review", desc: "Admin verifies quality and ownership." },
+    { key: "CHANGES_REQUESTED", title: "Changes requested", desc: "Apply requested edits and resubmit." },
+    { key: "APPROVED", title: "Approved", desc: "Ready for activation/publish workflow." },
   ];
 
   return (
     <div className="rounded-2xl border bg-surface p-6">
       <div className="text-sm font-semibold text-primary">Status timeline</div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 lg:grid-cols-4">
         {steps.map((st) => {
-          const t = stepTone(current, st.key);
+          const tone = stepTone(current, st.key);
           const cls =
-            t === "done"
+            tone === "done"
               ? "border-success/30 bg-success/12"
-              : t === "current"
+              : tone === "current"
                 ? "border-brand bg-warm-alt"
                 : "border-line bg-surface";
           return (

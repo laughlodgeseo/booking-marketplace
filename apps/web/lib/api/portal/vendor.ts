@@ -73,6 +73,41 @@ export type VendorPropertyStatus =
   | "SUSPENDED"
   | "ARCHIVED";
 
+export type PropertyReviewHistoryAction =
+  | "SUBMITTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "CHANGES_REQUESTED"
+  | "RESUBMITTED";
+
+export type PropertyReviewHistoryEntry = {
+  action: PropertyReviewHistoryAction;
+  note: string | null;
+  adminId: string | null;
+  createdAt: string;
+  snapshot: unknown;
+};
+
+export type PropertyDiffChange = {
+  field: string;
+  before: unknown;
+  after: unknown;
+};
+
+export type PropertyChangesResponse = {
+  propertyId: string;
+  status: VendorPropertyStatus;
+  baseline: {
+    action: PropertyReviewHistoryAction;
+    createdAt: string;
+  } | null;
+  changes: PropertyDiffChange[];
+  reviewHistory: PropertyReviewHistoryEntry[];
+  lastSubmittedAt: string | null;
+  lastReviewedAt: string | null;
+  lastEditedAt: string | null;
+};
+
 export type VendorPropertyListItem = {
   id: string;
   title: string;
@@ -297,6 +332,10 @@ export type VendorPropertyDetail = {
   isInstantBook: boolean;
 
   status: VendorPropertyStatus;
+  reviewHistory?: PropertyReviewHistoryEntry[];
+  lastSubmittedAt?: string | null;
+  lastReviewedAt?: string | null;
+  lastEditedAt?: string | null;
 
   createdAt: string;
   updatedAt: string;
@@ -921,6 +960,36 @@ export async function submitVendorPropertyForReview(propertyId: string): Promise
     `/vendor/properties/${encodeURIComponent(propertyId)}/submit`,
     {
       method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  return unwrap(res);
+}
+
+/**
+ * POST /vendor/properties/:id/resubmit
+ */
+export async function resubmitVendorPropertyForReview(propertyId: string): Promise<VendorPropertyDetail> {
+  const res = await apiFetch<VendorPropertyDetail>(
+    `/vendor/properties/${encodeURIComponent(propertyId)}/resubmit`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  return unwrap(res);
+}
+
+/**
+ * GET /vendor/properties/:id/changes
+ */
+export async function getVendorPropertyChanges(propertyId: string): Promise<PropertyChangesResponse> {
+  const res = await apiFetch<PropertyChangesResponse>(
+    `/vendor/properties/${encodeURIComponent(propertyId)}/changes`,
+    {
+      method: "GET",
       credentials: "include",
       cache: "no-store",
     }

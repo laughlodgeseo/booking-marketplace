@@ -1,19 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import {
+  getVendorPropertyChanges,
   submitVendorPropertyForReview,
+  resubmitVendorPropertyForReview,
   publishVendorProperty,
+  type PropertyDiffChange,
 } from "@/lib/api/portal/vendor";
 import { propertyTypeLabel } from "@/lib/types/property-type";
 import type { StepProps } from "../types";
 
 type SubmitState =
   | { kind: "idle" }
-  | { kind: "busy"; action: "review" | "publish" }
+  | { kind: "busy"; action: "review" | "resubmit" | "publish" }
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
+
+function humanizeField(path: string): string {
+  if (!path || path === "(root)") return "Listing";
+  return path
+    .replace(/\[(\d+)\]/g, " [$1]")
+    .replace(/\./g, " > ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function formatChangeValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
 
 function ReviewRow({ label, value, warn }: { label: string; value: string | null | undefined; warn?: boolean }) {
   const missing = !value || value.trim() === "";
@@ -38,17 +60,63 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
+  const [changes, setChanges] = useState<PropertyDiffChange[]>([]);
+  const [changesLoading, setChangesLoading] = useState(false);
+  const [changesError, setChangesError] = useState<string | null>(null);
 
-  const canSubmitForReview = property && property.status === "DRAFT" && data.lat !== null && data.lng !== null && (property.media?.length ?? 0) >= 1;
+  useEffect(() => {
+    if (!property?.id) {
+      setChanges([]);
+      setChangesError(null);
+      return;
+    }
+
+    let active = true;
+    setChangesLoading(true);
+    setChangesError(null);
+
+    void getVendorPropertyChanges(property.id)
+      .then((res) => {
+        if (!active) return;
+        setChanges(Array.isArray(res.changes) ? res.changes : []);
+      })
+      .catch((e) => {
+        if (!active) return;
+        setChangesError(e instanceof Error ? e.message : "Failed to load change summary.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setChangesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [property?.id, property?.updatedAt, property?.status]);
+
+  const canSubmitForReview =
+    property &&
+    (property.status === "DRAFT" || property.status === "CHANGES_REQUESTED") &&
+    data.lat !== null &&
+    data.lng !== null &&
+    (property.media?.length ?? 0) >= 4;
   const canPublish = property && property.status === "APPROVED";
 
   async function submitForReview() {
     if (!property) return;
-    setState({ kind: "busy", action: "review" });
+    const isResubmit = property.status === "CHANGES_REQUESTED";
+    setState({ kind: "busy", action: isResubmit ? "resubmit" : "review" });
     try {
-      const updated = await submitVendorPropertyForReview(property.id);
+      const updated = isResubmit
+        ? await resubmitVendorPropertyForReview(property.id)
+        : await submitVendorPropertyForReview(property.id);
       onPropertyUpdated(updated);
-      setState({ kind: "success", message: "Submitted for review! Our team will check your listing within 24-48 hours." });
+      setState({
+        kind: "success",
+        message: isResubmit
+          ? "Resubmitted for review. Admin will verify your updated listing."
+          : "Submitted for review! Our team will check your listing within 24-48 hours.",
+      });
     } catch (e) {
       setState({ kind: "error", message: e instanceof Error ? e.message : "Submission failed" });
     }
@@ -70,7 +138,8 @@ export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
     property?.status === "PUBLISHED" ? "border-success/30 bg-success/10 text-success" :
     property?.status === "APPROVED"  ? "border-brand/30 bg-accent-soft/15 text-brand" :
     property?.status === "UNDER_REVIEW" ? "border-warning/30 bg-warning/10 text-warning" :
-    (property?.status === "REJECTED" || property?.status === "CHANGES_REQUESTED") ? "border-danger/30 bg-danger/10 text-danger" :
+    property?.status === "CHANGES_REQUESTED" ? "border-warning/30 bg-warning/10 text-warning" :
+    property?.status === "REJECTED" ? "border-danger/30 bg-danger/10 text-danger" :
     "border-line/50 bg-warm-base text-muted";
 
   const photoCount = property?.media?.length ?? 0;
@@ -89,6 +158,12 @@ export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
           {property.status.replace(/_/g, " ")}
         </div>
       )}
+
+      {property?.status === "CHANGES_REQUESTED" ? (
+        <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          Admin requested changes. Please update your listing and resubmit for review.
+        </div>
+      ) : null}
 
       <Section title="Listing basics">
         <ReviewRow label="Type" value={propertyTypeLabel(data.propertyType)} />
@@ -127,8 +202,33 @@ export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
         <div className="py-2.5 text-sm">
           {photoCount > 0
             ? <span className="text-secondary">{photoCount} photo{photoCount !== 1 ? "s" : ""} uploaded</span>
-            : <span className="text-warning">No photos uploaded — at least 1 is required</span>}
+            : <span className="text-warning">No photos uploaded — at least 4 are required</span>}
         </div>
+      </Section>
+
+      <Section title="Changes Since Last Review">
+        {changesLoading ? (
+          <div className="py-2.5 text-sm text-secondary">Loading change summary…</div>
+        ) : changesError ? (
+          <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
+            {changesError}
+          </div>
+        ) : changes.length === 0 ? (
+          <div className="py-2.5 text-sm text-secondary">No tracked changes since the last review checkpoint.</div>
+        ) : (
+          <div className="space-y-2">
+            {changes.map((change, idx) => (
+              <div key={`${change.field}-${idx}`} className="rounded-xl border border-line/60 bg-warm-base px-3 py-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted">{humanizeField(change.field)}</div>
+                <div className="mt-1 text-sm text-secondary">
+                  <span className="font-semibold text-danger">{formatChangeValue(change.before)}</span>
+                  <span className="mx-2 text-muted">→</span>
+                  <span className="font-semibold text-success">{formatChangeValue(change.after)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       {/* Feedback */}
@@ -147,16 +247,21 @@ export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
 
       {/* Actions */}
       <div className="flex flex-col gap-3">
-        {property?.status === "DRAFT" && (
+        {(property?.status === "DRAFT" || property?.status === "CHANGES_REQUESTED") && (
           <button
             type="button"
             disabled={!canSubmitForReview || state.kind === "busy"}
             onClick={() => void submitForReview()}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand px-6 py-3.5 text-sm font-bold text-accent-text shadow-sm hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            {state.kind === "busy" && state.action === "review"
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
-              : <>🚀 Submit for Review</>}
+            {state.kind === "busy" && (state.action === "review" || state.action === "resubmit")
+              ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {property.status === "CHANGES_REQUESTED" ? "Resubmitting…" : "Submitting…"}
+                </>
+              )
+              : <>{property?.status === "CHANGES_REQUESTED" ? "🔁 Resubmit for Review" : "🚀 Submit for Review"}</>}
           </button>
         )}
 
@@ -173,12 +278,13 @@ export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
           </button>
         )}
 
-        {!canSubmitForReview && property?.status === "DRAFT" && (
+        {!canSubmitForReview &&
+          (property?.status === "DRAFT" || property?.status === "CHANGES_REQUESTED") && (
           <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
             <div className="font-semibold mb-1">Before you can submit:</div>
             <ul className="space-y-1 text-warning/80 text-xs">
               {!data.lat || !data.lng ? <li>• Set a location pin on the map</li> : null}
-              {photoCount < 1 ? <li>• Upload at least 1 photo</li> : null}
+              {photoCount < 4 ? <li>• Upload at least 4 photos</li> : null}
             </ul>
           </div>
         )}

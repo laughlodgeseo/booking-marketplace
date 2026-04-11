@@ -33,6 +33,13 @@ import {
 } from './vendor-properties.dto';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PROPERTY_DOCUMENT_REQUIREMENTS } from '../modules/properties/property-document-requirements';
+import {
+  appendReviewHistoryEntry,
+  computePropertyChanges,
+  findLastReviewAnchor,
+  parseReviewHistory,
+  toJsonSnapshot,
+} from '../common/property-review-history';
 
 @Injectable()
 export class VendorPropertiesService {
@@ -207,6 +214,170 @@ export class VendorPropertiesService {
     );
   }
 
+  private async applyVendorEditState(
+    propertyId: string,
+    currentStatus: PropertyStatus,
+  ): Promise<void> {
+    await this.prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        lastEditedAt: new Date(),
+        status: this.shouldResetToDraftOnVendorEdit(currentStatus)
+          ? PropertyStatus.DRAFT
+          : undefined,
+      },
+    });
+  }
+
+  private async buildReviewSnapshot(
+    db: PrismaService | Prisma.TransactionClient,
+    propertyId: string,
+  ): Promise<Prisma.InputJsonValue> {
+    const property = await db.property.findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        propertyType: true,
+        description: true,
+        city: true,
+        area: true,
+        address: true,
+        lat: true,
+        lng: true,
+        maxGuests: true,
+        bedrooms: true,
+        bathrooms: true,
+        basePrice: true,
+        cleaningFee: true,
+        currency: true,
+        minNights: true,
+        maxNights: true,
+        checkInFromMin: true,
+        checkInToMax: true,
+        checkOutMin: true,
+        isInstantBook: true,
+        status: true,
+        media: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          select: {
+            id: true,
+            url: true,
+            alt: true,
+            sortOrder: true,
+            category: true,
+          },
+        },
+        documents: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            type: true,
+            url: true,
+            storageKey: true,
+            originalName: true,
+            mimeType: true,
+          },
+        },
+        amenities: {
+          orderBy: [{ amenityId: 'asc' }],
+          select: {
+            amenityId: true,
+          },
+        },
+        translations: {
+          orderBy: [{ locale: 'asc' }],
+          select: {
+            locale: true,
+            title: true,
+            description: true,
+            areaLabel: true,
+            tagline: true,
+          },
+        },
+      },
+    });
+
+    if (!property) {
+      throw new NotFoundException('Property not found.');
+    }
+
+    return toJsonSnapshot(property);
+  }
+
+  private async ensureReadyForSubmission(
+    propertyId: string,
+    prop: {
+      lat: number | null;
+      lng: number | null;
+    },
+  ): Promise<void> {
+    const [media, docs] = await this.prisma.$transaction([
+      this.prisma.media.findMany({
+        where: { propertyId },
+        select: { id: true, category: true },
+      }),
+      this.prisma.propertyDocument.findMany({
+        where: { propertyId },
+        select: { id: true, type: true },
+      }),
+    ]);
+
+    const missingLines: string[] = [];
+
+    if (prop.lat == null || prop.lng == null) {
+      missingLines.push(
+        `- Set the property location on the map (lat/lng required).`,
+      );
+    }
+
+    if (media.length < 4) {
+      missingLines.push(
+        `- Upload at least 4 photos (currently ${media.length}).`,
+      );
+    }
+
+    const requiredCategories: PropertyMediaCategory[] = [
+      PropertyMediaCategory.LIVING_ROOM,
+      PropertyMediaCategory.BEDROOM,
+      PropertyMediaCategory.BATHROOM,
+      PropertyMediaCategory.KITCHEN,
+    ];
+
+    const present = new Set<PropertyMediaCategory>();
+    for (const m of media) {
+      if (m.category && requiredCategories.includes(m.category)) {
+        present.add(m.category);
+      }
+    }
+
+    const missingCategories = requiredCategories.filter((c) => !present.has(c));
+    if (missingCategories.length > 0) {
+      missingLines.push(
+        `- Tag photos with categories (missing: ${missingCategories.join(', ')}).`,
+      );
+    }
+
+    const docTypes = new Set(docs.map((d) => d.type));
+    const missingRequiredDocs = PROPERTY_DOCUMENT_REQUIREMENTS.filter(
+      (requirement) => requirement.required && !docTypes.has(requirement.id),
+    );
+    if (missingRequiredDocs.length > 0) {
+      missingLines.push(
+        `- Upload required documents: ${missingRequiredDocs
+          .map((item) => item.label)
+          .join(', ')}.`,
+      );
+    }
+
+    if (missingLines.length > 0) {
+      throw new BadRequestException(
+        `Cannot submit for review. Please complete:\n${missingLines.join('\n')}`,
+      );
+    }
+  }
+
   private async readinessIssuesAfterMediaDelete(
     propertyId: string,
     mediaId: string,
@@ -369,12 +540,7 @@ export class VendorPropertiesService {
         : []),
     ]);
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return this.getOne(vendorUserId, propertyId);
   }
@@ -496,6 +662,7 @@ export class VendorPropertiesService {
         checkInToMax: dto.checkInToMax,
         checkOutMin: dto.checkOutMin,
         isInstantBook: dto.isInstantBook,
+        lastEditedAt: new Date(),
       },
     });
 
@@ -505,14 +672,7 @@ export class VendorPropertiesService {
       areaLabel: updated.area ?? null,
     });
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-      return this.getOne(vendorUserId, propertyId);
-    }
-
+    await this.applyVendorEditState(propertyId, prop.status);
     return this.getOne(vendorUserId, propertyId);
   }
 
@@ -543,7 +703,7 @@ export class VendorPropertiesService {
 
     this.ensureCoords(dto.lat, dto.lng);
 
-    const updated = await this.prisma.property.update({
+    await this.prisma.property.update({
       where: { id: propertyId },
       data: {
         city,
@@ -551,18 +711,12 @@ export class VendorPropertiesService {
         address: this.normalizeOptionalString(dto.address),
         lat: dto.lat,
         lng: dto.lng,
+        lastEditedAt: new Date(),
       },
     });
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-      return this.prisma.property.findUnique({ where: { id: propertyId } });
-    }
-
-    return updated;
+    await this.applyVendorEditState(propertyId, prop.status);
+    return this.prisma.property.findUnique({ where: { id: propertyId } });
   }
 
   /* ---------------------------------------------
@@ -572,84 +726,119 @@ export class VendorPropertiesService {
   async submitForReview(vendorUserId: string, propertyId: string) {
     const prop = await this.assertOwnership(vendorUserId, propertyId);
 
-    if (
-      prop.status !== PropertyStatus.DRAFT &&
-      prop.status !== PropertyStatus.CHANGES_REQUESTED
-    ) {
+    if (prop.status === PropertyStatus.CHANGES_REQUESTED) {
+      return this.resubmitForReview(vendorUserId, propertyId);
+    }
+
+    if (prop.status !== PropertyStatus.DRAFT) {
       throw new BadRequestException(
-        'Property must be in DRAFT or CHANGES_REQUESTED to submit for review.',
+        'Property must be in DRAFT to submit for review.',
       );
     }
 
-    const [media, docs] = await this.prisma.$transaction([
-      this.prisma.media.findMany({
-        where: { propertyId },
-        select: { id: true, category: true },
-      }),
-      this.prisma.propertyDocument.findMany({
-        where: { propertyId },
-        select: { id: true, type: true },
-      }),
-    ]);
+    await this.ensureReadyForSubmission(propertyId, prop);
 
-    const missingLines: string[] = [];
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const current = await tx.property.findUnique({
+        where: { id: propertyId },
+        select: { reviewHistory: true },
+      });
+      if (!current) throw new NotFoundException('Property not found.');
 
-    if (prop.lat == null || prop.lng == null) {
-      missingLines.push(
-        `- Set the property location on the map (lat/lng required).`,
-      );
-    }
-
-    if (media.length < 4) {
-      missingLines.push(
-        `- Upload at least 4 photos (currently ${media.length}).`,
-      );
-    }
-
-    const requiredCategories: PropertyMediaCategory[] = [
-      PropertyMediaCategory.LIVING_ROOM,
-      PropertyMediaCategory.BEDROOM,
-      PropertyMediaCategory.BATHROOM,
-      PropertyMediaCategory.KITCHEN,
-    ];
-
-    const present = new Set<PropertyMediaCategory>();
-    for (const m of media) {
-      if (m.category && requiredCategories.includes(m.category)) {
-        present.add(m.category);
-      }
-    }
-
-    const missingCategories = requiredCategories.filter((c) => !present.has(c));
-
-    if (missingCategories.length > 0) {
-      missingLines.push(
-        `- Tag photos with categories (missing: ${missingCategories.join(', ')}).`,
-      );
-    }
-
-    const docTypes = new Set(docs.map((d) => d.type));
-    const missingRequiredDocs = PROPERTY_DOCUMENT_REQUIREMENTS.filter(
-      (requirement) => requirement.required && !docTypes.has(requirement.id),
-    );
-    if (missingRequiredDocs.length > 0) {
-      missingLines.push(
-        `- Upload required documents: ${missingRequiredDocs
-          .map((item) => item.label)
-          .join(', ')}.`,
-      );
-    }
-
-    if (missingLines.length > 0) {
-      throw new BadRequestException(
-        `Cannot submit for review. Please complete:\n${missingLines.join('\n')}`,
-      );
-    }
-
-    return this.prisma.property.update({
-      where: { id: propertyId },
-      data: { status: PropertyStatus.UNDER_REVIEW },
+      const snapshot = await this.buildReviewSnapshot(tx, propertyId);
+      await tx.property.update({
+        where: { id: propertyId },
+        data: {
+          status: PropertyStatus.UNDER_REVIEW,
+          lastSubmittedAt: now,
+          reviewHistory: appendReviewHistoryEntry(current.reviewHistory, {
+            action: 'SUBMITTED',
+            createdAt: now,
+            snapshot,
+          }),
+        },
+      });
     });
+
+    return this.getOne(vendorUserId, propertyId);
+  }
+
+  async resubmitForReview(vendorUserId: string, propertyId: string) {
+    const prop = await this.assertOwnership(vendorUserId, propertyId);
+
+    if (prop.status !== PropertyStatus.CHANGES_REQUESTED) {
+      throw new BadRequestException(
+        'Only properties with requested changes can be resubmitted.',
+      );
+    }
+
+    await this.ensureReadyForSubmission(propertyId, prop);
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const current = await tx.property.findUnique({
+        where: { id: propertyId },
+        select: { reviewHistory: true },
+      });
+      if (!current) throw new NotFoundException('Property not found.');
+
+      const snapshot = await this.buildReviewSnapshot(tx, propertyId);
+      await tx.property.update({
+        where: { id: propertyId },
+        data: {
+          status: PropertyStatus.UNDER_REVIEW,
+          lastSubmittedAt: now,
+          reviewHistory: appendReviewHistoryEntry(current.reviewHistory, {
+            action: 'RESUBMITTED',
+            createdAt: now,
+            snapshot,
+          }),
+        },
+      });
+    });
+
+    return this.getOne(vendorUserId, propertyId);
+  }
+
+  async getChanges(vendorUserId: string, propertyId: string) {
+    await this.assertOwnership(vendorUserId, propertyId);
+
+    const property = await this.prisma.property.findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        status: true,
+        reviewHistory: true,
+        lastSubmittedAt: true,
+        lastReviewedAt: true,
+        lastEditedAt: true,
+      },
+    });
+    if (!property) throw new NotFoundException('Property not found.');
+
+    const currentSnapshot = await this.buildReviewSnapshot(this.prisma, propertyId);
+    const reviewHistory = parseReviewHistory(property.reviewHistory);
+    const lastReview = findLastReviewAnchor(reviewHistory);
+    const changes = lastReview
+      ? computePropertyChanges(lastReview.snapshot, currentSnapshot)
+      : [];
+
+    return {
+      propertyId: property.id,
+      status: property.status,
+      baseline: lastReview
+        ? {
+            action: lastReview.action,
+            createdAt: lastReview.createdAt,
+          }
+        : null,
+      changes,
+      reviewHistory,
+      lastSubmittedAt: property.lastSubmittedAt?.toISOString() ?? null,
+      lastReviewedAt: property.lastReviewedAt?.toISOString() ?? null,
+      lastEditedAt: property.lastEditedAt?.toISOString() ?? null,
+    };
   }
 
   private activationDepositAmountMinor(): number {
@@ -961,7 +1150,7 @@ export class VendorPropertiesService {
     propertyId: string,
     file: Express.Multer.File,
   ) {
-    await this.assertOwnership(vendorUserId, propertyId);
+    const prop = await this.assertOwnership(vendorUserId, propertyId);
     let mediaUrl: string;
     try {
       mediaUrl = await resolvePropertyImageUrl({
@@ -990,15 +1179,7 @@ export class VendorPropertiesService {
       },
     });
 
-    const prop = await this.prisma.property.findUnique({
-      where: { id: propertyId },
-    });
-    if (prop && this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return created;
   }
@@ -1011,7 +1192,7 @@ export class VendorPropertiesService {
     const trimmed = (url ?? '').trim();
     if (!trimmed) throw new BadRequestException('url is required.');
 
-    await this.assertOwnership(vendorUserId, propertyId);
+    const prop = await this.assertOwnership(vendorUserId, propertyId);
 
     const last = await this.prisma.media.findFirst({
       where: { propertyId },
@@ -1028,15 +1209,7 @@ export class VendorPropertiesService {
       },
     });
 
-    const prop = await this.prisma.property.findUnique({
-      where: { id: propertyId },
-    });
-    if (prop && this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return created;
   }
@@ -1061,12 +1234,7 @@ export class VendorPropertiesService {
       data: { category: dto.category },
     });
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return updated;
   }
@@ -1087,12 +1255,7 @@ export class VendorPropertiesService {
       ),
     );
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return this.prisma.media.findMany({
       where: { propertyId },
@@ -1156,12 +1319,7 @@ export class VendorPropertiesService {
       }
     }
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return this.prisma.media.findMany({
       where: { propertyId },
@@ -1199,12 +1357,7 @@ export class VendorPropertiesService {
       data: { url },
     });
 
-    if (this.shouldResetToDraftOnVendorEdit(prop.status)) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { status: PropertyStatus.DRAFT },
-      });
-    }
+    await this.applyVendorEditState(propertyId, prop.status);
 
     return doc;
   }

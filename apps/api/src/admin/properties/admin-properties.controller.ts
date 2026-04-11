@@ -355,6 +355,15 @@ export class AdminPropertiesController {
     return this.service.reject(req.user.id, id, dto);
   }
 
+  @Get(':id/changes')
+  async getChanges(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    this.assertAdmin(req.user);
+    return this.service.getChanges(id);
+  }
+
   @Get(':id')
   async getOne(
     @Req() req: { user: JwtUser },
