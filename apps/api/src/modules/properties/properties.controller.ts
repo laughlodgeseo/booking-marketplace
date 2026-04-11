@@ -28,6 +28,11 @@ export class PropertiesController {
     });
   }
 
+  @Get('document-requirements')
+  documentRequirements() {
+    return this.properties.documentRequirements();
+  }
+
   @Get(':slug')
   @Header(
     'Cache-Control',

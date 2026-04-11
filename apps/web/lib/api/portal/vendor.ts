@@ -158,6 +158,15 @@ export type PropertyDocumentType =
   | "HOLIDAY_HOME_PERMIT"
   | "OTHER";
 
+export type PropertyDocumentRequirement = {
+  id: PropertyDocumentType;
+  label: string;
+  required: boolean;
+  type: "file";
+  accept: string[];
+  maxSizeMB: number;
+};
+
 export type VendorPropertyDocument = {
   id: string;
   propertyId: string;
@@ -464,6 +473,14 @@ export async function getVendorProperties(params?: {
     credentials: "include",
     cache: "no-store",
     query: { page: params?.page ?? 1, pageSize: params?.pageSize ?? 10 },
+  });
+  return unwrap(res);
+}
+
+export async function getPropertyDocumentRequirements(): Promise<PropertyDocumentRequirement[]> {
+  const res = await apiFetch<PropertyDocumentRequirement[]>("/properties/document-requirements", {
+    method: "GET",
+    cache: "no-store",
   });
   return unwrap(res);
 }

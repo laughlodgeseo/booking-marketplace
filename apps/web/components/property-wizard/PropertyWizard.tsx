@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import {
   createVendorPropertyDraft,
+  getPropertyDocumentRequirements,
   updateVendorPropertyDraft,
   updateVendorPropertyLocation,
   updateVendorPropertyAmenities,
@@ -21,6 +22,7 @@ import { StepDetails } from "./steps/StepDetails";
 import { StepAmenities } from "./steps/StepAmenities";
 import { StepPricing } from "./steps/StepPricing";
 import { StepImages } from "./steps/StepImages";
+import { StepDocuments } from "./steps/StepDocuments";
 import { StepReview } from "./steps/StepReview";
 import { normalizePropertyType, PROPERTY_TYPE_LABELS } from "@/lib/types/property-type";
 
@@ -94,6 +96,28 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
   // -------------------------------------------------------------------
   // Persist per-step
   // -------------------------------------------------------------------
+  async function validateRequiredDocumentsForStep(): Promise<string | null> {
+    if (!property) {
+      return "Save your property first before uploading documents.";
+    }
+
+    const requirements = await getPropertyDocumentRequirements();
+    const uploadedTypes = new Set(
+      (property.documents ?? []).map((doc) => String(doc.type).toUpperCase())
+    );
+
+    const missing = requirements.filter(
+      (req) => req.required && !uploadedTypes.has(String(req.id).toUpperCase())
+    );
+
+    if (missing.length > 0) {
+      const first = missing[0];
+      return `${first.label} is required before moving to review.`;
+    }
+
+    return null;
+  }
+
   async function persistStep(stepIndex: number): Promise<boolean> {
     setSaveError(null);
     setSaving(true);
@@ -118,6 +142,12 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
         updated = await updateVendorPropertyAmenities(property.id, data.selectedAmenityIds);
       } else if (stepIndex === 4 && property) {
         updated = await updateVendorPropertyDraft(property.id, { title, city, basePrice: data.basePrice, cleaningFee: data.cleaningFee, currency: data.currency, minNights: data.minNights, maxNights: data.maxNights, isInstantBook: data.isInstantBook });
+      } else if (stepIndex === 6) {
+        const validationError = await validateRequiredDocumentsForStep();
+        if (validationError) {
+          setSaveError(validationError);
+          return false;
+        }
       }
 
       if (updated) {
@@ -137,7 +167,7 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
   // Navigation
   // -------------------------------------------------------------------
   async function goNext() {
-    if (step <= 4) {
+    if (step <= 6) {
       const ok = await persistStep(step);
       if (!ok) return;
     }
@@ -178,7 +208,8 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
       case 3: return <StepAmenities {...stepProps} />;
       case 4: return <StepPricing {...stepProps} />;
       case 5: return <StepImages {...stepProps} />;
-      case 6: return <StepReview {...stepProps} />;
+      case 6: return <StepDocuments {...stepProps} />;
+      case 7: return <StepReview {...stepProps} />;
       default: return null;
     }
   }
@@ -195,7 +226,8 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
     3: "All amenities are pre-selected. Just remove the ones you don't offer.",
     4: "Price in AED if your target market is UAE-based. You can update currency any time.",
     5: "Listings with 10+ photos get significantly more bookings. Upload your best shots first.",
-    6: "Admin review is typically completed within 24-48 business hours.",
+    6: "Document requirements are loaded dynamically by backend policy. Upload all required files before review.",
+    7: "Admin review is typically completed within 24-48 business hours.",
   };
 
   return (

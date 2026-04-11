@@ -22,6 +22,7 @@ import {
   type AppLocale,
   type DisplayCurrency,
 } from '../../common/i18n/locale';
+import { getPropertyDocumentRequirements } from './property-document-requirements';
 
 type AmenityGroupDto = {
   id: string;
@@ -86,6 +87,10 @@ export class PropertiesService {
     if (parsed) return parsed;
     if (fallback) return fallback;
     throw new BadRequestException('Invalid date range. Use YYYY-MM-DD.');
+  }
+
+  documentRequirements() {
+    return getPropertyDocumentRequirements();
   }
 
   async list(input: ListPropertiesDto, context?: RequestContext) {

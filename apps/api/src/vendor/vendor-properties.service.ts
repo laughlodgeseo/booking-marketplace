@@ -13,7 +13,6 @@ import {
   Prisma,
   PropertyDeletionRequestStatus,
   PropertyUnpublishRequestStatus,
-  PropertyDocumentType,
   PropertyMediaCategory,
   PropertyStatus,
 } from '@prisma/client';
@@ -33,6 +32,7 @@ import {
   type PropertyTranslationsInput,
 } from './vendor-properties.dto';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
+import { PROPERTY_DOCUMENT_REQUIREMENTS } from '../modules/properties/property-document-requirements';
 
 @Injectable()
 export class VendorPropertiesService {
@@ -628,25 +628,16 @@ export class VendorPropertiesService {
       );
     }
 
-    const hasOwnershipProof = docs.some(
-      (d) => d.type === PropertyDocumentType.OWNERSHIP_PROOF,
+    const docTypes = new Set(docs.map((d) => d.type));
+    const missingRequiredDocs = PROPERTY_DOCUMENT_REQUIREMENTS.filter(
+      (requirement) => requirement.required && !docTypes.has(requirement.id),
     );
-    if (!hasOwnershipProof) {
-      missingLines.push(`- Upload document: OWNERSHIP_PROOF.`);
-    }
-
-    const hasOwnerId = docs.some(
-      (d) => d.type === PropertyDocumentType.OWNER_ID,
-    );
-    if (!hasOwnerId) {
-      missingLines.push(`- Upload document: OWNER_ID.`);
-    }
-
-    const hasAuthorizationProof = docs.some(
-      (d) => d.type === PropertyDocumentType.AUTHORIZATION_PROOF,
-    );
-    if (!hasAuthorizationProof) {
-      missingLines.push(`- Upload document: AUTHORIZATION_PROOF.`);
+    if (missingRequiredDocs.length > 0) {
+      missingLines.push(
+        `- Upload required documents: ${missingRequiredDocs
+          .map((item) => item.label)
+          .join(', ')}.`,
+      );
     }
 
     if (missingLines.length > 0) {

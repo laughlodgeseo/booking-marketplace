@@ -37,5 +37,6 @@ export const WIZARD_STEPS = [
   { id: "amenities", label: "Amenities", emoji: "✨" },
   { id: "pricing",   label: "Pricing",   emoji: "💰" },
   { id: "photos",    label: "Photos",    emoji: "📸" },
+  { id: "documents", label: "Documents", emoji: "📄" },
   { id: "review",    label: "Review",    emoji: "🚀" },
 ] as const;

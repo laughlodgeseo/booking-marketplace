@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
+  PropertyDocumentRequirement,
   VendorPropertyDetail,
   VendorPropertyDocument,
   PropertyDocumentType,
@@ -9,6 +10,7 @@ import type {
 import {
   deleteVendorPropertyDocument,
   downloadVendorPropertyDocument,
+  getPropertyDocumentRequirements,
   uploadVendorPropertyDocument,
   viewVendorPropertyDocument,
 } from "@/lib/api/portal/vendor";
@@ -19,18 +21,30 @@ type Props = {
   onChanged: (next: VendorPropertyDetail) => void;
 };
 
-const REQUIRED_TYPES: Array<{ type: PropertyDocumentType; title: string; required: boolean }> = [
-  { type: "OWNERSHIP_PROOF", title: "Ownership proof", required: true },
-  { type: "OWNER_ID", title: "Owner ID", required: true },
-  { type: "AUTHORIZATION_PROOF", title: "Authorization letter", required: true },
-  { type: "ADDRESS_PROOF", title: "Address proof", required: false },
-  { type: "HOLIDAY_HOME_PERMIT", title: "Holiday home permit", required: false },
-  { type: "OTHER", title: "Other", required: false },
-];
+function prettyDocType(
+  type: PropertyDocumentType,
+  requirements: PropertyDocumentRequirement[],
+): string {
+  const entry = requirements.find((item) => item.id === type);
+  if (entry) return entry.label;
+  return type.replaceAll("_", " ").toLowerCase();
+}
 
-function prettyDocType(type: PropertyDocumentType): string {
-  const entry = REQUIRED_TYPES.find((item) => item.type === type);
-  return entry?.title ?? type;
+function fileMatchesAccept(file: File, acceptRules: string[]): boolean {
+  if (!acceptRules.length) return true;
+  const mime = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+
+  return acceptRules.some((ruleRaw) => {
+    const rule = ruleRaw.trim().toLowerCase();
+    if (!rule) return false;
+    if (rule.endsWith("/*")) {
+      const prefix = rule.slice(0, -1);
+      return mime.startsWith(prefix);
+    }
+    if (rule.startsWith(".")) return name.endsWith(rule);
+    return mime === rule;
+  });
 }
 
 function safeFilename(document: VendorPropertyDocument): string {
@@ -83,23 +97,81 @@ export function DocumentManager({ property, onChanged }: Props) {
 
   const [busy, setBusy] = useState<null | string>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<PropertyDocumentType>("OWNERSHIP_PROOF");
+  const [selectedType, setSelectedType] = useState<PropertyDocumentType | "">("");
+  const [requirements, setRequirements] = useState<PropertyDocumentRequirement[]>(
+    [],
+  );
+  const [requirementsLoading, setRequirementsLoading] = useState(true);
   const [uploadingDocName, setUploadingDocName] = useState<string | null>(null);
 
+  useEffect(() => {
+    let alive = true;
+    async function loadRequirements() {
+      setRequirementsLoading(true);
+      setError(null);
+      try {
+        const list = await getPropertyDocumentRequirements();
+        if (!alive) return;
+        setRequirements(Array.isArray(list) ? list : []);
+      } catch (loadError) {
+        if (!alive) return;
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load document requirements",
+        );
+      } finally {
+        if (alive) setRequirementsLoading(false);
+      }
+    }
+    void loadRequirements();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedType) return;
+    if (requirements.length === 0) return;
+    setSelectedType(requirements[0].id);
+  }, [requirements, selectedType]);
+
   const latestMap = useMemo(() => latestByType(property.documents), [property.documents]);
+  const requirementById = useMemo(
+    () => new Map(requirements.map((item) => [item.id, item])),
+    [requirements],
+  );
+  const selectedRequirement = selectedType
+    ? (requirementById.get(selectedType) ?? null)
+    : null;
 
   const requiredProgress = useMemo(() => {
-    const required = REQUIRED_TYPES.filter((item) => item.required);
-    const uploaded = required.filter((item) => latestMap.has(item.type)).length;
+    const required = requirements.filter((item) => item.required);
+    const uploaded = required.filter((item) => latestMap.has(item.id)).length;
     return { uploaded, total: required.length };
-  }, [latestMap]);
+  }, [latestMap, requirements]);
 
   async function upload(type: PropertyDocumentType, file: File | null) {
     if (!file) return;
+    const requirement = requirementById.get(type) ?? null;
 
     setError(null);
+    if (requirement) {
+      const maxBytes = requirement.maxSizeMB * 1024 * 1024;
+      if (Number.isFinite(maxBytes) && maxBytes > 0 && file.size > maxBytes) {
+        setError(
+          `${requirement.label}: file is too large. Max size is ${requirement.maxSizeMB}MB.`,
+        );
+        return;
+      }
+      if (!fileMatchesAccept(file, requirement.accept ?? [])) {
+        setError(`${requirement.label}: unsupported file format.`);
+        return;
+      }
+    }
+
     setUploadingDocName(file.name);
-    setBusy(`Uploading ${prettyDocType(type)}...`);
+    setBusy(`Uploading ${prettyDocType(type, requirements)}...`);
 
     try {
       const created = await uploadVendorPropertyDocument(property.id, type, file);
@@ -169,8 +241,7 @@ export function DocumentManager({ property, onChanged }: Props) {
         <div>
           <h3 className="text-base font-semibold text-primary">Documents</h3>
           <p className="mt-1 text-sm text-secondary">
-            Documents are private and never public. Required for review: ownership proof,
-            owner ID, and authorization letter.
+            Documents are private and never public. Requirements are loaded from backend policy.
           </p>
           <div className="mt-2 text-xs font-semibold text-secondary">
             Required uploaded: {requiredProgress.uploaded}/{requiredProgress.total}
@@ -181,11 +252,12 @@ export function DocumentManager({ property, onChanged }: Props) {
           <select
             value={selectedType}
             onChange={(event) => setSelectedType(event.target.value as PropertyDocumentType)}
+            disabled={requirementsLoading || requirements.length === 0}
             className="h-10 rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-primary"
           >
-            {REQUIRED_TYPES.map((item) => (
-              <option key={item.type} value={item.type}>
-                {item.title}
+            {requirements.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
                 {item.required ? " (required)" : ""}
               </option>
             ))}
@@ -194,18 +266,28 @@ export function DocumentManager({ property, onChanged }: Props) {
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf,image/*"
+            accept={selectedRequirement?.accept?.join(",") || "application/pdf,image/*"}
+            disabled={requirementsLoading || requirements.length === 0 || !selectedType}
             className="hidden"
             id="vendor-doc-upload"
             onChange={(event) => {
               const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+              if (!selectedType) {
+                setError("Select a document type first.");
+                return;
+              }
               void upload(selectedType, file);
             }}
           />
 
           <label
             htmlFor="vendor-doc-upload"
-            className="cursor-pointer rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
+            className={[
+              "rounded-xl px-4 py-2 text-sm font-semibold",
+              requirementsLoading || requirements.length === 0 || !selectedType
+                ? "cursor-not-allowed bg-warm-alt text-muted"
+                : "cursor-pointer bg-brand text-accent-text hover:bg-brand-hover",
+            ].join(" ")}
           >
             Upload document
           </label>
@@ -224,6 +306,12 @@ export function DocumentManager({ property, onChanged }: Props) {
         </div>
       ) : null}
 
+      {requirementsLoading ? (
+        <div className="rounded-xl border border-line bg-warm-alt p-3 text-sm text-secondary">
+          Loading document requirements...
+        </div>
+      ) : null}
+
       {error ? (
         <div className="whitespace-pre-wrap rounded-xl border border-danger/30 bg-danger/12 p-3 text-sm text-danger">
           {error}
@@ -231,13 +319,13 @@ export function DocumentManager({ property, onChanged }: Props) {
       ) : null}
 
       <div className="grid gap-3 lg:grid-cols-2">
-        {REQUIRED_TYPES.map((item) => {
-          const uploaded = latestMap.get(item.type) ?? null;
+        {requirements.map((item) => {
+          const uploaded = latestMap.get(item.id) ?? null;
           return (
-            <div key={item.type} className="rounded-2xl border border-line bg-surface p-4">
+            <div key={item.id} className="rounded-2xl border border-line bg-surface p-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-primary">{item.title}</div>
+                  <div className="text-sm font-semibold text-primary">{item.label}</div>
                   <div className="mt-1 text-xs text-muted">
                     {item.required ? "Required" : "Optional"}
                   </div>
@@ -308,7 +396,7 @@ export function DocumentManager({ property, onChanged }: Props) {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-primary">
-                      {prettyDocType(document.type)}
+                      {prettyDocType(document.type, requirements)}
                     </div>
                     <div className="mt-1 break-words text-sm text-secondary">
                       {document.originalName ?? "Unnamed"} - {document.mimeType ?? "unknown"}
