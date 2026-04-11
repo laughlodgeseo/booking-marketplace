@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -28,6 +29,7 @@ function formatDate(value: string): string {
 }
 
 export default function VendorPropertiesPage() {
+  const router = useRouter();
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -82,7 +84,7 @@ export default function VendorPropertiesPage() {
   }, [state, query, statusFilter]);
 
   return (
-    <PortalShell role="vendor" title="Properties" subtitle="Open each listing in its dedicated property hub page">
+    <PortalShell role="vendor" title="Properties" subtitle="Open each listing directly in the editor or preview hub">
       {state.kind === "loading" ? (
         <div className="space-y-3">
           <SkeletonBlock className="h-24" />
@@ -135,29 +137,62 @@ export default function VendorPropertiesPage() {
             </div>
           ) : (
             <div className="grid gap-3">
-              {derived?.filtered.map((property) => (
-                <Link
-                  key={property.id}
-                  href={`/vendor/properties/${encodeURIComponent(property.id)}`}
-                  className="rounded-3xl border border-line/40 bg-warm-base/95 p-5 shadow-sm transition hover:bg-warm-alt/60 lg:border-line/60 lg:bg-surface"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-primary">{property.title}</div>
-                      <div className="mt-1 text-xs text-secondary">
-                        {[property.area, property.city].filter(Boolean).join(", ")} · {property.slug}
+              {derived?.filtered.map((property) => {
+                const encodedId = encodeURIComponent(property.id);
+                const editHref = `/vendor/properties/${encodedId}/edit`;
+                const previewHref = `/vendor/properties/${encodedId}`;
+                const showContinueEditing =
+                  property.status === "DRAFT" || property.status === "CHANGES_REQUESTED";
+
+                return (
+                  <article
+                    key={property.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(editHref)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(editHref);
+                      }
+                    }}
+                    className="cursor-pointer rounded-3xl border border-line/40 bg-warm-base/95 p-5 shadow-sm transition hover:bg-warm-alt/60 lg:border-line/60 lg:bg-surface"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="block min-w-0">
+                        <div className="text-sm font-semibold text-primary">{property.title}</div>
+                        <div className="mt-1 text-xs text-secondary">
+                          {[property.area, property.city].filter(Boolean).join(", ")} · {property.slug}
+                        </div>
+                        <div className="mt-1 text-xs text-muted">Updated: {formatDate(property.updatedAt || property.createdAt)}</div>
                       </div>
-                      <div className="mt-1 text-xs text-muted">Updated: {formatDate(property.updatedAt || property.createdAt)}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
+                          AED {property.priceFrom}
+                        </span>
+                        <StatusPill status={property.status}>{property.status}</StatusPill>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
-                        AED {property.priceFrom}
-                      </span>
-                      <StatusPill status={property.status}>{property.status}</StatusPill>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Link
+                        href={editHref}
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex h-9 items-center justify-center rounded-xl bg-brand px-3.5 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+                      >
+                        {showContinueEditing ? "Continue editing" : "Edit"}
+                      </Link>
+                      <Link
+                        href={previewHref}
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex h-9 items-center justify-center rounded-xl border border-line/60 bg-surface px-3.5 text-xs font-semibold text-primary hover:bg-warm-alt"
+                      >
+                        Preview
+                      </Link>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
 

@@ -148,6 +148,15 @@ export class VendorPropertiesController {
     return this.service.submitForReview(req.user.id, id);
   }
 
+  @Patch(':id/submit')
+  async submitForReviewPatch(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    this.assertVendor(req.user);
+    return this.service.submitForReview(req.user.id, id);
+  }
+
   @Post(':id/publish')
   async publish(
     @Req() req: { user: JwtUser },

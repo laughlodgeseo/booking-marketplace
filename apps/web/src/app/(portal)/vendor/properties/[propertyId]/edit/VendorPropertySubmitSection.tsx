@@ -12,7 +12,7 @@ export function VendorPropertySubmitSection(props: {
   const [err, setErr] = useState<string | null>(null);
 
   const status = String(props.property.status).toUpperCase();
-  const canSubmit = status === "DRAFT";
+  const canSubmit = status === "DRAFT" || status === "CHANGES_REQUESTED";
 
   async function submit() {
     setBusy(true);
@@ -54,7 +54,9 @@ export function VendorPropertySubmitSection(props: {
 
       {!canSubmit ? (
         <div className="rounded-xl border bg-warm-alt px-4 py-3 text-sm text-secondary">
-          Submission is only available in <span className="font-semibold">DRAFT</span> status.
+          Submission is only available in{" "}
+          <span className="font-semibold">DRAFT</span> or{" "}
+          <span className="font-semibold">CHANGES_REQUESTED</span> status.
         </div>
       ) : null}
 
