@@ -21,11 +21,13 @@ import type {
 export class LocalStorageAdapter implements IStorageAdapter {
   private readonly logger = new Logger(LocalStorageAdapter.name);
 
-  async upload(buffer: Buffer, options?: UploadOptions): Promise<UploadedFile> {
+  upload(buffer: Buffer, options?: UploadOptions): Promise<UploadedFile> {
     const folder = options?.folder ?? 'uploads/misc';
     const isPrivate = options?.isPrivate ?? false;
     const baseDir = isPrivate ? 'private_uploads' : 'uploads';
-    const ext = this.extFromMime(options?.mimeType ?? 'application/octet-stream');
+    const ext = this.extFromMime(
+      options?.mimeType ?? 'application/octet-stream',
+    );
     const fileName = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}${ext}`;
 
     const dir = path.join(process.cwd(), baseDir, folder);
@@ -39,32 +41,35 @@ export class LocalStorageAdapter implements IStorageAdapter {
 
     this.logger.debug(`local_upload key=${key} size=${buffer.length}`);
 
-    return {
+    return Promise.resolve({
       key,
       url,
       mimeType: options?.mimeType ?? 'application/octet-stream',
       size: buffer.length,
       provider: 'local',
-    };
+    });
   }
 
-  async delete(key: string): Promise<void> {
+  delete(key: string): Promise<void> {
     const filePath = path.join(process.cwd(), key);
     try {
       fs.unlinkSync(filePath);
     } catch (err) {
-      this.logger.warn(`local_delete failed key=${key}: ${(err as Error).message}`);
+      this.logger.warn(
+        `local_delete failed key=${key}: ${(err as Error).message}`,
+      );
     }
+    return Promise.resolve();
   }
 
-  async getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
+  getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     // Local files are served statically — return a path URL with expiry in query string.
     const expiresAt = Date.now() + (options?.expiresInSeconds ?? 3600) * 1000;
-    return `/${key}?expires=${expiresAt}`;
+    return Promise.resolve(`/${key}?expires=${expiresAt}`);
   }
 
-  async isAvailable(): Promise<boolean> {
-    return true; // local FS is always available
+  isAvailable(): Promise<boolean> {
+    return Promise.resolve(true); // local FS is always available
   }
 
   private extFromMime(mime: string): string {

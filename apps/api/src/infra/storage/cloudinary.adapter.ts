@@ -47,7 +47,10 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
     const signature = this.sign(paramsToSign);
 
     const form = new FormData();
-    form.append('file', new Blob([buffer as unknown as ArrayBuffer], { type: options?.mimeType }));
+    form.append(
+      'file',
+      new Blob([buffer as unknown as ArrayBuffer], { type: options?.mimeType }),
+    );
     form.append('folder', folder);
     form.append('timestamp', timestamp);
     form.append('api_key', this.apiKey);
@@ -94,18 +97,22 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
     await fetch(url, { method: 'POST', body: form });
   }
 
-  async getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
-    const expiresAt = Math.floor(Date.now() / 1000) + (options?.expiresInSeconds ?? 3600);
-    const signature = this.sign({ public_id: key, timestamp: expiresAt.toString() });
+  getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
+    const expiresAt =
+      Math.floor(Date.now() / 1000) + (options?.expiresInSeconds ?? 3600);
+    const signature = this.sign({
+      public_id: key,
+      timestamp: expiresAt.toString(),
+    });
 
-    return (
+    return Promise.resolve(
       `https://res.cloudinary.com/${this.cloudName}/image/authenticated/` +
-      `s--${signature}--/v${expiresAt}/${key}`
+        `s--${signature}--/v${expiresAt}/${key}`,
     );
   }
 
-  async isAvailable(): Promise<boolean> {
-    return !!(this.cloudName && this.apiKey && this.apiSecret);
+  isAvailable(): Promise<boolean> {
+    return Promise.resolve(!!(this.cloudName && this.apiKey && this.apiSecret));
   }
 
   private sign(params: Record<string, string>): string {
