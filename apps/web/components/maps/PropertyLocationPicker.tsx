@@ -52,8 +52,7 @@ function normalizePosition(value: unknown, fallbackCenter?: LatLng): LatLng {
 
 function PropertyLocationPickerLoaded(props: Props & { apiKey: string }) {
   const { apiKey, value, onChange, className, disabled, mapHeight, fallbackCenter } = props;
-  const normalizedPosition = useMemo(() => normalizePosition(value, fallbackCenter), [value, fallbackCenter]);
-  const [position, setPosition] = useState<LatLng>(normalizedPosition);
+  const position = useMemo(() => normalizePosition(value, fallbackCenter), [value, fallbackCenter]);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
@@ -63,15 +62,6 @@ function PropertyLocationPickerLoaded(props: Props & { apiKey: string }) {
     id: "property-location-picker-google-maps",
     googleMapsApiKey: apiKey,
   });
-
-  useEffect(() => {
-    setPosition((current) => {
-      if (current.lat === normalizedPosition.lat && current.lng === normalizedPosition.lng) {
-        return current;
-      }
-      return normalizedPosition;
-    });
-  }, [normalizedPosition]);
 
   useEffect(() => {
     console.log("Map Value:", value);
@@ -103,7 +93,6 @@ function PropertyLocationPickerLoaded(props: Props & { apiKey: string }) {
 
   const applyLocation = useCallback(
     (next: LatLng) => {
-      setPosition(next);
       onChange(next);
       reverseGeocode(next);
     },
