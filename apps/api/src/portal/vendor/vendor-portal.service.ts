@@ -396,7 +396,7 @@ export class VendorPortalService {
         area: p.area ?? null,
         status: p.status,
         activationFee: p.activationFee,
-        activationFeeCurrency: p.activationFeeCurrency,
+        activationFeeCurrency: 'AED',
         activationPaymentStatus: p.activationPaymentStatus,
         priceFrom: p.basePrice,
         bookingsCount: p._count.bookings,

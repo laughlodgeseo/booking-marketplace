@@ -243,10 +243,20 @@ export default function VendorPropertyActivationPage() {
     setMessage(null);
 
     try {
+      const property = await getVendorPropertyDraft(propertyId);
+      const propertyCurrency = (property.activationFeeCurrency ?? "").trim().toUpperCase();
+      if (propertyCurrency !== "AED") {
+        throw new Error("Invalid currency before payment");
+      }
+
       const idempotencyKey = readActivationPaymentIdempotencyKey(propertyId);
       const session = await createVendorActivationPaymentIntent(propertyId, {
         idempotencyKey,
       });
+      const sessionCurrency = (session.currency ?? "").trim().toUpperCase();
+      if (sessionCurrency !== "AED") {
+        throw new Error("Invalid currency in payment session");
+      }
 
       setPaymentSession({
         clientSecret: session.clientSecret,
@@ -262,6 +272,8 @@ export default function VendorPropertyActivationPage() {
         data: {
           ...state.data,
           propertyStatus: session.propertyStatus,
+          activationFee: property.activationFee,
+          activationFeeCurrency: property.activationFeeCurrency,
           activationPaymentStatus: session.activationPaymentStatus,
           invoice: session.invoice,
         },

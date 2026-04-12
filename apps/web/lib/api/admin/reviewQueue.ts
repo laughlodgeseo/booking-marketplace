@@ -203,6 +203,33 @@ export async function approveAdminPropertyWithActivationFee(
   return mapItem(item);
 }
 
+export async function updateAdminPropertyActivationFee(
+  propertyId: string,
+  input: { activationFee: number; activationFeeCurrency?: string }
+): Promise<AdminReviewQueueItem> {
+  const body: Record<string, unknown> = {
+    activationFee: input.activationFee,
+  };
+  if (typeof input.activationFeeCurrency === "string" && input.activationFeeCurrency.trim()) {
+    body.activationFeeCurrency = input.activationFeeCurrency.trim();
+  }
+
+  const res = await apiFetch<Record<string, unknown>>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/activation-fee`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      cache: "no-store",
+      body,
+    }
+  );
+
+  const raw = unwrap(res);
+  const item = asRecord(raw.item ?? raw);
+  if (!item) throw new Error("Invalid update activation-fee response");
+  return mapItem(item);
+}
+
 /**
  * These may exist in your backend. If not, UI will show the backend error cleanly.
  */

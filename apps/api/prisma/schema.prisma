@@ -701,7 +701,7 @@ model Property {
 
   status PropertyStatus @default(DRAFT)
   activationFee Int?
-  activationFeeCurrency String @default("USD")
+  activationFeeCurrency String @default("AED")
   activationPaymentStatus PropertyActivationPaymentStatus @default(UNPAID)
   reviewHistory Json @default("[]")
   lastSubmittedAt DateTime?

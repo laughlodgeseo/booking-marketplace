@@ -119,6 +119,21 @@ export class VendorPropertiesService {
     return v ? v : null;
   }
 
+  private async ensureActivationFeeCurrencyAed(params: {
+    propertyId: string;
+    currency: string | null | undefined;
+  }): Promise<'AED'> {
+    const normalized =
+      typeof params.currency === 'string' ? params.currency.trim().toUpperCase() : '';
+    if (normalized === 'AED') return 'AED';
+
+    await this.prisma.property.update({
+      where: { id: params.propertyId },
+      data: { activationFeeCurrency: 'AED' },
+    });
+    return 'AED';
+  }
+
   private normalizeTranslationString(input: unknown): string | null {
     if (typeof input !== 'string') return null;
     const value = input.trim();
@@ -436,7 +451,7 @@ export class VendorPropertiesService {
   async getOne(vendorUserId: string, propertyId: string) {
     await this.assertOwnership(vendorUserId, propertyId);
 
-    return this.prisma.property.findUnique({
+    const property = await this.prisma.property.findUnique({
       where: { id: propertyId },
       include: {
         translations: true,
@@ -446,6 +461,18 @@ export class VendorPropertiesService {
         location: true,
       },
     });
+
+    if (!property) return null;
+
+    const activationFeeCurrency = await this.ensureActivationFeeCurrencyAed({
+      propertyId,
+      currency: property.activationFeeCurrency,
+    });
+
+    return {
+      ...property,
+      activationFeeCurrency,
+    };
   }
 
   /* ---------------------------------------------
@@ -877,6 +904,10 @@ export class VendorPropertiesService {
 
   async getActivationStatus(vendorUserId: string, propertyId: string) {
     const prop = await this.assertOwnership(vendorUserId, propertyId);
+    const activationFeeCurrency = await this.ensureActivationFeeCurrencyAed({
+      propertyId,
+      currency: prop.activationFeeCurrency,
+    });
     const latest = await this.prisma.propertyActivationInvoice.findFirst({
       where: {
         propertyId,
@@ -889,7 +920,7 @@ export class VendorPropertiesService {
       propertyId: prop.id,
       propertyStatus: prop.status,
       activationFee: prop.activationFee ?? null,
-      activationFeeCurrency: prop.activationFeeCurrency,
+      activationFeeCurrency,
       activationPaymentStatus: prop.activationPaymentStatus,
       activationRequired:
         prop.status === PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT,
@@ -903,6 +934,10 @@ export class VendorPropertiesService {
     input?: { provider?: PaymentProvider; providerRef?: string | null },
   ) {
     const prop = await this.assertOwnership(vendorUserId, propertyId);
+    const activationFeeCurrency = await this.ensureActivationFeeCurrencyAed({
+      propertyId: prop.id,
+      currency: prop.activationFeeCurrency,
+    });
 
     if (prop.status !== PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT) {
       throw new BadRequestException(
@@ -925,7 +960,7 @@ export class VendorPropertiesService {
       propertyId: prop.id,
       vendorId: vendorUserId,
       amount: activationFee,
-      currency: prop.activationFeeCurrency,
+      currency: activationFeeCurrency,
     });
 
     const provider = input?.provider ?? PaymentProvider.STRIPE;
@@ -953,6 +988,10 @@ export class VendorPropertiesService {
     input?: { idempotencyKey?: string | null },
   ) {
     const property = await this.assertOwnership(vendorUserId, propertyId);
+    await this.ensureActivationFeeCurrencyAed({
+      propertyId: property.id,
+      currency: property.activationFeeCurrency,
+    });
     const payment = await this.activationPayments.createOrReuseStripePaymentIntent(
       {
         propertyId,
@@ -964,7 +1003,7 @@ export class VendorPropertiesService {
     return {
       ...payment,
       amount: property.activationFee ?? payment.invoice.amount,
-      currency: property.activationFeeCurrency,
+      currency: 'AED',
     };
   }
 

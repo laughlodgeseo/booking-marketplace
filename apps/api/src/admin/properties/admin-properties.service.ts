@@ -6,6 +6,7 @@ import {
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import {
+  ActivationInvoiceStatus,
   BookingStatus,
   LocaleCode,
   NotificationType,
@@ -1154,6 +1155,110 @@ export class AdminPropertiesService {
       pageSize,
       total,
       items,
+    };
+  }
+
+  async updateActivationFee(
+    adminId: string,
+    propertyId: string,
+    dto: { activationFee: number; activationFeeCurrency?: string },
+  ) {
+    const activationFee = this.parseActivationFeeMinor(dto.activationFee);
+    const activationFeeCurrency = 'AED';
+
+    if (dto.activationFeeCurrency) {
+      this.normalizeActivationCurrency(dto.activationFeeCurrency);
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const property = await this.mustFindPropertyTx(tx, propertyId);
+
+      if (
+        property.status !== PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT
+      ) {
+        throw new BadRequestException(
+          `Activation fee can only be updated in status ${PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT}.`,
+        );
+      }
+
+      if (
+        property.activationPaymentStatus === PropertyActivationPaymentStatus.PAID
+      ) {
+        throw new BadRequestException(
+          'Cannot update fee after payment is completed.',
+        );
+      }
+
+      const paidInvoice = await tx.propertyActivationInvoice.findFirst({
+        where: {
+          propertyId,
+          status: ActivationInvoiceStatus.PAID,
+        },
+        select: { id: true },
+      });
+      if (paidInvoice) {
+        throw new BadRequestException(
+          'Cannot update fee after payment is completed.',
+        );
+      }
+
+      const updatedProperty = await tx.property.update({
+        where: { id: propertyId },
+        data: {
+          activationFee,
+          activationFeeCurrency,
+          activationPaymentStatus: PropertyActivationPaymentStatus.UNPAID,
+          reviewHistory: appendReviewHistoryEntry(property.reviewHistory, {
+            action: 'APPROVED',
+            note: `Activation fee updated by admin ${adminId}.`,
+            adminId,
+            createdAt: new Date(),
+            snapshot: await this.buildReviewSnapshot(tx, propertyId),
+          }),
+        },
+      });
+
+      const resetInvoices = await tx.propertyActivationInvoice.updateMany({
+        where: {
+          propertyId,
+          status: {
+            in: [
+              ActivationInvoiceStatus.PENDING,
+              ActivationInvoiceStatus.PROCESSING,
+              ActivationInvoiceStatus.FAILED,
+              ActivationInvoiceStatus.CANCELLED,
+            ],
+          },
+        },
+        data: {
+          amount: activationFee,
+          currency: activationFeeCurrency,
+          status: ActivationInvoiceStatus.PENDING,
+          providerRef: null,
+          stripePaymentIntentId: null,
+          paidAt: null,
+          lastError: null,
+        },
+      });
+
+      return {
+        item: updatedProperty,
+        vendorId: property.vendorId,
+        resetCount: resetInvoices.count,
+      };
+    });
+
+    await this.activationPayments.ensurePendingInvoice({
+      propertyId,
+      vendorId: result.vendorId,
+      amount: activationFee,
+      currency: activationFeeCurrency,
+    });
+
+    return {
+      ok: true,
+      item: result.item,
+      invoicesReset: result.resetCount,
     };
   }
 

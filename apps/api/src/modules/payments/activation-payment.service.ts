@@ -174,6 +174,18 @@ export class ActivationPaymentService {
       );
     }
 
+    const propertyCurrencyRaw =
+      typeof property.activationFeeCurrency === 'string'
+        ? property.activationFeeCurrency.trim().toUpperCase()
+        : '';
+    if (propertyCurrencyRaw !== 'AED') {
+      await this.prisma.property.update({
+        where: { id: property.id },
+        data: { activationFeeCurrency: 'AED' },
+      });
+      property.activationFeeCurrency = 'AED';
+    }
+
     const amount = this.normalizeAmountMinor(property.activationFee);
     const currency = this.normalizeCurrency(property.activationFeeCurrency);
     const stripeCurrency = currency.toLowerCase();
@@ -201,7 +213,7 @@ export class ActivationPaymentService {
     if (
       !invoice ||
       invoice.amount !== amount ||
-      this.normalizeCurrency(invoice.currency) !== currency
+      (invoice.currency ?? '').trim().toUpperCase() !== currency
     ) {
       invoice = await this.ensurePendingInvoice({
         propertyId: property.id,

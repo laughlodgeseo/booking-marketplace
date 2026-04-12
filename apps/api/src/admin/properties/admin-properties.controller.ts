@@ -24,6 +24,7 @@ import { AdminPropertiesService } from './admin-properties.service';
 import { ApprovePropertyDto } from './dto/approve-property.dto';
 import { RejectPropertyDto } from './dto/reject-property.dto';
 import { RequestChangesDto } from './dto/request-changes.dto';
+import { UpdateActivationFeeDto } from './dto/update-activation-fee.dto';
 import { AdminCreatePropertyDto } from './dto/admin-create-property.dto';
 import { AdminUpdatePropertyDto } from './dto/admin-update-property.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -333,6 +334,16 @@ export class AdminPropertiesController {
   ) {
     this.assertAdmin(req.user);
     return this.service.approve(req.user.id, id, dto);
+  }
+
+  @Patch(':id/activation-fee')
+  async updateActivationFee(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateActivationFeeDto,
+  ) {
+    this.assertAdmin(req.user);
+    return this.service.updateActivationFee(req.user.id, id, dto);
   }
 
   @Post(':id/request-changes')

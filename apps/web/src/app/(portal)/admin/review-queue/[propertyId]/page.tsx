@@ -14,6 +14,7 @@ import {
   type AdminPropertyChangesResponse,
   rejectAdminProperty,
   requestChangesAdminProperty,
+  updateAdminPropertyActivationFee,
 } from "@/lib/api/admin/reviewQueue";
 import { getAdminPortalPropertyDetail } from "@/lib/api/portal/admin";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
@@ -86,6 +87,7 @@ export default function AdminReviewQueueDetailPage() {
   const [note, setNote] = useState("");
   const [activationFeeMajor, setActivationFeeMajor] = useState("50.00");
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!propertyId) {
@@ -102,6 +104,10 @@ export default function AdminReviewQueueDetailPage() {
       ]);
       setState({ kind: "ready", data });
       setChangesState({ loading: false, data: changes, error: null });
+      const existingFeeMinor = getNumber(data, "activationFee");
+      if (existingFeeMinor && existingFeeMinor > 0) {
+        setActivationFeeMajor((existingFeeMinor / 100).toFixed(2));
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to load property";
       setState({
@@ -167,6 +173,7 @@ export default function AdminReviewQueueDetailPage() {
   async function runApprove() {
     if (!propertyId) return;
     setError(null);
+    setActionMessage(null);
     setBusy("Approving...");
     try {
       const parsedMajor = Number(activationFeeMajor);
@@ -183,6 +190,7 @@ export default function AdminReviewQueueDetailPage() {
         activationFeeCurrency: "AED",
         notes: note.trim() || undefined,
       });
+      setActionMessage("Property approved with AED activation fee.");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Approve failed");
@@ -194,6 +202,7 @@ export default function AdminReviewQueueDetailPage() {
   async function runReject() {
     if (!propertyId) return;
     setError(null);
+    setActionMessage(null);
     setBusy("Rejecting...");
     try {
       await rejectAdminProperty(propertyId, note.trim() || undefined);
@@ -208,6 +217,7 @@ export default function AdminReviewQueueDetailPage() {
   async function runRequestChanges() {
     if (!propertyId) return;
     setError(null);
+    setActionMessage(null);
     setBusy("Requesting changes...");
     try {
       await requestChangesAdminProperty(propertyId, note.trim() || undefined);
@@ -218,6 +228,39 @@ export default function AdminReviewQueueDetailPage() {
       setBusy(null);
     }
   }
+
+  async function runUpdateActivationFee() {
+    if (!propertyId || state.kind !== "ready") return;
+    setError(null);
+    setActionMessage(null);
+    setBusy("Updating activation fee...");
+
+    try {
+      const parsedMajor = Number(activationFeeMajor);
+      if (!Number.isFinite(parsedMajor) || parsedMajor <= 0) {
+        throw new Error("Activation fee must be a positive amount.");
+      }
+      const activationFee = Math.round(parsedMajor * 100);
+      if (!Number.isInteger(activationFee) || activationFee <= 0) {
+        throw new Error("Activation fee must be a valid amount.");
+      }
+
+      await updateAdminPropertyActivationFee(propertyId, {
+        activationFee,
+        activationFeeCurrency: "AED",
+      });
+      setActionMessage("Activation fee updated. New vendor payment session will use this amount.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update activation fee failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const currentStatus = state.kind === "ready" ? getString(state.data, "status") ?? "UNKNOWN" : "UNKNOWN";
+  const canUpdateActivationFee =
+    currentStatus === "APPROVED_PENDING_ACTIVATION_PAYMENT" || currentStatus === "APPROVED_PENDING_PAYMENT";
 
   return (
     <PortalShell
@@ -311,6 +354,16 @@ export default function AdminReviewQueueDetailPage() {
                   >
                     Approve
                   </button>
+                  {canUpdateActivationFee ? (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void runUpdateActivationFee()}
+                      className="rounded-xl border border-brand/40 bg-brand/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-brand/15 disabled:opacity-60"
+                    >
+                      Update activation fee
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     disabled={busy !== null}
@@ -331,6 +384,11 @@ export default function AdminReviewQueueDetailPage() {
                 {busy ? <div className="mt-3 text-xs font-semibold text-secondary">{busy}</div> : null}
                 {error ? (
                   <div className="mt-3 rounded-xl border border-danger/30 bg-danger/12 p-3 text-sm text-danger">{error}</div>
+                ) : null}
+                {actionMessage ? (
+                  <div className="mt-3 rounded-xl border border-success/30 bg-success/12 p-3 text-sm text-success">
+                    {actionMessage}
+                  </div>
                 ) : null}
               </div>
 
