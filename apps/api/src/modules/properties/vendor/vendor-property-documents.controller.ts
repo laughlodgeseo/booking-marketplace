@@ -29,6 +29,10 @@ export class VendorPropertyDocumentsController {
       documentId,
       mode: 'download',
     });
+    if (!file) {
+      res.status(204).end();
+      return;
+    }
 
     if (file.type === 'external') {
       res.redirect(file.url);
@@ -61,6 +65,10 @@ export class VendorPropertyDocumentsController {
       documentId,
       mode: 'view',
     });
+    if (!file) {
+      res.status(204).end();
+      return;
+    }
 
     if (file.type === 'external') {
       res.redirect(file.url);

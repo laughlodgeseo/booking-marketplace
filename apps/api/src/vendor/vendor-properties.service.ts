@@ -130,12 +130,19 @@ export class VendorPropertiesService {
     const id = typeof publicId === 'string' ? publicId.trim() : '';
     if (!id) return;
 
-    try {
-      await cloudinary.uploader.destroy(id, {
-        resource_type: 'auto' as unknown as 'image',
-      });
-    } catch {
-      // Best-effort cleanup only.
+    const resourceTypes: Array<'raw' | 'image' | 'video'> = [
+      'raw',
+      'image',
+      'video',
+    ];
+
+    for (const resourceType of resourceTypes) {
+      try {
+        await cloudinary.uploader.destroy(id, { resource_type: resourceType });
+        return;
+      } catch {
+        // Best-effort cleanup only.
+      }
     }
   }
 
@@ -1464,6 +1471,13 @@ export class VendorPropertiesService {
       typeof (file as { filename?: unknown }).filename === 'string'
         ? (file as { filename: string }).filename
         : null;
+    const fileWithResourceType = file as unknown as {
+      resource_type?: unknown;
+    };
+    const resourceType =
+      typeof fileWithResourceType.resource_type === 'string'
+        ? fileWithResourceType.resource_type
+        : null;
 
     if (!uploadedUrl || !publicId) {
       throw new BadRequestException(
@@ -1488,6 +1502,7 @@ export class VendorPropertiesService {
       data: {
         documentUrl: uploadedUrl,
         documentPublicId: publicId,
+        documentResourceType: resourceType,
         documentStatus: 'pending',
         documentRejectionReason: null,
       },

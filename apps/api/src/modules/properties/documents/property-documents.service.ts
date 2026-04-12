@@ -65,24 +65,16 @@ export class PropertyDocumentsService {
     return /^https?:\/\//i.test(pointer);
   }
 
-  private generateCorrectCloudinaryUrl(url: string): string | null {
-    if (!url) return null;
+  private normalizeCloudinaryUrl(url: string): string {
+    if (!url) return url;
 
-    // Fix incorrect resource type
-    if (url.includes('/image/upload/') && url.endsWith('.pdf')) {
-      return url.replace('/image/upload/', '/raw/upload/');
-    }
-
+    // Keep stored Cloudinary URL as-is (legacy data may be mixed).
     return url;
   }
 
   private generateDownloadUrl(url: string): string | null {
     if (!url) return null;
-
-    const fixedUrl = this.generateCorrectCloudinaryUrl(url);
-    if (!fixedUrl) return null;
-
-    return fixedUrl.replace('/upload/', '/upload/fl_attachment/');
+    return url.replace('/upload/', '/upload/fl_attachment/');
   }
 
   private assertAllowedCloudinaryUrl(url: string): string {
@@ -227,18 +219,21 @@ export class PropertyDocumentsService {
     absPath: string;
     fileName: string;
     mimeType: string;
-  }> {
+  } | null> {
     const { doc, pointer } = params;
-    const absPath = this.toAbsoluteLocalPath(pointer);
+    let absPath: string;
+    try {
+      absPath = this.toAbsoluteLocalPath(pointer);
+    } catch {
+      return null;
+    }
 
     try {
       await fs.promises.access(absPath, fs.constants.R_OK);
       const stat = await fs.promises.stat(absPath);
-      if (!stat.isFile()) throw new NotFoundException('Document file missing.');
-    } catch (err) {
-      throw err instanceof NotFoundException
-        ? err
-        : new NotFoundException('Document file missing.');
+      if (!stat.isFile()) return null;
+    } catch {
+      return null;
     }
 
     return {
@@ -284,7 +279,7 @@ export class PropertyDocumentsService {
     propertyId: string;
     documentId: string;
     mode?: DocumentOpenMode;
-  }): Promise<DocumentStreamResult | ExternalDocumentResult> {
+  }): Promise<DocumentStreamResult | ExternalDocumentResult | null> {
     const { role, userId, propertyId, documentId, mode = 'view' } = params;
     await this.assertActorAccess({ role, userId, propertyId });
 
@@ -292,12 +287,10 @@ export class PropertyDocumentsService {
     const pointer = this.getStoredPointer(doc);
 
     if (this.isCloudinaryUrl(pointer)) {
-      const documentUrl = this.generateCorrectCloudinaryUrl(
+      const documentUrl = this.normalizeCloudinaryUrl(
         this.assertAllowedCloudinaryUrl(pointer),
       );
-      if (!documentUrl) {
-        throw new NotFoundException('Document file missing.');
-      }
+      if (!documentUrl) return null;
 
       return {
         type: 'external',
@@ -309,6 +302,7 @@ export class PropertyDocumentsService {
     }
 
     const local = await this.resolveLocalDocumentFile({ doc, pointer });
+    if (!local) return null;
 
     return {
       type: 'stream',
@@ -379,8 +373,7 @@ export class PropertyDocumentsService {
 
     if (remoteUrl && this.isCloudinaryUrl(remoteUrl)) {
       const allowedUrl = this.assertAllowedCloudinaryUrl(remoteUrl);
-      const safeUrl =
-        this.generateCorrectCloudinaryUrl(allowedUrl) ?? allowedUrl;
+      const safeUrl = this.normalizeCloudinaryUrl(allowedUrl);
       return {
         id: doc.id,
         filename,

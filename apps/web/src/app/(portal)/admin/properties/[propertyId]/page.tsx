@@ -73,9 +73,7 @@ function fmtDate(value: string | null | undefined): string {
 
 function normalizeDocumentUrl(documentUrl: string): string {
   if (!documentUrl) return documentUrl;
-  return documentUrl.includes("/image/upload/") && documentUrl.endsWith(".pdf")
-    ? documentUrl.replace("/image/upload/", "/raw/upload/")
-    : documentUrl;
+  return documentUrl;
 }
 
 function toDownloadUrl(documentUrl: string): string {

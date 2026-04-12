@@ -705,6 +705,7 @@ model Property {
   activationPaymentStatus PropertyActivationPaymentStatus @default(UNPAID)
   documentUrl String?
   documentPublicId String?
+  documentResourceType String?
   documentStatus String @default("pending")
   documentRejectionReason String?
   reviewHistory Json @default("[]")

@@ -19,7 +19,7 @@ export const documentStorage = new CloudinaryStorage({
 
     return {
       folder: 'vendor_documents',
-      resource_type: 'auto',
+      resource_type: 'raw',
       format: undefined,
       public_id: `vendor-${vendorId}-${randomUUID()}`,
     };

@@ -340,6 +340,7 @@ export type VendorPropertyDetail = {
   status: VendorPropertyStatus;
   documentUrl?: string | null;
   documentPublicId?: string | null;
+  documentResourceType?: string | null;
   documentStatus?: string;
   documentRejectionReason?: string | null;
   activationFee: number | null;

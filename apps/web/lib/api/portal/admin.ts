@@ -517,6 +517,7 @@ export type AdminPropertyDocumentStatusResponse = {
   documentRejectionReason: string | null;
   documentUrl: string | null;
   documentPublicId: string | null;
+  documentResourceType?: string | null;
 };
 
 export async function approveAdminPropertyDocument(
