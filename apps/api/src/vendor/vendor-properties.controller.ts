@@ -34,11 +34,11 @@ import { imageFileFilter } from '../common/upload/image-file.filter';
 import { documentFileFilter } from '../common/upload/document-file.filter';
 import {
   imageUploadStorage,
-  documentUploadStorage,
 } from '../common/upload/multer.config';
 import { validateCloudinaryUrl } from '../common/upload/property-media-storage';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PaymentProvider } from '@prisma/client';
+import { documentStorage } from '../infra/cloudinary/document.storage';
 
 type JwtUser = {
   id: string;
@@ -357,8 +357,8 @@ export class VendorPropertiesController {
 
   @Post(':id/documents')
   @UseInterceptors(
-    FileInterceptor('file', {
-      storage: documentUploadStorage,
+    FileInterceptor('document', {
+      storage: documentStorage,
       fileFilter: documentFileFilter,
       limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
     }),

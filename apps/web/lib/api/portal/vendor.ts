@@ -805,7 +805,7 @@ export async function deleteVendorPropertyMedia(
 
 /**
  * POST /vendor/properties/:id/documents (multipart)
- * fields: type, file
+ * fields: type, document
  */
 export async function uploadVendorPropertyDocument(
   propertyId: string,
@@ -814,7 +814,7 @@ export async function uploadVendorPropertyDocument(
 ): Promise<VendorPropertyDocument> {
   const fd = new FormData();
   fd.append("type", type);
-  fd.append("file", file);
+  fd.append("document", file);
 
   const res = await apiFetch<VendorPropertyDocument>(
     `/vendor/properties/${encodeURIComponent(propertyId)}/documents`,

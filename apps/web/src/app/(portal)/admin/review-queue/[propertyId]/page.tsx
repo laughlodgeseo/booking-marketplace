@@ -17,9 +17,7 @@ import {
   updateAdminPropertyActivationFee,
 } from "@/lib/api/admin/reviewQueue";
 import {
-  downloadAdminPropertyDocument,
   getAdminPortalPropertyDetail,
-  viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
@@ -78,15 +76,11 @@ function humanizeField(path: string): string {
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2");
 }
 
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+function toDownloadUrl(documentUrl: string): string {
+  if (!documentUrl) return documentUrl;
+  return documentUrl.includes("/upload/")
+    ? documentUrl.replace("/upload/", "/upload/fl_attachment/")
+    : documentUrl;
 }
 
 export default function AdminReviewQueueDetailPage() {
@@ -278,14 +272,16 @@ export default function AdminReviewQueueDetailPage() {
     }
   }
 
-  async function downloadDocument(documentId: string, fallbackName: string) {
-    if (!propertyId) return;
+  async function downloadDocument(documentUrl: string | null) {
+    if (!propertyId || !documentUrl) return;
     setError(null);
     setActionMessage(null);
     setBusy("Downloading document...");
     try {
-      const blob = await downloadAdminPropertyDocument(propertyId, documentId);
-      triggerBlobDownload(blob, fallbackName);
+      const win = window.open(toDownloadUrl(documentUrl), "_blank", "noopener,noreferrer");
+      if (!win) {
+        throw new Error("Popup blocked by browser. Allow popups to download documents.");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to download document.");
     } finally {
@@ -293,20 +289,16 @@ export default function AdminReviewQueueDetailPage() {
     }
   }
 
-  async function viewDocument(documentId: string) {
-    if (!propertyId) return;
+  async function viewDocument(documentUrl: string | null) {
+    if (!propertyId || !documentUrl) return;
     setError(null);
     setActionMessage(null);
     setBusy("Opening document...");
     try {
-      const blob = await viewAdminPropertyDocument(propertyId, documentId);
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank", "noopener,noreferrer");
+      const win = window.open(documentUrl, "_blank", "noopener,noreferrer");
       if (!win) {
-        URL.revokeObjectURL(url);
         throw new Error("Popup blocked by browser. Allow popups to preview documents.");
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to view document.");
     } finally {
@@ -527,11 +519,16 @@ export default function AdminReviewQueueDetailPage() {
               ) : (
                 <div className="mt-3 space-y-2">
                   {documents.map((doc, index) => {
-                    const documentId = getString(doc, "id");
-                    const id = documentId ?? `doc-${index}`;
-                    const fallbackName =
-                      getString(doc, "originalName") ??
-                      `${(getString(doc, "type") ?? "document").toLowerCase()}-${id}.pdf`;
+                    const id = getString(doc, "id") ?? `doc-${index}`;
+                    const viewUrl =
+                      getString(doc, "documentUrl") ??
+                      getString(doc, "url") ??
+                      getString(doc, "viewUrl");
+                    const downloadUrl =
+                      getString(doc, "documentUrl") ??
+                      getString(doc, "url") ??
+                      getString(doc, "downloadUrl");
+                    const canOpen = Boolean(viewUrl || downloadUrl);
                     return (
                       <div key={id} className="rounded-2xl border border-line/70 bg-warm-base p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -542,16 +539,16 @@ export default function AdminReviewQueueDetailPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => documentId && void viewDocument(documentId)}
-                              disabled={!documentId}
+                              onClick={() => void viewDocument(viewUrl)}
+                              disabled={!canOpen || !viewUrl}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-all duration-200 ease-in-out hover:bg-warm-alt active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               View
                             </button>
                             <button
                               type="button"
-                              onClick={() => documentId && void downloadDocument(documentId, fallbackName)}
-                              disabled={!documentId}
+                              onClick={() => void downloadDocument(downloadUrl)}
+                              disabled={!canOpen || !downloadUrl}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-all duration-200 ease-in-out hover:bg-warm-alt active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               Download

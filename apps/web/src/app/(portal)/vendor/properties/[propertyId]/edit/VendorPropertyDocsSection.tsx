@@ -40,9 +40,9 @@ export function VendorPropertyDocsSection(props: {
   return (
     <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6 space-y-4">
       <div>
-        <div className="text-sm font-semibold text-primary">Ownership proof (private)</div>
+        <div className="text-sm font-semibold text-primary">Ownership proof</div>
         <div className="mt-1 text-sm text-secondary">
-          This document is stored privately and never shown as a public link. Admin uses it for verification.
+          This document is stored in cloud storage and used by admin for verification.
         </div>
       </div>
 

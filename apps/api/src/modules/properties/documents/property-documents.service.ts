@@ -7,8 +7,9 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import * as fs from 'fs';
-import { createReadStream, type ReadStream } from 'fs';
+import { createReadStream } from 'fs';
 import * as path from 'path';
+import { Readable } from 'stream';
 import {
   API_ROOT_DIR,
   PRIVATE_UPLOADS_DIR,
@@ -16,6 +17,7 @@ import {
   PROPERTY_DOCUMENTS_LEGACY_DIR,
   PUBLIC_UPLOADS_DIR,
 } from '../../../common/upload/storage-paths';
+import cloudinary from '../../../infra/cloudinary/cloudinary.service';
 
 type DocumentRecord = {
   id: string;
@@ -41,12 +43,47 @@ export class PropertyDocumentsService {
     return role === UserRole.ADMIN || role === 'SUPER_ADMIN';
   }
 
+  private isHttpPointer(pointer: string): boolean {
+    return /^https?:\/\//i.test(pointer.trim());
+  }
+
+  private assertAllowedRemoteUrl(url: string): string {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new ForbiddenException('Invalid remote document URL.');
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    const allowedHosts = new Set([
+      'res.cloudinary.com',
+      'localhost',
+      '127.0.0.1',
+    ]);
+
+    if (
+      !allowedHosts.has(host) &&
+      !host.endsWith('.res.cloudinary.com') &&
+      !host.endsWith('.localhost')
+    ) {
+      throw new ForbiddenException('Remote document URL host is not allowed.');
+    }
+
+    return parsed.toString();
+  }
+
   /**
    * We store private docs either as:
    * - storageKey (preferred)
    * - or url (legacy)
    */
   private getStoredPointer(doc: DocumentRecord): string {
+    const remoteUrl = doc.url?.trim();
+    if (remoteUrl && this.isHttpPointer(remoteUrl)) {
+      return this.assertAllowedRemoteUrl(remoteUrl);
+    }
+
     const pointer = doc.storageKey ?? doc.url;
     if (!pointer) {
       throw new InternalServerErrorException(
@@ -136,27 +173,30 @@ export class PropertyDocumentsService {
     return doc;
   }
 
-  private async resolveDocumentFile(params: {
+  private async assertActorAccess(params: {
     role: DocumentActorRole;
     userId: string;
     propertyId: string;
-    documentId: string;
-  }): Promise<{
+  }): Promise<void> {
+    const { role, userId, propertyId } = params;
+    if (role === UserRole.VENDOR) {
+      await this.assertVendorOwnsProperty(userId, propertyId);
+      return;
+    }
+    if (!this.isAdminRole(role)) {
+      throw new ForbiddenException('Not allowed.');
+    }
+  }
+
+  private async resolveLocalDocumentFile(params: {
     doc: DocumentRecord;
+    pointer: string;
+  }): Promise<{
     absPath: string;
     fileName: string;
     mimeType: string;
   }> {
-    const { role, userId, propertyId, documentId } = params;
-    const doc = await this.getDocumentOrThrow(propertyId, documentId);
-
-    if (role === UserRole.VENDOR) {
-      await this.assertVendorOwnsProperty(userId, propertyId);
-    } else if (!this.isAdminRole(role)) {
-      throw new ForbiddenException('Not allowed.');
-    }
-
-    const pointer = this.getStoredPointer(doc);
+    const { doc, pointer } = params;
     const absPath = this.toAbsoluteLocalPath(pointer);
 
     try {
@@ -169,9 +209,63 @@ export class PropertyDocumentsService {
         : new NotFoundException('Document file missing.');
     }
 
-    const fileName = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
-    const mimeType = doc.mimeType ?? 'application/octet-stream';
-    return { doc, absPath, fileName, mimeType };
+    return {
+      absPath,
+      fileName: sanitizeFilename(doc.originalName ?? `document-${doc.id}`),
+      mimeType: doc.mimeType ?? 'application/octet-stream',
+    };
+  }
+
+  private async openRemoteDocument(params: {
+    pointer: string;
+    fileName: string;
+    mimeType: string;
+  }): Promise<{
+    stream: Readable;
+    fileName: string;
+    mimeType: string;
+  }> {
+    const response = await fetch(params.pointer, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new NotFoundException('Document file missing.');
+    }
+
+    const remoteMime = response.headers.get('content-type') ?? undefined;
+    return {
+      stream: Readable.fromWeb(response.body as any),
+      fileName: params.fileName,
+      mimeType: params.mimeType || remoteMime || 'application/octet-stream',
+    };
+  }
+
+  private async deleteCloudinaryAsset(publicId: string): Promise<void> {
+    const id = publicId.trim();
+    if (!id) return;
+
+    const resourceTypes: Array<'image' | 'raw' | 'video'> = [
+      'raw',
+      'image',
+      'video',
+    ];
+
+    for (const resourceType of resourceTypes) {
+      try {
+        const result = await cloudinary.uploader.destroy(id, {
+          resource_type: resourceType,
+          invalidate: true,
+        });
+        if (result.result === 'ok' || result.result === 'not found') {
+          return;
+        }
+      } catch {
+        // continue and try other resource types
+      }
+    }
   }
 
   async openDocumentStream(params: {
@@ -180,15 +274,32 @@ export class PropertyDocumentsService {
     propertyId: string;
     documentId: string;
   }): Promise<{
-    stream: ReadStream;
+    stream: Readable;
     fileName: string;
     mimeType: string;
   }> {
-    const resolved = await this.resolveDocumentFile(params);
+    const { role, userId, propertyId, documentId } = params;
+    await this.assertActorAccess({ role, userId, propertyId });
+
+    const doc = await this.getDocumentOrThrow(propertyId, documentId);
+    const pointer = this.getStoredPointer(doc);
+    const fileName = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
+    const mimeType = doc.mimeType ?? 'application/octet-stream';
+
+    if (this.isHttpPointer(pointer)) {
+      return this.openRemoteDocument({
+        pointer,
+        fileName,
+        mimeType,
+      });
+    }
+
+    const local = await this.resolveLocalDocumentFile({ doc, pointer });
+
     return {
-      stream: createReadStream(resolved.absPath),
-      fileName: resolved.fileName,
-      mimeType: resolved.mimeType,
+      stream: createReadStream(local.absPath),
+      fileName: local.fileName,
+      mimeType: local.mimeType,
     };
   }
 
@@ -199,26 +310,29 @@ export class PropertyDocumentsService {
     documentId: string;
   }): Promise<{ ok: true; id: string }> {
     const { role, userId, propertyId, documentId } = params;
+    await this.assertActorAccess({ role, userId, propertyId });
+
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
 
-    if (role === UserRole.VENDOR) {
-      await this.assertVendorOwnsProperty(userId, propertyId);
-    } else if (!this.isAdminRole(role)) {
-      throw new ForbiddenException('Not allowed.');
-    }
-
     const pointer = this.getStoredPointer(doc);
-    const absPath = this.toAbsoluteLocalPath(pointer);
+    const isRemote = this.isHttpPointer(pointer);
+    const absPath = isRemote ? null : this.toAbsoluteLocalPath(pointer);
 
     await this.prisma.propertyDocument.delete({
       where: { id: doc.id },
     });
 
-    // Best-effort filesystem cleanup.
-    try {
-      await fs.promises.unlink(absPath);
-    } catch {
-      // ignore if already removed or inaccessible
+    if (isRemote) {
+      if (doc.storageKey) {
+        await this.deleteCloudinaryAsset(doc.storageKey);
+      }
+    } else if (absPath) {
+      // Best-effort filesystem cleanup.
+      try {
+        await fs.promises.unlink(absPath);
+      } catch {
+        // ignore if already removed or inaccessible
+      }
     }
 
     return { ok: true, id: doc.id };
@@ -246,6 +360,20 @@ export class PropertyDocumentsService {
 
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
     const filename = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
+    const remoteUrl = doc.url?.trim();
+
+    if (remoteUrl && this.isHttpPointer(remoteUrl)) {
+      const safeUrl = this.assertAllowedRemoteUrl(remoteUrl);
+      return {
+        id: doc.id,
+        filename,
+        mimeType: doc.mimeType ?? 'application/octet-stream',
+        viewUrl: safeUrl,
+        downloadUrl: safeUrl.includes('/upload/')
+          ? safeUrl.replace('/upload/', '/upload/fl_attachment/')
+          : safeUrl,
+      };
+    }
 
     return {
       id: doc.id,

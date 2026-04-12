@@ -11,10 +11,8 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   deleteAdminPropertyDocument,
   deleteAdminPropertyMedia,
-  downloadAdminPropertyDocument,
   getAdminCalendar,
   getAdminPortalPropertyDetail,
-  viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
@@ -50,6 +48,8 @@ type AdminPropertyDetail = {
     originalName: string | null;
     mimeType: string | null;
     createdAt: string;
+    documentUrl?: string | null;
+    documentPublicId?: string | null;
     downloadUrl: string;
     viewUrl?: string;
   }>;
@@ -67,15 +67,11 @@ function fmtDate(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+function toDownloadUrl(documentUrl: string): string {
+  if (!documentUrl) return documentUrl;
+  return documentUrl.includes("/upload/")
+    ? documentUrl.replace("/upload/", "/upload/fl_attachment/")
+    : documentUrl;
 }
 
 function mediaFilename(item: AdminPropertyDetail["media"][number], index: number): string {
@@ -153,12 +149,15 @@ export default function AdminPropertyDetailPage() {
     }
   }
 
-  async function downloadDocument(documentId: string, fallbackName: string) {
+  async function downloadDocument(documentUrl: string | null | undefined) {
+    if (!documentUrl) return;
     setBusy("Downloading document...");
     setMessage(null);
     try {
-      const blob = await downloadAdminPropertyDocument(propertyId, documentId);
-      triggerBlobDownload(blob, fallbackName);
+      const win = window.open(toDownloadUrl(documentUrl), "_blank", "noopener,noreferrer");
+      if (!win) {
+        throw new Error("Popup blocked by browser. Allow popups to download documents.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to download document.");
     } finally {
@@ -166,19 +165,16 @@ export default function AdminPropertyDetailPage() {
     }
   }
 
-  async function viewDocument(documentId: string) {
+  async function viewDocument(documentUrl: string | null | undefined) {
+    if (!documentUrl) return;
     setBusy("Opening document...");
     setMessage(null);
     try {
-      const blob = await viewAdminPropertyDocument(propertyId, documentId);
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank", "noopener,noreferrer");
+      const win = window.open(documentUrl, "_blank", "noopener,noreferrer");
       if (!win) {
-        URL.revokeObjectURL(url);
         setMessage("Popup blocked by browser. Allow popups to preview documents.");
         return;
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to open document.");
     } finally {
@@ -374,7 +370,8 @@ export default function AdminPropertyDetailPage() {
               ) : (
                 <div className="mt-3 space-y-3">
                   {state.data.documents.map((doc) => {
-                    const fallbackName = doc.originalName || `${doc.type}-${doc.id}.pdf`;
+                    const viewUrl = doc.documentUrl ?? doc.viewUrl ?? null;
+                    const downloadUrl = doc.documentUrl ?? doc.downloadUrl ?? null;
                     return (
                       <article key={doc.id} className="rounded-2xl border border-line/70 bg-warm-base p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -387,14 +384,16 @@ export default function AdminPropertyDetailPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => void viewDocument(doc.id)}
+                              onClick={() => void viewDocument(viewUrl)}
+                              disabled={!viewUrl}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
                             >
                               View
                             </button>
                             <button
                               type="button"
-                              onClick={() => void downloadDocument(doc.id, fallbackName)}
+                              onClick={() => void downloadDocument(downloadUrl)}
+                              disabled={!downloadUrl}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
                             >
                               Download

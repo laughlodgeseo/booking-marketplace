@@ -1410,22 +1410,31 @@ export class VendorPropertiesService {
   ) {
     const prop = await this.assertOwnership(vendorUserId, propertyId);
 
-    const created = await this.prisma.propertyDocument.create({
+    const uploadedUrl =
+      typeof (file as { path?: unknown }).path === 'string'
+        ? (file as { path: string }).path
+        : null;
+    const publicId =
+      typeof (file as { filename?: unknown }).filename === 'string'
+        ? (file as { filename: string }).filename
+        : null;
+
+    if (!uploadedUrl || !publicId) {
+      throw new BadRequestException(
+        'Document upload failed: Cloudinary URL/public_id missing.',
+      );
+    }
+
+    const doc = await this.prisma.propertyDocument.create({
       data: {
         propertyId,
         type: dto.type,
         uploadedByUserId: vendorUserId,
-        storageKey: file.filename,
+        storageKey: publicId,
         originalName: file.originalname,
         mimeType: file.mimetype,
-        url: null,
+        url: uploadedUrl,
       },
-    });
-
-    const url = `/api/vendor/properties/${propertyId}/documents/${created.id}/download`;
-    const doc = await this.prisma.propertyDocument.update({
-      where: { id: created.id },
-      data: { url },
     });
 
     await this.applyVendorEditState(propertyId, prop.status);

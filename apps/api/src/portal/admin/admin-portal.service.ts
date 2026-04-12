@@ -907,6 +907,8 @@ export class AdminPortalService {
           select: {
             id: true,
             type: true,
+            url: true,
+            storageKey: true,
             originalName: true,
             mimeType: true,
             createdAt: true,
@@ -992,8 +994,13 @@ export class AdminPortalService {
         ...doc,
         createdAt: doc.createdAt.toISOString(),
         updatedAt: doc.updatedAt.toISOString(),
-        downloadUrl: `/api/admin/properties/${property.id}/documents/${doc.id}/download`,
-        viewUrl: `/api/admin/properties/${property.id}/documents/${doc.id}/view`,
+        documentUrl: doc.url ?? null,
+        documentPublicId: doc.storageKey ?? null,
+        downloadUrl:
+          typeof doc.url === 'string' && doc.url.includes('/upload/')
+            ? doc.url.replace('/upload/', '/upload/fl_attachment/')
+            : `/api/admin/properties/${property.id}/documents/${doc.id}/download`,
+        viewUrl: doc.url ?? `/api/admin/properties/${property.id}/documents/${doc.id}/view`,
       })),
       bookingStatusBreakdown: statusBreakdown,
       upcomingBookings: upcomingBookings.map((booking) => ({

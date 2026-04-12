@@ -10,13 +10,11 @@ import type {
 } from "@/lib/api/portal/admin";
 import {
   deleteAdminPropertyDocument,
-  downloadAdminPropertyDocument,
   getAdminAmenitiesCatalog,
   publishAdminProperty,
   unpublishAdminProperty,
   updateAdminProperty,
   updateAdminPropertyAmenities,
-  viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { AdminPropertyMediaManager } from "@/components/portal/admin/properties/AdminPropertyMediaManager";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
@@ -40,6 +38,9 @@ type PropertyDocument = {
   originalName: string | null;
   mimeType: string | null;
   createdAt: string;
+  url?: string | null;
+  documentUrl?: string | null;
+  documentPublicId?: string | null;
   downloadUrl?: string;
   viewUrl?: string;
 };
@@ -128,27 +129,11 @@ function fmtDate(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function safeFilename(document: PropertyDocument): string {
-  const explicit = (document.originalName ?? "").trim();
-  if (explicit.length > 0) return explicit;
-  const ext =
-    document.mimeType === "application/pdf"
-      ? ".pdf"
-      : document.mimeType?.startsWith("image/")
-        ? ".jpg"
-        : "";
-  return `${document.type.toLowerCase()}_${document.id}${ext}`;
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1200);
+function toDownloadUrl(documentUrl: string): string {
+  if (!documentUrl) return documentUrl;
+  return documentUrl.includes("/upload/")
+    ? documentUrl.replace("/upload/", "/upload/fl_attachment/")
+    : documentUrl;
 }
 
 export function AdminPropertyEditor(props: {
@@ -229,7 +214,9 @@ export function AdminPropertyEditor(props: {
 
   useEffect(() => {
     return () => {
-      if (preview) URL.revokeObjectURL(preview.url);
+      if (preview?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.url);
+      }
     };
   }, [preview]);
 
@@ -408,11 +395,19 @@ export function AdminPropertyEditor(props: {
   }
 
   async function downloadDocument(document: PropertyDocument) {
+    const sourceUrl = document.documentUrl ?? document.url ?? document.downloadUrl;
+    if (!sourceUrl) {
+      setError("Document URL is missing.");
+      return;
+    }
+
     setBusy("Downloading document...");
     setError(null);
     try {
-      const blob = await downloadAdminPropertyDocument(property.id, document.id);
-      triggerBlobDownload(blob, safeFilename(document));
+      const win = window.open(toDownloadUrl(sourceUrl), "_blank", "noopener,noreferrer");
+      if (!win) {
+        throw new Error("Popup blocked by browser. Allow popups to download documents.");
+      }
     } catch (downloadError) {
       setError(
         downloadError instanceof Error ? downloadError.message : "Failed to download document."
@@ -423,18 +418,22 @@ export function AdminPropertyEditor(props: {
   }
 
   async function viewDocument(document: PropertyDocument) {
-    setBusy("Loading preview...");
+    const sourceUrl = document.documentUrl ?? document.url ?? document.viewUrl ?? document.downloadUrl;
+    if (!sourceUrl) {
+      setError("Document URL is missing.");
+      return;
+    }
+
+    setBusy("Opening document...");
     setError(null);
     try {
-      const blob = await viewAdminPropertyDocument(property.id, document.id);
-      const url = URL.createObjectURL(blob);
-      const mime = blob.type || document.mimeType || "application/octet-stream";
-      setPreview((current) => {
-        if (current) URL.revokeObjectURL(current.url);
-        return { url, mime };
-      });
+      const win = window.open(sourceUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        throw new Error("Popup blocked by browser. Allow popups to preview documents.");
+      }
+      setPreview({ url: sourceUrl, mime: document.mimeType || "application/octet-stream" });
     } catch (viewError) {
-      setError(viewError instanceof Error ? viewError.message : "Failed to load preview.");
+      setError(viewError instanceof Error ? viewError.message : "Failed to open preview.");
     } finally {
       setBusy(null);
     }

@@ -241,7 +241,7 @@ export function DocumentManager({ property, onChanged }: Props) {
         <div>
           <h3 className="text-base font-semibold text-primary">Documents</h3>
           <p className="mt-1 text-sm text-secondary">
-            Documents are private and never public. Requirements are loaded from backend policy.
+            Documents are stored in cloud storage for admin verification. Requirements are loaded from backend policy.
           </p>
           <div className="mt-2 text-xs font-semibold text-secondary">
             Required uploaded: {requiredProgress.uploaded}/{requiredProgress.total}
