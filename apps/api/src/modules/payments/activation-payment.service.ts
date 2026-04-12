@@ -176,6 +176,11 @@ export class ActivationPaymentService {
 
     const amount = this.normalizeAmountMinor(property.activationFee);
     const currency = this.normalizeCurrency(property.activationFeeCurrency);
+    const stripeCurrency = currency.toLowerCase();
+
+    if (stripeCurrency !== 'aed') {
+      throw new BadRequestException('Invalid currency: only AED allowed');
+    }
 
     let invoice = await this.prisma.propertyActivationInvoice.findFirst({
       where: {
@@ -281,7 +286,7 @@ export class ActivationPaymentService {
 
     const paymentIntent = await this.stripeProvider.createPaymentIntent({
       amount,
-      currency,
+      currency: stripeCurrency,
       description: `Property activation fee (${property.id})`,
       metadata: {
         propertyId: property.id,

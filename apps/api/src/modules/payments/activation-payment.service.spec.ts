@@ -136,4 +136,77 @@ describe('ActivationPaymentService', () => {
       },
     });
   });
+
+  it('creates activation payment intent using lowercase aed currency', async () => {
+    const now = new Date('2026-01-01T00:00:00.000Z');
+
+    const pendingInvoice = {
+      id: 'invoice_pending',
+      propertyId: 'property_1',
+      vendorId: 'vendor_1',
+      amount: 5000,
+      currency: 'AED',
+      status: ActivationInvoiceStatus.PENDING,
+      provider: PaymentProvider.STRIPE,
+      providerRef: null,
+      stripePaymentIntentId: null,
+      lastError: null,
+      createdAt: now,
+      paidAt: null,
+      updatedAt: now,
+    };
+
+    const processingInvoice = {
+      ...pendingInvoice,
+      status: ActivationInvoiceStatus.PROCESSING,
+      providerRef: 'pi_new',
+      stripePaymentIntentId: 'pi_new',
+      updatedAt: new Date('2026-01-01T00:00:10.000Z'),
+    };
+
+    const prisma = {
+      property: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'property_1',
+          vendorId: 'vendor_1',
+          title: 'Villa',
+          status: PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT,
+          activationFee: 5000,
+          activationFeeCurrency: 'AED',
+          activationPaymentStatus: PropertyActivationPaymentStatus.UNPAID,
+        }),
+        update: jest.fn().mockResolvedValue({ id: 'property_1' }),
+      },
+      propertyActivationInvoice: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(pendingInvoice),
+        update: jest.fn().mockResolvedValue(processingInvoice),
+      },
+    } as unknown as PrismaService;
+
+    const stripe = {
+      retrievePaymentIntent: jest.fn(),
+      createPaymentIntent: jest.fn().mockResolvedValue({
+        id: 'pi_new',
+        client_secret: 'cs_new',
+      } as Stripe.PaymentIntent),
+    } as unknown as StripePaymentsProvider;
+
+    const service = new ActivationPaymentService(prisma, stripe);
+    const result = await service.createOrReuseStripePaymentIntent({
+      propertyId: 'property_1',
+      vendorId: 'vendor_1',
+    });
+
+    expect(stripe.createPaymentIntent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 5000,
+        currency: 'aed',
+      }),
+    );
+    expect(result.clientSecret).toBe('cs_new');
+    expect(result.reused).toBe(false);
+  });
 });

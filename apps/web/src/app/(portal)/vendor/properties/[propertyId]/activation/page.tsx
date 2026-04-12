@@ -9,6 +9,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { formatCurrency } from "@/lib/utils/currency";
 import {
   createVendorActivationPaymentIntent,
   getVendorPropertyActivation,
@@ -31,18 +32,6 @@ type PaymentSession = {
   paymentIntentId: string;
   reused: boolean;
 };
-
-function formatMoneyMinor(amountMinor: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amountMinor / 100);
-  } catch {
-    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
-  }
-}
 
 function fmtDate(value: string | null): string {
   if (!value) return "-";
@@ -389,7 +378,7 @@ export default function VendorPropertyActivationPage() {
                   label="Activation fee"
                   value={
                     typeof state.data.activationFee === "number"
-                      ? formatMoneyMinor(state.data.activationFee, state.data.activationFeeCurrency)
+                      ? formatCurrency(state.data.activationFee, state.data.activationFeeCurrency)
                       : "Not set"
                   }
                 />
@@ -406,7 +395,7 @@ export default function VendorPropertyActivationPage() {
                   <Info label="Invoice" value={state.data.invoice.id} mono />
                   <Info
                     label="Amount"
-                    value={formatMoneyMinor(state.data.invoice.amount, state.data.invoice.currency)}
+                    value={formatCurrency(state.data.invoice.amount, state.data.invoice.currency)}
                   />
                   <Info label="Status" value={state.data.invoice.status} />
                   <Info label="Created" value={fmtDate(state.data.invoice.createdAt)} />
@@ -433,7 +422,13 @@ export default function VendorPropertyActivationPage() {
                       Stripe publishable key is missing. Set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
                     </div>
                   ) : (
-                    <Elements stripe={stripePromise} options={{ clientSecret: paymentSession.clientSecret }}>
+                    <Elements
+                      stripe={stripePromise}
+                      options={{
+                        clientSecret: paymentSession.clientSecret,
+                        appearance: { theme: "stripe" },
+                      }}
+                    >
                       <ActivationCardForm
                         clientSecret={paymentSession.clientSecret}
                         onSubmitted={pollUntilActivated}
@@ -450,7 +445,7 @@ export default function VendorPropertyActivationPage() {
 
               {paymentSession ? (
                 <div className="mt-3 rounded-2xl border border-line/70 bg-warm-base p-3 text-xs text-secondary">
-                  Amount to charge: {formatMoneyMinor(paymentSession.amount, paymentSession.currency)}
+                  Amount to charge: {formatCurrency(paymentSession.amount, paymentSession.currency)}
                 </div>
               ) : null}
 

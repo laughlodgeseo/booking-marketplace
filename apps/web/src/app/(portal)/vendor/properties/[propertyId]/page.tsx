@@ -9,6 +9,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
+import { formatCurrency } from "@/lib/utils/currency";
 
 import { getVendorPropertyDraft, type VendorPropertyDetail } from "@/lib/api/portal/vendor";
 
@@ -21,18 +22,6 @@ function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
-}
-
-function formatMoneyMinor(amountMinor: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amountMinor / 100);
-  } catch {
-    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
-  }
 }
 
 function isApprovedPendingActivationPayment(status: string): boolean {
@@ -150,7 +139,7 @@ export default function VendorPropertyHubPage() {
                 <p className="mt-2 text-sm font-semibold text-primary">
                   Amount:{" "}
                   {typeof state.data.activationFee === "number"
-                    ? formatMoneyMinor(state.data.activationFee, state.data.activationFeeCurrency)
+                    ? formatCurrency(state.data.activationFee, state.data.activationFeeCurrency)
                     : `- ${state.data.activationFeeCurrency}`}
                 </p>
                 <button

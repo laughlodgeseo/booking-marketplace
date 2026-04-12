@@ -1185,9 +1185,11 @@ export class AdminPropertiesService {
       const activationFeeMinor = requiresActivation
         ? this.parseActivationFeeMinor(dto.activationFee)
         : null;
-      const activationCurrency = requiresActivation
-        ? this.normalizeActivationCurrency(dto.activationFeeCurrency)
-        : null;
+      const activationCurrency = requiresActivation ? 'AED' : null;
+
+      if (requiresActivation && dto.activationFeeCurrency) {
+        this.normalizeActivationCurrency(dto.activationFeeCurrency);
+      }
 
       const nextStatus = requiresActivation
         ? PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT

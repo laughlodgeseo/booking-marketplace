@@ -10,6 +10,7 @@ import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
 
 import { getVendorProperties, type VendorPropertyListItem } from "@/lib/api/portal/vendor";
+import { formatCurrency } from "@/lib/utils/currency";
 
 type ViewState =
   | { kind: "loading" }
@@ -26,18 +27,6 @@ function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
-}
-
-function formatMoneyMinor(amountMinor: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amountMinor / 100);
-  } catch {
-    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
-  }
 }
 
 function isApprovedPendingActivationPayment(status: string): boolean {
@@ -220,7 +209,7 @@ export default function VendorPropertiesPage() {
                         <p className="mt-2 text-sm font-semibold text-primary">
                           Amount:{" "}
                           {typeof property.activationFee === "number"
-                            ? formatMoneyMinor(property.activationFee, property.activationFeeCurrency)
+                            ? formatCurrency(property.activationFee, property.activationFeeCurrency)
                             : `- ${property.activationFeeCurrency}`}
                         </p>
 

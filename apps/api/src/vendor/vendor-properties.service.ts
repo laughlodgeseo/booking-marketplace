@@ -952,18 +952,19 @@ export class VendorPropertiesService {
     propertyId: string,
     input?: { idempotencyKey?: string | null },
   ) {
-    await this.assertOwnership(vendorUserId, propertyId);
-    const payment =
-      await this.activationPayments.createOrReuseStripePaymentIntent({
-      propertyId,
-      vendorId: vendorUserId,
-      idempotencyKey: input?.idempotencyKey,
-    });
+    const property = await this.assertOwnership(vendorUserId, propertyId);
+    const payment = await this.activationPayments.createOrReuseStripePaymentIntent(
+      {
+        propertyId,
+        vendorId: vendorUserId,
+        idempotencyKey: input?.idempotencyKey,
+      },
+    );
 
     return {
       ...payment,
-      amount: payment.invoice.amount,
-      currency: payment.invoice.currency,
+      amount: property.activationFee ?? payment.invoice.amount,
+      currency: property.activationFeeCurrency,
     };
   }
 
