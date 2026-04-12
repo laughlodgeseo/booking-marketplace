@@ -129,11 +129,28 @@ function fmtDate(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function toDownloadUrl(documentUrl: string): string {
+function normalizeDocumentUrl(documentUrl: string): string {
   if (!documentUrl) return documentUrl;
-  return documentUrl.includes("/upload/")
-    ? documentUrl.replace("/upload/", "/upload/fl_attachment/")
+  return documentUrl.includes("/image/upload/") && documentUrl.endsWith(".pdf")
+    ? documentUrl.replace("/image/upload/", "/raw/upload/")
     : documentUrl;
+}
+
+function toDownloadUrl(documentUrl: string): string {
+  const fixedUrl = normalizeDocumentUrl(documentUrl);
+  return fixedUrl.includes("/upload/")
+    ? fixedUrl.replace("/upload/", "/upload/fl_attachment/")
+    : fixedUrl;
+}
+
+function openInNewTab(url: string) {
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 }
 
 export function AdminPropertyEditor(props: {
@@ -404,10 +421,7 @@ export function AdminPropertyEditor(props: {
     setBusy("Downloading document...");
     setError(null);
     try {
-      const win = window.open(toDownloadUrl(sourceUrl), "_blank", "noopener,noreferrer");
-      if (!win) {
-        throw new Error("Popup blocked by browser. Allow popups to download documents.");
-      }
+      openInNewTab(toDownloadUrl(sourceUrl));
     } catch (downloadError) {
       setError(
         downloadError instanceof Error ? downloadError.message : "Failed to download document."
@@ -427,11 +441,9 @@ export function AdminPropertyEditor(props: {
     setBusy("Opening document...");
     setError(null);
     try {
-      const win = window.open(sourceUrl, "_blank", "noopener,noreferrer");
-      if (!win) {
-        throw new Error("Popup blocked by browser. Allow popups to preview documents.");
-      }
-      setPreview({ url: sourceUrl, mime: document.mimeType || "application/octet-stream" });
+      const previewUrl = normalizeDocumentUrl(sourceUrl);
+      openInNewTab(previewUrl);
+      setPreview({ url: previewUrl, mime: document.mimeType || "application/octet-stream" });
     } catch (viewError) {
       setError(viewError instanceof Error ? viewError.message : "Failed to open preview.");
     } finally {

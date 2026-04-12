@@ -99,19 +99,21 @@ export default function AdminCustomerDocumentsPage() {
 
   async function view(item: AdminCustomerDocument) {
     setBusy(`Opening ${item.id}...`);
+    const newTab = window.open("", "_blank");
+    if (!newTab) {
+      alert("Please allow popups to view documents.");
+      setBusy(null);
+      return;
+    }
+
+    newTab.opener = null;
     try {
       const blob = await viewAdminCustomerDocument(item.id);
       const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) {
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = item.originalName || `${item.type.toLowerCase()}.pdf`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-      }
+      newTab.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      newTab.close();
     } finally {
       setBusy(null);
     }

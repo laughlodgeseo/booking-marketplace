@@ -71,11 +71,28 @@ function fmtDate(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function toDownloadUrl(documentUrl: string): string {
+function normalizeDocumentUrl(documentUrl: string): string {
   if (!documentUrl) return documentUrl;
-  return documentUrl.includes("/upload/")
-    ? documentUrl.replace("/upload/", "/upload/fl_attachment/")
+  return documentUrl.includes("/image/upload/") && documentUrl.endsWith(".pdf")
+    ? documentUrl.replace("/image/upload/", "/raw/upload/")
     : documentUrl;
+}
+
+function toDownloadUrl(documentUrl: string): string {
+  const fixedUrl = normalizeDocumentUrl(documentUrl);
+  return fixedUrl.includes("/upload/")
+    ? fixedUrl.replace("/upload/", "/upload/fl_attachment/")
+    : fixedUrl;
+}
+
+function openInNewTab(url: string) {
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 }
 
 function mediaFilename(item: AdminPropertyDetail["media"][number], index: number): string {
@@ -175,10 +192,7 @@ export default function AdminPropertyDetailPage() {
     setBusy("Downloading document...");
     setMessage(null);
     try {
-      const win = window.open(toDownloadUrl(documentUrl), "_blank", "noopener,noreferrer");
-      if (!win) {
-        throw new Error("Popup blocked by browser. Allow popups to download documents.");
-      }
+      openInNewTab(toDownloadUrl(documentUrl));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to download document.");
     } finally {
@@ -194,11 +208,7 @@ export default function AdminPropertyDetailPage() {
     setBusy("Opening document...");
     setMessage(null);
     try {
-      const win = window.open(documentUrl, "_blank", "noopener,noreferrer");
-      if (!win) {
-        setMessage("Popup blocked by browser. Allow popups to preview documents.");
-        return;
-      }
+      openInNewTab(normalizeDocumentUrl(documentUrl));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to open document.");
     } finally {

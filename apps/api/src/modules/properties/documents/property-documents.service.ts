@@ -30,6 +30,19 @@ type DocumentRecord = {
 };
 
 type DocumentActorRole = UserRole | 'SUPER_ADMIN';
+type DocumentOpenMode = 'view' | 'download';
+
+type DocumentStreamResult = {
+  type: 'stream';
+  stream: Readable;
+  fileName: string;
+  mimeType: string;
+};
+
+type ExternalDocumentResult = {
+  type: 'external';
+  url: string;
+};
 
 function sanitizeFilename(input: string) {
   const cleaned = input.replace(/[^\w.\- ()[\]]+/g, '_').trim();
@@ -52,6 +65,26 @@ export class PropertyDocumentsService {
     return /^https?:\/\//i.test(pointer);
   }
 
+  private generateCorrectCloudinaryUrl(url: string): string | null {
+    if (!url) return null;
+
+    // Fix incorrect resource type
+    if (url.includes('/image/upload/') && url.endsWith('.pdf')) {
+      return url.replace('/image/upload/', '/raw/upload/');
+    }
+
+    return url;
+  }
+
+  private generateDownloadUrl(url: string): string | null {
+    if (!url) return null;
+
+    const fixedUrl = this.generateCorrectCloudinaryUrl(url);
+    if (!fixedUrl) return null;
+
+    return fixedUrl.replace('/upload/', '/upload/fl_attachment/');
+  }
+
   private assertAllowedCloudinaryUrl(url: string): string {
     let parsed: URL;
     try {
@@ -69,21 +102,6 @@ export class PropertyDocumentsService {
     }
 
     return parsed.toString();
-  }
-
-  private isSensitiveDocumentType(type: PropertyDocumentType): boolean {
-    return (
-      type === PropertyDocumentType.OWNER_ID ||
-      type === PropertyDocumentType.ADDRESS_PROOF
-    );
-  }
-
-  generateSignedUrl(publicId: string): string {
-    return cloudinary.url(publicId, {
-      sign_url: true,
-      expires_at: Math.floor(Date.now() / 1000) + 300,
-      resource_type: 'auto' as unknown as 'image',
-    });
   }
 
   /**
@@ -230,34 +248,6 @@ export class PropertyDocumentsService {
     };
   }
 
-  private async openRemoteDocument(params: {
-    pointer: string;
-    fileName: string;
-    mimeType: string;
-  }): Promise<{
-    stream: Readable;
-    fileName: string;
-    mimeType: string;
-  }> {
-    const response = await fetch(params.pointer, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: AbortSignal.timeout(20_000),
-    });
-
-    if (!response.ok || !response.body) {
-      throw new NotFoundException('Document file missing.');
-    }
-
-    const remoteMime = response.headers.get('content-type') ?? undefined;
-    const bytes = Buffer.from(await response.arrayBuffer());
-    return {
-      stream: Readable.from(bytes),
-      fileName: params.fileName,
-      mimeType: params.mimeType || remoteMime || 'application/octet-stream',
-    };
-  }
-
   private async deleteCloudinaryAsset(publicId: string): Promise<void> {
     type CloudinaryDestroyResult = { result?: string };
 
@@ -293,34 +283,35 @@ export class PropertyDocumentsService {
     userId: string;
     propertyId: string;
     documentId: string;
-  }): Promise<{
-    stream: Readable;
-    fileName: string;
-    mimeType: string;
-  }> {
-    const { role, userId, propertyId, documentId } = params;
+    mode?: DocumentOpenMode;
+  }): Promise<DocumentStreamResult | ExternalDocumentResult> {
+    const { role, userId, propertyId, documentId, mode = 'view' } = params;
     await this.assertActorAccess({ role, userId, propertyId });
 
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
     const pointer = this.getStoredPointer(doc);
-    const fileName = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
-    const mimeType = doc.mimeType ?? 'application/octet-stream';
 
     if (this.isCloudinaryUrl(pointer)) {
-      const signedSensitiveUrl =
-        this.isSensitiveDocumentType(doc.type) && doc.storageKey
-          ? this.generateSignedUrl(doc.storageKey)
-          : pointer;
-      return this.openRemoteDocument({
-        pointer: signedSensitiveUrl,
-        fileName,
-        mimeType,
-      });
+      const documentUrl = this.generateCorrectCloudinaryUrl(
+        this.assertAllowedCloudinaryUrl(pointer),
+      );
+      if (!documentUrl) {
+        throw new NotFoundException('Document file missing.');
+      }
+
+      return {
+        type: 'external',
+        url:
+          mode === 'download'
+            ? (this.generateDownloadUrl(documentUrl) ?? documentUrl)
+            : documentUrl,
+      };
     }
 
     const local = await this.resolveLocalDocumentFile({ doc, pointer });
 
     return {
+      type: 'stream',
       stream: createReadStream(local.absPath),
       fileName: local.fileName,
       mimeType: local.mimeType,
@@ -387,19 +378,15 @@ export class PropertyDocumentsService {
     const remoteUrl = doc.url?.trim();
 
     if (remoteUrl && this.isCloudinaryUrl(remoteUrl)) {
-      const safeUrl = this.assertAllowedCloudinaryUrl(remoteUrl);
-      const signedSensitiveUrl =
-        this.isSensitiveDocumentType(doc.type) && doc.storageKey
-          ? this.generateSignedUrl(doc.storageKey)
-          : safeUrl;
+      const allowedUrl = this.assertAllowedCloudinaryUrl(remoteUrl);
+      const safeUrl =
+        this.generateCorrectCloudinaryUrl(allowedUrl) ?? allowedUrl;
       return {
         id: doc.id,
         filename,
         mimeType: doc.mimeType ?? 'application/octet-stream',
-        viewUrl: signedSensitiveUrl,
-        downloadUrl: signedSensitiveUrl.includes('/upload/')
-          ? signedSensitiveUrl.replace('/upload/', '/upload/fl_attachment/')
-          : signedSensitiveUrl,
+        viewUrl: safeUrl,
+        downloadUrl: this.generateDownloadUrl(safeUrl) ?? safeUrl,
       };
     }
 

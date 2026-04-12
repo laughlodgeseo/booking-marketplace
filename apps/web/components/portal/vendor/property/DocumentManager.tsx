@@ -203,15 +203,21 @@ export function DocumentManager({ property, onChanged }: Props) {
   async function view(document: VendorPropertyDocument) {
     setError(null);
     setBusy("Opening preview...");
+    const newTab = window.open("", "_blank");
+    if (!newTab) {
+      alert("Please allow popups to view documents.");
+      setBusy(null);
+      return;
+    }
+
+    newTab.opener = null;
     try {
       const blob = await viewVendorPropertyDocument(property.id, document.id);
       const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) {
-        triggerDownload(blob, safeFilename(document));
-      }
+      newTab.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (viewError) {
+      newTab.close();
       setError(viewError instanceof Error ? viewError.message : "Preview failed");
     } finally {
       setBusy(null);

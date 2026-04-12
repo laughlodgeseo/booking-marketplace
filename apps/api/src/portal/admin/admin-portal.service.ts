@@ -94,9 +94,22 @@ export class AdminPortalService {
     return value.toISOString().slice(0, 10);
   }
 
+  private generateCorrectCloudinaryUrl(url: string): string | null {
+    if (!url) return null;
+
+    // Fix incorrect resource type
+    if (url.includes('/image/upload/') && url.endsWith('.pdf')) {
+      return url.replace('/image/upload/', '/raw/upload/');
+    }
+
+    return url;
+  }
+
   private generateDownloadUrl(url: string): string | null {
     if (!url) return null;
-    return url.replace('/upload/', '/upload/fl_attachment/');
+    const fixedUrl = this.generateCorrectCloudinaryUrl(url);
+    if (!fixedUrl) return null;
+    return fixedUrl.replace('/upload/', '/upload/fl_attachment/');
   }
 
   async getOverview(params: {
@@ -1012,24 +1025,32 @@ export class AdminPortalService {
     );
 
     const documentRows = property.documents as PropertyDetailDocumentRow[];
-    const documents = documentRows.map((doc) => ({
-      ...doc,
-      createdAt: doc.createdAt.toISOString(),
-      updatedAt: doc.updatedAt.toISOString(),
-      documentUrl: doc.url ?? null,
-      documentPublicId: doc.storageKey ?? null,
-      downloadUrl:
-        typeof doc.url === 'string'
-          ? (this.generateDownloadUrl(doc.url) ??
-            `/api/admin/properties/${property.id}/documents/${doc.id}/download`)
-          : `/api/admin/properties/${property.id}/documents/${doc.id}/download`,
-      viewUrl:
-        doc.url ??
-        `/api/admin/properties/${property.id}/documents/${doc.id}/view`,
-    }));
+    const documents = documentRows.map((doc) => {
+      const documentUrl = typeof doc.url === 'string' ? doc.url : '';
+      const safeUrl = this.generateCorrectCloudinaryUrl(documentUrl);
+      const fallbackDownloadUrl = `/api/admin/properties/${property.id}/documents/${doc.id}/download`;
+      const fallbackViewUrl = `/api/admin/properties/${property.id}/documents/${doc.id}/view`;
+
+      return {
+        ...doc,
+        createdAt: doc.createdAt.toISOString(),
+        updatedAt: doc.updatedAt.toISOString(),
+        documentUrl: safeUrl,
+        documentPublicId: doc.storageKey ?? null,
+        downloadUrl: safeUrl
+          ? (this.generateDownloadUrl(safeUrl) ?? fallbackDownloadUrl)
+          : fallbackDownloadUrl,
+        viewUrl: safeUrl ?? fallbackViewUrl,
+      };
+    });
+
+    const propertyDocumentUrl = this.generateCorrectCloudinaryUrl(
+      property.documentUrl ?? '',
+    );
 
     return {
       ...property,
+      documentUrl: propertyDocumentUrl,
       createdAt: property.createdAt.toISOString(),
       updatedAt: property.updatedAt.toISOString(),
       documents,
@@ -1048,7 +1069,7 @@ export class AdminPortalService {
     propertyId: string;
   }) {
     this.assertAdmin(params.role);
-    return this.prisma.property.update({
+    const updated = await this.prisma.property.update({
       where: { id: params.propertyId },
       data: {
         documentStatus: 'approved',
@@ -1062,6 +1083,10 @@ export class AdminPortalService {
         documentPublicId: true,
       },
     });
+    return {
+      ...updated,
+      documentUrl: this.generateCorrectCloudinaryUrl(updated.documentUrl ?? ''),
+    };
   }
 
   async rejectDocument(params: {
@@ -1076,7 +1101,7 @@ export class AdminPortalService {
       throw new BadRequestException('Document rejection reason is required.');
     }
 
-    return this.prisma.property.update({
+    const updated = await this.prisma.property.update({
       where: { id: params.propertyId },
       data: {
         documentStatus: 'rejected',
@@ -1090,6 +1115,10 @@ export class AdminPortalService {
         documentPublicId: true,
       },
     });
+    return {
+      ...updated,
+      documentUrl: this.generateCorrectCloudinaryUrl(updated.documentUrl ?? ''),
+    };
   }
 
   async listBookings(params: {

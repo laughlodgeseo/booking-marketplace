@@ -197,15 +197,22 @@ export function StepDocuments({ property, onPropertyUpdated }: StepProps) {
     setError(null);
     setBusyType(document.type);
     setBusyMessage("Opening preview...");
+    const newTab = window.open("", "_blank");
+    if (!newTab) {
+      alert("Please allow popups to view documents.");
+      setBusyType(null);
+      setBusyMessage(null);
+      return;
+    }
+
+    newTab.opener = null;
     try {
       const blob = await viewVendorPropertyDocument(currentProperty.id, document.id);
       const url = URL.createObjectURL(blob);
-      const win = window.open(url, "_blank", "noopener,noreferrer");
-      if (!win) {
-        triggerBlobDownload(blob, filenameForDownload(document));
-      }
+      newTab.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
+      newTab.close();
       setError(e instanceof Error ? e.message : "Preview failed.");
     } finally {
       setBusyType(null);

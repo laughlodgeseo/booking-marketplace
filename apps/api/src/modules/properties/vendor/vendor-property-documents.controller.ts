@@ -22,13 +22,20 @@ export class VendorPropertyDocumentsController {
     @CurrentUser() user: User,
     @Res() res: Response,
   ) {
-    const { stream, fileName, mimeType } = await this.docs.openDocumentStream({
+    const file = await this.docs.openDocumentStream({
       role: user.role,
       userId: user.id,
       propertyId,
       documentId,
+      mode: 'download',
     });
 
+    if (file.type === 'external') {
+      res.redirect(file.url);
+      return;
+    }
+
+    const { stream, fileName, mimeType } = file;
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
 
@@ -47,13 +54,20 @@ export class VendorPropertyDocumentsController {
     @CurrentUser() user: User,
     @Res() res: Response,
   ) {
-    const { stream, fileName, mimeType } = await this.docs.openDocumentStream({
+    const file = await this.docs.openDocumentStream({
       role: user.role,
       userId: user.id,
       propertyId,
       documentId,
+      mode: 'view',
     });
 
+    if (file.type === 'external') {
+      res.redirect(file.url);
+      return;
+    }
+
+    const { stream, fileName, mimeType } = file;
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
 
