@@ -170,7 +170,7 @@ export default function VendorStatementsPage() {
           <SkeletonTable rows={8} />
         </div>
       ) : state.kind === "error" ? (
-        <div className="rounded-2xl border bg-surface p-6">
+        <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6">
           <div className="text-sm font-semibold text-primary">
             Could not load statements
           </div>
@@ -196,7 +196,7 @@ export default function VendorStatementsPage() {
             rowActions={(row) => (
               <Link
                 href={`/vendor/statements/${encodeURIComponent(row.id)}`}
-                className="rounded-lg border bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-warm-alt"
+                className="rounded-lg border border-line/70 bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-warm-alt"
               >
                 View
               </Link>
@@ -208,7 +208,7 @@ export default function VendorStatementsPage() {
               type="button"
               disabled={!canPrev}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-xl border bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+              className="rounded-xl border border-line/70 bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
             >
               Prev
             </button>
@@ -219,7 +219,7 @@ export default function VendorStatementsPage() {
               type="button"
               disabled={!canNext}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-xl border bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+              className="rounded-xl border border-line/70 bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
             >
               Next
             </button>

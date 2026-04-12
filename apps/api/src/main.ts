@@ -25,6 +25,20 @@ function normalizeOrigin(value: string): string {
 }
 
 async function bootstrap() {
+  const rawDbUrl = (process.env.DATABASE_URL || '').trim();
+  if (!rawDbUrl) {
+    console.warn('DATABASE_URL is not set. API will fail to connect to the database.');
+  } else {
+    try {
+      const parsed = new URL(rawDbUrl);
+      const dbName = parsed.pathname.replace(/^\//, '') || '(default)';
+      const host = parsed.host || '(unknown)';
+      console.log(`Database target: ${host}/${dbName}`);
+    } catch {
+      console.warn('DATABASE_URL is set but could not be parsed.');
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Global API prefix

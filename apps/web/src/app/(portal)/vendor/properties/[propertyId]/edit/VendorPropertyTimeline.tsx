@@ -47,7 +47,7 @@ export function VendorPropertyTimeline(props: { status: string }) {
   ];
 
   return (
-    <div className="rounded-2xl border bg-surface p-6">
+    <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6">
       <div className="text-sm font-semibold text-primary">Status timeline</div>
       <div className="mt-4 grid gap-3 lg:grid-cols-4">
         {steps.map((st) => {

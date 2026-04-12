@@ -26,6 +26,8 @@ type DocumentRecord = {
   storageKey: string | null;
 };
 
+type DocumentActorRole = UserRole | 'SUPER_ADMIN';
+
 function sanitizeFilename(input: string) {
   const cleaned = input.replace(/[^\w.\- ()[\]]+/g, '_').trim();
   return cleaned.length > 0 ? cleaned : 'document';
@@ -34,6 +36,10 @@ function sanitizeFilename(input: string) {
 @Injectable()
 export class PropertyDocumentsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private isAdminRole(role: DocumentActorRole): boolean {
+    return role === UserRole.ADMIN || role === 'SUPER_ADMIN';
+  }
 
   /**
    * We store private docs either as:
@@ -131,7 +137,7 @@ export class PropertyDocumentsService {
   }
 
   private async resolveDocumentFile(params: {
-    role: UserRole;
+    role: DocumentActorRole;
     userId: string;
     propertyId: string;
     documentId: string;
@@ -146,7 +152,7 @@ export class PropertyDocumentsService {
 
     if (role === UserRole.VENDOR) {
       await this.assertVendorOwnsProperty(userId, propertyId);
-    } else if (role !== UserRole.ADMIN) {
+    } else if (!this.isAdminRole(role)) {
       throw new ForbiddenException('Not allowed.');
     }
 
@@ -169,7 +175,7 @@ export class PropertyDocumentsService {
   }
 
   async openDocumentStream(params: {
-    role: UserRole;
+    role: DocumentActorRole;
     userId: string;
     propertyId: string;
     documentId: string;
@@ -187,7 +193,7 @@ export class PropertyDocumentsService {
   }
 
   async deleteDocument(params: {
-    role: UserRole;
+    role: DocumentActorRole;
     userId: string;
     propertyId: string;
     documentId: string;
@@ -197,7 +203,7 @@ export class PropertyDocumentsService {
 
     if (role === UserRole.VENDOR) {
       await this.assertVendorOwnsProperty(userId, propertyId);
-    } else if (role !== UserRole.ADMIN) {
+    } else if (!this.isAdminRole(role)) {
       throw new ForbiddenException('Not allowed.');
     }
 
@@ -216,5 +222,37 @@ export class PropertyDocumentsService {
     }
 
     return { ok: true, id: doc.id };
+  }
+
+  async getDocumentForAdmin(params: {
+    role: DocumentActorRole;
+    userId: string;
+    propertyId: string;
+    documentId: string;
+  }): Promise<{
+    id: string;
+    filename: string;
+    mimeType: string;
+    viewUrl: string;
+    downloadUrl: string;
+  }> {
+    const { role, userId, propertyId, documentId } = params;
+
+    if (role === UserRole.VENDOR) {
+      await this.assertVendorOwnsProperty(userId, propertyId);
+    } else if (!this.isAdminRole(role)) {
+      throw new ForbiddenException('Not allowed.');
+    }
+
+    const doc = await this.getDocumentOrThrow(propertyId, documentId);
+    const filename = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
+
+    return {
+      id: doc.id,
+      filename,
+      mimeType: doc.mimeType ?? 'application/octet-stream',
+      viewUrl: `/api/admin/properties/${propertyId}/documents/${doc.id}/view`,
+      downloadUrl: `/api/admin/properties/${propertyId}/documents/${doc.id}/download`,
+    };
   }
 }

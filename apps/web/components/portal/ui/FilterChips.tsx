@@ -30,7 +30,7 @@ export function FilterChips<T extends string>(props: {
               "inline-flex h-11 min-w-0 max-w-full items-center rounded-full px-4 text-sm font-semibold",
               "outline-none transition focus-visible:ring-4 focus-visible:ring-brand/18",
               selected
-                ? "bg-brand text-accent-text shadow-[0_12px_28px_rgba(79,70,229,0.24)]"
+                ? "bg-brand text-accent-text shadow-[0_12px_28px_rgba(79,70,229,0.28)]"
                 : "bg-surface/90 text-primary ring-1 ring-line/28 hover:bg-accent-soft/24",
               option.disabled ? "opacity-60" : "",
             )}

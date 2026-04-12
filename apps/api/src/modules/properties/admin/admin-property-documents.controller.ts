@@ -11,9 +11,23 @@ import { PropertyDocumentsService } from '../documents/property-documents.servic
 
 @Controller('admin/properties/:propertyId/documents')
 @UseGuards(JwtAccessGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, 'SUPER_ADMIN' as UserRole)
 export class AdminPropertyDocumentsController {
   constructor(private readonly docs: PropertyDocumentsService) {}
+
+  @Get(':documentId/access')
+  async access(
+    @Param('propertyId') propertyId: string,
+    @Param('documentId') documentId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.docs.getDocumentForAdmin({
+      role: user.role,
+      userId: user.id,
+      propertyId,
+      documentId,
+    });
+  }
 
   @Get(':documentId/download')
   async download(

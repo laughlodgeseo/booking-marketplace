@@ -41,10 +41,10 @@ export function PortalHeader(props: {
   const notificationsHref = props.notificationsHref ?? "#";
 
   return (
-    <header className="sticky top-0 z-40 bg-[rgb(var(--color-surface-rgb)/0.88)] text-primary shadow-[0_14px_40px_rgba(33,39,53,0.10)] backdrop-blur-xl">
+    <header className="sticky top-0 z-40 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(240,238,255,0.86))] text-primary shadow-[0_16px_44px_rgba(79,70,229,0.16)] backdrop-blur-xl ring-1 ring-line/16">
       <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="group inline-flex items-center gap-2">
-          <span className="rounded-xl bg-surface/90 px-2 py-1 ring-1 ring-line/24">
+          <span className="rounded-xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.86))] px-2 py-1 ring-1 ring-brand/18">
             <Image
               src="/brand/logo.svg"
               alt="Laugh & Lodge"
@@ -73,7 +73,7 @@ export function PortalHeader(props: {
             <input
               type="search"
               placeholder={tPortal("searchPlaceholder")}
-              className="h-11 w-full rounded-2xl bg-surface/88 pl-10 pr-3 text-sm text-primary ring-1 ring-line/24 outline-none placeholder:text-muted focus-visible:ring-4 focus-visible:ring-brand/16"
+              className="h-11 w-full rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] pl-10 pr-3 text-sm text-primary ring-1 ring-brand/18 outline-none placeholder:text-muted focus-visible:ring-4 focus-visible:ring-brand/20"
             />
           </div>
 
@@ -91,13 +91,13 @@ export function PortalHeader(props: {
             <button
               type="button"
               onClick={props.onLogout}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-4 text-sm font-semibold text-accent-text shadow-[0_12px_30px_rgba(79,70,229,0.30)] hover:bg-brand-hover hover:translate-y-[-1px] active:translate-y-0"
+              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-b from-brand to-brand-hover px-4 text-sm font-semibold text-accent-text ring-1 ring-brand/34 shadow-[0_12px_30px_rgba(79,70,229,0.34)] hover:brightness-105 hover:translate-y-[-1px] active:translate-y-0"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden xl:inline">{tPortal("logout")}</span>
             </button>
 
-            <div className="ml-1 flex items-center gap-3 rounded-2xl bg-surface/88 px-3 py-2 ring-1 ring-line/24">
+            <div className="ml-1 flex items-center gap-3 rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.86))] px-3 py-2 ring-1 ring-brand/18">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand text-xs font-bold text-white">
                 {badge}
               </div>
@@ -118,7 +118,7 @@ export function PortalHeader(props: {
 
           <Link
             href={notificationsHref}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-surface/88 ring-1 ring-line/24 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] ring-1 ring-brand/20 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
             aria-label={tPortal("alerts")}
           >
             <Bell className="h-4 w-4 text-secondary" />
@@ -127,7 +127,7 @@ export function PortalHeader(props: {
           <button
             type="button"
             onClick={props.onLogout}
-            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-brand px-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.28)] hover:bg-brand-hover hover:translate-y-[-1px] active:translate-y-0"
+            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-b from-brand to-brand-hover px-4 text-sm font-semibold text-white ring-1 ring-brand/34 shadow-[0_12px_30px_rgba(79,70,229,0.34)] hover:brightness-105 hover:translate-y-[-1px] active:translate-y-0"
           >
             <LogOut className="h-4 w-4" />
             {tPortal("logout")}

@@ -23,19 +23,20 @@ export function PortalSidebar(props: {
   userEmail: string | null;
   userName?: string | null;
   footerHint?: ReactNode;
+  className?: string;
 }) {
   const pathname = usePathname();
   const tPortal = useTranslations("portal");
   const grouped = groupNav(props.nav);
 
   return (
-    <aside className="hidden w-[300px] shrink-0 overflow-x-hidden lg:block">
-      <div className="sticky top-[90px] overflow-hidden rounded-3xl bg-[linear-gradient(180deg,rgba(234,227,215,0.96)_0%,rgba(229,220,206,0.95)_55%,rgba(223,214,198,0.94)_100%)] shadow-[0_22px_62px_rgba(33,39,53,0.14)]">
+    <aside className={cn("hidden overflow-x-hidden lg:block lg:w-[300px] lg:shrink-0", props.className)}>
+      <div className="sticky top-[90px] overflow-hidden rounded-3xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(242,240,255,0.97)_56%,rgba(236,234,255,0.95)_100%)] shadow-[0_18px_52px_rgba(79,70,229,0.16)] ring-1 ring-white/60">
         {/* subtle inner highlight so it feels “built” */}
-        <div className="pointer-events-none absolute inset-0 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.55)]" />
+        <div className="pointer-events-none absolute inset-0 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.68)]" />
 
         <div className="px-4 pt-4">
-          <div className="rounded-3xl bg-[linear-gradient(180deg,rgba(246,240,230,0.88)_0%,rgba(241,233,220,0.75)_100%)] p-4 shadow-[0_12px_34px_rgba(33,39,53,0.12)]">
+          <div className="rounded-3xl bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(240,238,255,0.78)_100%)] p-4 shadow-[0_12px_34px_rgba(79,70,229,0.12)] ring-1 ring-white/65">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-semibold tracking-wide text-primary/62">
@@ -51,8 +52,8 @@ export function PortalSidebar(props: {
                 ) : null}
               </div>
 
-              <div className="mt-0.5 inline-flex h-8 items-center rounded-2xl bg-accent-soft/35 px-3 text-[11px] font-semibold text-brand">
-                Indigo
+              <div className="mt-0.5 inline-flex h-8 items-center rounded-2xl bg-brand/14 px-3 text-[11px] font-semibold text-brand ring-1 ring-brand/24">
+                Live
               </div>
             </div>
 
@@ -79,10 +80,10 @@ export function PortalSidebar(props: {
                         href={item.href}
                         className={cn(
                           "group relative flex w-full min-w-0 items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-semibold",
-                          "bg-surface/84 ring-1 ring-[rgba(79,70,229,0.18)] transition",
-                          "hover:translate-y-[-1px] hover:bg-accent-soft/28 active:translate-y-0",
+                          "bg-surface/88 ring-1 ring-brand/14 shadow-[0_8px_20px_rgba(79,70,229,0.08)] transition",
+                          "hover:translate-y-[-1px] hover:bg-accent-soft/26 hover:ring-brand/26 hover:shadow-[0_12px_26px_rgba(79,70,229,0.12)] active:translate-y-0",
                           active
-                            ? "bg-brand text-accent-text shadow-[0_14px_34px_rgba(79,70,229,0.28)] ring-[rgba(79,70,229,0.45)]"
+                            ? "bg-brand text-accent-text shadow-[0_14px_34px_rgba(79,70,229,0.30)] ring-brand/45"
                             : "text-primary/78"
                         )}
                       >
@@ -121,7 +122,7 @@ export function PortalSidebar(props: {
             ))}
           </div>
 
-          <div className="mt-6 rounded-3xl bg-surface/78 p-4 shadow-[0_14px_40px_rgba(33,39,53,0.12)]">
+          <div className="mt-6 rounded-3xl bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(240,238,255,0.78))] p-4 shadow-[0_14px_36px_rgba(79,70,229,0.12)] ring-1 ring-white/65">
             <div className="text-xs font-semibold text-primary/60">{tPortal("signedIn")}</div>
             <div className="mt-1 text-sm font-semibold text-primary">
               {props.userName?.trim() || tPortal("defaultWelcome")}

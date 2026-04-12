@@ -31,8 +31,8 @@ export function CardList(props: {
       </div>
 
       {props.items.length === 0 ? (
-        <div className="p-8">
-          <div className="rounded-2xl bg-warm-alt/75 p-6 text-center">
+        <div className="p-6 sm:p-8">
+          <div className="rounded-2xl border border-line/60 bg-warm-alt/75 p-6 text-center">
             <div className="text-sm font-semibold text-primary">{props.emptyTitle ?? "No records"}</div>
             <div className="mt-1 text-sm text-secondary">
               {props.emptyDescription ?? "There are no items to display right now."}
@@ -55,33 +55,35 @@ export function CardList(props: {
                 }
               }}
               className={cn(
-                "rounded-2xl border border-line/38 bg-warm-base/94 p-4 shadow-sm transition lg:border-transparent lg:bg-warm-alt/66",
+                "rounded-2xl border border-line/55 bg-warm-base/94 p-4 shadow-sm transition lg:bg-warm-alt/66",
                 item.onClick ? "cursor-pointer hover:bg-accent-soft/24 hover:-translate-y-0.5" : "cursor-default",
               )}
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-primary">{item.title}</div>
-                  {item.subtitle ? <div className="mt-1 text-sm text-secondary">{item.subtitle}</div> : null}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-primary">{item.title}</div>
+                    {item.subtitle ? <div className="mt-1 text-sm text-secondary">{item.subtitle}</div> : null}
+                  </div>
+
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                    {item.status}
+                    {item.actions ? (
+                      <div
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        {item.actions}
+                      </div>
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted" />
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                  {item.status}
-                  {item.actions ? (
-                    <div
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => event.stopPropagation()}
-                      className="flex flex-wrap items-center gap-2"
-                    >
-                      {item.actions}
-                    </div>
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted" />
-                  )}
-                </div>
+                {item.meta ? <div className="text-sm text-secondary">{item.meta}</div> : null}
               </div>
-
-              {item.meta ? <div className="mt-3 text-sm text-secondary">{item.meta}</div> : null}
             </div>
           ))}
         </div>

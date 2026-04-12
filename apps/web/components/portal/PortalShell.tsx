@@ -135,7 +135,7 @@ export function PortalShell(props: {
       <div className="pointer-events-none fixed inset-0 -z-10 portal-shell-bg" />
 
       {/* Soft vignette to increase separation (prevents “white on white”) */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(1200px_600px_at_50%_-120px,rgba(79,70,229,0.14),transparent_62%),radial-gradient(900px_500px_at_12%_12%,rgba(79,70,229,0.08),transparent_58%),radial-gradient(900px_500px_at_88%_18%,rgba(71,85,105,0.08),transparent_62%)]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(1200px_600px_at_50%_-120px,rgb(var(--color-accent-rgb)/0.16),transparent_62%),radial-gradient(900px_500px_at_12%_12%,rgb(var(--color-accent-rgb)/0.10),transparent_58%),radial-gradient(900px_500px_at_88%_18%,rgb(var(--color-gold-rgb)/0.09),transparent_62%)]" />
 
       <PortalHeader
         role={props.role}
@@ -162,7 +162,7 @@ export function PortalShell(props: {
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-warm-base/95 text-primary ring-1 ring-line/35 shadow-sm"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] text-primary ring-1 ring-brand/22 shadow-[0_8px_20px_rgba(79,70,229,0.16)]"
             aria-label={tPortal("shell.openNavigation")}
           >
             <Menu className="h-5 w-5" />
@@ -183,14 +183,14 @@ export function PortalShell(props: {
 
         <aside
           className={cn(
-            "absolute inset-y-0 flex w-[86%] max-w-sm flex-col overflow-hidden border-line/40",
-            isRtl ? "right-0 border-l" : "left-0 border-r",
-            "bg-[linear-gradient(180deg,rgba(246,240,230,0.98),rgba(239,232,219,0.98))] shadow-[0_24px_64px_rgba(33,39,53,0.26)]",
+            "absolute inset-y-0 flex w-[86%] max-w-sm flex-col overflow-hidden",
+            isRtl ? "right-0" : "left-0",
+            "bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,236,255,0.98))] shadow-[0_24px_64px_rgba(79,70,229,0.24)] ring-1 ring-line/22",
             "transition-transform duration-300 ease-out",
             mobileNavOpen ? "translate-x-0" : isRtl ? "translate-x-full" : "-translate-x-full",
           )}
         >
-          <div className="border-b border-line/30 px-4 pb-3 pt-[calc(0.9rem+env(safe-area-inset-top))]">
+          <div className="px-4 pb-3 pt-[calc(0.9rem+env(safe-area-inset-top))]">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-primary">{props.title}</div>
@@ -199,7 +199,7 @@ export function PortalShell(props: {
               <button
                 type="button"
                 onClick={() => setMobileNavOpen(false)}
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-warm-base/95 text-primary ring-1 ring-line/35"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] text-primary ring-1 ring-brand/22"
                 aria-label={tPortal("shell.closeNavigation")}
               >
                 <X className="h-5 w-5" />
@@ -226,7 +226,7 @@ export function PortalShell(props: {
                           className={cn(
                             "flex min-w-0 items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
                             active
-                              ? "bg-brand text-accent-text shadow-[0_12px_28px_rgba(79,70,229,0.3)]"
+                              ? "bg-brand text-accent-text shadow-[0_12px_28px_rgba(79,70,229,0.32)]"
                               : "bg-warm-base/92 text-primary ring-1 ring-line/32 hover:bg-accent-soft/26",
                           )}
                         >
@@ -256,22 +256,23 @@ export function PortalShell(props: {
       </div>
 
       {/* Layout */}
-      <div className="mx-auto grid w-full max-w-[1400px] gap-4 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pt-6 lg:grid-cols-[300px_1fr] lg:gap-6 lg:px-8 lg:pb-16 lg:pt-6">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-[calc(2rem+env(safe-area-inset-bottom))] sm:pt-6 lg:flex-row lg:items-start lg:gap-6 lg:px-8 lg:pb-16 lg:pt-6">
         <PortalSidebar
           title={props.title}
           subtitle={props.subtitle}
           nav={navItems}
           userEmail={user?.email ?? null}
           userName={identityName}
+          className="lg:w-72 lg:flex-shrink-0"
         />
 
-        <main className="min-w-0">
+        <main className="min-w-0 flex-1 overflow-y-auto">
           {/* Main shell card */}
           <div className="portal-card max-w-full overflow-hidden rounded-3xl bg-warm-base/92 lg:bg-surface/90">
             {/* Header band: increase contrast so it reads clearly on ivory */}
-            <div className="relative bg-[linear-gradient(135deg,rgba(245,239,228,0.78),rgba(239,231,218,0.7))] px-4 py-4 sm:px-6 sm:py-5">
+            <div className="relative bg-[linear-gradient(135deg,rgb(var(--color-surface-rgb)/0.98),rgb(var(--color-bg-2-rgb)/0.92))] px-4 py-4 sm:px-6 sm:py-5">
               {/* Top accent line */}
-              <div className="pointer-events-none absolute inset-x-6 top-0 h-[2px] rounded-full bg-[linear-gradient(90deg,rgba(79,70,229,0.70),rgba(79,70,229,0.22),transparent_82%)]" />
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-[2px] rounded-full bg-[linear-gradient(90deg,rgb(var(--color-accent-rgb)/0.75),rgb(var(--color-accent-rgb)/0.24),transparent_82%)]" />
 
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted sm:text-xs lg:normal-case lg:tracking-normal">
                 {roleName}
@@ -287,7 +288,7 @@ export function PortalShell(props: {
             </div>
 
             {/* Content area: add subtle tint so pages like Calendar don’t look “flat” */}
-            <div className="bg-[linear-gradient(180deg,rgba(245,239,228,0.6),rgba(245,239,228,0.4))] px-4 py-4 sm:px-6 sm:py-6">
+            <div className="bg-[linear-gradient(180deg,rgb(var(--color-surface-rgb)/0.88),rgb(var(--color-bg-2-rgb)/0.62))] px-4 py-4 sm:px-6 sm:py-6">
               {props.children}
             </div>
           </div>

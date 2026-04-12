@@ -16,18 +16,18 @@ export function SectionHeader(props: {
     <div className={cn("min-w-0", props.className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 className="truncate text-base font-semibold text-primary sm:text-lg lg:text-sm">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <h2 className="truncate text-base font-semibold text-primary sm:text-lg">
               {props.title}
             </h2>
             {typeof props.count === "number" ? (
-              <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-accent-soft/42 px-2.5 text-xs font-semibold text-brand">
+              <span className="inline-flex h-6 shrink-0 items-center rounded-full border border-brand/20 bg-accent-soft/42 px-2.5 text-xs font-semibold text-brand">
                 {props.count}
               </span>
             ) : null}
           </div>
           {props.subtitle ? (
-            <p className="mt-1 text-sm leading-relaxed text-secondary sm:text-base lg:text-sm lg:leading-normal">
+            <p className="mt-1 text-sm leading-relaxed text-secondary sm:text-sm">
               {props.subtitle}
             </p>
           ) : null}

@@ -16,7 +16,11 @@ import {
   requestChangesAdminProperty,
   updateAdminPropertyActivationFee,
 } from "@/lib/api/admin/reviewQueue";
-import { getAdminPortalPropertyDetail } from "@/lib/api/portal/admin";
+import {
+  downloadAdminPropertyDocument,
+  getAdminPortalPropertyDetail,
+  viewAdminPropertyDocument,
+} from "@/lib/api/portal/admin";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 type ViewState =
@@ -61,12 +65,28 @@ function formatChangeValue(value: unknown): string {
   }
 }
 
+function statusLabel(raw: string | null | undefined): string {
+  const base = (raw ?? "UNKNOWN").trim().toUpperCase();
+  return base.replaceAll("_", " ");
+}
+
 function humanizeField(path: string): string {
   if (!path || path === "(root)") return "Listing";
   return path
     .replace(/\[(\d+)\]/g, " [$1]")
     .replace(/\./g, " > ")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminReviewQueueDetailPage() {
@@ -258,6 +278,42 @@ export default function AdminReviewQueueDetailPage() {
     }
   }
 
+  async function downloadDocument(documentId: string, fallbackName: string) {
+    if (!propertyId) return;
+    setError(null);
+    setActionMessage(null);
+    setBusy("Downloading document...");
+    try {
+      const blob = await downloadAdminPropertyDocument(propertyId, documentId);
+      triggerBlobDownload(blob, fallbackName);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to download document.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function viewDocument(documentId: string) {
+    if (!propertyId) return;
+    setError(null);
+    setActionMessage(null);
+    setBusy("Opening document...");
+    try {
+      const blob = await viewAdminPropertyDocument(propertyId, documentId);
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        URL.revokeObjectURL(url);
+        throw new Error("Popup blocked by browser. Allow popups to preview documents.");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to view document.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const currentStatus = state.kind === "ready" ? getString(state.data, "status") ?? "UNKNOWN" : "UNKNOWN";
   const canUpdateActivationFee =
     currentStatus === "APPROVED_PENDING_ACTIVATION_PAYMENT" || currentStatus === "APPROVED_PENDING_PAYMENT";
@@ -317,7 +373,7 @@ export default function AdminReviewQueueDetailPage() {
                   <div className="mt-1 font-mono text-xs text-muted">Property ID: {getString(state.data, "id") ?? propertyId}</div>
                 </div>
                 <StatusPill status={getString(state.data, "status") ?? "UNKNOWN"}>
-                  {getString(state.data, "status") ?? "UNKNOWN"}
+                  {statusLabel(getString(state.data, "status") ?? "UNKNOWN")}
                 </StatusPill>
               </div>
 
@@ -471,22 +527,37 @@ export default function AdminReviewQueueDetailPage() {
               ) : (
                 <div className="mt-3 space-y-2">
                   {documents.map((doc, index) => {
-                    const id = getString(doc, "id") ?? `doc-${index}`;
-                    const url = getString(doc, "downloadUrl");
+                    const documentId = getString(doc, "id");
+                    const id = documentId ?? `doc-${index}`;
+                    const fallbackName =
+                      getString(doc, "originalName") ??
+                      `${(getString(doc, "type") ?? "document").toLowerCase()}-${id}.pdf`;
                     return (
-                      <div key={id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line/70 bg-warm-base p-3">
-                        <div>
-                          <div className="text-sm font-semibold text-primary">{getString(doc, "type") ?? "OTHER"}</div>
-                          <div className="text-xs text-secondary">{getString(doc, "originalName") ?? id}</div>
+                      <div key={id} className="rounded-2xl border border-line/70 bg-warm-base p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-primary">{getString(doc, "type") ?? "OTHER"}</div>
+                            <div className="truncate text-xs text-secondary">{getString(doc, "originalName") ?? id}</div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => documentId && void viewDocument(documentId)}
+                              disabled={!documentId}
+                              className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-all duration-200 ease-in-out hover:bg-warm-alt active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => documentId && void downloadDocument(documentId, fallbackName)}
+                              disabled={!documentId}
+                              className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-all duration-200 ease-in-out hover:bg-warm-alt active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Download
+                            </button>
+                          </div>
                         </div>
-                        {url ? (
-                          <a
-                            href={url}
-                            className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
-                          >
-                            Download
-                          </a>
-                        ) : null}
                       </div>
                     );
                   })}

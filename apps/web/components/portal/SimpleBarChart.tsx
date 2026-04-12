@@ -69,7 +69,7 @@ export function SimpleBarChart(props: {
                   <div
                     className={[
                       "h-3 rounded-full transition-all duration-200",
-                      isHovered ? "bg-brand-hover shadow-[0_0_8px_rgba(79,70,229,0.3)]" : "bg-brand",
+                      isHovered ? "bg-brand-hover shadow-[0_0_10px_rgba(79,70,229,0.34)]" : "bg-brand",
                     ].join(" ")}
                     style={barStyle}
                   />

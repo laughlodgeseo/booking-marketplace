@@ -24,7 +24,7 @@ export function SelectableTile(props: {
         "outline-none transition-all duration-200 focus-visible:ring-4 focus-visible:ring-brand/16",
         "hover:-translate-y-0.5 active:translate-y-0",
         props.selected
-          ? "bg-[linear-gradient(135deg,rgba(79,70,229,0.18),rgba(79,70,229,0.08))] text-primary shadow-[0_12px_28px_rgba(79,70,229,0.22)] ring-2 ring-brand/55"
+          ? "bg-[linear-gradient(135deg,rgb(var(--color-accent-rgb)/0.18),rgb(var(--color-accent-rgb)/0.08))] text-primary shadow-[0_12px_28px_rgba(79,70,229,0.24)] ring-2 ring-brand/55"
           : "bg-surface/92 text-primary ring-1 ring-line/28 hover:bg-accent-soft/24 hover:ring-brand/24",
         props.disabled ? "cursor-not-allowed opacity-60 hover:translate-y-0" : "",
         props.className,
@@ -34,7 +34,7 @@ export function SelectableTile(props: {
         className={cn(
           "grid h-5 w-5 shrink-0 place-items-center rounded-full",
           props.selected
-            ? "bg-brand text-accent-text shadow-[0_6px_16px_rgba(79,70,229,0.28)]"
+            ? "bg-brand text-accent-text shadow-[0_6px_16px_rgba(79,70,229,0.30)]"
             : "bg-warm-alt text-transparent ring-1 ring-line/42 group-hover:text-brand/60",
         )}
       >

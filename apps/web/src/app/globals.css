@@ -1,34 +1,34 @@
 @import "tailwindcss";
 
-/* Premium portal tokens (Warm Ivory + Indigo) */
+/* Platform design tokens (Airbnb-inspired accent + neutral surfaces) */
 :root {
-  --site-bg: #f4eee3;
+  --site-bg: #ffffff;
   /* Canonical palette */
-  --brand: #4f46e5; /* Indigo */
-  --brand-hover: #4338ca;
-  --brand-soft: rgb(79 70 229 / 0.14);
-  --brand-soft-2: rgb(79 70 229 / 0.08);
+  --brand: #ff385c;
+  --brand-hover: #e11d48;
+  --brand-soft: rgb(255 56 92 / 0.14);
+  --brand-soft-2: rgb(255 56 92 / 0.08);
 
-  --ink: #1b2433;
-  --ink-2: #273244;
-  --ink-3: #334157;
+  --ink: #222222;
+  --ink-2: #3f3f46;
+  --ink-3: #52525b;
 
-  /* Warm ivory backgrounds */
+  /* Neutral backgrounds */
   --bg: var(--site-bg);
-  --bg-2: #f0e9dc;
-  --surface: #f8f2e8;
+  --bg-2: #f9fafb;
+  --surface: #ffffff;
 
   /* Softer neutral lines (no black borders) */
-  --line: rgb(102 112 130 / 0.16);
-  --line-strong: rgb(102 112 130 / 0.24);
+  --line: rgb(229 231 235 / 1);
+  --line-strong: rgb(209 213 219 / 1);
 
-  --text: #1b2433;
-  --text-2: rgb(27 36 51 / 0.74);
-  --text-invert: #f8fafc;
-  --text-invert-2: rgb(248 250 252 / 0.74);
+  --text: #222222;
+  --text-2: rgb(75 85 99 / 0.9);
+  --text-invert: #ffffff;
+  --text-invert-2: rgb(255 255 255 / 0.76);
 
-  --gold: #c6a96d;
-  --gold-soft: rgb(198 169 109 / 0.20);
+  --gold: #f59e0b;
+  --gold-soft: rgb(245 158 11 / 0.2);
 
   /* Semantic aliases used across app classes */
   --color-bg: var(--site-bg);
@@ -54,59 +54,59 @@
 
   --text-primary: var(--text);
   --text-secondary: var(--text-2);
-  --text-muted: rgb(27 36 51 / 0.56);
+  --text-muted: #6b7280;
   --text-inverted: var(--text-invert);
 
   --border-light: var(--line);
-  --border-dark: rgb(248 250 252 / 0.16);
-  --border-dark-rgb: 248 250 252;
+  --border-dark: rgb(255 255 255 / 0.16);
+  --border-dark-rgb: 255 255 255;
 
   /* Functional states */
-  --color-success: #1e7a4b;
-  --color-warning: #a66a1c;
-  --color-danger: #b42318;
-  --color-info: #2a67c6;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-info: #0ea5e9;
 
   /* Shared lines/shadows */
-  --shadow-card: 0 20px 52px rgba(33, 39, 53, 0.14);
-  --shadow-soft: 0 14px 34px rgba(33, 39, 53, 0.10);
+  --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05);
 
   /* RGB triplets for Tailwind alpha utilities */
-  --color-bg-rgb: 244 238 227;
-  --color-bg-2-rgb: 240 233 220;
-  --color-bg-warm-rgb: 244 238 227;
-  --color-bg-alt-rgb: 240 233 220;
-  --color-surface-rgb: 248 242 232;
+  --color-bg-rgb: 255 255 255;
+  --color-bg-2-rgb: 249 250 251;
+  --color-bg-warm-rgb: 255 255 255;
+  --color-bg-alt-rgb: 249 250 251;
+  --color-surface-rgb: 255 255 255;
 
-  --color-ink-rgb: 27 36 51;
-  --color-ink-2-rgb: 39 50 68;
-  --color-ink-3-rgb: 51 65 87;
-  --color-dark-1-rgb: 27 36 51;
-  --color-dark-2-rgb: 39 50 68;
-  --color-dark-3-rgb: 51 65 87;
+  --color-ink-rgb: 34 34 34;
+  --color-ink-2-rgb: 63 63 70;
+  --color-ink-3-rgb: 82 82 91;
+  --color-dark-1-rgb: 34 34 34;
+  --color-dark-2-rgb: 63 63 70;
+  --color-dark-3-rgb: 82 82 91;
 
-  --color-accent-rgb: 79 70 229;
-  --color-accent-hover-rgb: 67 56 202;
-  --color-accent-soft-rgb: 79 70 229;
-  --color-accent-soft-2-rgb: 79 70 229;
-  --color-accent-text-rgb: 248 250 252;
+  --color-accent-rgb: 255 56 92;
+  --color-accent-hover-rgb: 225 29 72;
+  --color-accent-soft-rgb: 255 56 92;
+  --color-accent-soft-2-rgb: 255 56 92;
+  --color-accent-text-rgb: 255 255 255;
 
-  --color-gold-rgb: 198 169 109;
-  --color-gold-soft-rgb: 198 169 109;
+  --color-gold-rgb: 245 158 11;
+  --color-gold-soft-rgb: 245 158 11;
 
-  --text-primary-rgb: 27 36 51;
-  --text-secondary-rgb: 27 36 51;
-  --text-muted-rgb: 27 36 51;
-  --text-inverted-rgb: 248 250 252;
-  --text-inverted-2-rgb: 248 250 252;
+  --text-primary-rgb: 34 34 34;
+  --text-secondary-rgb: 75 85 99;
+  --text-muted-rgb: 107 114 128;
+  --text-inverted-rgb: 255 255 255;
+  --text-inverted-2-rgb: 255 255 255;
 
-  --color-success-rgb: 30 122 75;
-  --color-warning-rgb: 166 106 28;
-  --color-danger-rgb: 180 35 24;
-  --color-info-rgb: 42 103 198;
+  --color-success-rgb: 22 163 74;
+  --color-warning-rgb: 245 158 11;
+  --color-danger-rgb: 220 38 38;
+  --color-info-rgb: 14 165 233;
 
-  --line-rgb: 102 112 130;
-  --line-strong-rgb: 102 112 130;
+  --line-rgb: 229 231 235;
+  --line-strong-rgb: 209 213 219;
 
   --surface-card: color-mix(in srgb, var(--surface) 96%, transparent);
   --surface-border: rgb(var(--line-rgb) / 0.12);
@@ -210,6 +210,12 @@ textarea {
 
 .border-line {
   border-color: rgb(var(--line-rgb) / 0.30) !important;
+}
+
+/* Replace any legacy black borders with softened line color */
+.border-black,
+[class*="border-black/"] {
+  border-color: rgb(var(--line-rgb) / 0.35) !important;
 }
 
 .ring-line,
@@ -404,9 +410,9 @@ textarea {
   .site-hero-shell {
     border-bottom: 1px solid rgb(255 255 255 / 0.25);
     background:
-      radial-gradient(130% 92% at 8% 0%, rgba(167, 180, 255, 0.34) 0%, rgba(79, 70, 229, 0) 54%),
-      radial-gradient(120% 90% at 96% 8%, rgba(79, 70, 229, 0.30) 0%, rgba(79, 70, 229, 0) 55%),
-      linear-gradient(130deg, #31279f 0%, #4338ca 42%, #4f46e5 100%);
+      radial-gradient(130% 92% at 8% 0%, rgb(255 56 92 / 0.34) 0%, rgb(255 56 92 / 0) 54%),
+      radial-gradient(120% 90% at 96% 8%, rgb(225 29 72 / 0.30) 0%, rgb(225 29 72 / 0) 55%),
+      linear-gradient(130deg, #f43f5e 0%, #ff385c 42%, #e11d48 100%);
     color: rgb(var(--text-inverted-rgb));
   }
 
@@ -433,6 +439,20 @@ textarea {
     font-size: 15px;
     line-height: 1.5;
     overflow-x: clip;
+
+    /* Portal-specific accent: bring back consistent indigo visual language */
+    --color-accent-rgb: 79 70 229;
+    --color-accent-hover-rgb: 67 56 202;
+    --color-accent-soft-rgb: 79 70 229;
+    --color-accent-soft-2-rgb: 79 70 229;
+
+    /* Softer separators for modern "surface-first" cards */
+    --line-rgb: 210 218 240;
+    --line-strong-rgb: 186 198 232;
+  }
+
+  .portal-density * {
+    min-width: 0;
   }
 
   .portal-density section,
@@ -444,16 +464,78 @@ textarea {
   .portal-density button:not(:disabled),
   .portal-density a.inline-flex {
     transition:
-      transform 160ms ease,
-      box-shadow 180ms ease,
-      background-color 180ms ease,
-      border-color 180ms ease,
-      color 180ms ease;
+      transform 200ms ease-in-out,
+      box-shadow 200ms ease-in-out,
+      background-color 200ms ease-in-out,
+      border-color 200ms ease-in-out,
+      color 200ms ease-in-out;
   }
 
   .portal-density button:not(:disabled):active,
   .portal-density a.inline-flex:active {
-    transform: translateY(1px) scale(0.99);
+    transform: scale(0.96);
+  }
+
+  .portal-density button:disabled,
+  .portal-density a.inline-flex[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .portal-density input:focus,
+  .portal-density select:focus,
+  .portal-density textarea:focus {
+    outline: none;
+    border-color: rgb(var(--color-accent-rgb) / 0.5);
+    box-shadow: 0 0 0 2px rgb(var(--color-accent-rgb) / 0.22);
+  }
+
+  .portal-density .status-badge {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .portal-density .border-black,
+  .portal-density [class*="border-black"] {
+    border-color: rgb(var(--line-rgb) / 0.07) !important;
+  }
+
+  .portal-density [class*="border-line"] {
+    border-color: rgb(var(--line-rgb) / 0.09) !important;
+  }
+
+  .portal-density [class*="border-gray"] {
+    border-color: rgb(var(--line-rgb) / 0.09) !important;
+  }
+
+  .portal-density .border:not([class*="border-line"]):not([class*="border-gray"]):not([class*="border-brand"]):not([class*="border-success"]):not([class*="border-warning"]):not([class*="border-danger"]):not([class*="border-info"]):not([class*="border-transparent"]),
+  .portal-density .border-t:not([class*="border-line"]):not([class*="border-gray"]):not([class*="border-brand"]):not([class*="border-success"]):not([class*="border-warning"]):not([class*="border-danger"]):not([class*="border-info"]):not([class*="border-transparent"]),
+  .portal-density .border-r:not([class*="border-line"]):not([class*="border-gray"]):not([class*="border-brand"]):not([class*="border-success"]):not([class*="border-warning"]):not([class*="border-danger"]):not([class*="border-info"]):not([class*="border-transparent"]),
+  .portal-density .border-b:not([class*="border-line"]):not([class*="border-gray"]):not([class*="border-brand"]):not([class*="border-success"]):not([class*="border-warning"]):not([class*="border-danger"]):not([class*="border-info"]):not([class*="border-transparent"]),
+  .portal-density .border-l:not([class*="border-line"]):not([class*="border-gray"]):not([class*="border-brand"]):not([class*="border-success"]):not([class*="border-warning"]):not([class*="border-danger"]):not([class*="border-info"]):not([class*="border-transparent"]) {
+    border-color: rgb(var(--line-rgb) / 0.09) !important;
+  }
+
+  .portal-density button.bg-surface,
+  .portal-density a.bg-surface,
+  .portal-density [role="button"].bg-surface {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-surface-rgb) / 0.96) 0%,
+      rgb(var(--color-accent-rgb) / 0.07) 100%
+    ) !important;
+    border-color: rgb(var(--line-rgb) / 0.14) !important;
+  }
+
+  .portal-density button.bg-surface:hover,
+  .portal-density a.bg-surface:hover,
+  .portal-density [role="button"].bg-surface:hover {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-surface-rgb) / 0.98) 0%,
+      rgb(var(--color-accent-rgb) / 0.12) 100%
+    ) !important;
   }
 
   @media (max-width: 1023px) {
@@ -477,29 +559,29 @@ textarea {
     }
 
     .portal-density .portal-card {
-      border-color: rgb(var(--line-rgb) / 0.18);
+      border-color: rgb(var(--line-rgb) / 0.10);
       box-shadow:
-        0 12px 28px rgba(33, 39, 53, 0.10),
+        0 12px 28px rgba(33, 39, 53, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.56);
     }
 
     .portal-density .premium-card {
       background: color-mix(in srgb, rgb(var(--color-surface-rgb)) 84%, rgb(var(--color-bg-2-rgb)) 16%);
-      border-color: rgb(var(--line-rgb) / 0.14);
+      border-color: rgb(var(--line-rgb) / 0.10);
       box-shadow: 0 12px 30px rgba(33, 39, 53, 0.10);
     }
 
     .portal-density .border,
     .portal-density .border-black {
-      border-color: rgb(var(--line-rgb) / 0.24) !important;
+      border-color: rgb(var(--line-rgb) / 0.10) !important;
     }
   }
 
   /* ✅ Portal-wide background (use in PortalShell with fixed inset layer) */
   .portal-shell-bg {
     background:
-      radial-gradient(120% 90% at 10% 0%, rgba(79, 70, 229, 0.16) 0%, rgba(0, 0, 0, 0) 55%),
-      radial-gradient(120% 90% at 90% 10%, rgba(79, 70, 229, 0.08) 0%, rgba(0, 0, 0, 0) 52%),
+      radial-gradient(120% 90% at 10% 0%, rgb(var(--color-accent-rgb) / 0.14) 0%, rgba(0, 0, 0, 0) 55%),
+      radial-gradient(120% 90% at 90% 10%, rgb(var(--color-accent-rgb) / 0.07) 0%, rgba(0, 0, 0, 0) 52%),
       linear-gradient(
         180deg,
         rgb(var(--color-bg-rgb)) 0%,
@@ -515,14 +597,20 @@ textarea {
       rgb(var(--color-surface-rgb) / 0.95) 0%,
       rgb(var(--color-bg-2-rgb) / 0.68) 100%
     );
-    border: 1px solid rgb(var(--color-accent-rgb) / 0.10);
+    border: 1px solid rgb(var(--line-rgb) / 0.10);
     box-shadow:
-      0 16px 40px rgba(33, 39, 53, 0.10),
-      inset 0 1px 0 rgba(255, 255, 255, 0.58);
+      0 8px 22px rgba(33, 39, 53, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.64);
+    overflow: hidden;
     transition:
       transform 200ms ease,
       box-shadow 200ms ease,
       background-color 200ms ease;
+  }
+
+  .portal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   }
 
   .portal-card .portal-card {
@@ -531,16 +619,34 @@ textarea {
       rgb(var(--color-surface-rgb) / 0.88) 0%,
       rgb(var(--color-bg-2-rgb) / 0.58) 100%
     );
-    border-color: rgb(var(--color-accent-rgb) / 0.08);
+    border-color: rgb(var(--line-rgb) / 0.08);
     box-shadow:
-      0 12px 28px rgba(33, 39, 53, 0.09),
-      inset 0 1px 0 rgba(255, 255, 255, 0.52);
+      0 8px 20px rgba(33, 39, 53, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .portal-card::before {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-accent-rgb) / 0.62),
+      rgb(var(--color-accent-rgb) / 0.22),
+      transparent 88%
+    );
+    pointer-events: none;
+    opacity: 0.86;
   }
 
   .portal-divider {
     height: 1px;
     width: 100%;
-    background: linear-gradient(90deg, rgb(var(--line-rgb) / 0.34), rgb(var(--line-rgb) / 0.08) 62%, transparent);
+    background: linear-gradient(90deg, rgb(var(--line-rgb) / 0.22), rgb(var(--line-rgb) / 0.06) 62%, transparent);
   }
 
   /* ✅ Premium cards: NO hard borders, use soft edges + shadow */

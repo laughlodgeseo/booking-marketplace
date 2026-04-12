@@ -39,7 +39,7 @@ export function Toolbar(props: {
 
   return (
     <PortalCard as="section" padding="lg" className="overflow-hidden">
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-5">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <SectionHeader title={props.title} subtitle={props.subtitle} divider={false} />
 
@@ -47,13 +47,15 @@ export function Toolbar(props: {
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-warm-base/95 px-4 text-sm font-semibold text-primary ring-1 ring-line/35 shadow-sm lg:hidden"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-warm-base/95 px-4 text-sm font-semibold text-primary ring-1 ring-line/35 shadow-sm hover:bg-accent-soft/22 lg:hidden"
             >
               <SlidersHorizontal className="h-4 w-4" />
               {filtersLabel}
             </button>
           ) : null}
         </div>
+
+        <div className="portal-divider" />
 
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative min-w-0 flex-1 lg:max-w-[420px]">
@@ -67,7 +69,7 @@ export function Toolbar(props: {
               }}
               placeholder={placeholder}
               className={cn(
-                "h-11 w-full min-w-0 rounded-2xl bg-warm-base/95 pl-10 pr-3 text-base text-primary lg:bg-surface/90 lg:text-sm",
+                "h-11 w-full min-w-0 rounded-2xl bg-surface/92 pl-10 pr-3 text-base text-primary lg:text-sm",
                 "outline-none placeholder:text-muted ring-1 ring-line/28",
                 "focus-visible:ring-4 focus-visible:ring-brand/16"
               )}
@@ -75,7 +77,7 @@ export function Toolbar(props: {
           </div>
 
           {props.right ? (
-            <div className="hidden min-w-0 flex-wrap items-center justify-start gap-2 lg:flex lg:justify-end [&_button]:h-11 [&_button]:px-4 [&_button]:text-sm [&_input]:h-11 [&_input]:text-sm [&_select]:h-11 [&_select]:w-full [&_select]:min-w-[180px] [&_select]:px-4 [&_select]:text-sm xl:[&_select]:w-auto">
+            <div className="hidden min-w-0 flex-wrap items-center justify-start gap-2.5 lg:flex lg:justify-end [&_button]:h-11 [&_button]:px-4 [&_button]:text-sm [&_input]:h-11 [&_input]:text-sm [&_select]:h-11 [&_select]:w-full [&_select]:min-w-[180px] [&_select]:px-4 [&_select]:text-sm xl:[&_select]:w-auto">
               {props.right}
             </div>
           ) : null}

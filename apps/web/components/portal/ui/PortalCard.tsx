@@ -4,11 +4,12 @@ function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-type PortalCardTone = "default" | "muted" | "indigo" | "success" | "warning" | "danger";
+type PortalCardTone = "default" | "muted" | "accent" | "indigo" | "success" | "warning" | "danger";
 
 const TONES: Record<PortalCardTone, string> = {
   default: "bg-warm-base/94 lg:bg-surface/92",
   muted: "bg-warm-alt/86",
+  accent: "bg-accent-soft/24",
   indigo: "bg-accent-soft/24",
   success: "bg-success/10",
   warning: "bg-warning/10",
@@ -36,11 +37,11 @@ export function PortalCard(props: {
   return (
     <Component
       className={cn(
-        "portal-card rounded-3xl",
+        "portal-card min-w-0 overflow-hidden rounded-3xl",
         TONES[props.tone ?? "default"],
         padding,
         props.interactive
-          ? "transition duration-200 hover:-translate-y-0.5 hover:bg-accent-soft/26"
+          ? "transition-all duration-200 ease-in-out hover:-translate-y-1 hover:bg-accent-soft/26 hover:shadow-md"
           : "",
         props.className,
       )}

@@ -219,7 +219,7 @@ function RuleCard({
           aria-label="Toggle rule"
         >
           <span className={cn(
-            "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
+            "pointer-events-none inline-block h-5 w-5 rounded-full bg-surface shadow transition-transform",
             rule.isActive ? "translate-x-5" : "translate-x-0",
           )} />
         </button>

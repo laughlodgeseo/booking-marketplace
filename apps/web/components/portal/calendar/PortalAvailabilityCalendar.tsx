@@ -336,7 +336,7 @@ export function PortalAvailabilityCalendar(props: {
                       setRangeBusy(null);
                     }
                   }}
-                  className="rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(79,70,229,0.22)] hover:bg-brand-hover disabled:opacity-60"
+                  className="rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text shadow-[0_10px_22px_rgba(79,70,229,0.26)] hover:bg-brand-hover disabled:opacity-60"
                 >
                   {props.blockControlMode === "request"
                     ? tPortal("calendar.submitRequest")

@@ -1,30 +1,15 @@
 "use client";
 
 import type React from "react";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
 
 type Tone = "neutral" | "success" | "warning" | "danger";
 
-const TONES: Record<Tone, { bg: string; fg: string; ring: string }> = {
-  neutral: {
-    bg: "bg-accent-soft/22",
-    fg: "text-brand",
-    ring: "ring-1 ring-brand/20",
-  },
-  success: {
-    bg: "bg-accent-soft/32",
-    fg: "text-brand",
-    ring: "ring-1 ring-brand/26",
-  },
-  warning: {
-    bg: "bg-accent-soft/30",
-    fg: "text-brand",
-    ring: "ring-1 ring-brand/24",
-  },
-  danger: {
-    bg: "bg-accent-soft/40",
-    fg: "text-brand",
-    ring: "ring-1 ring-brand/34",
-  },
+const TONES: Record<Tone, BadgeTone> = {
+  neutral: "neutral",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
 };
 
 function cn(...xs: Array<string | false | null | undefined>) {
@@ -35,14 +20,34 @@ function toneFromStatus(raw: string | null | undefined): Tone {
   const s = (raw ?? "").trim().toUpperCase();
   if (!s) return "neutral";
 
-  if (["SUCCEEDED", "SUCCESS", "PAID", "FINALIZED", "COMPLETED", "APPROVED", "PUBLISHED", "ACTIVE"].includes(s)) {
-    return "success";
-  }
-  if (["FAILED", "FAIL", "CANCELLED", "CANCELED", "VOID", "REJECTED", "BLOCKED", "EXPIRED"].includes(s)) {
+  if (
+    ["FAILED", "FAIL", "CANCELLED", "CANCELED", "VOID", "REJECTED", "BLOCKED", "EXPIRED"].some((token) =>
+      s.includes(token),
+    )
+  ) {
     return "danger";
   }
-  if (["PENDING", "PROCESSING", "DRAFT", "REVIEW", "IN_REVIEW", "ON_HOLD", "HOLD", "UNDER_REVIEW"].includes(s)) {
+  if (
+    [
+      "PENDING",
+      "PROCESSING",
+      "DRAFT",
+      "REVIEW",
+      "IN_REVIEW",
+      "ON_HOLD",
+      "HOLD",
+      "UNDER_REVIEW",
+      "CHANGES_REQUESTED",
+    ].some((token) => s.includes(token))
+  ) {
     return "warning";
+  }
+  if (
+    ["SUCCEEDED", "SUCCESS", "PAID", "FINALIZED", "COMPLETED", "APPROVED", "PUBLISHED", "ACTIVE"].some((token) =>
+      s.includes(token),
+    )
+  ) {
+    return "success";
   }
   return "neutral";
 }
@@ -55,20 +60,18 @@ export function StatusPill(props: {
   className?: string;
 }) {
   const statusText = props.status ?? props.value;
-  const t = TONES[props.tone ?? toneFromStatus(statusText)] ?? TONES.neutral;
+  const t = TONES[props.tone ?? toneFromStatus(statusText)] ?? "neutral";
   const content = props.children ?? statusText ?? "—";
 
   return (
-    <span
+    <Badge
+      tone={t}
       className={cn(
-        "inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs",
-        t.bg,
-        t.fg,
-        t.ring,
-        props.className
+        "status-badge min-h-7 gap-1.5 px-2.5 py-1 text-[11px] sm:text-xs",
+        props.className,
       )}
     >
       {content}
-    </span>
+    </Badge>
   );
 }

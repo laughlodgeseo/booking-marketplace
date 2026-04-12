@@ -38,7 +38,7 @@ export function VendorPropertyDocsSection(props: {
   }
 
   return (
-    <div className="rounded-2xl border bg-surface p-6 space-y-4">
+    <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6 space-y-4">
       <div>
         <div className="text-sm font-semibold text-primary">Ownership proof (private)</div>
         <div className="mt-1 text-sm text-secondary">
@@ -46,7 +46,7 @@ export function VendorPropertyDocsSection(props: {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-warm-alt p-4">
+      <div className="rounded-xl border border-line/70 bg-warm-alt p-4">
         <div className="text-sm font-semibold text-primary">Current status</div>
         <div className="mt-1 text-sm text-secondary">
           {current ? (

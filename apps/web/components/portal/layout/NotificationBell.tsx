@@ -218,7 +218,7 @@ export default function NotificationBell({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-11 items-center gap-2 rounded-2xl bg-surface/88 px-4 text-sm font-semibold text-primary ring-1 ring-line/24 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0 transition-transform"
+        className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] px-4 text-sm font-semibold text-primary ring-1 ring-brand/20 shadow-[0_8px_20px_rgba(79,70,229,0.12)] transition-transform hover:translate-y-[-1px] hover:bg-accent-soft/24 active:translate-y-0"
         aria-label={t("aria")}
       >
         <Bell className="h-4 w-4 text-secondary" />
@@ -232,9 +232,9 @@ export default function NotificationBell({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[360px] rounded-2xl bg-surface shadow-[0_24px_64px_rgba(33,39,53,0.18)] ring-1 ring-line/30 overflow-hidden">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[360px] overflow-hidden rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,239,255,0.95))] shadow-[0_24px_64px_rgba(79,70,229,0.22)] ring-1 ring-brand/18">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-line/20 px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-3">
             <h3 className="text-sm font-semibold text-primary">{t("notifications")}</h3>
             {unreadCount > 0 && (
               <button
@@ -266,7 +266,7 @@ export default function NotificationBell({
                     key={n.id}
                     type="button"
                     onClick={() => handleNotificationClick(n)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent-soft/10 ${
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent-soft/18 ${
                       isUnread ? "border-l-2 border-l-brand" : "border-l-2 border-l-transparent"
                     }`}
                   >
@@ -299,7 +299,7 @@ export default function NotificationBell({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-line/20 px-4 py-2.5">
+          <div className="px-4 py-2.5">
             <Link
               href={notificationsHref}
               onClick={() => setOpen(false)}

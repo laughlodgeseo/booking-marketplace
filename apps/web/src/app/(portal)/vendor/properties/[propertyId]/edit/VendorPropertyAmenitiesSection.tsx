@@ -272,7 +272,7 @@ export function VendorPropertyAmenitiesSection({ property, onChanged }: Props) {
         </div>
       )}
 
-      <div className="rounded-xl border bg-warm-alt px-4 py-3 text-sm text-secondary">
+      <div className="rounded-xl border border-line/70 bg-warm-alt px-4 py-3 text-sm text-secondary">
         Tip: Amenities power guest filters. Accurate amenities = better conversion and fewer complaints.
       </div>
     </section>

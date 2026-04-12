@@ -68,10 +68,10 @@ function DataRow<Row extends { id?: string }>(props: {
         }
       }}
       className={cn(
-        "group grid grid-cols-12 gap-3 px-4 text-sm transition sm:px-5",
+        "group grid grid-cols-12 gap-4 px-4 text-sm transition sm:px-5",
         props.compact ? "py-3" : "py-4",
         props.clickable
-          ? "cursor-pointer hover:bg-accent-soft/24 focus-visible:ring-4 focus-visible:ring-brand/15"
+          ? "cursor-pointer hover:bg-accent-soft/22 focus-visible:ring-4 focus-visible:ring-brand/15"
           : "cursor-default",
       )}
     >
@@ -122,7 +122,7 @@ function MobileDataRow<Row extends { id?: string }>(props: {
         }
       }}
       className={cn(
-        "rounded-2xl border border-line/38 bg-warm-base/95 p-4 shadow-sm transition",
+        "rounded-2xl border border-line/55 bg-surface/92 p-4 shadow-sm transition",
         props.clickable
           ? "cursor-pointer hover:-translate-y-0.5 hover:bg-accent-soft/18 focus-visible:ring-4 focus-visible:ring-brand/14"
           : "cursor-default",
@@ -194,7 +194,7 @@ function MobileScrollTable<Row extends { id?: string }>(props: {
 }) {
   return (
     <div className="p-4 lg:hidden">
-      <div className="overflow-x-auto rounded-2xl border border-line/35 bg-warm-base/95 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-line/50 bg-warm-base/95 shadow-sm">
         <div className="min-w-[760px]">
           {props.hideHeaderRow ? null : (
             <div className="bg-warm-alt/55 px-5 py-3">
@@ -211,7 +211,7 @@ function MobileScrollTable<Row extends { id?: string }>(props: {
 
           <div className="space-y-2 p-2">
             {props.rows.map((row, idx) => (
-              <div key={row.id ?? `mrow_${idx}`} className="overflow-hidden rounded-2xl bg-warm-alt/66">
+              <div key={row.id ?? `mrow_${idx}`} className="overflow-hidden rounded-2xl border border-line/40 bg-warm-alt/66">
                 <DataRow
                   row={row}
                   columns={props.columns}
@@ -381,7 +381,7 @@ export function DataTable<Row extends { id?: string }>(props: {
                   {props.rows.map((row, idx) => (
                     <div
                       key={row.id ?? `row_${idx}`}
-                      className="overflow-hidden rounded-3xl bg-warm-alt/66"
+                      className="overflow-hidden rounded-3xl border border-line/40 bg-warm-alt/66"
                     >
                       <DataRow
                         row={row}

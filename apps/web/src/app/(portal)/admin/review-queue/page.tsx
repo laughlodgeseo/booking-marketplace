@@ -10,6 +10,7 @@ import { SkeletonTable } from "@/components/portal/ui/Skeleton";
 import { Toolbar } from "@/components/portal/ui/Toolbar";
 import { EmptyState } from "@/components/portal/ui/EmptyState";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import {
   getAdminReviewQueue,
   type AdminReviewQueueItem,
@@ -33,6 +34,41 @@ function toneForStatus(s: ReviewQueueStatus): "neutral" | "success" | "warning" 
 function safeLower(v: string | null | undefined): string {
   return (v ?? "").toLowerCase();
 }
+
+function statusLabel(status: ReviewQueueStatus): string {
+  return status.replaceAll("_", " ");
+}
+
+const STATUS_META: Record<
+  ReviewQueueStatus,
+  { tone: BadgeTone; activeClass: string; inactiveClass: string }
+> = {
+  UNDER_REVIEW: {
+    tone: "warning",
+    activeClass: "border-warning/40 bg-warning/14 text-warning shadow-sm",
+    inactiveClass: "border-line/75 bg-surface text-secondary hover:border-warning/35 hover:bg-warning/8 hover:text-warning",
+  },
+  CHANGES_REQUESTED: {
+    tone: "danger",
+    activeClass: "border-danger/40 bg-danger/12 text-danger shadow-sm",
+    inactiveClass: "border-line/75 bg-surface text-secondary hover:border-danger/35 hover:bg-danger/8 hover:text-danger",
+  },
+  APPROVED_PENDING_ACTIVATION_PAYMENT: {
+    tone: "info",
+    activeClass: "border-info/40 bg-info/12 text-info shadow-sm",
+    inactiveClass: "border-line/75 bg-surface text-secondary hover:border-info/35 hover:bg-info/8 hover:text-info",
+  },
+  APPROVED: {
+    tone: "success",
+    activeClass: "border-success/40 bg-success/12 text-success shadow-sm",
+    inactiveClass: "border-line/75 bg-surface text-secondary hover:border-success/35 hover:bg-success/8 hover:text-success",
+  },
+  REJECTED: {
+    tone: "danger",
+    activeClass: "border-danger/45 bg-danger/14 text-danger shadow-sm",
+    inactiveClass: "border-line/75 bg-surface text-secondary hover:border-danger/35 hover:bg-danger/8 hover:text-danger",
+  },
+};
 
 export default function AdminReviewQueuePage() {
   const [status, setStatus] = useState<ReviewQueueStatus>("UNDER_REVIEW");
@@ -145,7 +181,7 @@ export default function AdminReviewQueuePage() {
         key: "status",
         header: "Status",
         className: "col-span-2",
-        render: (row) => <StatusPill tone={toneForStatus(row.status)}>{row.status}</StatusPill>,
+        render: (row) => <StatusPill tone={toneForStatus(row.status)}>{statusLabel(row.status)}</StatusPill>,
       },
     ],
     []
@@ -173,7 +209,7 @@ export default function AdminReviewQueuePage() {
             searchPlaceholder="Search by title, vendor, city, or ID…"
             onSearch={setQ}
             right={
-              <div className="flex flex-wrap gap-2">
+              <div className="no-scrollbar -mx-1 flex w-full max-w-full gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-wrap lg:justify-end lg:overflow-visible lg:px-0 lg:pb-0">
                 {statusTabs.map((s) => (
                   <button
                     key={s}
@@ -183,16 +219,45 @@ export default function AdminReviewQueuePage() {
                       setQ("");
                     }}
                     className={[
-                      "rounded-full px-4 py-2 text-sm font-semibold transition",
-                      status === s ? "bg-brand text-accent-text" : "bg-surface text-primary ring-1 ring-line/90 hover:bg-warm-alt",
+                      "shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.02em] whitespace-nowrap transition-all duration-200 ease-in-out",
+                      status === s ? STATUS_META[s].activeClass : STATUS_META[s].inactiveClass,
                     ].join(" ")}
                   >
-                    {s}
+                    {statusLabel(s)}
                   </button>
                 ))}
               </div>
             }
           />
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <section className="rounded-2xl border border-line/75 bg-surface p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted">Active queue</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge tone={STATUS_META[status].tone}>{statusLabel(status)}</Badge>
+                <span className="text-xs text-secondary">
+                  {state.kind === "ready" ? `${state.total} listings` : "Loading listings"}
+                </span>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-line/75 bg-surface p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted">Visible results</div>
+              <div className="mt-1 text-2xl font-semibold text-primary">
+                {state.kind === "ready" ? filteredItems.length : "—"}
+              </div>
+              <div className="text-xs text-secondary">
+                {q.trim() ? `Filtered by “${q.trim()}”` : "No text filter applied"}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-line/75 bg-surface p-4 shadow-sm sm:col-span-2 xl:col-span-1">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted">Review action</div>
+              <div className="mt-2 text-sm text-secondary">
+                Open any listing to inspect photos, documents, map location, and submit the review decision.
+              </div>
+            </section>
+          </div>
 
           {state.kind === "loading" ? (
             <SkeletonTable rows={8} />
@@ -224,7 +289,7 @@ export default function AdminReviewQueuePage() {
                 <>
                   <Link
                     href={`/admin/review-queue/${encodeURIComponent(row.id)}`}
-                    className="rounded-2xl border border-line/80 bg-surface px-3 py-2 text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt"
+                    className="inline-flex h-10 items-center rounded-2xl bg-brand px-4 text-sm font-semibold text-accent-text shadow-sm transition-all duration-200 ease-in-out hover:bg-brand-hover hover:shadow-md active:scale-95"
                   >
                     Review
                   </Link>

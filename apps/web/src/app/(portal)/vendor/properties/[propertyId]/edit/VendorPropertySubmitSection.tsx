@@ -85,7 +85,7 @@ export function VendorPropertySubmitSection(props: {
   }
 
   return (
-    <div className="rounded-2xl border bg-surface p-6 space-y-4">
+    <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6 space-y-4">
       <div>
         <div className="text-sm font-semibold text-primary">Submit for review</div>
         <div className="mt-1 text-sm text-secondary">
@@ -121,7 +121,7 @@ export function VendorPropertySubmitSection(props: {
       </div>
 
       {!canSubmit ? (
-        <div className="rounded-xl border bg-warm-alt px-4 py-3 text-sm text-secondary">
+        <div className="rounded-xl border border-line/70 bg-warm-alt px-4 py-3 text-sm text-secondary">
           Submission is only available in{" "}
           <span className="font-semibold">DRAFT</span> or{" "}
           <span className="font-semibold">CHANGES_REQUESTED</span> status.

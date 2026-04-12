@@ -1347,6 +1347,29 @@ export async function downloadAdminPropertyDocument(
   return unwrap(res);
 }
 
+export type AdminPropertyDocumentAccess = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  viewUrl: string;
+  downloadUrl: string;
+};
+
+export async function getAdminPropertyDocumentAccess(
+  propertyId: string,
+  documentId: string,
+): Promise<AdminPropertyDocumentAccess> {
+  const res = await apiFetch<AdminPropertyDocumentAccess>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/documents/${encodeURIComponent(documentId)}/access`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  return unwrap(res);
+}
+
 export async function viewAdminPropertyDocument(
   propertyId: string,
   documentId: string

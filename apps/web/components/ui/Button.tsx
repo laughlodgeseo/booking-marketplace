@@ -19,15 +19,15 @@ type ButtonProps = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand text-accent-text shadow-[0_8px_24px_rgba(79,70,229,0.28)] hover:bg-brand-hover hover:shadow-[0_12px_32px_rgba(79,70,229,0.36)] active:shadow-[0_4px_12px_rgba(79,70,229,0.24)]",
+    "bg-gradient-to-b from-brand to-brand-hover text-accent-text ring-1 ring-brand/35 shadow-[0_12px_28px_rgba(79,70,229,0.30)] hover:brightness-105 hover:shadow-[0_16px_34px_rgba(79,70,229,0.36)] active:scale-95",
   secondary:
-    "bg-surface text-primary ring-1 ring-line/40 shadow-sm hover:bg-warm-alt/40 hover:ring-line/60 active:bg-warm-alt/60",
+    "bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] text-primary ring-1 ring-brand/18 shadow-sm hover:ring-brand/30 hover:bg-accent-soft/24 active:scale-95",
   ghost:
-    "bg-transparent text-primary hover:bg-warm-alt/30 active:bg-warm-alt/50",
+    "bg-transparent text-primary hover:bg-accent-soft/20 active:scale-95",
   danger:
-    "bg-red-600 text-white shadow-[0_8px_24px_rgba(220,38,38,0.28)] hover:bg-red-700 active:bg-red-800",
+    "bg-gradient-to-b from-danger/95 to-danger text-inverted ring-1 ring-danger/34 shadow-[0_10px_24px_rgba(220,38,38,0.28)] hover:brightness-105 active:scale-95",
   outline:
-    "bg-transparent text-brand ring-1 ring-brand/40 hover:bg-brand/8 hover:ring-brand/60 active:bg-brand/12",
+    "bg-surface/96 text-primary ring-1 ring-brand/26 hover:bg-accent-soft/18 hover:ring-brand/40 active:scale-95",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -55,10 +55,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center font-semibold transition-all duration-200",
-          "hover:translate-y-[-1px] active:translate-y-[0.5px]",
+          "inline-flex items-center justify-center font-semibold transition-all duration-200 ease-in-out",
+          "hover:translate-y-[-1px]",
           "disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-2",
           variantClasses[variant],
           sizeClasses[size],
           className,

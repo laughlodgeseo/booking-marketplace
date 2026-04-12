@@ -92,7 +92,7 @@ export function VendorPropertyMediaSection(props: {
   }
 
   return (
-    <div className="rounded-2xl border bg-surface p-6 space-y-5">
+    <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6 space-y-5">
       <div>
         <div className="text-sm font-semibold text-primary">Photos by room</div>
         <div className="mt-1 text-sm text-secondary">
@@ -147,7 +147,7 @@ export function VendorPropertyMediaSection(props: {
                             type="button"
                             disabled={busy === m.id}
                             onClick={() => void moveMedia(m.id, "up")}
-                            className="rounded-lg border bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+                            className="rounded-lg border border-line/70 bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
                           >
                             Up
                           </button>
@@ -155,7 +155,7 @@ export function VendorPropertyMediaSection(props: {
                             type="button"
                             disabled={busy === m.id}
                             onClick={() => void moveMedia(m.id, "down")}
-                            className="rounded-lg border bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+                            className="rounded-lg border border-line/70 bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
                           >
                             Down
                           </button>
@@ -176,7 +176,7 @@ export function VendorPropertyMediaSection(props: {
         </div>
       ) : null}
 
-      <div className="rounded-xl border bg-warm-alt px-4 py-3 text-sm text-secondary">
+      <div className="rounded-xl border border-line/70 bg-warm-alt px-4 py-3 text-sm text-secondary">
         Next: Upload ownership proof → Submit for review.
       </div>
     </div>

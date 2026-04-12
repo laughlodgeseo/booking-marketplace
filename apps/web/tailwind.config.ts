@@ -1,6 +1,22 @@
 import type { Config } from "tailwindcss";
 import rtl from "tailwindcss-rtl";
 
+const designTokens = {
+  colors: {
+    primary: "#FF385C",
+    muted: "#6b7280",
+    border: "#e5e7eb",
+  },
+  radius: {
+    xl: "12px",
+    "2xl": "16px",
+  },
+  shadows: {
+    card: "0 10px 24px rgba(15, 23, 42, 0.08)",
+    soft: "0 1px 3px rgba(0, 0, 0, 0.05)",
+  },
+} as const;
+
 export default {
   content: [
     "./src/**/*.{ts,tsx}",
@@ -50,6 +66,11 @@ export default {
         line: "rgb(var(--line-rgb) / <alpha-value>)",
         "line-strong": "rgb(var(--line-strong-rgb) / <alpha-value>)",
 
+        // Static token aliases for reusable component primitives.
+        "token-primary": designTokens.colors.primary,
+        "token-muted": designTokens.colors.muted,
+        "token-border": designTokens.colors.border,
+
         success: "rgb(var(--color-success-rgb) / <alpha-value>)",
         warning: "rgb(var(--color-warning-rgb) / <alpha-value>)",
         danger: "rgb(var(--color-danger-rgb) / <alpha-value>)",
@@ -87,11 +108,13 @@ export default {
         ],
       },
       borderRadius: {
+        xl: designTokens.radius.xl,
+        "2xl": designTokens.radius["2xl"],
         "4xl": "2rem",
       },
       boxShadow: {
-        card: "0 20px 52px rgba(11, 15, 25, 0.14)",
-        soft: "0 14px 34px rgba(11, 15, 25, 0.10)",
+        card: designTokens.shadows.card,
+        soft: designTokens.shadows.soft,
         "brand-soft": "0 12px 30px rgba(79, 70, 229, 0.28)",
       },
     },

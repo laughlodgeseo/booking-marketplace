@@ -520,7 +520,7 @@ export function AdminPropertyEditor(props: {
               className={cn(
                 "inline-flex min-w-0 max-w-full items-center rounded-full px-4 py-2 text-sm font-semibold transition",
                 tab === item.key
-                  ? "bg-brand text-accent-text shadow-[0_10px_26px_rgba(79,70,229,0.24)]"
+                  ? "bg-brand text-accent-text shadow-[0_10px_26px_rgba(79,70,229,0.28)]"
                   : "bg-surface/88 text-primary ring-1 ring-line/28 hover:bg-accent-soft/22"
               )}
             >

@@ -126,7 +126,7 @@ export function VendorPropertyMediaCard(props: {
   }
 
   return (
-    <div className="rounded-2xl border bg-surface p-6 space-y-5">
+    <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6 space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm font-semibold text-primary">Photos (by room)</div>
@@ -192,7 +192,7 @@ export function VendorPropertyMediaCard(props: {
         />
       </div>
 
-      <div className="rounded-xl border bg-warm-alt px-4 py-3 text-sm text-secondary">
+      <div className="rounded-xl border border-line/70 bg-warm-alt px-4 py-3 text-sm text-secondary">
         Backend review rule reminder: minimum 4 photos + must include Living + Bedroom + Bathroom + Kitchen.
       </div>
     </div>
@@ -209,7 +209,7 @@ function RoomSection(props: {
   onChangeCategory: (mediaId: string, category: MediaCategory) => void;
 }) {
   return (
-    <div className="rounded-2xl border bg-surface overflow-hidden">
+    <div className="rounded-2xl border border-line/70 bg-surface shadow-sm overflow-hidden">
       <div className="border-b bg-warm-alt px-5 py-3">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -236,7 +236,7 @@ function RoomSection(props: {
       ) : (
         <div className="p-5 grid grid-cols-2 gap-3">
           {props.items.map((m) => (
-            <div key={m.id} className="rounded-xl border bg-surface overflow-hidden">
+            <div key={m.id} className="rounded-xl border border-line/70 bg-surface overflow-hidden">
               <div className="relative aspect-[4/3] bg-warm-alt">
                 <Image
                   src={resolveMediaUrl(m.url)}
@@ -257,7 +257,7 @@ function RoomSection(props: {
                     <button
                       type="button"
                       disabled={props.busy}
-                      className="rounded-lg border bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+                      className="rounded-lg border border-line/70 bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
                       onClick={() => props.onMove(m.id, -1)}
                       title="Move up"
                     >
@@ -266,7 +266,7 @@ function RoomSection(props: {
                     <button
                       type="button"
                       disabled={props.busy}
-                      className="rounded-lg border bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+                      className="rounded-lg border border-line/70 bg-surface px-2 py-1 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
                       onClick={() => props.onMove(m.id, 1)}
                       title="Move down"
                     >
@@ -281,7 +281,7 @@ function RoomSection(props: {
                     disabled={props.busy}
                     value={m.category}
                     onChange={(e) => props.onChangeCategory(m.id, e.target.value as MediaCategory)}
-                    className="w-full rounded-xl border bg-surface px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:opacity-60"
+                    className="w-full rounded-xl border border-line/70 bg-surface px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:opacity-60"
                   >
                     <option value="LIVING_ROOM">Living room</option>
                     <option value="BEDROOM">Bedroom</option>
