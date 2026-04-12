@@ -127,7 +127,7 @@ export default function WishlistPage() {
                   <button
                     onClick={() => handleRemove(item.propertyId)}
                     disabled={removingId === item.propertyId}
-                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-rose-500 shadow-sm backdrop-blur transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-danger shadow-sm backdrop-blur transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
                     aria-label="Remove from wishlist"
                   >
                     {removingId === item.propertyId ? (

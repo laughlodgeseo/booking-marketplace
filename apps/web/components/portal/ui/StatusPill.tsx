@@ -20,6 +20,9 @@ function toneFromStatus(raw: string | null | undefined): Tone {
   const s = (raw ?? "").trim().toUpperCase();
   if (!s) return "neutral";
 
+  if (s.includes("DRAFT")) {
+    return "neutral";
+  }
   if (
     ["FAILED", "FAIL", "CANCELLED", "CANCELED", "VOID", "REJECTED", "BLOCKED", "EXPIRED"].some((token) =>
       s.includes(token),
@@ -31,7 +34,6 @@ function toneFromStatus(raw: string | null | undefined): Tone {
     [
       "PENDING",
       "PROCESSING",
-      "DRAFT",
       "REVIEW",
       "IN_REVIEW",
       "ON_HOLD",

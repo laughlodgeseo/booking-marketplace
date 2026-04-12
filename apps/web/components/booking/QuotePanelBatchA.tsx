@@ -668,8 +668,8 @@ export default function QuotePanelBatchA(props: {
           </div>
 
           {/* Date + guest selector */}
-          <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-black/[0.08] dark:ring-white/[0.08]">
-            <div className="grid grid-cols-2 divide-x divide-black/[0.07] dark:divide-white/[0.07]">
+          <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-neutral-200">
+            <div className="grid grid-cols-2 divide-x divide-line/40">
               <button
                 type="button"
                 onClick={() => openCalendar("checkin")}
@@ -697,7 +697,7 @@ export default function QuotePanelBatchA(props: {
               </button>
             </div>
 
-            <div className="flex items-center justify-between border-t border-black/[0.07] px-4 py-3 dark:border-white/[0.07]">
+            <div className="flex items-center justify-between border-t border-line/40 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted" />
                 <span className="text-sm font-semibold text-primary">{copy.guests}</span>
@@ -706,7 +706,7 @@ export default function QuotePanelBatchA(props: {
                 <button
                   type="button"
                   onClick={() => setGuests((value) => clampGuests(value - 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] transition hover:ring-black/20 active:scale-95 dark:ring-white/[0.08]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-neutral-300 transition hover:ring-neutral-400 active:scale-95"
                   aria-label="decrease guests"
                 >
                   <Minus className="h-3.5 w-3.5" />
@@ -715,7 +715,7 @@ export default function QuotePanelBatchA(props: {
                 <button
                   type="button"
                   onClick={() => setGuests((value) => clampGuests(value + 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] transition hover:ring-black/20 active:scale-95 dark:ring-white/[0.08]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-neutral-300 transition hover:ring-neutral-400 active:scale-95"
                   aria-label="increase guests"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -796,7 +796,7 @@ export default function QuotePanelBatchA(props: {
       {/* ── MOBILE ── */}
       <div className="lg:hidden">
         {/* Fixed bottom bar */}
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line/50 bg-surface/[0.97] pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">{copy.fromPerNight}</p>
@@ -830,13 +830,13 @@ export default function QuotePanelBatchA(props: {
               type="button"
               aria-label={copy.closeBookingPanel}
               onClick={() => setMobileOpen(false)}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              className="absolute inset-0 bg-brand/24"
             />
 
             {/* Bottom sheet */}
-            <div className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-3xl bg-surface shadow-[0_-24px_64px_rgba(11,15,25,0.32)]">
+            <div className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-2xl border border-neutral-200 bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.15)]">
               {/* Sticky header with drag handle */}
-              <div className="sticky top-0 z-10 bg-surface border-b border-line/30">
+              <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white">
                 <div className="flex justify-center pb-2 pt-3">
                   <div className="h-1 w-10 rounded-full bg-line/50" />
                 </div>
@@ -848,7 +848,7 @@ export default function QuotePanelBatchA(props: {
                   <button
                     type="button"
                     onClick={() => setMobileOpen(false)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface text-muted ring-1 ring-line/60 transition hover:bg-accent-soft/10"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-muted ring-1 ring-neutral-300 transition hover:bg-neutral-100"
                     aria-label={copy.closeBookingPanel}
                   >
                     <ChevronDown className="h-4 w-4 -rotate-90" />
@@ -858,7 +858,7 @@ export default function QuotePanelBatchA(props: {
 
               <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-1">
                 {/* Date + guest selector */}
-                <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-black/10">
+                <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
                   <div className="grid grid-cols-2 divide-x divide-line/40">
                     <button
                       type="button"
@@ -894,7 +894,7 @@ export default function QuotePanelBatchA(props: {
                       <button
                         type="button"
                         onClick={() => setGuests((value) => clampGuests(value - 1))}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] active:scale-95"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary ring-1 ring-neutral-300 active:scale-95"
                         aria-label="decrease guests"
                       >
                         <Minus className="h-3.5 w-3.5" />
@@ -903,7 +903,7 @@ export default function QuotePanelBatchA(props: {
                       <button
                         type="button"
                         onClick={() => setGuests((value) => clampGuests(value + 1))}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface text-primary ring-1 ring-black/[0.08] active:scale-95"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary ring-1 ring-neutral-300 active:scale-95"
                         aria-label="increase guests"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -940,7 +940,7 @@ export default function QuotePanelBatchA(props: {
                   <button
                     type="button"
                     onClick={() => setMobileCalendarOpen(true)}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-semibold text-primary ring-1 ring-black/[0.08] transition hover:bg-accent-soft/8"
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-primary transition hover:bg-neutral-100"
                   >
                     <CalendarDays className="h-4 w-4" />
                     {copy.calendar}

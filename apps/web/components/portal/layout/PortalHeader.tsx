@@ -32,19 +32,18 @@ export function PortalHeader(props: {
   onLogout: () => void;
 }) {
   const tPortal = useTranslations("portal");
-  const email = props.userEmail ?? "";
   const name = props.userName?.trim() || "";
-  const identityLabel = name || email || tPortal("signedIn");
-  const firstName = identityLabel.split(/\s+/g)[0] || tPortal("defaultWelcome");
-  const badge = initials(identityLabel);
+  const displayName = name || tPortal("shell.userFallback");
+  const firstName = displayName.split(/\s+/g)[0] || tPortal("shell.userFallback");
+  const badge = initials(displayName);
   const unreadCount = Math.max(0, props.unreadCount ?? 0);
   const notificationsHref = props.notificationsHref ?? "#";
 
   return (
-    <header className="sticky top-0 z-40 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(240,238,255,0.86))] text-primary shadow-[0_16px_44px_rgba(79,70,229,0.16)] backdrop-blur-xl ring-1 ring-line/16">
+    <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 text-primary shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="group inline-flex items-center gap-2">
-          <span className="rounded-xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.86))] px-2 py-1 ring-1 ring-brand/18">
+          <span className="rounded-xl bg-white px-2 py-1 shadow-sm ring-1 ring-neutral-200">
             <Image
               src="/brand/logo.svg"
               alt="Laugh & Lodge"
@@ -73,7 +72,7 @@ export function PortalHeader(props: {
             <input
               type="search"
               placeholder={tPortal("searchPlaceholder")}
-              className="h-11 w-full rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] pl-10 pr-3 text-sm text-primary ring-1 ring-brand/18 outline-none placeholder:text-muted focus-visible:ring-4 focus-visible:ring-brand/20"
+              className="h-11 w-full rounded-xl bg-white pl-10 pr-3 text-sm text-primary ring-1 ring-neutral-200 outline-none placeholder:text-muted focus-visible:ring-4 focus-visible:ring-brand/20"
             />
           </div>
 
@@ -97,15 +96,17 @@ export function PortalHeader(props: {
               <span className="hidden xl:inline">{tPortal("logout")}</span>
             </button>
 
-            <div className="ml-1 flex items-center gap-3 rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.86))] px-3 py-2 ring-1 ring-brand/18">
+            <div className="ml-1 flex items-center gap-3 rounded-xl bg-neutral-100 px-4 py-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand text-xs font-bold text-white">
                 {badge}
               </div>
               <div className="hidden xl:block">
-                <div className="text-xs font-semibold text-primary">
+                <div className="text-sm font-medium text-neutral-600">
                   {tPortal("welcomeBack", { name: firstName })}
                 </div>
-                <div className="text-[11px] text-muted">{email || props.role || tPortal("shell.userFallback")}</div>
+                <div className="text-xs text-muted">
+                  {roleLabel(props.role, (key) => tPortal(key))}
+                </div>
               </div>
             </div>
           </div>
@@ -118,7 +119,7 @@ export function PortalHeader(props: {
 
           <Link
             href={notificationsHref}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] ring-1 ring-brand/20 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-neutral-200 hover:translate-y-[-1px] hover:bg-accent-soft/22 active:translate-y-0"
             aria-label={tPortal("alerts")}
           >
             <Bell className="h-4 w-4 text-secondary" />

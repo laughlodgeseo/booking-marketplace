@@ -67,10 +67,10 @@ export function PortalShell(props: {
   const activeNotificationRole = notificationRole(props.role);
   const notificationsPageHref = notificationsHref(props.role);
   const identityName = useMemo(() => {
-    const first = user?.firstName?.trim();
-    if (first) return first;
     const full = user?.fullName?.trim();
     if (full) return full;
+    const first = user?.firstName?.trim();
+    if (first) return first;
     return null;
   }, [user?.firstName, user?.fullName]);
 
@@ -162,7 +162,7 @@ export function PortalShell(props: {
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] text-primary ring-1 ring-brand/22 shadow-[0_8px_20px_rgba(79,70,229,0.16)]"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm ring-1 ring-neutral-200"
             aria-label={tPortal("shell.openNavigation")}
           >
             <Menu className="h-5 w-5" />
@@ -176,7 +176,7 @@ export function PortalShell(props: {
           aria-label={tPortal("shell.closeNavigation")}
           onClick={() => setMobileNavOpen(false)}
           className={cn(
-            "absolute inset-0 bg-dark-1/46 backdrop-blur-sm transition-opacity",
+            "absolute inset-0 bg-brand/20 backdrop-blur-sm transition-opacity",
             mobileNavOpen ? "opacity-100" : "opacity-0",
           )}
         />
@@ -185,7 +185,7 @@ export function PortalShell(props: {
           className={cn(
             "absolute inset-y-0 flex w-[86%] max-w-sm flex-col overflow-hidden",
             isRtl ? "right-0" : "left-0",
-            "bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,236,255,0.98))] shadow-[0_24px_64px_rgba(79,70,229,0.24)] ring-1 ring-line/22",
+            "bg-white shadow-sm ring-1 ring-neutral-200",
             "transition-transform duration-300 ease-out",
             mobileNavOpen ? "translate-x-0" : isRtl ? "translate-x-full" : "-translate-x-full",
           )}
@@ -199,7 +199,7 @@ export function PortalShell(props: {
               <button
                 type="button"
                 onClick={() => setMobileNavOpen(false)}
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] text-primary ring-1 ring-brand/22"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-primary ring-1 ring-neutral-200"
                 aria-label={tPortal("shell.closeNavigation")}
               >
                 <X className="h-5 w-5" />
@@ -224,24 +224,24 @@ export function PortalShell(props: {
                           href={item.href}
                           onClick={() => setMobileNavOpen(false)}
                           className={cn(
-                            "flex min-w-0 items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+                            "flex min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
                             active
-                              ? "bg-brand text-accent-text shadow-[0_12px_28px_rgba(79,70,229,0.32)]"
-                              : "bg-warm-base/92 text-primary ring-1 ring-line/32 hover:bg-accent-soft/26",
+                              ? "bg-brand/10 text-brand"
+                              : "text-primary hover:bg-neutral-100",
                           )}
                         >
                           <span className="flex min-w-0 items-center gap-2.5">
                             <span
                               className={cn(
                                 "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                                active ? "bg-accent-text/20 text-accent-text" : "bg-accent-soft/34 text-brand",
+                                active ? "bg-brand/12 text-brand" : "bg-accent-soft/34 text-brand",
                               )}
                             >
                               {item.icon}
                             </span>
                             <span className="truncate">{item.label}</span>
                           </span>
-                          <span className={cn("text-xs", active ? "text-accent-text/80" : "text-muted")}>
+                          <span className={cn("text-xs", active ? "text-brand/70" : "text-muted")}>
                             •
                           </span>
                         </Link>

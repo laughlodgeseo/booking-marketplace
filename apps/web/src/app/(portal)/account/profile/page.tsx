@@ -230,7 +230,7 @@ export default function ProfilePage() {
           </label>
 
           {saveError && (
-            <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
+            <p className="mt-3 rounded-xl border border-danger/25 bg-danger/10 px-4 py-2.5 text-sm text-danger">
               {saveError}
             </p>
           )}

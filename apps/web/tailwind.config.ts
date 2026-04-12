@@ -3,7 +3,7 @@ import rtl from "tailwindcss-rtl";
 
 const designTokens = {
   colors: {
-    primary: "#FF385C",
+    primary: "#4F46E5",
     muted: "#6b7280",
     border: "#e5e7eb",
   },

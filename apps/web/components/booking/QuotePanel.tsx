@@ -268,7 +268,7 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
 
       {/* MOBILE BAR */}
       <div className="lg:hidden">
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               <div className="text-[11px] text-secondary">From</div>
@@ -295,10 +295,10 @@ export default function QuotePanel({ propertyId, priceFrom }: Props) {
               type="button"
               aria-label="Close quote panel"
               onClick={() => setMobileOpen(false)}
-              className="absolute inset-0 bg-dark-1/40"
+              className="absolute inset-0 bg-brand/24"
             />
 
-            <div className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-surface p-4 shadow-2xl">
+            <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border border-neutral-200 bg-white p-4 shadow-[0_-20px_60px_rgba(0,0,0,0.15)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-primary">Your stay</div>

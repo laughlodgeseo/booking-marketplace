@@ -19,21 +19,21 @@ type ButtonProps = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-b from-brand to-brand-hover text-accent-text ring-1 ring-brand/35 shadow-[0_12px_28px_rgba(79,70,229,0.30)] hover:brightness-105 hover:shadow-[0_16px_34px_rgba(79,70,229,0.36)] active:scale-95",
+    "bg-brand text-accent-text shadow-md hover:bg-brand-hover hover:shadow-lg active:scale-95",
   secondary:
-    "bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,236,255,0.84))] text-primary ring-1 ring-brand/18 shadow-sm hover:ring-brand/30 hover:bg-accent-soft/24 active:scale-95",
+    "bg-neutral-100 text-neutral-700 shadow-sm hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 active:scale-95",
   ghost:
     "bg-transparent text-primary hover:bg-accent-soft/20 active:scale-95",
   danger:
     "bg-gradient-to-b from-danger/95 to-danger text-inverted ring-1 ring-danger/34 shadow-[0_10px_24px_rgba(220,38,38,0.28)] hover:brightness-105 active:scale-95",
   outline:
-    "bg-surface/96 text-primary ring-1 ring-brand/26 hover:bg-accent-soft/18 hover:ring-brand/40 active:scale-95",
+    "border border-neutral-300 bg-transparent text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800 active:scale-95",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: "h-8 px-3 text-xs gap-1.5 rounded-xl",
-  md: "h-10 px-4 text-sm gap-2 rounded-2xl",
-  lg: "h-12 px-6 text-sm gap-2.5 rounded-2xl",
+  md: "h-10 px-4 text-sm gap-2 rounded-xl",
+  lg: "h-12 px-6 text-sm gap-2.5 rounded-xl",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

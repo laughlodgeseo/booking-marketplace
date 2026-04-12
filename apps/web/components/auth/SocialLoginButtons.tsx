@@ -174,7 +174,7 @@ export function SocialLoginButtons({
       </button>
 
       {error && (
-        <p className="text-center text-xs text-rose-600">{error}</p>
+        <p className="text-center text-xs text-danger">{error}</p>
       )}
     </div>
   );

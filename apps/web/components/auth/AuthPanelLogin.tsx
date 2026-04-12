@@ -176,7 +176,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="rounded-[14px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 break-words"
+              className="rounded-[14px] border border-danger/25 bg-danger/10 px-4 py-3 text-sm text-danger break-words"
             >
               {error}
             </motion.p>

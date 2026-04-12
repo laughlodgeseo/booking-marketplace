@@ -15,7 +15,7 @@ import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
 const GoogleMap = dynamic(() => import("@/components/maps/GoogleMap"), {
   ssr: false,
   loading: () => (
-    <div className="grid h-[58vh] min-h-[360px] w-full place-items-center bg-warm-alt/65 sm:h-[64vh] lg:h-[calc(100vh-7.5rem)]" />
+    <div className="grid h-[58vh] min-h-[360px] w-full place-items-center bg-warm-alt/65 sm:h-[64vh] lg:h-[calc(100vh-0.75rem)]" />
   ),
 });
 
@@ -59,10 +59,21 @@ export default function PropertiesSearchShell(props: Props) {
   const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapFixed, setMapFixed] = useState(false);
+  const [mapAnchoredBottom, setMapAnchoredBottom] = useState(false);
+  const [mapPanelHeight, setMapPanelHeight] = useState(0);
+  const [mapFixedLeft, setMapFixedLeft] = useState(0);
+  const [mapFixedWidth, setMapFixedWidth] = useState(0);
+  const [mapTransitionY, setMapTransitionY] = useState(0);
 
   // keep a ref to current query to avoid stale closures in viewport fetch
   const queryRef = useRef<PropertiesQuery>(props.query);
   const lastBoundsRef = useRef<Bounds | null>(null);
+  const mapSectionRef = useRef<HTMLDivElement | null>(null);
+  const mapColumnRef = useRef<HTMLDivElement | null>(null);
+  const mapPanelRef = useRef<HTMLDivElement | null>(null);
+  const prevFixedRef = useRef(false);
+  const prevAnchorRef = useRef(false);
   useEffect(() => {
     queryRef.current = props.query;
   }, [props.query]);
@@ -181,6 +192,79 @@ export default function PropertiesSearchShell(props: Props) {
   const totalPages = props.meta ? Math.max(1, Math.ceil(props.meta.total / props.meta.limit)) : 1;
   const page = props.meta?.page ?? props.query.page;
 
+  useEffect(() => {
+    if (viewMode !== "map") return;
+
+    const FIXED_TOP_GAP = 4; // keep map almost flush with viewport top
+    const TOP_TRIGGER_BUFFER = 14; // start fixing when map section is nearly at top
+    const FIXED_BOTTOM_GAP = 6; // keep map almost flush with viewport bottom
+    let raf = 0;
+
+    const updateFixedState = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        if (window.innerWidth < 1024) {
+          setMapFixed((prev) => (prev ? false : prev));
+          return;
+        }
+
+        const sectionEl = mapSectionRef.current;
+        const colEl = mapColumnRef.current;
+        const panelEl = mapPanelRef.current;
+        if (!sectionEl || !colEl || !panelEl) return;
+
+        const sectionRect = sectionEl.getBoundingClientRect();
+        const colRect = colEl.getBoundingClientRect();
+        const panelRect = panelEl.getBoundingClientRect();
+        const panelHeight = panelEl.offsetHeight;
+        const viewportHeight = window.innerHeight;
+
+        const reachedTop = sectionRect.top <= FIXED_TOP_GAP + TOP_TRIGGER_BUFFER;
+        const hasBottomRoom = sectionRect.bottom >= panelHeight + FIXED_TOP_GAP + FIXED_BOTTOM_GAP;
+        const panelFitsViewport = panelHeight <= viewportHeight - (FIXED_TOP_GAP + FIXED_BOTTOM_GAP);
+        const shouldFix = reachedTop && hasBottomRoom && panelFitsViewport;
+        const shouldAnchorBottom = reachedTop && !hasBottomRoom;
+        const stateChanged =
+          shouldFix !== prevFixedRef.current || shouldAnchorBottom !== prevAnchorRef.current;
+
+        if (stateChanged) {
+          const currentTop = panelRect.top;
+          let targetTop = currentTop;
+
+          if (shouldFix) {
+            targetTop = FIXED_TOP_GAP;
+          } else if (shouldAnchorBottom) {
+            targetTop = sectionRect.bottom - panelHeight;
+          } else {
+            targetTop = colRect.top;
+          }
+
+          const delta = currentTop - targetTop;
+          setMapTransitionY(delta);
+          requestAnimationFrame(() => setMapTransitionY(0));
+          prevFixedRef.current = shouldFix;
+          prevAnchorRef.current = shouldAnchorBottom;
+        }
+
+        setMapPanelHeight((prev) => (prev !== panelHeight ? panelHeight : prev));
+        setMapFixedLeft((prev) => (Math.abs(prev - colRect.left) > 0.5 ? colRect.left : prev));
+        setMapFixedWidth((prev) => (Math.abs(prev - colRect.width) > 0.5 ? colRect.width : prev));
+        setMapFixed((prev) => (prev !== shouldFix ? shouldFix : prev));
+        setMapAnchoredBottom((prev) => (prev !== shouldAnchorBottom ? shouldAnchorBottom : prev));
+      });
+    };
+
+    updateFixedState();
+    window.addEventListener("scroll", updateFixedState, { passive: true });
+    window.addEventListener("resize", updateFixedState);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", updateFixedState);
+      window.removeEventListener("resize", updateFixedState);
+    };
+  }, [viewMode]);
+
   const renderResultsSection = (gridClassName: string, cardOrientation: CardOrientation = "vertical") => (
     <div className="space-y-5">
       {showFiltersPanel ? (
@@ -286,62 +370,95 @@ export default function PropertiesSearchShell(props: Props) {
       {viewMode === "cards" ? (
         renderResultsSection("grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-7")
       ) : (
-        <div className="grid w-full max-w-full gap-4 lg:grid-cols-[0.78fr_1.22fr] lg:gap-6">
-          <div className="order-2 min-w-0 lg:order-1 lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:scroll-smooth lg:pr-2">
-            {renderResultsSection("grid w-full max-w-full grid-cols-1 gap-5 sm:gap-6", "horizontal")}
-          </div>
+        <div ref={mapSectionRef} className="grid w-full max-w-full gap-4 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)] lg:gap-6">
+          <div
+            ref={mapColumnRef}
+            className="order-1 min-w-0 lg:self-start lg:relative"
+            style={mapFixed ? { height: mapPanelHeight || undefined } : undefined}
+          >
+            <div
+              ref={mapPanelRef}
+              className={[
+                "transition-[transform,box-shadow] duration-200 ease-out will-change-transform",
+                mapFixed ? "lg:fixed lg:z-20" : mapAnchoredBottom ? "lg:absolute lg:bottom-0 lg:left-0 lg:right-0" : "",
+              ].join(" ")}
+              style={
+                mapFixed
+                  ? {
+                      top: 4,
+                      left: mapFixedLeft,
+                      width: mapFixedWidth,
+                      transform: mapTransitionY ? `translateY(${mapTransitionY}px)` : undefined,
+                    }
+                  : mapAnchoredBottom
+                    ? {
+                        width: "100%",
+                        transform: mapTransitionY ? `translateY(${mapTransitionY}px)` : undefined,
+                      }
+                    : mapTransitionY
+                      ? {
+                          transform: `translateY(${mapTransitionY}px)`,
+                        }
+                      : undefined
+              }
+            >
+              <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm lg:h-[calc(100vh-0.75rem)]">
+                <div className="flex h-full flex-col">
+                  <div className="flex shrink-0 items-center justify-between gap-3 bg-bg-2/70 px-4 py-3">
+                    <div className="text-sm font-semibold text-primary">{t("mapTitle")}</div>
+                    <div className="text-xs text-secondary">
+                      {mapLoading
+                        ? t("mapUpdating")
+                        : mapError
+                          ? t("mapUnavailable")
+                          : t("mapPins", { count: mapPoints.length })}
+                    </div>
+                  </div>
 
-          <div className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-24">
-            <div className="relative overflow-hidden rounded-2xl bg-surface shadow-sm">
-              <div className="flex items-center justify-between gap-3 bg-bg-2/70 px-4 py-3">
-                <div className="text-sm font-semibold text-primary">{t("mapTitle")}</div>
-                <div className="text-xs text-secondary">
-                  {mapLoading
-                    ? t("mapUpdating")
-                    : mapError
-                      ? t("mapUnavailable")
-                      : t("mapPins", { count: mapPoints.length })}
+                  <div className="relative flex-1 min-h-0">
+                    <GoogleMap
+                      center={center}
+                      zoom={zoom}
+                      points={mapRenderPoints}
+                      hoveredSlug={hoveredSlug}
+                      activeSlug={activeSlug}
+                      onMarkerClick={onMarkerClick}
+                      onMarkerOpen={onMarkerOpen}
+                      onViewportChanged={fetchViewport}
+                      viewportDebounceMs={520}
+                      className="h-[58vh] min-h-[360px] w-full sm:h-[64vh] lg:h-full lg:min-h-0"
+                    />
+
+                    {mapError ? (
+                      <div className="absolute inset-x-3 top-3 rounded-xl bg-ink/72 px-3 py-2 text-xs text-inverted backdrop-blur">
+                        <div>{mapError}</div>
+                        <button
+                          type="button"
+                          onClick={retryMapPins}
+                          className="mt-2 rounded-lg bg-surface/15 px-2 py-1 font-semibold text-inverted hover:bg-surface/25"
+                        >
+                          {t("retryPins")}
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {!mapError && !mapLoading && mapPoints.length === 0 ? (
+                      <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
+                        {t("noPins")}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-
-              <div className="relative">
-                <GoogleMap
-                  center={center}
-                  zoom={zoom}
-                  points={mapRenderPoints}
-                  hoveredSlug={hoveredSlug}
-                  activeSlug={activeSlug}
-                  onMarkerClick={onMarkerClick}
-                  onMarkerOpen={onMarkerOpen}
-                  onViewportChanged={fetchViewport}
-                  viewportDebounceMs={520}
-                  className="h-[58vh] min-h-[360px] w-full sm:h-[64vh] lg:h-[calc(100vh-7.5rem)]"
-                />
-
-                {mapError ? (
-                  <div className="absolute inset-x-3 top-3 rounded-xl bg-ink/72 px-3 py-2 text-xs text-inverted backdrop-blur">
-                    <div>{mapError}</div>
-                    <button
-                      type="button"
-                      onClick={retryMapPins}
-                      className="mt-2 rounded-lg bg-surface/15 px-2 py-1 font-semibold text-inverted hover:bg-surface/25"
-                    >
-                      {t("retryPins")}
-                    </button>
-                  </div>
-                ) : null}
-
-                {!mapError && !mapLoading && mapPoints.length === 0 ? (
-                  <div className="pointer-events-none absolute inset-x-3 top-3 rounded-xl bg-ink/65 px-3 py-2 text-xs text-inverted backdrop-blur">
-                    {t("noPins")}
-                  </div>
-                ) : null}
               </div>
             </div>
 
             <p className="mt-3 text-xs text-muted">
               {t("pinsFootnote")}
             </p>
+          </div>
+
+          <div className="order-2 min-w-0 lg:self-start">
+            {renderResultsSection("grid w-full max-w-full grid-cols-1 gap-5 sm:gap-6", "horizontal")}
           </div>
         </div>
       )}

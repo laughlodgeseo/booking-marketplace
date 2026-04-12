@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
-/* Platform design tokens (Airbnb-inspired accent + neutral surfaces) */
+/* Platform design tokens (Indigo + neutral surfaces) */
 :root {
   --site-bg: #ffffff;
   /* Canonical palette */
-  --brand: #ff385c;
-  --brand-hover: #e11d48;
-  --brand-soft: rgb(255 56 92 / 0.14);
-  --brand-soft-2: rgb(255 56 92 / 0.08);
+  --brand: #4f46e5;
+  --brand-hover: #4338ca;
+  --brand-soft: rgb(79 70 229 / 0.14);
+  --brand-soft-2: rgb(79 70 229 / 0.08);
 
   --ink: #222222;
   --ink-2: #3f3f46;
@@ -85,10 +85,10 @@
   --color-dark-2-rgb: 63 63 70;
   --color-dark-3-rgb: 82 82 91;
 
-  --color-accent-rgb: 255 56 92;
-  --color-accent-hover-rgb: 225 29 72;
-  --color-accent-soft-rgb: 255 56 92;
-  --color-accent-soft-2-rgb: 255 56 92;
+  --color-accent-rgb: 79 70 229;
+  --color-accent-hover-rgb: 67 56 202;
+  --color-accent-soft-rgb: 79 70 229;
+  --color-accent-soft-2-rgb: 79 70 229;
   --color-accent-text-rgb: 255 255 255;
 
   --color-gold-rgb: 245 158 11;
@@ -410,9 +410,9 @@ textarea {
   .site-hero-shell {
     border-bottom: 1px solid rgb(255 255 255 / 0.25);
     background:
-      radial-gradient(130% 92% at 8% 0%, rgb(255 56 92 / 0.34) 0%, rgb(255 56 92 / 0) 54%),
-      radial-gradient(120% 90% at 96% 8%, rgb(225 29 72 / 0.30) 0%, rgb(225 29 72 / 0) 55%),
-      linear-gradient(130deg, #f43f5e 0%, #ff385c 42%, #e11d48 100%);
+      radial-gradient(130% 92% at 8% 0%, rgba(167, 180, 255, 0.34) 0%, rgba(79, 70, 229, 0) 54%),
+      radial-gradient(120% 90% at 96% 8%, rgba(79, 70, 229, 0.30) 0%, rgba(79, 70, 229, 0) 55%),
+      linear-gradient(130deg, #31279f 0%, #4338ca 42%, #4f46e5 100%);
     color: rgb(var(--text-inverted-rgb));
   }
 

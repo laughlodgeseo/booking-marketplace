@@ -7,16 +7,11 @@ function cn(...xs: Array<string | false | null | undefined>) {
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info";
 
 const TONE_CLASS: Record<BadgeTone, string> = {
-  neutral:
-    "bg-[linear-gradient(180deg,rgba(79,70,229,0.16),rgba(79,70,229,0.08))] text-brand ring-1 ring-brand/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]",
-  success:
-    "bg-[linear-gradient(180deg,rgba(22,163,74,0.18),rgba(22,163,74,0.10))] text-success ring-1 ring-success/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.56)]",
-  warning:
-    "bg-[linear-gradient(180deg,rgba(245,158,11,0.22),rgba(245,158,11,0.12))] text-warning ring-1 ring-warning/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)]",
-  danger:
-    "bg-[linear-gradient(180deg,rgba(220,38,38,0.20),rgba(220,38,38,0.10))] text-danger ring-1 ring-danger/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)]",
-  info:
-    "bg-[linear-gradient(180deg,rgba(14,165,233,0.20),rgba(14,165,233,0.10))] text-info ring-1 ring-info/32 shadow-[inset_0_1px_0_rgba(255,255,255,0.54)]",
+  neutral: "bg-gray-100 text-gray-600",
+  success: "bg-green-100 text-green-700",
+  warning: "bg-yellow-100 text-yellow-700",
+  danger: "bg-red-100 text-red-700",
+  info: "bg-indigo-100 text-indigo-700",
 };
 
 export function Badge(props: {

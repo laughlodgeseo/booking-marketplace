@@ -134,8 +134,8 @@ export default function FloatingHeader() {
 
   const showAuthSkeleton = status === "loading";
   const headerSurfaceClass = isAtTop
-    ? "bg-white/95 shadow-sm"
-    : "bg-white/98 shadow-md";
+    ? "bg-white border-b border-neutral-200 shadow-sm"
+    : "bg-white border-b border-neutral-200 shadow-md";
   const headerVisibilityClass = isVisible ? "translate-y-0" : "-translate-y-full";
 
   const secondaryActionClass =
@@ -153,7 +153,7 @@ export default function FloatingHeader() {
           headerVisibilityClass,
         ].join(" ")}
       >
-        <div className={["w-full backdrop-blur-sm transition-shadow duration-200 ease-out", headerSurfaceClass].join(" ")}>
+        <div className={["w-full transition-shadow duration-200 ease-out", headerSurfaceClass].join(" ")}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="hidden h-[76px] w-full items-center lg:grid lg:h-[80px] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4">
               <nav className="flex items-center gap-5">
@@ -225,7 +225,7 @@ export default function FloatingHeader() {
               </div>
           </div>
 
-            <div className="relative flex h-14 items-center justify-between lg:hidden">
+            <div className="relative flex h-16 items-center justify-between lg:hidden">
               <div className="flex items-center gap-2">
                 <LanguageSwitcher compact />
               </div>
@@ -242,15 +242,22 @@ export default function FloatingHeader() {
               </Link>
 
               <div className="flex items-center gap-2">
-                <button
+                <motion.button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-warm-alt text-primary shadow-sm"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
                   aria-label={t("toggleMenu")}
                   aria-expanded={mobileOpen}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </button>
+                  <motion.span
+                    className="inline-flex"
+                    animate={{ rotate: mobileOpen ? 90 : 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  </motion.span>
+                </motion.button>
               </div>
             </div>
           </div>
@@ -260,7 +267,7 @@ export default function FloatingHeader() {
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div
-            className="fixed inset-0 z-[85] bg-ink/25 backdrop-blur-sm"
+            className="fixed inset-0 z-[85] bg-brand/24"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -268,18 +275,18 @@ export default function FloatingHeader() {
           >
             <motion.div
               className={[
-                "absolute inset-y-0 w-[min(24rem,92vw)] overflow-y-auto border-line bg-surface px-4 pb-6 pt-16 shadow-2xl",
-                isRtl ? "left-0 border-r" : "right-0 border-l",
+                "absolute inset-y-0 w-[min(24rem,92vw)] overflow-y-auto border border-neutral-200 bg-white px-4 pb-6 pt-16 shadow-[0_24px_68px_rgba(79,70,229,0.18)]",
+                isRtl ? "left-0 rounded-r-3xl" : "right-0 rounded-l-3xl",
               ].join(" ")}
               initial={{ x: drawerX, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: drawerX, opacity: 0 }}
-              transition={{ duration: 0.22 }}
+              transition={{ type: "spring", stiffness: 360, damping: 32 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-3 rounded-2xl bg-warm-alt/90 p-3">
+              <div className="mb-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
                 {showAuthSkeleton ? (
-                  <div className="h-11 w-full animate-pulse rounded-full bg-warm-alt/80" />
+                  <div className="h-11 w-full animate-pulse rounded-xl bg-neutral-200" />
                 ) : user ? (
                   <div className="space-y-3">
                     <div className="min-w-0">
@@ -314,7 +321,7 @@ export default function FloatingHeader() {
                     <Link
                       href="/login"
                       onClick={() => setMobileOpen(false)}
-                      className={`${secondaryActionClass} w-full bg-surface/90`}
+                      className={`${secondaryActionClass} w-full bg-white`}
                     >
                       {t("login")}
                     </Link>
@@ -330,18 +337,29 @@ export default function FloatingHeader() {
               </div>
 
               <div className="grid gap-2">
-                {navItems.map((item) => (
-                  <Link
+                {navItems.map((item, idx) => (
+                  <motion.div
                     key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={[
-                      "rounded-2xl px-3 py-3 text-sm font-semibold transition",
-                      isActive(pathname, item.href) ? "bg-brand-soft text-brand" : "text-primary hover:bg-warm-alt",
-                    ].join(" ")}
+                    initial={{ opacity: 0, x: drawerX * 0.35 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: drawerX * 0.2 }}
+                    transition={{ duration: 0.2, delay: 0.04 * idx }}
                   >
-                    {item.label}
-                  </Link>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={[
+                        "group relative flex items-center justify-between overflow-hidden rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200",
+                        "hover:-translate-y-0.5 hover:bg-neutral-100 active:translate-y-0 active:scale-[0.99]",
+                        isActive(pathname, item.href)
+                          ? "bg-brand/10 text-brand before:absolute before:bottom-2 before:left-0 before:top-2 before:w-1 before:rounded-r before:bg-brand"
+                          : "text-primary",
+                      ].join(" ")}
+                    >
+                      <span>{item.label}</span>
+                      <ArrowRight className="h-4 w-4 text-brand/45 transition-transform duration-200 group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+                    </Link>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
