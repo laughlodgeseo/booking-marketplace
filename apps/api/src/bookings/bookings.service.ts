@@ -81,6 +81,18 @@ export class BookingsService {
     return { totalAed: breakdown.total, breakdown };
   }
 
+  private enumerateBookingNights(checkIn: Date, checkOut: Date): Date[] {
+    const nights: Date[] = [];
+    for (
+      let time = checkIn.getTime();
+      time < checkOut.getTime();
+      time += 24 * 60 * 60 * 1000
+    ) {
+      nights.push(new Date(time));
+    }
+    return nights;
+  }
+
   // ---------------------------
   // CREATE BOOKING (HARDENED + EXPIRY)
   // ---------------------------
@@ -153,6 +165,17 @@ export class BookingsService {
           });
 
           if (bookingOverlap)
+            throw new BadRequestException('Dates no longer available.');
+
+          const blockedByBooking = await tx.bookingBlockedDate.findFirst({
+            where: {
+              propertyId: hold.propertyId,
+              date: { gte: hold.checkIn, lt: hold.checkOut },
+            },
+            select: { id: true },
+          });
+
+          if (blockedByBooking)
             throw new BadRequestException('Dates no longer available.');
 
           // 2️⃣ Hold overlap check
@@ -238,6 +261,20 @@ export class BookingsService {
             },
           });
 
+          const bookedNights = this.enumerateBookingNights(
+            hold.checkIn,
+            hold.checkOut,
+          );
+          if (bookedNights.length > 0) {
+            await tx.bookingBlockedDate.createMany({
+              data: bookedNights.map((date) => ({
+                propertyId: booking.propertyId,
+                bookingId: booking.id,
+                date,
+              })),
+            });
+          }
+
           await tx.propertyHold.update({
             where: { id: hold.id },
             data: {
@@ -289,6 +326,10 @@ export class BookingsService {
     const { bookingId, actorUser, dto } = args;
 
     const actor = this.resolveCancellationActor(actorUser.role);
+    const requestedReason: CancellationReason | undefined =
+      actor === CancellationActor.CUSTOMER
+        ? (dto.reason ?? CancellationReason.GUEST_REQUEST)
+        : dto.reason;
 
     const result = await this.prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
@@ -302,25 +343,20 @@ export class BookingsService {
 
       if (!booking) throw new NotFoundException('Booking not found.');
 
-      // ✅ Idempotent: already cancelled — still ensure ops tasks are cancelled (retry-safe)
-      if (booking.status === BookingStatus.CANCELLED && booking.cancellation) {
-        await this.cancelOpsTasksForBooking(tx, booking.id);
-        return {
-          ok: true,
-          alreadyCancelled: true,
-          bookingId: booking.id,
-          booking,
-          cancellationId: booking.cancellation.id,
-          refundId: booking.cancellation.refundId ?? null,
-          actor,
-        };
-      }
-
-      if (booking.status === BookingStatus.COMPLETED) {
+      if (
+        actor === CancellationActor.CUSTOMER &&
+        requestedReason !== CancellationReason.GUEST_REQUEST
+      ) {
         throw new BadRequestException(
-          'Completed bookings cannot be cancelled.',
+          'Customers can only use GUEST_REQUEST for pre-payment cancellation.',
         );
       }
+
+      if (actor !== CancellationActor.CUSTOMER && !requestedReason) {
+        throw new BadRequestException('Cancellation reason is required.');
+      }
+
+      const cancellationReason = requestedReason as CancellationReason;
 
       // ✅ Permission enforcement
       if (actor === CancellationActor.CUSTOMER) {
@@ -341,21 +377,58 @@ export class BookingsService {
           CancellationReason.FORCE_MAJEURE,
         ]);
 
-        if (!allowed.has(dto.reason)) {
+        if (!allowed.has(cancellationReason)) {
           throw new ForbiddenException(
             'Vendor cancellation reason not allowed.',
           );
         }
       }
 
-      // ✅ Allowed statuses to cancel
-      if (
-        booking.status !== BookingStatus.PENDING_PAYMENT &&
-        booking.status !== BookingStatus.CONFIRMED
-      ) {
-        throw new BadRequestException(
-          `Booking cannot be cancelled from status ${booking.status}.`,
-        );
+      // Strict customer self-cancel flow: pre-payment only, non-idempotent.
+      if (actor === CancellationActor.CUSTOMER) {
+        if (booking.status === BookingStatus.CANCELLED) {
+          throw new BadRequestException('Booking is already cancelled.');
+        }
+        if (booking.status !== BookingStatus.PENDING_PAYMENT) {
+          throw new BadRequestException(
+            'Only pending unpaid bookings can be cancelled.',
+          );
+        }
+      } else {
+        // Existing idempotent behavior for SYSTEM/VENDOR/ADMIN retries.
+        if (
+          booking.status === BookingStatus.CANCELLED &&
+          booking.cancellation
+        ) {
+          await tx.bookingBlockedDate.deleteMany({
+            where: { bookingId: booking.id },
+          });
+          await this.cancelOpsTasksForBooking(tx, booking.id);
+          return {
+            ok: true,
+            alreadyCancelled: true,
+            bookingId: booking.id,
+            booking,
+            cancellationId: booking.cancellation.id,
+            refundId: booking.cancellation.refundId ?? null,
+            actor,
+          };
+        }
+
+        if (booking.status === BookingStatus.COMPLETED) {
+          throw new BadRequestException(
+            'Completed bookings cannot be cancelled.',
+          );
+        }
+
+        if (
+          booking.status !== BookingStatus.PENDING_PAYMENT &&
+          booking.status !== BookingStatus.CONFIRMED
+        ) {
+          throw new BadRequestException(
+            `Booking cannot be cancelled from status ${booking.status}.`,
+          );
+        }
       }
 
       const bookingTotalAed = booking.totalAmountAed ?? booking.totalAmount;
@@ -373,18 +446,7 @@ export class BookingsService {
 
       const isSystemAutoExpiredCancellation =
         actor === CancellationActor.SYSTEM &&
-        dto.reason === CancellationReason.AUTO_EXPIRED_UNPAID;
-
-      // ✅ Load policy: property override -> global active
-      const policy =
-        (await tx.cancellationPolicyConfig.findFirst({
-          where: { propertyId: booking.propertyId, isActive: true },
-          orderBy: { updatedAt: 'desc' },
-        })) ??
-        (await tx.cancellationPolicyConfig.findFirst({
-          where: { propertyId: null, isActive: true },
-          orderBy: { updatedAt: 'desc' },
-        }));
+        cancellationReason === CancellationReason.AUTO_EXPIRED_UNPAID;
 
       let decision:
         | {
@@ -398,7 +460,32 @@ export class BookingsService {
           }
         | undefined;
 
-      if (isSystemAutoExpiredCancellation) {
+      if (
+        actor === CancellationActor.CUSTOMER &&
+        booking.status === BookingStatus.PENDING_PAYMENT
+      ) {
+        // Pre-payment customer cancellation: no refund policy required and no money captured.
+        decision = {
+          tier: 'FREE',
+          mode: dto.mode ?? CancellationMode.SOFT,
+          policyVersion: 'PRE_PAYMENT_UNPAID_CANCEL',
+          releasesInventory: true,
+          penaltyAmount: 0,
+          refundableAmount: 0,
+          hoursToCheckIn: Math.floor(
+            (booking.checkIn.getTime() - Date.now()) / (1000 * 60 * 60),
+          ),
+        };
+      } else if (isSystemAutoExpiredCancellation) {
+        const policy =
+          (await tx.cancellationPolicyConfig.findFirst({
+            where: { propertyId: booking.propertyId, isActive: true },
+            orderBy: { updatedAt: 'desc' },
+          })) ??
+          (await tx.cancellationPolicyConfig.findFirst({
+            where: { propertyId: null, isActive: true },
+            orderBy: { updatedAt: 'desc' },
+          }));
         const hoursToCheckIn = Math.floor(
           (booking.checkIn.getTime() - Date.now()) / (1000 * 60 * 60),
         );
@@ -413,6 +500,16 @@ export class BookingsService {
           hoursToCheckIn,
         };
       } else {
+        const policy =
+          (await tx.cancellationPolicyConfig.findFirst({
+            where: { propertyId: booking.propertyId, isActive: true },
+            orderBy: { updatedAt: 'desc' },
+          })) ??
+          (await tx.cancellationPolicyConfig.findFirst({
+            where: { propertyId: null, isActive: true },
+            orderBy: { updatedAt: 'desc' },
+          }));
+
         if (!policy) {
           throw new BadRequestException(
             'Cancellation policy is not configured. Create a global CancellationPolicyConfig first.',
@@ -425,7 +522,7 @@ export class BookingsService {
           CancellationReason.ADMIN_OVERRIDE,
         ]);
 
-        const requestedMode = forcedHardReasons.has(dto.reason)
+        const requestedMode = forcedHardReasons.has(cancellationReason)
           ? CancellationMode.HARD
           : dto.mode;
 
@@ -485,7 +582,7 @@ export class BookingsService {
           data: {
             bookingId: booking.id,
             actor,
-            reason: dto.reason,
+            reason: cancellationReason,
             notes: dto.notes?.trim() || null,
             mode: decision.mode,
             policyVersion: decision.policyVersion,
@@ -514,15 +611,19 @@ export class BookingsService {
           status: BookingStatus.CANCELLED,
           cancelledAt: new Date(),
           cancelledBy: actor,
-          cancellationReason: dto.reason,
+          cancellationReason,
         },
+      });
+
+      await tx.bookingBlockedDate.deleteMany({
+        where: { bookingId: booking.id },
       });
 
       // ✅ Frank Porter Ops Hook: cancel ops tasks linked to this booking
       await this.cancelOpsTasksForBooking(tx, booking.id);
 
       this.logger.log(
-        `booking_cancelled bookingId=${booking.id} actor=${actor} reason=${dto.reason} tier=${decision.tier} penalty=${penaltyAmountDisplay} refund=${refundableAmountDisplay}`,
+        `booking_cancelled bookingId=${booking.id} actor=${actor} reason=${cancellationReason} tier=${decision.tier} penalty=${penaltyAmountDisplay} refund=${refundableAmountDisplay}`,
       );
 
       return {
@@ -539,7 +640,7 @@ export class BookingsService {
           penaltyAmount: penaltyAmountDisplay,
           refundableAmount: refundableAmountDisplay,
           policyVersion: decision.policyVersion,
-          reason: dto.reason,
+          reason: cancellationReason,
           notes: dto.notes?.trim() || null,
         },
       };

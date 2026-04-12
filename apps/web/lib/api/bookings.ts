@@ -1,6 +1,14 @@
 import { apiFetch } from "@/lib/apiFetch";
 
 export type PaymentProvider = "MANUAL" | "STRIPE";
+export type BookingCancellationReason =
+  | "GUEST_REQUEST"
+  | "OWNER_REQUEST"
+  | "NO_PAYMENT"
+  | "AUTO_EXPIRED_UNPAID"
+  | "FORCE_MAJEURE"
+  | "FRAUD"
+  | "ADMIN_OVERRIDE";
 
 export type AuthorizePaymentResponse = {
   ok?: boolean;
@@ -136,11 +144,50 @@ export async function findUserBookingById(args: {
   return null;
 }
 
-export async function cancelBooking(bookingId: string): Promise<{ ok: true; id?: string; status?: string }> {
-  const res = await apiFetch<{ ok: true; id?: string; status?: string }>(`/bookings/${bookingId}/cancel`, {
+export async function cancelBooking(input: {
+  bookingId: string;
+  reason?: BookingCancellationReason;
+}): Promise<{
+  ok: true;
+  bookingId: string;
+  cancellationId: string;
+  refundId: string | null;
+  alreadyCancelled?: boolean;
+}> {
+  const res = await apiFetch<{
+    ok: true;
+    bookingId: string;
+    cancellationId: string;
+    refundId: string | null;
+    alreadyCancelled?: boolean;
+  }>(`/bookings/${input.bookingId}/cancel`, {
     method: "POST",
     auth: "auto",
+    body: {
+      reason: input.reason ?? "GUEST_REQUEST",
+    },
   });
+  if (!res.ok) throw new Error(res.message);
+  return res.data;
+}
+
+export async function refetchPropertyAvailability(input: {
+  propertyId: string;
+  from: string;
+  to: string;
+}): Promise<unknown> {
+  const res = await apiFetch<unknown>(
+    `/properties/${encodeURIComponent(input.propertyId)}/availability`,
+    {
+      method: "GET",
+      auth: "none",
+      cache: "no-store",
+      query: {
+        from: input.from,
+        to: input.to,
+      },
+    },
+  );
   if (!res.ok) throw new Error(res.message);
   return res.data;
 }

@@ -723,6 +723,7 @@ model Property {
   amenities PropertyAmenity[]
   translations PropertyTranslation[]
   bookings  Booking[]
+  blockedDates BookingBlockedDate[]
 
   availabilitySettings PropertyAvailabilitySettings?
   calendarDays         PropertyCalendarDay[]
@@ -1199,6 +1200,7 @@ model Booking {
 
   idempotencyKey     String?
   idempotencyRecords BookingIdempotency[]
+  blockedDates       BookingBlockedDate[]
 
   /// Full Dubai tax breakdown snapshot (JSON).
   /// Stored at booking creation so the charged amount is always auditable.
@@ -1236,6 +1238,25 @@ model Booking {
   @@index([checkIn, checkOut])
   // ✅ Availability-search overlap index (NEW)
   @@index([propertyId, status, checkIn, checkOut], map: "idx_booking_property_status_dates")
+}
+
+model BookingBlockedDate {
+  id String @id @default(cuid())
+
+  propertyId String   @map("property_id")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  date DateTime @map("date")
+
+  bookingId String  @map("booking_id")
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([propertyId, date], map: "uniq_blocked_dates_property_date")
+  @@index([bookingId], map: "idx_blocked_dates_booking_id")
+  @@index([propertyId, date], map: "idx_blocked_dates_property_date")
+  @@map("blocked_dates")
 }
 
 model BookingIdempotency {

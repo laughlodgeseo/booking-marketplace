@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { CardList, type CardListItem } from "@/components/portal/ui/CardList";
@@ -68,13 +68,33 @@ export default function AccountBookingsPage() {
 
 function AccountBookingsContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const { status: authStatus } = useAuth();
   const searchParams = useSearchParams();
 
   const page = toInt(searchParams.get("page"), 1);
   const pageSize = toInt(searchParams.get("pageSize"), 10);
+  const toast = searchParams.get("toast");
+  const showCancelledToast = toast === "booking_cancelled";
 
   const [state, setState] = useState<ViewState>({ kind: "loading" });
+
+  useEffect(() => {
+    if (!showCancelledToast) return;
+
+    const cleaned = new URLSearchParams(searchParams.toString());
+    cleaned.delete("toast");
+    const cleanedQuery = cleaned.toString();
+    const cleanedHref = cleanedQuery ? `${pathname}?${cleanedQuery}` : pathname;
+
+    const timer = window.setTimeout(() => {
+      router.replace(cleanedHref, { scroll: false });
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [pathname, router, searchParams, showCancelledToast]);
 
   useEffect(() => {
     let alive = true;
@@ -146,6 +166,11 @@ function AccountBookingsContent() {
 
   return (
     <PortalShell role="customer" title="Bookings" subtitle="Open a booking for full detail, documents, and review actions">
+      {showCancelledToast ? (
+        <div className="mb-4 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-semibold text-success">
+          Booking cancelled and dates released.
+        </div>
+      ) : null}
       {state.kind === "loading" ? (
         <div className="space-y-3">
           <SkeletonBlock className="h-24" />

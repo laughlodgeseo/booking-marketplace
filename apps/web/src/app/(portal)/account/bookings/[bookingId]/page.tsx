@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { MessageSquare, ReceiptText } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { cancelBooking, refetchPropertyAvailability } from "@/lib/api/bookings";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   downloadUserBookingDocument,
@@ -67,11 +68,14 @@ function labelDocType(type: BookingDocumentType): string {
 export default function AccountBookingDetailPage() {
   const params = useParams<{ bookingId: string }>();
   const bookingId = typeof params?.bookingId === "string" ? params.bookingId : "";
+  const router = useRouter();
 
   const { status: authStatus } = useAuth();
 
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [docError, setDocError] = useState<string | null>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -117,6 +121,44 @@ export default function AccountBookingDetailPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       setDocError(error instanceof Error ? error.message : "Failed to download document");
+    }
+  }
+
+  const canCancel =
+    state.kind === "ready" &&
+    (state.data.status === "PENDING_PAYMENT" || state.data.status === "PENDING");
+
+  async function cancelCurrentBooking() {
+    if (state.kind !== "ready" || !canCancel || cancelBusy) return;
+
+    const confirmed = window.confirm("Cancel this unpaid booking and release your reserved dates?");
+    if (!confirmed) return;
+
+    setCancelBusy(true);
+    setCancelError(null);
+
+    try {
+      await cancelBooking({
+        bookingId: state.data.id,
+        reason: "GUEST_REQUEST",
+      });
+
+      try {
+        await refetchPropertyAvailability({
+          propertyId: state.data.property.id,
+          from: state.data.checkIn.slice(0, 10),
+          to: state.data.checkOut.slice(0, 10),
+        });
+      } catch {
+        // Non-blocking. Availability always refreshes on next page load.
+      }
+
+      router.refresh();
+      router.replace("/account/bookings?toast=booking_cancelled");
+    } catch (error) {
+      setCancelError(error instanceof Error ? error.message : "Failed to cancel booking");
+    } finally {
+      setCancelBusy(false);
     }
   }
 
@@ -379,7 +421,22 @@ export default function AccountBookingDetailPage() {
               <ReceiptText className="h-4 w-4" />
               View property page
             </Link>
+            {canCancel ? (
+              <button
+                type="button"
+                onClick={() => void cancelCurrentBooking()}
+                disabled={cancelBusy}
+                className="inline-flex items-center gap-1 rounded-2xl border border-danger/60 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger shadow-sm hover:bg-danger/15 disabled:opacity-60"
+              >
+                {cancelBusy ? "Cancelling..." : "Cancel booking"}
+              </button>
+            ) : null}
           </div>
+          {cancelError ? (
+            <div className="rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+              {cancelError}
+            </div>
+          ) : null}
         </div>
       )}
     </PortalShell>

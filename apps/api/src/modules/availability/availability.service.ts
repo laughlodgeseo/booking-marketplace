@@ -191,7 +191,7 @@ export class AvailabilityService {
 
     const overlapRange = buildOverlapFilter('checkIn', 'checkOut', from, to);
 
-    const [overrides, activeHolds] = await Promise.all([
+    const [overrides, activeHolds, bookedDates] = await Promise.all([
       this.prisma.propertyCalendarDay.findMany({
         where: { propertyId, date: { gte: from, lt: to } },
         select: {
@@ -210,6 +210,13 @@ export class AvailabilityService {
         },
         select: { checkIn: true, checkOut: true },
       }),
+      this.prisma.bookingBlockedDate.findMany({
+        where: {
+          propertyId,
+          date: { gte: from, lt: to },
+        },
+        select: { date: true },
+      }),
     ]);
 
     const overrideMap = new Map<string, (typeof overrides)[number]>();
@@ -221,13 +228,22 @@ export class AvailabilityService {
       for (const n of nights) heldNights.add(utcDateToIsoDay(n));
     }
 
+    const bookedNights = new Set<string>();
+    for (const blocked of bookedDates) {
+      bookedNights.add(utcDateToIsoDay(blocked.date));
+    }
+
     const days: AvailabilityRangeResult['days'] = [];
     for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
       const d = new Date(t);
       const iso = utcDateToIsoDay(d);
       const override = overrideMap.get(iso);
 
-      const status = override?.status ?? CalendarDayStatus.AVAILABLE;
+      const isBookedNight = bookedNights.has(iso);
+      const status =
+        isBookedNight || override?.status === CalendarDayStatus.BLOCKED
+          ? CalendarDayStatus.BLOCKED
+          : CalendarDayStatus.AVAILABLE;
       const minOverride = override?.minNightsOverride ?? null;
 
       days.push({
@@ -235,7 +251,7 @@ export class AvailabilityService {
         status: status === CalendarDayStatus.BLOCKED ? 'BLOCKED' : 'AVAILABLE',
         effectiveMinNights: minOverride ?? settings.defaultMinNights,
         minNightsOverride: minOverride,
-        note: override?.note ?? null,
+        note: override?.note ?? (isBookedNight ? 'Booked nights' : null),
         isHeld: heldNights.has(iso),
       });
     }
@@ -426,6 +442,20 @@ export class AvailabilityService {
         );
       }
 
+      const blockedByBooking = await tx.bookingBlockedDate.findFirst({
+        where: {
+          propertyId,
+          date: { in: nights },
+        },
+        select: { date: true },
+      });
+
+      if (blockedByBooking) {
+        throw new BadRequestException(
+          `Dates unavailable (already booked on ${utcDateToIsoDay(blockedByBooking.date)}).`,
+        );
+      }
+
       // Also protect against real bookings (confirmed/pending payment) overlapping
       const overlapBooking = await tx.booking.findFirst({
         where: {
@@ -570,6 +600,19 @@ export class AvailabilityService {
       select: { date: true },
     });
     if (blocked) reasons.push(`Blocked on ${utcDateToIsoDay(blocked.date)}.`);
+
+    const blockedByBooking = await this.prisma.bookingBlockedDate.findFirst({
+      where: {
+        propertyId,
+        date: { in: nights },
+      },
+      select: { date: true },
+    });
+    if (blockedByBooking) {
+      reasons.push(
+        `Already booked on ${utcDateToIsoDay(blockedByBooking.date)}.`,
+      );
+    }
 
     // Validate holds overlap
     const overlapHold = await this.prisma.propertyHold.findFirst({

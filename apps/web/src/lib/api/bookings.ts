@@ -11,6 +11,15 @@ export type Booking = {
   [key: string]: unknown;
 };
 
+export type BookingCancellationReason =
+  | "GUEST_REQUEST"
+  | "OWNER_REQUEST"
+  | "NO_PAYMENT"
+  | "AUTO_EXPIRED_UNPAID"
+  | "FORCE_MAJEURE"
+  | "FRAUD"
+  | "ADMIN_OVERRIDE";
+
 type CreateBookingApiResponse =
   | { booking: Booking }
   | Booking;
@@ -137,12 +146,50 @@ export async function getUserBookingDetail(args: { bookingId: string }): Promise
   return unwrap(res);
 }
 
-export async function cancelBooking(bookingId: string): Promise<{ ok: true; id?: string; status?: string }> {
-  const res = await apiFetch<{ ok: true; id?: string; status?: string }>(`/bookings/${bookingId}/cancel`, {
+export async function cancelBooking(input: {
+  bookingId: string;
+  reason?: BookingCancellationReason;
+}): Promise<{
+  ok: true;
+  bookingId: string;
+  cancellationId: string;
+  refundId: string | null;
+  alreadyCancelled?: boolean;
+}> {
+  const res = await apiFetch<{
+    ok: true;
+    bookingId: string;
+    cancellationId: string;
+    refundId: string | null;
+    alreadyCancelled?: boolean;
+  }>(`/bookings/${input.bookingId}/cancel`, {
     method: "POST",
+    body: {
+      reason: input.reason ?? "GUEST_REQUEST",
+    },
     auth: "auto",
   });
 
+  return unwrap(res);
+}
+
+export async function refetchPropertyAvailability(input: {
+  propertyId: string;
+  from: string;
+  to: string;
+}): Promise<unknown> {
+  const res = await apiFetch<unknown>(
+    `/properties/${encodeURIComponent(input.propertyId)}/availability`,
+    {
+      method: "GET",
+      auth: "none",
+      cache: "no-store",
+      query: {
+        from: input.from,
+        to: input.to,
+      },
+    },
+  );
   return unwrap(res);
 }
 

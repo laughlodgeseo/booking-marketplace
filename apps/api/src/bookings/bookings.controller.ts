@@ -57,7 +57,7 @@ export class BookingsController {
     return this.bookingsService.cancelBooking({
       bookingId,
       actorUser: { id: user.id, role: user.role },
-      dto,
+      dto: dto ?? {},
     });
   }
 }

@@ -16,6 +16,7 @@ import {
   createStripePaymentIntent,
   findUserBookingById,
   getUserBookingDetail,
+  refetchPropertyAvailability,
   type BookingListItem,
   type BookingDetail,
 } from "@/lib/api/bookings";
@@ -221,14 +222,36 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   async function onCancel() {
     if (!canCancel) return;
 
-    const ok = window.confirm("Cancel this booking? Backend policy rules will be enforced.");
+    const ok = window.confirm("Cancel this unpaid booking and release the reserved dates?");
     if (!ok) return;
 
     setState({ kind: "cancelling" });
     try {
-      await cancelBooking(props.bookingId);
+      await cancelBooking({
+        bookingId: props.bookingId,
+        reason: "GUEST_REQUEST",
+      });
+
+      if (
+        bookingDetail?.property?.id &&
+        typeof bookingDetail?.checkIn === "string" &&
+        typeof bookingDetail?.checkOut === "string"
+      ) {
+        try {
+          await refetchPropertyAvailability({
+            propertyId: bookingDetail.property.id,
+            from: bookingDetail.checkIn.slice(0, 10),
+            to: bookingDetail.checkOut.slice(0, 10),
+          });
+        } catch {
+          // Non-blocking: cancellation succeeded, availability will still refresh on next view load.
+        }
+      }
+
       await refresh();
       setState({ kind: "idle" });
+      router.refresh();
+      router.replace("/account/bookings?toast=booking_cancelled");
     } catch (e) {
       setState({ kind: "error", message: e instanceof Error ? e.message : "Failed to cancel booking" });
     }

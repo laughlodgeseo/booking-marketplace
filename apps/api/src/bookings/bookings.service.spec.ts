@@ -214,6 +214,10 @@ describe('BookingsService critical paths', () => {
             create: jest.Mock;
           };
           propertyCalendarDay: { findFirst: jest.Mock };
+          bookingBlockedDate: {
+            findFirst: jest.Mock;
+            createMany: jest.Mock;
+          };
         }) => Promise<unknown>,
       ) =>
         fn({
@@ -231,6 +235,10 @@ describe('BookingsService critical paths', () => {
           },
           propertyCalendarDay: {
             findFirst: jest.fn().mockResolvedValue(null),
+          },
+          bookingBlockedDate: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            createMany: jest.fn().mockResolvedValue({ count: 2 }),
           },
         }),
     );
@@ -254,6 +262,128 @@ describe('BookingsService critical paths', () => {
       displayTotalAmount: 32712,
       displayCurrency: 'USD',
     });
+  });
+
+  it('rejects customer cancellation when booking is not pending payment', async () => {
+    const prismaMock = {
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+
+    (prismaMock.$transaction as unknown as jest.Mock).mockImplementation(
+      async (
+        fn: (tx: {
+          booking: {
+            findUnique: jest.Mock;
+          };
+        }) => Promise<unknown>,
+      ) =>
+        fn({
+          booking: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'booking_confirmed_1',
+              status: BookingStatus.CONFIRMED,
+              customerId: 'customer_5',
+              propertyId: 'property_5',
+              checkIn: new Date('2026-05-01T00:00:00.000Z'),
+              checkOut: new Date('2026-05-05T00:00:00.000Z'),
+              totalAmount: 50000,
+              currency: 'AED',
+              property: { vendorId: 'vendor_5' },
+              payment: null,
+              cancellation: null,
+            }),
+          },
+        }),
+    );
+
+    const { service } = buildService({ prisma: prismaMock });
+
+    await expect(
+      service.cancelBooking({
+        bookingId: 'booking_confirmed_1',
+        actorUser: { id: 'customer_5', role: 'CUSTOMER' },
+        dto: {},
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('defaults customer cancellation reason to GUEST_REQUEST when omitted', async () => {
+    const cancellationCreate = jest
+      .fn()
+      .mockResolvedValue({ id: 'cancel_guest_1' });
+
+    const prismaMock = {
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+
+    (prismaMock.$transaction as unknown as jest.Mock).mockImplementation(
+      async (
+        fn: (tx: {
+          booking: {
+            findUnique: jest.Mock;
+            update: jest.Mock;
+          };
+          bookingCancellation: { create: jest.Mock };
+          bookingBlockedDate: { deleteMany: jest.Mock };
+          opsTask: { updateMany: jest.Mock };
+        }) => Promise<unknown>,
+      ) =>
+        fn({
+          booking: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'booking_pending_1',
+              status: BookingStatus.PENDING_PAYMENT,
+              customerId: 'customer_6',
+              propertyId: 'property_6',
+              checkIn: new Date('2026-05-10T00:00:00.000Z'),
+              checkOut: new Date('2026-05-12T00:00:00.000Z'),
+              totalAmount: 30000,
+              totalAmountAed: 30000,
+              displayTotalAmount: 30000,
+              displayCurrency: 'AED',
+              fxRate: new Prisma.Decimal('1'),
+              fxAsOfDate: null,
+              currency: 'AED',
+              cancellationReason: null,
+              property: { vendorId: 'vendor_6' },
+              payment: null,
+              cancellation: null,
+            }),
+            update: jest.fn().mockResolvedValue({
+              id: 'booking_pending_1',
+              status: BookingStatus.CANCELLED,
+            }),
+          },
+          bookingCancellation: {
+            create: cancellationCreate,
+          },
+          bookingBlockedDate: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+          },
+          opsTask: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        }),
+    );
+
+    const notificationsEmit = jest.fn().mockResolvedValue(undefined);
+    const { service } = buildService({
+      prisma: prismaMock,
+      notifications: {
+        emit: notificationsEmit,
+      } as unknown as NotificationsService,
+    });
+
+    await service.cancelBooking({
+      bookingId: 'booking_pending_1',
+      actorUser: { id: 'customer_6', role: 'CUSTOMER' },
+      dto: {},
+    });
+
+    const createArgs = cancellationCreate.mock.calls[0]?.[0] as {
+      data: {
+        reason: CancellationReason;
+      };
+    };
+    expect(createArgs.data.reason).toBe(CancellationReason.GUEST_REQUEST);
   });
 
   it('creates SYSTEM cancellation snapshot for auto-expiry and is idempotent on rerun', async () => {
@@ -300,6 +430,7 @@ describe('BookingsService critical paths', () => {
           bookingCancellation: { create: jest.Mock };
           refund: { create: jest.Mock };
           opsTask: { updateMany: jest.Mock };
+          bookingBlockedDate: { deleteMany: jest.Mock };
         }) => Promise<unknown>,
       ) =>
         fn({
@@ -337,6 +468,9 @@ describe('BookingsService critical paths', () => {
           },
           refund: { create: jest.fn() },
           opsTask: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+          bookingBlockedDate: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
         }),
     );
 

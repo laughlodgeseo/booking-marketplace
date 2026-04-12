@@ -33,6 +33,9 @@ describe('AvailabilityService currency snapshot flow', () => {
       booking: {
         findFirst: jest.fn().mockResolvedValue(null),
       },
+      bookingBlockedDate: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     } as unknown as PrismaService;
 
     const fxRates = {

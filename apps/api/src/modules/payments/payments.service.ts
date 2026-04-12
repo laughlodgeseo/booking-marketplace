@@ -1323,6 +1323,10 @@ export class PaymentsService {
             },
           });
 
+          await tx.bookingBlockedDate.deleteMany({
+            where: { bookingId: booking.id },
+          });
+
           const paymentData = {
             provider: PaymentProvider.STRIPE,
             status: PaymentStatus.FAILED,
