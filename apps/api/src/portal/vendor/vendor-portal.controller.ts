@@ -28,6 +28,7 @@ import {
 } from '../common/portal.utils';
 import type { VendorOpsTaskQueryDto } from './dto/vendor-ops-task-query.dto';
 import type { VendorPropertiesQueryDto } from './dto/vendor-properties-query.dto';
+import { CreateVendorCalendarBlockDto } from './dto/create-vendor-calendar-block.dto';
 import { Throttle } from '@nestjs/throttler';
 import { PortalNotificationsService } from '../common/portal-notifications.service';
 
@@ -210,13 +211,7 @@ export class VendorPortalController {
   @Post('block-requests')
   createBlockRequest(
     @CurrentUser() user: User,
-    @Body()
-    body: {
-      propertyId: string;
-      startDate: string;
-      endDate: string;
-      reason?: string;
-    },
+    @Body() body: CreateVendorCalendarBlockDto,
   ) {
     return this.service.createBlockRequest({
       userId: user.id,

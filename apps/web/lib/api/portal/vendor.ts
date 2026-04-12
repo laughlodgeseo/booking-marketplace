@@ -67,6 +67,7 @@ export type VendorPropertyStatus =
   | "UNDER_REVIEW"
   | "APPROVED"
   | "APPROVED_PENDING_ACTIVATION_PAYMENT"
+  | "APPROVED_PENDING_PAYMENT"
   | "CHANGES_REQUESTED"
   | "REJECTED"
   | "PUBLISHED"
@@ -113,6 +114,9 @@ export type VendorPropertyListItem = {
   title: string;
   slug: string;
   status: VendorPropertyStatus;
+  activationFee: number | null;
+  activationFeeCurrency: string;
+  activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
   city: string;
   area: string | null;
   priceFrom: number;
@@ -334,6 +338,9 @@ export type VendorPropertyDetail = {
   isInstantBook: boolean;
 
   status: VendorPropertyStatus;
+  activationFee: number | null;
+  activationFeeCurrency: string;
+  activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
   reviewHistory?: PropertyReviewHistoryEntry[];
   lastSubmittedAt?: string | null;
   lastReviewedAt?: string | null;
@@ -562,7 +569,7 @@ export async function createVendorBlockRequest(input: {
   endDate: string;
   reason?: string;
 }): Promise<VendorBlockRequest> {
-  const res = await apiFetch<VendorBlockRequest>("/portal/vendor/block-requests", {
+  const res = await apiFetch<VendorBlockRequest>("/vendor/calendar/block", {
     method: "POST",
     credentials: "include",
     cache: "no-store",
@@ -921,6 +928,8 @@ export async function createVendorActivationPaymentIntent(
   activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
   invoice: VendorPropertyActivationInvoice;
   clientSecret: string;
+  amount: number;
+  currency: string;
   paymentIntentId: string;
   publishableKey: string | null;
   reused: boolean;
@@ -937,6 +946,8 @@ export async function createVendorActivationPaymentIntent(
     activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";
     invoice: VendorPropertyActivationInvoice;
     clientSecret: string;
+    amount: number;
+    currency: string;
     paymentIntentId: string;
     publishableKey: string | null;
     reused: boolean;

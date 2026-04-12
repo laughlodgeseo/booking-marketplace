@@ -254,12 +254,16 @@ export class AdminPropertiesService {
     const normalized =
       typeof input === 'string' && input.trim().length > 0
         ? input.trim().toUpperCase()
-        : 'USD';
+        : 'AED';
 
     if (!/^[A-Z]{3}$/.test(normalized)) {
       throw new BadRequestException(
         'activationFeeCurrency must be a 3-letter currency code.',
       );
+    }
+
+    if (normalized !== 'AED') {
+      throw new BadRequestException('activationFeeCurrency must be AED.');
     }
 
     return normalized;

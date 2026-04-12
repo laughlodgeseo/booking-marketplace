@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -23,7 +23,24 @@ function formatDate(value: string): string {
   return date.toLocaleDateString();
 }
 
+function formatMoneyMinor(amountMinor: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amountMinor / 100);
+  } catch {
+    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
+  }
+}
+
+function isApprovedPendingActivationPayment(status: string): boolean {
+  return status === "APPROVED_PENDING_ACTIVATION_PAYMENT" || status === "APPROVED_PENDING_PAYMENT";
+}
+
 export default function VendorPropertyHubPage() {
+  const router = useRouter();
   const params = useParams<{ propertyId: string }>();
   const propertyId = typeof params?.propertyId === "string" ? params.propertyId : "";
 
@@ -59,6 +76,11 @@ export default function VendorPropertyHubPage() {
     const url = state.data.media[0]?.url ?? null;
     return url ? resolveMediaUrl(url) : null;
   }, [state]);
+
+  const showPaymentCTA =
+    state.kind === "ready" &&
+    isApprovedPendingActivationPayment(state.data.status) &&
+    state.data.activationPaymentStatus !== "PAID";
 
   return (
     <PortalShell
@@ -119,6 +141,30 @@ export default function VendorPropertyHubPage() {
 
           <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
             <div className="text-sm font-semibold text-primary">Actions</div>
+            {showPaymentCTA ? (
+              <div className="mt-3 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+                <h3 className="text-sm font-semibold text-primary">Activate Your Property</h3>
+                <p className="mt-1 text-xs text-secondary">
+                  Your property has been approved. Complete payment to go live.
+                </p>
+                <p className="mt-2 text-sm font-semibold text-primary">
+                  Amount:{" "}
+                  {typeof state.data.activationFee === "number"
+                    ? formatMoneyMinor(state.data.activationFee, state.data.activationFeeCurrency)
+                    : `- ${state.data.activationFeeCurrency}`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/vendor/properties/${encodeURIComponent(state.data.id)}/activation`)
+                  }
+                  className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-brand px-3.5 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+                >
+                  Pay &amp; Activate
+                </button>
+              </div>
+            ) : null}
+
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <HubLink href={`/vendor/properties/${encodeURIComponent(state.data.id)}/edit`} title="Editor" desc="Update listing details, media, amenities, and review submission." />
               <HubLink href={`/vendor/properties/${encodeURIComponent(state.data.id)}/preview`} title="Preview" desc="Open the shared preview renderer used by admin and vendor." />

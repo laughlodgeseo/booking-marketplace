@@ -324,6 +324,7 @@ export function PortalAvailabilityCalendar(props: {
                       );
                       setRefreshTick((value) => value + 1);
                     } catch (error) {
+                      console.error("Failed to submit block request", error);
                       setRangeError(
                         error instanceof Error
                           ? error.message
@@ -361,6 +362,7 @@ export function PortalAvailabilityCalendar(props: {
                         setRangeMessage(tPortal("calendar.success.unblocked"));
                         setRefreshTick((value) => value + 1);
                       } catch (error) {
+                        console.error("Failed to unblock dates", error);
                         setRangeError(
                           error instanceof Error ? error.message : tPortal("calendar.errors.unblockDates"),
                         );

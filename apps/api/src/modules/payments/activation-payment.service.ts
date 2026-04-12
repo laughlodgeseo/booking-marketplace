@@ -647,11 +647,17 @@ export class ActivationPaymentService {
     const normalized =
       typeof currency === 'string' && currency.trim().length > 0
         ? currency.trim().toUpperCase()
-        : 'USD';
+        : 'AED';
 
     if (!/^[A-Z]{3}$/.test(normalized)) {
       throw new BadRequestException(
         'Activation fee currency must be a valid 3-letter code.',
+      );
+    }
+
+    if (normalized !== 'AED') {
+      throw new BadRequestException(
+        'Activation fee currency must be AED for Stripe activation payments.',
       );
     }
 

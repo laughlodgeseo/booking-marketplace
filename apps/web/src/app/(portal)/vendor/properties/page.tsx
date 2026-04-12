@@ -28,6 +28,22 @@ function formatDate(value: string): string {
   return date.toLocaleDateString();
 }
 
+function formatMoneyMinor(amountMinor: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amountMinor / 100);
+  } catch {
+    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
+  }
+}
+
+function isApprovedPendingActivationPayment(status: string): boolean {
+  return status === "APPROVED_PENDING_ACTIVATION_PAYMENT" || status === "APPROVED_PENDING_PAYMENT";
+}
+
 export default function VendorPropertiesPage() {
   const router = useRouter();
   const [state, setState] = useState<ViewState>({ kind: "loading" });
@@ -141,8 +157,12 @@ export default function VendorPropertiesPage() {
                 const encodedId = encodeURIComponent(property.id);
                 const editHref = `/vendor/properties/${encodedId}/edit`;
                 const previewHref = `/vendor/properties/${encodedId}/preview`;
+                const activationHref = `/vendor/properties/${encodedId}/activation`;
                 const showContinueEditing =
                   property.status === "DRAFT" || property.status === "CHANGES_REQUESTED";
+                const showPaymentCTA =
+                  isApprovedPendingActivationPayment(property.status) &&
+                  property.activationPaymentStatus !== "PAID";
 
                 return (
                   <article
@@ -190,6 +210,32 @@ export default function VendorPropertiesPage() {
                         Preview
                       </Link>
                     </div>
+
+                    {showPaymentCTA ? (
+                      <div className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+                        <h3 className="text-sm font-semibold text-primary">Activate Your Property</h3>
+                        <p className="mt-1 text-xs text-secondary">
+                          Your property has been approved. Complete payment to go live.
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-primary">
+                          Amount:{" "}
+                          {typeof property.activationFee === "number"
+                            ? formatMoneyMinor(property.activationFee, property.activationFeeCurrency)
+                            : `- ${property.activationFeeCurrency}`}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            router.push(activationHref);
+                          }}
+                          className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-brand px-3.5 text-xs font-semibold text-accent-text hover:bg-brand-hover"
+                        >
+                          Pay &amp; Activate
+                        </button>
+                      </div>
+                    ) : null}
                   </article>
                 );
               })}

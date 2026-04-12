@@ -1,4 +1,7 @@
-import { PropertyStatus } from '@prisma/client';
+import {
+  PropertyActivationPaymentStatus,
+  PropertyStatus,
+} from '@prisma/client';
 
 export type VendorPropertyListItemDto = {
   id: string;
@@ -7,6 +10,9 @@ export type VendorPropertyListItemDto = {
   city: string | null;
   area: string | null;
   status: PropertyStatus;
+  activationFee: number | null;
+  activationFeeCurrency: string;
+  activationPaymentStatus: PropertyActivationPaymentStatus;
 
   // Portal "price from" (schema-aligned)
   priceFrom: number;

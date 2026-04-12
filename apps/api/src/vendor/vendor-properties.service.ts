@@ -953,11 +953,18 @@ export class VendorPropertiesService {
     input?: { idempotencyKey?: string | null },
   ) {
     await this.assertOwnership(vendorUserId, propertyId);
-    return this.activationPayments.createOrReuseStripePaymentIntent({
+    const payment =
+      await this.activationPayments.createOrReuseStripePaymentIntent({
       propertyId,
       vendorId: vendorUserId,
       idempotencyKey: input?.idempotencyKey,
     });
+
+    return {
+      ...payment,
+      amount: payment.invoice.amount,
+      currency: payment.invoice.currency,
+    };
   }
 
   async confirmActivationManual(

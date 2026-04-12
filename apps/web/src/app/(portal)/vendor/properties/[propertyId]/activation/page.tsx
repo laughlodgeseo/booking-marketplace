@@ -12,6 +12,7 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   createVendorActivationPaymentIntent,
   getVendorPropertyActivation,
+  getVendorPropertyDraft,
 } from "@/lib/api/portal/vendor";
 
 type ViewState =
@@ -24,6 +25,8 @@ type ViewState =
 
 type PaymentSession = {
   clientSecret: string;
+  amount: number;
+  currency: string;
   publishableKey: string | null;
   paymentIntentId: string;
   reused: boolean;
@@ -191,6 +194,7 @@ export default function VendorPropertyActivationPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(null);
+  const [propertyTitle, setPropertyTitle] = useState<string>("Property");
 
   const load = useCallback(async () => {
     if (!propertyId) {
@@ -200,8 +204,22 @@ export default function VendorPropertyActivationPage() {
 
     setState({ kind: "loading" });
     try {
-      const data = await getVendorPropertyActivation(propertyId);
-      setState({ kind: "ready", data });
+      const [property, data] = await Promise.all([
+        getVendorPropertyDraft(propertyId),
+        getVendorPropertyActivation(propertyId),
+      ]);
+
+      setPropertyTitle(property.title);
+      setState({
+        kind: "ready",
+        data: {
+          ...data,
+          propertyStatus: property.status,
+          activationFee: property.activationFee,
+          activationFeeCurrency: property.activationFeeCurrency,
+          activationPaymentStatus: property.activationPaymentStatus,
+        },
+      });
     } catch (error) {
       setState({
         kind: "error",
@@ -243,6 +261,8 @@ export default function VendorPropertyActivationPage() {
 
       setPaymentSession({
         clientSecret: session.clientSecret,
+        amount: session.amount,
+        currency: session.currency,
         publishableKey: session.publishableKey,
         paymentIntentId: session.paymentIntentId,
         reused: session.reused,
@@ -262,6 +282,7 @@ export default function VendorPropertyActivationPage() {
         setMessage("Reusing your existing payment session.");
       }
     } catch (error) {
+      console.error("Failed to initialize activation payment", error);
       setMessage(
         error instanceof Error ? error.message : "Failed to initialize activation payment.",
       );
@@ -277,27 +298,44 @@ export default function VendorPropertyActivationPage() {
 
     try {
       for (let attempt = 0; attempt < 24; attempt += 1) {
-        const latest = await getVendorPropertyActivation(propertyId);
-        setState({ kind: "ready", data: latest });
+        const [property, latest] = await Promise.all([
+          getVendorPropertyDraft(propertyId),
+          getVendorPropertyActivation(propertyId),
+        ]);
+
+        setPropertyTitle(property.title);
+        setState({
+          kind: "ready",
+          data: {
+            ...latest,
+            propertyStatus: property.status,
+            activationFee: property.activationFee,
+            activationFeeCurrency: property.activationFeeCurrency,
+            activationPaymentStatus: property.activationPaymentStatus,
+          },
+        });
 
         const paid =
-          latest.activationPaymentStatus === "PAID" ||
+          property.activationPaymentStatus === "PAID" ||
           latest.invoice?.status === "PAID" ||
-          latest.propertyStatus === "PUBLISHED";
+          property.status === "PUBLISHED";
 
         if (paid) {
           clearActivationPaymentIdempotencyKey(propertyId);
           setMessage("Activation payment confirmed. Your listing is now live.");
           setTimeout(() => {
-            router.replace(`/vendor/properties/${encodeURIComponent(propertyId)}`);
+            router.replace("/vendor/properties");
           }, 1200);
           return;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 2500));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
 
       setMessage("Payment submitted. We are still waiting for Stripe webhook confirmation.");
+    } catch (error) {
+      console.error("Failed while polling activation payment status", error);
+      setMessage(error instanceof Error ? error.message : "Failed to verify payment status.");
     } finally {
       setBusy(null);
     }
@@ -307,7 +345,7 @@ export default function VendorPropertyActivationPage() {
     <PortalShell
       role="vendor"
       title="Activation Payment"
-      subtitle="Complete activation to publish your listing"
+      subtitle={`Complete activation to publish ${propertyTitle}`}
       right={
         <Link
           href={`/vendor/properties/${encodeURIComponent(propertyId)}/edit`}
@@ -395,7 +433,7 @@ export default function VendorPropertyActivationPage() {
                       Stripe publishable key is missing. Set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
                     </div>
                   ) : (
-                    <Elements stripe={stripePromise}>
+                    <Elements stripe={stripePromise} options={{ clientSecret: paymentSession.clientSecret }}>
                       <ActivationCardForm
                         clientSecret={paymentSession.clientSecret}
                         onSubmitted={pollUntilActivated}
@@ -409,6 +447,12 @@ export default function VendorPropertyActivationPage() {
                   Activation payment is complete. Your listing is active.
                 </div>
               )}
+
+              {paymentSession ? (
+                <div className="mt-3 rounded-2xl border border-line/70 bg-warm-base p-3 text-xs text-secondary">
+                  Amount to charge: {formatMoneyMinor(paymentSession.amount, paymentSession.currency)}
+                </div>
+              ) : null}
 
               {state.data.invoice?.lastError ? (
                 <div className="mt-3 rounded-2xl border border-danger/30 bg-danger/12 p-3 text-xs text-danger">

@@ -180,7 +180,7 @@ export default function AdminReviewQueueDetailPage() {
 
       await approveAdminPropertyWithActivationFee(propertyId, {
         activationFee,
-        activationFeeCurrency: "USD",
+        activationFeeCurrency: "AED",
         notes: note.trim() || undefined,
       });
       await load();
@@ -294,7 +294,7 @@ export default function AdminReviewQueueDetailPage() {
                   placeholder="Optional admin note for reject/request-changes"
                   className="mt-2 w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary"
                 />
-                <div className="mt-4 text-xs font-semibold text-muted">Activation fee (USD)</div>
+                <div className="mt-4 text-xs font-semibold text-muted">Activation fee (AED)</div>
                 <input
                   value={activationFeeMajor}
                   onChange={(event) => setActivationFeeMajor(event.target.value)}
