@@ -43,10 +43,11 @@ export class StripeWebhookProcessor extends WorkerHost {
       switch (eventType) {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
-          const result = await this.payments.handleStripeCheckoutSessionCompleted({
-            eventId,
-            session,
-          });
+          const result =
+            await this.payments.handleStripeCheckoutSessionCompleted({
+              eventId,
+              session,
+            });
           this.logger.log(
             `stripe_processor handled eventType=${eventType} bookingId=${result.bookingId ?? 'n/a'} reused=${result.reused} ignored=${result.ignored}`,
           );
@@ -55,10 +56,12 @@ export class StripeWebhookProcessor extends WorkerHost {
 
         case 'payment_intent.succeeded': {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          const result = await this.payments.handleStripePaymentIntentSucceeded({
-            eventId,
-            paymentIntent,
-          });
+          const result = await this.payments.handleStripePaymentIntentSucceeded(
+            {
+              eventId,
+              paymentIntent,
+            },
+          );
           this.logger.log(
             `stripe_processor handled eventType=${eventType} reused=${result.reused} ignored=${result.ignored ?? false}`,
           );
@@ -79,10 +82,11 @@ export class StripeWebhookProcessor extends WorkerHost {
 
         case 'payment_intent.processing': {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          const result = await this.payments.handleStripePaymentIntentProcessing({
-            eventId,
-            paymentIntent,
-          });
+          const result =
+            await this.payments.handleStripePaymentIntentProcessing({
+              eventId,
+              paymentIntent,
+            });
           this.logger.log(
             `stripe_processor handled eventType=${eventType} reused=${result.reused} ignored=${result.ignored ?? false}`,
           );
@@ -115,9 +119,7 @@ export class StripeWebhookProcessor extends WorkerHost {
 
         default:
           // Unhandled but not an error — Stripe sends many event types.
-          this.logger.debug(
-            `stripe_processor ignored eventType=${eventType}`,
-          );
+          this.logger.debug(`stripe_processor ignored eventType=${eventType}`);
       }
     } catch (error) {
       this.logger.error(

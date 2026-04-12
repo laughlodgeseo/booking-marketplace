@@ -56,10 +56,14 @@ export class DubaiTaxService {
     const cleaningFee = Math.round(cleaningFeeAed);
 
     // ── Step 3 ─────────────────────────────────────────────────────────────
-    const serviceCharge = Math.round(baseTotal * DUBAI_TAX_CONFIG.serviceCharge);
+    const serviceCharge = Math.round(
+      baseTotal * DUBAI_TAX_CONFIG.serviceCharge,
+    );
 
     // ── Step 4 ─────────────────────────────────────────────────────────────
-    const municipalityFee = Math.round(baseTotal * DUBAI_TAX_CONFIG.municipalityFee);
+    const municipalityFee = Math.round(
+      baseTotal * DUBAI_TAX_CONFIG.municipalityFee,
+    );
 
     // ── Step 5 ─────────────────────────────────────────────────────────────
     const tourismFee = Math.round(baseTotal * DUBAI_TAX_CONFIG.tourismFee);

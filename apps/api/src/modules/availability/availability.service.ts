@@ -631,7 +631,10 @@ export class AvailabilityService {
     const nightlySubtotal = this.toDisplayAmount(nightlySubtotalAed, r);
     const cleaningFee = this.toDisplayAmount(cleaningFeeAed, r);
     const serviceFee = this.toDisplayAmount(dubaiBreakdown.serviceCharge, r);
-    const municipalityFee = this.toDisplayAmount(dubaiBreakdown.municipalityFee, r);
+    const municipalityFee = this.toDisplayAmount(
+      dubaiBreakdown.municipalityFee,
+      r,
+    );
     const tourismFee = this.toDisplayAmount(dubaiBreakdown.tourismFee, r);
     const vat = this.toDisplayAmount(dubaiBreakdown.vat, r);
     const tourismDirham = this.toDisplayAmount(dubaiBreakdown.tourismDirham, r);
@@ -745,9 +748,10 @@ export class AvailabilityService {
       tourismFee: breakdown.tourismFeeAed ?? 0,
       vat: breakdown.vatAed ?? 0,
       tourismDirham: breakdown.tourismDirhamAed ?? 0,
-      total: typeof breakdown.totalAed === 'number'
-        ? breakdown.totalAed
-        : Math.round(breakdown.total / fxRate),
+      total:
+        typeof breakdown.totalAed === 'number'
+          ? breakdown.totalAed
+          : Math.round(breakdown.total / fxRate),
     };
 
     const hold = await this.createHold(

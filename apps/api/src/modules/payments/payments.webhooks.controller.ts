@@ -60,7 +60,9 @@ export class PaymentsWebhooksController {
       throw new BadRequestException('Invalid Stripe webhook signature.');
     }
 
-    this.logger.log(`stripe_webhook received eventType=${event.type} eventId=${event.id}`);
+    this.logger.log(
+      `stripe_webhook received eventType=${event.type} eventId=${event.id}`,
+    );
 
     // ── Async path: enqueue and return 200 immediately ────────────────────────
     if (this.stripeWebhookQueue) {
@@ -73,7 +75,7 @@ export class PaymentsWebhooksController {
             event,
           },
           {
-            jobId: event.id,     // deduplication: same Stripe event ID → same job
+            jobId: event.id, // deduplication: same Stripe event ID → same job
             attempts: 3,
             backoff: { type: 'exponential', delay: 1_000 },
           },
@@ -115,10 +117,12 @@ export class PaymentsWebhooksController {
         this.logger.log(
           `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
         );
-        const result = await this.payments.handleStripeCheckoutSessionCompleted({
-          eventId: event.id,
-          session,
-        });
+        const result = await this.payments.handleStripeCheckoutSessionCompleted(
+          {
+            eventId: event.id,
+            session,
+          },
+        );
         this.logger.log(
           `stripe_webhook_sync handled eventType=${event.type} bookingId=${result.bookingId ?? 'n/a'} reused=${result.reused}`,
         );
@@ -127,7 +131,8 @@ export class PaymentsWebhooksController {
 
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
-        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        const bookingId =
+          (paymentIntent.metadata?.bookingId ?? '').trim() || null;
         this.logger.log(
           `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
         );
@@ -143,7 +148,8 @@ export class PaymentsWebhooksController {
 
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object;
-        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        const bookingId =
+          (paymentIntent.metadata?.bookingId ?? '').trim() || null;
         this.logger.log(
           `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
         );
@@ -159,7 +165,8 @@ export class PaymentsWebhooksController {
 
       case 'payment_intent.processing': {
         const paymentIntent = event.data.object;
-        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        const bookingId =
+          (paymentIntent.metadata?.bookingId ?? '').trim() || null;
         this.logger.log(
           `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
         );
@@ -175,7 +182,8 @@ export class PaymentsWebhooksController {
 
       case 'payment_intent.canceled': {
         const paymentIntent = event.data.object;
-        const bookingId = (paymentIntent.metadata?.bookingId ?? '').trim() || null;
+        const bookingId =
+          (paymentIntent.metadata?.bookingId ?? '').trim() || null;
         this.logger.log(
           `stripe_webhook_sync eventType=${event.type} bookingId=${bookingId ?? 'n/a'}`,
         );

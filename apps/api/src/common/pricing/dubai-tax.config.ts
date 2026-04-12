@@ -25,7 +25,7 @@ export const DUBAI_TAX_CONFIG = {
   /** UAE Value Added Tax — applied to the full subtotal (incl. fees). */
   vat: 0.05,
   /** DTCM service charge — applied to nightly base only. */
-  serviceCharge: 0.10,
+  serviceCharge: 0.1,
   /** Dubai municipality fee — applied to nightly base only. */
   municipalityFee: 0.07,
   /** DTCM tourism fee — applied to nightly base only. */
@@ -34,8 +34,13 @@ export const DUBAI_TAX_CONFIG = {
   tourismDirhamBystar: TOURISM_DIRHAM_BY_STAR,
 } as const;
 
-export function getTourismDirhamRate(starRating: number | null | undefined): number {
+export function getTourismDirhamRate(
+  starRating: number | null | undefined,
+): number {
   const star = Math.round(starRating ?? DEFAULT_STAR_RATING);
   const clamped = Math.max(1, Math.min(5, star));
-  return TOURISM_DIRHAM_BY_STAR[clamped] ?? TOURISM_DIRHAM_BY_STAR[DEFAULT_STAR_RATING];
+  return (
+    TOURISM_DIRHAM_BY_STAR[clamped] ??
+    TOURISM_DIRHAM_BY_STAR[DEFAULT_STAR_RATING]
+  );
 }

@@ -822,7 +822,10 @@ export class VendorPropertiesService {
     });
     if (!property) throw new NotFoundException('Property not found.');
 
-    const currentSnapshot = await this.buildReviewSnapshot(this.prisma, propertyId);
+    const currentSnapshot = await this.buildReviewSnapshot(
+      this.prisma,
+      propertyId,
+    );
     const reviewHistory = parseReviewHistory(property.reviewHistory);
     const lastReview = findLastReviewAnchor(reviewHistory);
     const changes = lastReview

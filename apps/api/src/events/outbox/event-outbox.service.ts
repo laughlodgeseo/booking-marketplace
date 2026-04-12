@@ -115,7 +115,9 @@ export class EventOutboxService {
       },
     });
     if (result.count > 0) {
-      this.logger.warn(`outbox_discarded_stale count=${result.count} maxAttempts=${maxAttempts}`);
+      this.logger.warn(
+        `outbox_discarded_stale count=${result.count} maxAttempts=${maxAttempts}`,
+      );
     }
     return result.count;
   }

@@ -64,9 +64,10 @@ export const PROPERTY_DOCUMENT_REQUIREMENTS: readonly PropertyDocumentRequiremen
     },
   ] as const;
 
-export const REQUIRED_PROPERTY_DOCUMENT_TYPES = PROPERTY_DOCUMENT_REQUIREMENTS.filter(
-  (item) => item.required,
-).map((item) => item.id);
+export const REQUIRED_PROPERTY_DOCUMENT_TYPES =
+  PROPERTY_DOCUMENT_REQUIREMENTS.filter((item) => item.required).map(
+    (item) => item.id,
+  );
 
 export function getPropertyDocumentRequirements(): PropertyDocumentRequirement[] {
   return PROPERTY_DOCUMENT_REQUIREMENTS.map((item) => ({

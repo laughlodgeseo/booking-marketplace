@@ -44,7 +44,9 @@ export class EventOutboxWorker {
     // Discard poison events that have exceeded max attempts
     await this.outbox.discardStale(EventOutboxWorker.MAX_ATTEMPTS);
 
-    const events = await this.outbox.fetchUnprocessed(EventOutboxWorker.BATCH_SIZE);
+    const events = await this.outbox.fetchUnprocessed(
+      EventOutboxWorker.BATCH_SIZE,
+    );
     if (events.length === 0) return;
 
     let processed = 0;

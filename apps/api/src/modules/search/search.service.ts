@@ -692,8 +692,7 @@ export class SearchService {
           startDate: rule.startDate,
           endDate: rule.endDate,
           priceMultiplier: Number(rule.priceMultiplier),
-          fixedPrice:
-            rule.fixedPrice !== null ? Number(rule.fixedPrice) : null,
+          fixedPrice: rule.fixedPrice !== null ? Number(rule.fixedPrice) : null,
           priority: Number(rule.priority),
         });
       }

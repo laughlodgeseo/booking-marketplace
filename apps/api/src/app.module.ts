@@ -63,9 +63,9 @@ import { MediaModule } from './modules/media/media.module';
     EventsModule,
 
     // ── Phase 3: Infrastructure layer (global) ───────────────────────────────
-    RedisModule,       // Redis client + CacheService (@Global)
-    StorageModule,     // File storage abstraction (@Global)
-    QueueModule,       // BullMQ queues + StripeWebhookProcessor
+    RedisModule, // Redis client + CacheService (@Global)
+    StorageModule, // File storage abstraction (@Global)
+    QueueModule, // BullMQ queues + StripeWebhookProcessor
     CacheInvalidationModule, // Auto-invalidates cache on domain events
 
     // ── Core feature modules ─────────────────────────────────────────────────

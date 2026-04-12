@@ -37,17 +37,32 @@ describe('BookingsService critical paths', () => {
         emit: jest.fn().mockResolvedValue(undefined),
       } as unknown as NotificationsService);
     const pricing = {
-      calculateTotal: jest.fn().mockResolvedValue({ nightlyBreakdown: [], subtotal: 0 }),
+      calculateTotal: jest
+        .fn()
+        .mockResolvedValue({ nightlyBreakdown: [], subtotal: 0 }),
     } as unknown as PricingService;
     const dubaiTax = {
       calculate: jest.fn().mockReturnValue({
-        baseTotal: 0, cleaningFee: 0, serviceCharge: 0, municipalityFee: 0,
-        tourismFee: 0, subtotalBeforeVat: 0, vat: 0, tourismDirham: 0, total: 0,
+        baseTotal: 0,
+        cleaningFee: 0,
+        serviceCharge: 0,
+        municipalityFee: 0,
+        tourismFee: 0,
+        subtotalBeforeVat: 0,
+        vat: 0,
+        tourismDirham: 0,
+        total: 0,
       }),
     } as unknown as DubaiTaxService;
 
     return {
-      service: new BookingsService(prisma, cancellationPolicy, notifications, pricing, dubaiTax),
+      service: new BookingsService(
+        prisma,
+        cancellationPolicy,
+        notifications,
+        pricing,
+        dubaiTax,
+      ),
       prisma,
       cancellationPolicy,
       notifications,

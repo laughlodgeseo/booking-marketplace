@@ -47,7 +47,10 @@ describe('AvailabilityService currency snapshot flow', () => {
 
     const pricing = {
       calculateTotal: jest.fn().mockResolvedValue({
-        nightlyBreakdown: [{ date: '2026-03-10', price: 1000, ruleId: null }, { date: '2026-03-11', price: 1000, ruleId: null }],
+        nightlyBreakdown: [
+          { date: '2026-03-10', price: 1000, ruleId: null },
+          { date: '2026-03-11', price: 1000, ruleId: null },
+        ],
         subtotal: 2000,
       }),
     } as unknown as PricingService;
@@ -55,8 +58,15 @@ describe('AvailabilityService currency snapshot flow', () => {
     const dubaiTax = {
       // total=2200 so that totalAed=2200 and FX total=2200*0.25=550 match test expectations
       calculate: jest.fn().mockReturnValue({
-        baseTotal: 2000, cleaningFee: 200, serviceCharge: 0, municipalityFee: 0,
-        tourismFee: 0, subtotalBeforeVat: 2200, vat: 0, tourismDirham: 0, total: 2200,
+        baseTotal: 2000,
+        cleaningFee: 200,
+        serviceCharge: 0,
+        municipalityFee: 0,
+        tourismFee: 0,
+        subtotalBeforeVat: 2200,
+        vat: 0,
+        tourismDirham: 0,
+        total: 2200,
       }),
     } as unknown as DubaiTaxService;
 

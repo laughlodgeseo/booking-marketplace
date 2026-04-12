@@ -39,6 +39,81 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+type DiffPath = Array<string | number>;
+
+type DiffChangeEntry = {
+  kind: 'E' | 'N' | 'D';
+  path?: DiffPath;
+  lhs?: unknown;
+  rhs?: unknown;
+};
+
+type DiffArrayEntry = {
+  kind: 'A';
+  path?: DiffPath;
+  index: number;
+  item: DiffChangeEntry;
+};
+
+type DiffEntry = DiffChangeEntry | DiffArrayEntry;
+
+function parseDiffPath(value: unknown): DiffPath | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return undefined;
+
+  const parsed: DiffPath = [];
+  for (const segment of value) {
+    if (typeof segment === 'string') {
+      parsed.push(segment);
+      continue;
+    }
+    if (typeof segment === 'number' && Number.isInteger(segment)) {
+      parsed.push(segment);
+      continue;
+    }
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function parseDiffChangeEntry(value: unknown): DiffChangeEntry | null {
+  if (!isRecord(value)) return null;
+  const kind = value.kind;
+
+  if (kind !== 'E' && kind !== 'N' && kind !== 'D') {
+    return null;
+  }
+
+  return {
+    kind: kind,
+    path: parseDiffPath(value.path),
+    lhs: value.lhs,
+    rhs: value.rhs,
+  };
+}
+
+function parseDiffEntry(value: unknown): DiffEntry | null {
+  if (!isRecord(value)) return null;
+  const kind = value.kind;
+
+  if (kind === 'A') {
+    const index = value.index;
+    if (typeof index !== 'number' || !Number.isInteger(index)) return null;
+    const item = parseDiffChangeEntry(value.item);
+    if (!item) return null;
+
+    return {
+      kind: 'A',
+      path: parseDiffPath(value.path),
+      index,
+      item,
+    };
+  }
+
+  return parseDiffChangeEntry(value);
+}
+
 function pathToField(path: Array<string | number> | undefined): string {
   if (!path || path.length === 0) return '(root)';
 
@@ -61,9 +136,7 @@ function normalizeCreatedAt(value: unknown): string {
   return new Date().toISOString();
 }
 
-function asHistoryEntry(
-  value: unknown,
-): PropertyReviewHistoryEntry | null {
+function asHistoryEntry(value: unknown): PropertyReviewHistoryEntry | null {
   if (!isRecord(value)) return null;
 
   const action = typeof value.action === 'string' ? value.action : null;
@@ -140,11 +213,18 @@ export function computePropertyChanges(
   afterSnapshot: unknown,
   opts?: { ignorePrefixes?: string[] },
 ): PropertyFieldChange[] {
-  const raw = deepDiff(beforeSnapshot as object, afterSnapshot as object);
-  if (!raw || raw.length === 0) return [];
+  const diffFn = deepDiff as unknown as (lhs: unknown, rhs: unknown) => unknown;
+
+  const raw = diffFn(beforeSnapshot, afterSnapshot);
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  const entries = raw
+    .map((item) => parseDiffEntry(item))
+    .filter((item): item is DiffEntry => item !== null);
+  if (entries.length === 0) return [];
 
   const changes: PropertyFieldChange[] = [];
-  for (const item of raw as any[]) {
+  for (const item of entries) {
     if (!item || typeof item.kind !== 'string') continue;
 
     if (item.kind === 'E') {

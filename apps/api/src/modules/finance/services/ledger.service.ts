@@ -100,8 +100,7 @@ export class LedgerService {
           if (e.direction === LedgerDirection.CREDIT) depositClaimCredit += amt;
           break;
         case LedgerEntryType.ADJUSTMENT:
-          adjustmentsNet +=
-            e.direction === LedgerDirection.CREDIT ? amt : -amt;
+          adjustmentsNet += e.direction === LedgerDirection.CREDIT ? amt : -amt;
           break;
         case LedgerEntryType.PAYOUT:
           if (e.direction === LedgerDirection.DEBIT) totalPayouts += amt;
@@ -112,7 +111,10 @@ export class LedgerService {
     }
 
     // Net fee charge = fees debited minus any fee reversals from refunds
-    const managementFees = Math.max(0, managementFeesDebit - managementFeesCredit);
+    const managementFees = Math.max(
+      0,
+      managementFeesDebit - managementFeesCredit,
+    );
 
     // Earned balance = gross - net fees - refunds + adjustments
     const earnedBalance =
@@ -221,7 +223,12 @@ export class LedgerService {
   async verifyLedgerIntegrity(
     vendorId: string,
     currency = 'AED',
-  ): Promise<{ consistent: boolean; totalCredit: number; totalDebit: number; net: number }> {
+  ): Promise<{
+    consistent: boolean;
+    totalCredit: number;
+    totalDebit: number;
+    net: number;
+  }> {
     const entries = await this.prisma.ledgerEntry.findMany({
       where: { vendorId, currency },
       select: { direction: true, amount: true },

@@ -46,25 +46,27 @@ export class AutoPayoutWorker {
     const now = new Date();
 
     // Target: PREVIOUS calendar month (UTC)
-    const year = now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear();
+    const year =
+      now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear();
     const month = now.getUTCMonth() === 0 ? 12 : now.getUTCMonth(); // 1-indexed
 
-    this.logger.log(
-      `auto_payout_worker starting year=${year} month=${month}`,
-    );
+    this.logger.log(`auto_payout_worker starting year=${year} month=${month}`);
 
     // ── Step 1: Generate statements for all vendors ────────────────────────
     let generateResult: Awaited<
-      ReturnType<VendorStatementsService['adminGenerateMonthlyStatementsForAll']>
+      ReturnType<
+        VendorStatementsService['adminGenerateMonthlyStatementsForAll']
+      >
     >;
 
     try {
-      generateResult = await this.vendorStatements.adminGenerateMonthlyStatementsForAll({
-        adminUserId: AutoPayoutWorker.SYSTEM_ACTOR_ID,
-        year,
-        month,
-        currency: 'AED',
-      });
+      generateResult =
+        await this.vendorStatements.adminGenerateMonthlyStatementsForAll({
+          adminUserId: AutoPayoutWorker.SYSTEM_ACTOR_ID,
+          year,
+          month,
+          currency: 'AED',
+        });
     } catch (err) {
       this.logger.error(
         `auto_payout_worker statement_generation_failed year=${year} month=${month}: ${err instanceof Error ? err.message : String(err)}`,
@@ -93,21 +95,23 @@ export class AutoPayoutWorker {
 
     for (const st of draftStatements) {
       try {
-        const finalizeResult = await this.vendorStatements.adminFinalizeStatement({
-          adminUserId: AutoPayoutWorker.SYSTEM_ACTOR_ID,
-          statementId: st.id,
-          note: `Auto-finalized by ${AutoPayoutWorker.SYSTEM_ACTOR_ID} for ${year}-${String(month).padStart(2, '0')}`,
-        });
+        const finalizeResult =
+          await this.vendorStatements.adminFinalizeStatement({
+            adminUserId: AutoPayoutWorker.SYSTEM_ACTOR_ID,
+            statementId: st.id,
+            note: `Auto-finalized by ${AutoPayoutWorker.SYSTEM_ACTOR_ID} for ${year}-${String(month).padStart(2, '0')}`,
+          });
 
         if (!finalizeResult.reused) finalized += 1;
 
         // ── Step 3: Create PENDING payout for this statement ───────────────
         try {
-          const payoutResult = await this.payouts.adminCreatePayoutFromStatement({
-            statementId: st.id,
-            provider: PaymentProvider.MANUAL,
-            providerRef: null,
-          });
+          const payoutResult =
+            await this.payouts.adminCreatePayoutFromStatement({
+              statementId: st.id,
+              provider: PaymentProvider.MANUAL,
+              providerRef: null,
+            });
 
           if (!payoutResult.reused) {
             payoutsCreated += 1;

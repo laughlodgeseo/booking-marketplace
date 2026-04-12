@@ -16,7 +16,12 @@ import { DubaiTaxService } from '../common/pricing/dubai-tax.service';
     PricingModule,
   ],
   controllers: [BookingsController],
-  providers: [BookingsService, PrismaService, CancellationPolicyService, DubaiTaxService],
+  providers: [
+    BookingsService,
+    PrismaService,
+    CancellationPolicyService,
+    DubaiTaxService,
+  ],
   exports: [BookingsService],
 })
 export class BookingsModule {}

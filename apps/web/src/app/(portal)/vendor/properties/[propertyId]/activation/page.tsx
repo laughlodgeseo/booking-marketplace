@@ -12,7 +12,6 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   createVendorActivationPaymentIntent,
   getVendorPropertyActivation,
-  type VendorPropertyActivationInvoice,
 } from "@/lib/api/portal/vendor";
 
 type ViewState =

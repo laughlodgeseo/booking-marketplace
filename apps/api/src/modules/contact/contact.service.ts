@@ -41,8 +41,7 @@ export class ContactService {
     const from =
       (process.env.SMTP_FROM || '').trim() ||
       'RentPropertyUAE <booking@rentpropertyuae.com>';
-    const replyTo =
-      (process.env.SMTP_REPLY_TO || '').trim() || undefined;
+    const replyTo = (process.env.SMTP_REPLY_TO || '').trim() || undefined;
 
     return {
       configured: apiKey.length > 0,

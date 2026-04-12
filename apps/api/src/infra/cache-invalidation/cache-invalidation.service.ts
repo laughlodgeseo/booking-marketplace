@@ -56,7 +56,9 @@ export class CacheInvalidationService implements OnModuleInit {
 
   // ── Event handlers ─────────────────────────────────────────────────────────
 
-  private async onPaymentSucceeded(event: PaymentSucceededEvent): Promise<void> {
+  private async onPaymentSucceeded(
+    event: PaymentSucceededEvent,
+  ): Promise<void> {
     await this.bustVendorWallet(event.vendorId, event.bookingId);
   }
 
@@ -122,6 +124,8 @@ export class CacheInvalidationService implements OnModuleInit {
     checkIn: string,
     checkOut: string,
   ): Promise<void> {
-    await this.cache.del(CacheKey.pricingPreview(propertyId, checkIn, checkOut));
+    await this.cache.del(
+      CacheKey.pricingPreview(propertyId, checkIn, checkOut),
+    );
   }
 }

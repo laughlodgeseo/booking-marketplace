@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 
 /**
@@ -32,20 +37,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this._client.on('connect', () =>
-      this.logger.log('Redis connected'),
-    );
+    this._client.on('connect', () => this.logger.log('Redis connected'));
     this._client.on('error', (err: Error) =>
       this.logger.warn(`Redis error: ${err.message}`),
     );
-    this._client.on('close', () =>
-      this.logger.warn('Redis connection closed'),
-    );
+    this._client.on('close', () => this.logger.warn('Redis connection closed'));
 
     // Non-blocking connect — the cache degrades gracefully if Redis is down.
-    this._client.connect().catch((err: Error) =>
-      this.logger.warn(`Redis initial connect failed: ${err.message}`),
-    );
+    this._client
+      .connect()
+      .catch((err: Error) =>
+        this.logger.warn(`Redis initial connect failed: ${err.message}`),
+      );
   }
 
   async onModuleDestroy(): Promise<void> {

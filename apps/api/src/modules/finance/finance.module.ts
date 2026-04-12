@@ -16,7 +16,12 @@ import { PortalAdminPayoutsController } from './controllers/portal-admin-payouts
     PortalAdminStatementsController,
     PortalAdminPayoutsController,
   ],
-  providers: [PrismaService, VendorStatementsService, PayoutsService, LedgerService],
+  providers: [
+    PrismaService,
+    VendorStatementsService,
+    PayoutsService,
+    LedgerService,
+  ],
   exports: [VendorStatementsService, PayoutsService, LedgerService],
 })
 export class FinanceModule {}

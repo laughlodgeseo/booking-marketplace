@@ -536,7 +536,10 @@ describe('PaymentsService', () => {
           emit: jest.fn().mockResolvedValue(undefined),
         } as unknown as NotificationsService,
         {} as BookingsService,
-        { publish: jest.fn(), subscribe: jest.fn() } as unknown as import('./../../events/event-bus.service').EventBusService,
+        {
+          publish: jest.fn(),
+          subscribe: jest.fn(),
+        } as unknown as import('./../../events/event-bus.service').EventBusService,
       );
 
       jest

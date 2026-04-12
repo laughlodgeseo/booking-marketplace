@@ -35,7 +35,10 @@ export class ActivationPaymentService {
   ) {}
 
   isActivationPaymentIntent(paymentIntent: Stripe.PaymentIntent): boolean {
-    return this.readMetadata(paymentIntent, 'type') === ACTIVATION_PAYMENT_METADATA_TYPE;
+    return (
+      this.readMetadata(paymentIntent, 'type') ===
+      ACTIVATION_PAYMENT_METADATA_TYPE
+    );
   }
 
   async ensurePendingInvoice(args: {
@@ -137,18 +140,21 @@ export class ActivationPaymentService {
       throw new ForbiddenException('Not your property.');
     }
 
-    if (property.activationPaymentStatus === PropertyActivationPaymentStatus.PAID) {
+    if (
+      property.activationPaymentStatus === PropertyActivationPaymentStatus.PAID
+    ) {
       throw new BadRequestException('Activation payment already completed.');
     }
 
-    const alreadyPaidInvoice = await this.prisma.propertyActivationInvoice.findFirst({
-      where: {
-        propertyId: property.id,
-        vendorId: property.vendorId,
-        status: ActivationInvoiceStatus.PAID,
-      },
-      orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }],
-    });
+    const alreadyPaidInvoice =
+      await this.prisma.propertyActivationInvoice.findFirst({
+        where: {
+          propertyId: property.id,
+          vendorId: property.vendorId,
+          status: ActivationInvoiceStatus.PAID,
+        },
+        orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }],
+      });
 
     if (alreadyPaidInvoice) {
       await this.prisma.property.update({
@@ -160,7 +166,9 @@ export class ActivationPaymentService {
       throw new BadRequestException('Activation payment already completed.');
     }
 
-    if (property.status !== PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT) {
+    if (
+      property.status !== PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT
+    ) {
       throw new BadRequestException(
         `Activation payment is not required in status ${property.status}.`,
       );
@@ -185,7 +193,11 @@ export class ActivationPaymentService {
       orderBy: [{ createdAt: 'desc' }],
     });
 
-    if (!invoice || invoice.amount !== amount || this.normalizeCurrency(invoice.currency) !== currency) {
+    if (
+      !invoice ||
+      invoice.amount !== amount ||
+      this.normalizeCurrency(invoice.currency) !== currency
+    ) {
       invoice = await this.ensurePendingInvoice({
         propertyId: property.id,
         vendorId: property.vendorId,
@@ -215,29 +227,35 @@ export class ActivationPaymentService {
           );
         }
 
-        if (this.canReuseStripeIntent(existingIntent.status) && existingClientSecret) {
-          const updatedInvoice = await this.prisma.propertyActivationInvoice.update({
-            where: { id: invoice.id },
-            data: {
-              provider: PaymentProvider.STRIPE,
-              providerRef: existingIntent.id,
-              stripePaymentIntentId: existingIntent.id,
-              status: ActivationInvoiceStatus.PROCESSING,
-              lastError: null,
-            },
-          });
+        if (
+          this.canReuseStripeIntent(existingIntent.status) &&
+          existingClientSecret
+        ) {
+          const updatedInvoice =
+            await this.prisma.propertyActivationInvoice.update({
+              where: { id: invoice.id },
+              data: {
+                provider: PaymentProvider.STRIPE,
+                providerRef: existingIntent.id,
+                stripePaymentIntentId: existingIntent.id,
+                status: ActivationInvoiceStatus.PROCESSING,
+                lastError: null,
+              },
+            });
 
           await this.prisma.property.update({
             where: { id: property.id },
             data: {
-              activationPaymentStatus: PropertyActivationPaymentStatus.IN_PROGRESS,
+              activationPaymentStatus:
+                PropertyActivationPaymentStatus.IN_PROGRESS,
             },
           });
 
           return {
             propertyId: property.id,
             propertyStatus: property.status,
-            activationPaymentStatus: PropertyActivationPaymentStatus.IN_PROGRESS,
+            activationPaymentStatus:
+              PropertyActivationPaymentStatus.IN_PROGRESS,
             invoice: this.serializeInvoice(updatedInvoice),
             clientSecret: existingClientSecret,
             paymentIntentId: existingIntent.id,
@@ -334,7 +352,10 @@ export class ActivationPaymentService {
           return { reused: true, ignored: false } as const;
         }
 
-        const invoice = await this.findInvoiceByPaymentIntent(tx, args.paymentIntent);
+        const invoice = await this.findInvoiceByPaymentIntent(
+          tx,
+          args.paymentIntent,
+        );
         if (!invoice) {
           return { reused: false, ignored: true } as const;
         }
@@ -413,7 +434,10 @@ export class ActivationPaymentService {
           return { reused: true, ignored: false } as const;
         }
 
-        const invoice = await this.findInvoiceByPaymentIntent(tx, args.paymentIntent);
+        const invoice = await this.findInvoiceByPaymentIntent(
+          tx,
+          args.paymentIntent,
+        );
         if (!invoice) {
           return { reused: false, ignored: true } as const;
         }
@@ -432,7 +456,8 @@ export class ActivationPaymentService {
           await tx.property.update({
             where: { id: invoice.propertyId },
             data: {
-              activationPaymentStatus: PropertyActivationPaymentStatus.IN_PROGRESS,
+              activationPaymentStatus:
+                PropertyActivationPaymentStatus.IN_PROGRESS,
             },
           });
         }
@@ -478,7 +503,10 @@ export class ActivationPaymentService {
           return { reused: true, ignored: false } as const;
         }
 
-        const invoice = await this.findInvoiceByPaymentIntent(tx, args.paymentIntent);
+        const invoice = await this.findInvoiceByPaymentIntent(
+          tx,
+          args.paymentIntent,
+        );
         if (!invoice) {
           return { reused: false, ignored: true } as const;
         }
@@ -556,7 +584,10 @@ export class ActivationPaymentService {
     tx: Prisma.TransactionClient,
     paymentIntent: Stripe.PaymentIntent,
   ) {
-    const metadataInvoiceId = this.readMetadata(paymentIntent, 'activationInvoiceId');
+    const metadataInvoiceId = this.readMetadata(
+      paymentIntent,
+      'activationInvoiceId',
+    );
     const metadataPropertyId = this.readMetadata(paymentIntent, 'propertyId');
     const metadataVendorId = this.readMetadata(paymentIntent, 'vendorId');
 
@@ -593,7 +624,10 @@ export class ActivationPaymentService {
     });
   }
 
-  private readMetadata(paymentIntent: Stripe.PaymentIntent, key: string): string {
+  private readMetadata(
+    paymentIntent: Stripe.PaymentIntent,
+    key: string,
+  ): string {
     const value = paymentIntent.metadata?.[key];
     if (typeof value !== 'string') return '';
     return value.trim();
@@ -616,7 +650,9 @@ export class ActivationPaymentService {
         : 'USD';
 
     if (!/^[A-Z]{3}$/.test(normalized)) {
-      throw new BadRequestException('Activation fee currency must be a valid 3-letter code.');
+      throw new BadRequestException(
+        'Activation fee currency must be a valid 3-letter code.',
+      );
     }
 
     return normalized;

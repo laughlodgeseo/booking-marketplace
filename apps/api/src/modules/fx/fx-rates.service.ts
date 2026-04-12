@@ -444,8 +444,7 @@ export class FxRatesService implements OnModuleDestroy {
       }
     }
 
-    const fallbackRate =
-      STATIC_FALLBACK_RATES[quoteCurrency as keyof typeof STATIC_FALLBACK_RATES];
+    const fallbackRate = STATIC_FALLBACK_RATES[quoteCurrency];
     if (this.isValidRate(fallbackRate)) {
       this.logger.warn(
         `FX rate unavailable for ${quoteCurrency} in DB/cache — using static fallback. ` +

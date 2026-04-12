@@ -60,39 +60,51 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function StepReview({ data, property, onPropertyUpdated }: StepProps) {
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
-  const [changes, setChanges] = useState<PropertyDiffChange[]>([]);
-  const [changesLoading, setChangesLoading] = useState(false);
-  const [changesError, setChangesError] = useState<string | null>(null);
+  const [changesState, setChangesState] = useState<{
+    key: string | null;
+    changes: PropertyDiffChange[];
+    error: string | null;
+  }>({
+    key: null,
+    changes: [],
+    error: null,
+  });
+
+  const changesKey = property?.id
+    ? `${property.id}:${property.updatedAt ?? ""}:${property.status ?? ""}`
+    : null;
 
   useEffect(() => {
-    if (!property?.id) {
-      setChanges([]);
-      setChangesError(null);
-      return;
-    }
+    if (!property?.id || !changesKey) return;
 
     let active = true;
-    setChangesLoading(true);
-    setChangesError(null);
 
     void getVendorPropertyChanges(property.id)
       .then((res) => {
         if (!active) return;
-        setChanges(Array.isArray(res.changes) ? res.changes : []);
+        setChangesState({
+          key: changesKey,
+          changes: Array.isArray(res.changes) ? res.changes : [],
+          error: null,
+        });
       })
       .catch((e) => {
         if (!active) return;
-        setChangesError(e instanceof Error ? e.message : "Failed to load change summary.");
-      })
-      .finally(() => {
-        if (!active) return;
-        setChangesLoading(false);
+        setChangesState({
+          key: changesKey,
+          changes: [],
+          error: e instanceof Error ? e.message : "Failed to load change summary.",
+        });
       });
 
     return () => {
       active = false;
     };
-  }, [property?.id, property?.updatedAt, property?.status]);
+  }, [property?.id, changesKey]);
+
+  const changesLoading = Boolean(changesKey && changesState.key !== changesKey);
+  const changes = changesLoading || !changesKey || changesState.key !== changesKey ? [] : changesState.changes;
+  const changesError = changesLoading || !changesKey || changesState.key !== changesKey ? null : changesState.error;
 
   const canSubmitForReview =
     property &&

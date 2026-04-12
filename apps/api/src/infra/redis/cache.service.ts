@@ -52,7 +52,9 @@ export class CacheService {
       if (!raw) return null;
       return JSON.parse(raw) as T;
     } catch (err) {
-      this.logger.warn(`cache.get failed key=${key}: ${(err as Error).message}`);
+      this.logger.warn(
+        `cache.get failed key=${key}: ${(err as Error).message}`,
+      );
       return null;
     }
   }
@@ -65,7 +67,9 @@ export class CacheService {
     try {
       await this.redis.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
     } catch (err) {
-      this.logger.warn(`cache.set failed key=${key}: ${(err as Error).message}`);
+      this.logger.warn(
+        `cache.set failed key=${key}: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -77,7 +81,9 @@ export class CacheService {
     try {
       await this.redis.client.del(key);
     } catch (err) {
-      this.logger.warn(`cache.del failed key=${key}: ${(err as Error).message}`);
+      this.logger.warn(
+        `cache.del failed key=${key}: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -110,7 +116,9 @@ export class CacheService {
       await this.mDel(keys);
       return keys.length;
     } catch (err) {
-      this.logger.warn(`cache.delPattern failed pattern=${pattern}: ${(err as Error).message}`);
+      this.logger.warn(
+        `cache.delPattern failed pattern=${pattern}: ${(err as Error).message}`,
+      );
       return 0;
     }
   }
