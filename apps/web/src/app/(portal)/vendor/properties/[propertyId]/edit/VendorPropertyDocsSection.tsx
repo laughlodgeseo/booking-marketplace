@@ -15,6 +15,8 @@ function latestOwnership(documents: VendorPropertyDocument[]): VendorPropertyDoc
 export function VendorPropertyDocsSection(props: {
   propertyId: string;
   documents: VendorPropertyDocument[];
+  documentStatus?: string;
+  documentRejectionReason?: string | null;
   onChanged: () => void;
 }) {
   const current = useMemo(() => latestOwnership(props.documents), [props.documents]);
@@ -49,13 +51,26 @@ export function VendorPropertyDocsSection(props: {
       <div className="rounded-xl border border-line/70 bg-warm-alt p-4">
         <div className="text-sm font-semibold text-primary">Current status</div>
         <div className="mt-1 text-sm text-secondary">
+          <div className="font-medium text-primary">
+            {props.documentStatus?.toLowerCase() === "approved"
+              ? "✅ Approved"
+              : props.documentStatus?.toLowerCase() === "rejected"
+                ? "❌ Rejected"
+                : "⏳ Pending"}
+          </div>
+          {props.documentStatus?.toLowerCase() === "rejected" &&
+          props.documentRejectionReason ? (
+            <p className="mt-1 text-xs font-medium text-danger">{props.documentRejectionReason}</p>
+          ) : null}
           {current ? (
             <>
-              Uploaded: <span className="font-medium">{current.originalName ?? "document"}</span>
+              <div className="mt-2">
+                Uploaded: <span className="font-medium">{current.originalName ?? "document"}</span>
+              </div>
               <div className="mt-1 text-xs text-secondary">Uploaded at: {new Date(current.createdAt).toLocaleString()}</div>
             </>
           ) : (
-            "No ownership proof uploaded yet."
+            <div className="mt-2">No ownership proof uploaded yet.</div>
           )}
         </div>
       </div>

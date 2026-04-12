@@ -559,6 +559,8 @@ export default function VendorPropertyEditForm({ initial }: Props) {
         <VendorPropertyDocsSection
           propertyId={p.id}
           documents={p.documents}
+          documentStatus={p.documentStatus}
+          documentRejectionReason={p.documentRejectionReason}
           onChanged={() => {
             void refresh("Refreshing after document upload...");
             setOkMsg(null);

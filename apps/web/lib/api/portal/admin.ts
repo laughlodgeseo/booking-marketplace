@@ -511,6 +511,44 @@ export async function getAdminPortalPropertyDetail(propertyId: string): Promise<
   return unwrap(res);
 }
 
+export type AdminPropertyDocumentStatusResponse = {
+  id: string;
+  documentStatus: string;
+  documentRejectionReason: string | null;
+  documentUrl: string | null;
+  documentPublicId: string | null;
+};
+
+export async function approveAdminPropertyDocument(
+  propertyId: string,
+): Promise<AdminPropertyDocumentStatusResponse> {
+  const res = await apiFetch<AdminPropertyDocumentStatusResponse>(
+    `/portal/admin/properties/${encodeURIComponent(propertyId)}/document/approve`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  return unwrap(res);
+}
+
+export async function rejectAdminPropertyDocument(
+  propertyId: string,
+  reason: string,
+): Promise<AdminPropertyDocumentStatusResponse> {
+  const res = await apiFetch<AdminPropertyDocumentStatusResponse>(
+    `/portal/admin/properties/${encodeURIComponent(propertyId)}/document/reject`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      body: { reason },
+    },
+  );
+  return unwrap(res);
+}
+
 export async function getAdminBookings(params?: { page?: number; pageSize?: number }): Promise<AdminListResponse> {
   const res = await apiFetch<AdminListResponse>("/portal/admin/bookings", {
     method: "GET",

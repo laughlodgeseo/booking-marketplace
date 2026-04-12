@@ -338,6 +338,10 @@ export type VendorPropertyDetail = {
   isInstantBook: boolean;
 
   status: VendorPropertyStatus;
+  documentUrl?: string | null;
+  documentPublicId?: string | null;
+  documentStatus?: string;
+  documentRejectionReason?: string | null;
   activationFee: number | null;
   activationFeeCurrency: string;
   activationPaymentStatus: "UNPAID" | "IN_PROGRESS" | "PAID";

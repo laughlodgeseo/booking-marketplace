@@ -19,7 +19,11 @@ import {
   PropertyStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../modules/prisma/prisma.service';
-import { PROPERTY_IMAGES_DIR } from '../../common/upload/storage-paths';
+import {
+  PROPERTY_DOCUMENTS_DIR,
+  PROPERTY_DOCUMENTS_LEGACY_DIR,
+  PROPERTY_IMAGES_DIR,
+} from '../../common/upload/storage-paths';
 import { resolvePropertyImageUrl } from '../../common/upload/property-media-storage';
 import { AdminCreatePropertyDto } from './dto/admin-create-property.dto';
 import { AdminUpdatePropertyDto } from './dto/admin-update-property.dto';
@@ -37,6 +41,7 @@ import {
   parseReviewHistory,
   toJsonSnapshot,
 } from '../../common/property-review-history';
+import cloudinary from '../../infra/cloudinary/cloudinary.service';
 
 type ReviewDto = {
   activationFee?: number;
@@ -123,6 +128,99 @@ export class AdminPropertiesService {
     });
     if (!prop) throw new NotFoundException('Property not found.');
     return prop;
+  }
+
+  private isCloudinaryDocumentUrl(url: string | null | undefined): boolean {
+    return typeof url === 'string' && url.trim().includes('res.cloudinary.com');
+  }
+
+  private async destroyCloudinaryDocument(
+    publicId: string | null | undefined,
+  ): Promise<void> {
+    const id = typeof publicId === 'string' ? publicId.trim() : '';
+    if (!id) return;
+
+    try {
+      await cloudinary.uploader.destroy(id, {
+        resource_type: 'auto' as unknown as 'image',
+      });
+    } catch {
+      // Best-effort cleanup only.
+    }
+  }
+
+  private cleanupLegacyDocumentFile(
+    storageKey: string | null | undefined,
+  ): void {
+    const key = typeof storageKey === 'string' ? storageKey.trim() : '';
+    if (!key) return;
+
+    const privatePath = join(PROPERTY_DOCUMENTS_DIR, key);
+    const legacyPath = join(PROPERTY_DOCUMENTS_LEGACY_DIR, key);
+
+    for (const target of [privatePath, legacyPath]) {
+      if (!existsSync(target)) continue;
+      try {
+        unlinkSync(target);
+      } catch {
+        // Best-effort cleanup only.
+      }
+    }
+  }
+
+  private async cleanupPropertyDocumentAssets(
+    propertyId: string,
+  ): Promise<void> {
+    const [property, docs] = await Promise.all([
+      this.prisma.property.findUnique({
+        where: { id: propertyId },
+        select: {
+          documentUrl: true,
+          documentPublicId: true,
+        },
+      }),
+      this.prisma.propertyDocument.findMany({
+        where: { propertyId },
+        select: {
+          storageKey: true,
+          url: true,
+        },
+      }),
+    ]);
+
+    const cloudinaryPublicIds = new Set<string>();
+
+    if (
+      property &&
+      this.isCloudinaryDocumentUrl(property.documentUrl) &&
+      typeof property.documentPublicId === 'string' &&
+      property.documentPublicId.trim().length > 0
+    ) {
+      cloudinaryPublicIds.add(property.documentPublicId.trim());
+    } else if (
+      property &&
+      typeof property.documentPublicId === 'string' &&
+      property.documentPublicId.trim().length > 0
+    ) {
+      this.cleanupLegacyDocumentFile(property.documentPublicId);
+    }
+
+    for (const doc of docs) {
+      if (this.isCloudinaryDocumentUrl(doc.url)) {
+        if (
+          typeof doc.storageKey === 'string' &&
+          doc.storageKey.trim().length > 0
+        ) {
+          cloudinaryPublicIds.add(doc.storageKey.trim());
+        }
+        continue;
+      }
+      this.cleanupLegacyDocumentFile(doc.storageKey);
+    }
+
+    for (const publicId of cloudinaryPublicIds) {
+      await this.destroyCloudinaryDocument(publicId);
+    }
   }
 
   private reviewNote(dto: ReviewDto): string | null {
@@ -957,15 +1055,19 @@ export class AdminPropertiesService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       if (request.propertyId) {
         await tx.property.update({
           where: { id: request.propertyId },
-          data: { status: PropertyStatus.ARCHIVED },
+          data: {
+            status: PropertyStatus.ARCHIVED,
+            documentUrl: null,
+            documentPublicId: null,
+          },
         });
       }
 
-      return tx.propertyDeletionRequest.update({
+      const updatedRequest = await tx.propertyDeletionRequest.update({
         where: { id: requestId },
         data: {
           status: PropertyDeletionRequestStatus.APPROVED,
@@ -974,7 +1076,15 @@ export class AdminPropertiesService {
           adminNotes: notes?.trim() || null,
         },
       });
+
+      return updatedRequest;
     });
+
+    if (request.propertyId) {
+      await this.cleanupPropertyDocumentAssets(request.propertyId);
+    }
+
+    return result;
   }
 
   async rejectDeletionRequest(
@@ -1088,8 +1198,15 @@ export class AdminPropertiesService {
 
     await this.prisma.property.update({
       where: { id: propertyId },
-      data: { status: PropertyStatus.ARCHIVED },
+      data: {
+        status: PropertyStatus.ARCHIVED,
+        documentUrl: null,
+        documentPublicId: null,
+      },
     });
+
+    await this.cleanupPropertyDocumentAssets(propertyId);
+
     return { ok: true, id: propertyId, archivedBy: adminId };
   }
 
@@ -1182,7 +1299,8 @@ export class AdminPropertiesService {
       }
 
       if (
-        property.activationPaymentStatus === PropertyActivationPaymentStatus.PAID
+        property.activationPaymentStatus ===
+        PropertyActivationPaymentStatus.PAID
       ) {
         throw new BadRequestException(
           'Cannot update fee after payment is completed.',

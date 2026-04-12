@@ -31,10 +31,7 @@ import {
 } from './vendor-properties.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { imageFileFilter } from '../common/upload/image-file.filter';
-import { documentFileFilter } from '../common/upload/document-file.filter';
-import {
-  imageUploadStorage,
-} from '../common/upload/multer.config';
+import { imageUploadStorage } from '../common/upload/multer.config';
 import { validateCloudinaryUrl } from '../common/upload/property-media-storage';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PaymentProvider } from '@prisma/client';
@@ -359,8 +356,17 @@ export class VendorPropertiesController {
   @UseInterceptors(
     FileInterceptor('document', {
       storage: documentStorage,
-      fileFilter: documentFileFilter,
-      limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
+      fileFilter: (req, file, cb) => {
+        void req;
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+
+        if (!allowedTypes.includes(file.mimetype)) {
+          return cb(new BadRequestException('Invalid file type'), false);
+        }
+
+        cb(null, true);
+      },
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     }),
   )
   async uploadDocument(

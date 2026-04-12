@@ -28,6 +28,13 @@ function isApprovedPendingActivationPayment(status: string): boolean {
   return status === "APPROVED_PENDING_ACTIVATION_PAYMENT" || status === "APPROVED_PENDING_PAYMENT";
 }
 
+function formatDocumentStatus(status?: string): string {
+  const normalized = (status ?? "pending").toLowerCase();
+  if (normalized === "approved") return "✅ Approved";
+  if (normalized === "rejected") return "❌ Rejected";
+  return "⏳ Pending";
+}
+
 export default function VendorPropertyHubPage() {
   const router = useRouter();
   const params = useParams<{ propertyId: string }>();
@@ -167,6 +174,13 @@ export default function VendorPropertyHubPage() {
 
           <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
             <div className="text-sm font-semibold text-primary">Documents</div>
+            <div className="mt-2 rounded-2xl border border-line/70 bg-warm-base p-3 text-sm text-primary">
+              {formatDocumentStatus(state.data.documentStatus)}
+              {state.data.documentStatus?.toLowerCase() === "rejected" &&
+              state.data.documentRejectionReason ? (
+                <p className="mt-1 text-xs font-medium text-danger">{state.data.documentRejectionReason}</p>
+              ) : null}
+            </div>
             {state.data.documents.length === 0 ? (
               <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
                 No property documents uploaded yet.

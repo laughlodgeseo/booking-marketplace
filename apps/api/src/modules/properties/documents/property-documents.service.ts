@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { PropertyDocumentType, UserRole } from '@prisma/client';
 import * as fs from 'fs';
 import { createReadStream } from 'fs';
 import * as path from 'path';
@@ -22,6 +22,7 @@ import cloudinary from '../../../infra/cloudinary/cloudinary.service';
 type DocumentRecord = {
   id: string;
   propertyId: string;
+  type: PropertyDocumentType;
   originalName: string | null;
   mimeType: string | null;
   url: string | null;
@@ -43,11 +44,15 @@ export class PropertyDocumentsService {
     return role === UserRole.ADMIN || role === 'SUPER_ADMIN';
   }
 
-  private isHttpPointer(pointer: string): boolean {
-    return /^https?:\/\//i.test(pointer.trim());
+  private isCloudinaryUrl(pointer: string): boolean {
+    return pointer.includes('res.cloudinary.com');
   }
 
-  private assertAllowedRemoteUrl(url: string): string {
+  private isHttpPointer(pointer: string): boolean {
+    return /^https?:\/\//i.test(pointer);
+  }
+
+  private assertAllowedCloudinaryUrl(url: string): string {
     let parsed: URL;
     try {
       parsed = new URL(url);
@@ -56,21 +61,29 @@ export class PropertyDocumentsService {
     }
 
     const host = parsed.hostname.toLowerCase();
-    const allowedHosts = new Set([
-      'res.cloudinary.com',
-      'localhost',
-      '127.0.0.1',
-    ]);
-
     if (
-      !allowedHosts.has(host) &&
-      !host.endsWith('.res.cloudinary.com') &&
-      !host.endsWith('.localhost')
+      host !== 'res.cloudinary.com' &&
+      !host.endsWith('.res.cloudinary.com')
     ) {
       throw new ForbiddenException('Remote document URL host is not allowed.');
     }
 
     return parsed.toString();
+  }
+
+  private isSensitiveDocumentType(type: PropertyDocumentType): boolean {
+    return (
+      type === PropertyDocumentType.OWNER_ID ||
+      type === PropertyDocumentType.ADDRESS_PROOF
+    );
+  }
+
+  generateSignedUrl(publicId: string): string {
+    return cloudinary.url(publicId, {
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 300,
+      resource_type: 'auto' as unknown as 'image',
+    });
   }
 
   /**
@@ -80,8 +93,8 @@ export class PropertyDocumentsService {
    */
   private getStoredPointer(doc: DocumentRecord): string {
     const remoteUrl = doc.url?.trim();
-    if (remoteUrl && this.isHttpPointer(remoteUrl)) {
-      return this.assertAllowedRemoteUrl(remoteUrl);
+    if (remoteUrl && this.isCloudinaryUrl(remoteUrl)) {
+      return this.assertAllowedCloudinaryUrl(remoteUrl);
     }
 
     const pointer = doc.storageKey ?? doc.url;
@@ -162,6 +175,7 @@ export class PropertyDocumentsService {
       select: {
         id: true,
         propertyId: true,
+        type: true,
         originalName: true,
         mimeType: true,
         url: true,
@@ -236,14 +250,17 @@ export class PropertyDocumentsService {
     }
 
     const remoteMime = response.headers.get('content-type') ?? undefined;
+    const bytes = Buffer.from(await response.arrayBuffer());
     return {
-      stream: Readable.fromWeb(response.body as any),
+      stream: Readable.from(bytes),
       fileName: params.fileName,
       mimeType: params.mimeType || remoteMime || 'application/octet-stream',
     };
   }
 
   private async deleteCloudinaryAsset(publicId: string): Promise<void> {
+    type CloudinaryDestroyResult = { result?: string };
+
     const id = publicId.trim();
     if (!id) return;
 
@@ -255,11 +272,14 @@ export class PropertyDocumentsService {
 
     for (const resourceType of resourceTypes) {
       try {
-        const result = await cloudinary.uploader.destroy(id, {
+        const destroyResult = (await cloudinary.uploader.destroy(id, {
           resource_type: resourceType,
           invalidate: true,
-        });
-        if (result.result === 'ok' || result.result === 'not found') {
+        })) as CloudinaryDestroyResult;
+        if (
+          destroyResult.result === 'ok' ||
+          destroyResult.result === 'not found'
+        ) {
           return;
         }
       } catch {
@@ -286,9 +306,13 @@ export class PropertyDocumentsService {
     const fileName = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
     const mimeType = doc.mimeType ?? 'application/octet-stream';
 
-    if (this.isHttpPointer(pointer)) {
+    if (this.isCloudinaryUrl(pointer)) {
+      const signedSensitiveUrl =
+        this.isSensitiveDocumentType(doc.type) && doc.storageKey
+          ? this.generateSignedUrl(doc.storageKey)
+          : pointer;
       return this.openRemoteDocument({
-        pointer,
+        pointer: signedSensitiveUrl,
         fileName,
         mimeType,
       });
@@ -362,16 +386,20 @@ export class PropertyDocumentsService {
     const filename = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
     const remoteUrl = doc.url?.trim();
 
-    if (remoteUrl && this.isHttpPointer(remoteUrl)) {
-      const safeUrl = this.assertAllowedRemoteUrl(remoteUrl);
+    if (remoteUrl && this.isCloudinaryUrl(remoteUrl)) {
+      const safeUrl = this.assertAllowedCloudinaryUrl(remoteUrl);
+      const signedSensitiveUrl =
+        this.isSensitiveDocumentType(doc.type) && doc.storageKey
+          ? this.generateSignedUrl(doc.storageKey)
+          : safeUrl;
       return {
         id: doc.id,
         filename,
         mimeType: doc.mimeType ?? 'application/octet-stream',
-        viewUrl: safeUrl,
-        downloadUrl: safeUrl.includes('/upload/')
-          ? safeUrl.replace('/upload/', '/upload/fl_attachment/')
-          : safeUrl,
+        viewUrl: signedSensitiveUrl,
+        downloadUrl: signedSensitiveUrl.includes('/upload/')
+          ? signedSensitiveUrl.replace('/upload/', '/upload/fl_attachment/')
+          : signedSensitiveUrl,
       };
     }
 

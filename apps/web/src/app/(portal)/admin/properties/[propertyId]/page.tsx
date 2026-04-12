@@ -9,10 +9,12 @@ import { PortalAvailabilityCalendar } from "@/components/portal/calendar/PortalA
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  approveAdminPropertyDocument,
   deleteAdminPropertyDocument,
   deleteAdminPropertyMedia,
   getAdminCalendar,
   getAdminPortalPropertyDetail,
+  rejectAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
@@ -20,6 +22,8 @@ type AdminPropertyDetail = {
   id: string;
   title: string;
   status: string;
+  documentStatus?: string;
+  documentRejectionReason?: string | null;
   city: string | null;
   area: string | null;
   currency: string;
@@ -78,6 +82,20 @@ function mediaFilename(item: AdminPropertyDetail["media"][number], index: number
   const ext = item.url.split("?")[0]?.split(".").pop()?.trim();
   const suffix = ext && ext.length <= 8 ? `.${ext}` : ".jpg";
   return `property-media-${String(index + 1).padStart(2, "0")}${suffix}`;
+}
+
+function documentStatusLabel(status?: string): string {
+  const normalized = (status ?? "pending").toLowerCase();
+  if (normalized === "approved") return "Approved";
+  if (normalized === "rejected") return "Rejected";
+  return "Pending";
+}
+
+function documentStatusClass(status?: string): string {
+  const normalized = (status ?? "pending").toLowerCase();
+  if (normalized === "approved") return "border-success/30 bg-success/12 text-success";
+  if (normalized === "rejected") return "border-danger/30 bg-danger/12 text-danger";
+  return "border-warning/30 bg-warning/12 text-warning";
 }
 
 export default function AdminPropertyDetailPage() {
@@ -150,7 +168,10 @@ export default function AdminPropertyDetailPage() {
   }
 
   async function downloadDocument(documentUrl: string | null | undefined) {
-    if (!documentUrl) return;
+    if (!documentUrl) {
+      setMessage("Document not available.");
+      return;
+    }
     setBusy("Downloading document...");
     setMessage(null);
     try {
@@ -166,7 +187,10 @@ export default function AdminPropertyDetailPage() {
   }
 
   async function viewDocument(documentUrl: string | null | undefined) {
-    if (!documentUrl) return;
+    if (!documentUrl) {
+      setMessage("Document not available.");
+      return;
+    }
     setBusy("Opening document...");
     setMessage(null);
     try {
@@ -177,6 +201,46 @@ export default function AdminPropertyDetailPage() {
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to open document.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function approveDocumentStatus() {
+    const confirmed = window.confirm("Approve vendor document?");
+    if (!confirmed) return;
+
+    setBusy("Approving document...");
+    setMessage(null);
+    try {
+      await approveAdminPropertyDocument(propertyId);
+      await load();
+      setMessage("Document approved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to approve document.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function rejectDocumentStatus() {
+    const reasonInput = window.prompt("Reason for rejection:");
+    if (reasonInput === null) return;
+
+    const reason = reasonInput.trim();
+    if (!reason) {
+      setMessage("Rejection reason is required.");
+      return;
+    }
+
+    setBusy("Rejecting document...");
+    setMessage(null);
+    try {
+      await rejectAdminPropertyDocument(propertyId, reason);
+      await load();
+      setMessage("Document rejected.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to reject document.");
     } finally {
       setBusy(null);
     }
@@ -362,7 +426,43 @@ export default function AdminPropertyDetailPage() {
             </section>
 
             <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-              <div className="text-sm font-semibold text-primary">Property documents</div>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-primary">Property documents</div>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <span
+                      className={[
+                        "inline-flex w-fit items-center rounded-lg border px-2.5 py-1 text-xs font-semibold",
+                        documentStatusClass(state.data.documentStatus),
+                      ].join(" ")}
+                    >
+                      Verification: {documentStatusLabel(state.data.documentStatus)}
+                    </span>
+                    {state.data.documentStatus?.toLowerCase() === "rejected" &&
+                    state.data.documentRejectionReason ? (
+                      <p className="text-xs font-medium text-danger">
+                        Reason: {state.data.documentRejectionReason}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void approveDocumentStatus()}
+                    className="rounded-xl border border-success/30 bg-success/12 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20"
+                  >
+                    Approve doc
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void rejectDocumentStatus()}
+                    className="rounded-xl border border-danger/30 bg-danger/12 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/20"
+                  >
+                    Reject doc
+                  </button>
+                </div>
+              </div>
               {state.data.documents.length === 0 ? (
                 <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
                   No documents uploaded.

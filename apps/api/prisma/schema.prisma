@@ -703,6 +703,10 @@ model Property {
   activationFee Int?
   activationFeeCurrency String @default("AED")
   activationPaymentStatus PropertyActivationPaymentStatus @default(UNPAID)
+  documentUrl String?
+  documentPublicId String?
+  documentStatus String @default("pending")
+  documentRejectionReason String?
   reviewHistory Json @default("[]")
   lastSubmittedAt DateTime?
   lastReviewedAt DateTime?

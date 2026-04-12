@@ -35,6 +35,7 @@ import {
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PROPERTY_DOCUMENT_REQUIREMENTS } from '../modules/properties/property-document-requirements';
 import { ActivationPaymentService } from '../modules/payments/activation-payment.service';
+import cloudinary from '../infra/cloudinary/cloudinary.service';
 import {
   appendReviewHistoryEntry,
   computePropertyChanges,
@@ -119,12 +120,52 @@ export class VendorPropertiesService {
     return v ? v : null;
   }
 
+  private isCloudinaryDocumentUrl(url: string | null | undefined): boolean {
+    return typeof url === 'string' && url.trim().includes('res.cloudinary.com');
+  }
+
+  private async destroyCloudinaryDocument(
+    publicId: string | null | undefined,
+  ): Promise<void> {
+    const id = typeof publicId === 'string' ? publicId.trim() : '';
+    if (!id) return;
+
+    try {
+      await cloudinary.uploader.destroy(id, {
+        resource_type: 'auto' as unknown as 'image',
+      });
+    } catch {
+      // Best-effort cleanup only.
+    }
+  }
+
+  private cleanupLegacyDocumentFile(
+    storageKey: string | null | undefined,
+  ): void {
+    const key = typeof storageKey === 'string' ? storageKey.trim() : '';
+    if (!key) return;
+
+    const privatePath = join(PROPERTY_DOCUMENTS_DIR, key);
+    const legacyPath = join(PROPERTY_DOCUMENTS_LEGACY_DIR, key);
+
+    for (const target of [privatePath, legacyPath]) {
+      if (!existsSync(target)) continue;
+      try {
+        unlinkSync(target);
+      } catch {
+        // Best-effort cleanup only.
+      }
+    }
+  }
+
   private async ensureActivationFeeCurrencyAed(params: {
     propertyId: string;
     currency: string | null | undefined;
   }): Promise<'AED'> {
     const normalized =
-      typeof params.currency === 'string' ? params.currency.trim().toUpperCase() : '';
+      typeof params.currency === 'string'
+        ? params.currency.trim().toUpperCase()
+        : '';
     if (normalized === 'AED') return 'AED';
 
     await this.prisma.property.update({
@@ -992,13 +1033,12 @@ export class VendorPropertiesService {
       propertyId: property.id,
       currency: property.activationFeeCurrency,
     });
-    const payment = await this.activationPayments.createOrReuseStripePaymentIntent(
-      {
+    const payment =
+      await this.activationPayments.createOrReuseStripePaymentIntent({
         propertyId,
         vendorId: vendorUserId,
         idempotencyKey: input?.idempotencyKey,
-      },
-    );
+      });
 
     return {
       ...payment,
@@ -1409,6 +1449,12 @@ export class VendorPropertiesService {
     file: Express.Multer.File,
   ) {
     const prop = await this.assertOwnership(vendorUserId, propertyId);
+    const existingDocumentPublicId =
+      typeof (prop as { documentPublicId?: unknown }).documentPublicId ===
+      'string'
+        ? ((prop as { documentPublicId?: string | null }).documentPublicId ??
+          null)
+        : null;
 
     const uploadedUrl =
       typeof (file as { path?: unknown }).path === 'string'
@@ -1436,6 +1482,51 @@ export class VendorPropertiesService {
         url: uploadedUrl,
       },
     });
+
+    await this.prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        documentUrl: uploadedUrl,
+        documentPublicId: publicId,
+        documentStatus: 'pending',
+        documentRejectionReason: null,
+      },
+    });
+
+    if (
+      typeof existingDocumentPublicId === 'string' &&
+      existingDocumentPublicId.trim().length > 0 &&
+      existingDocumentPublicId !== publicId
+    ) {
+      await this.destroyCloudinaryDocument(existingDocumentPublicId);
+    }
+
+    const replacedDocs = await this.prisma.propertyDocument.findMany({
+      where: {
+        propertyId,
+        type: dto.type,
+        id: { not: doc.id },
+      },
+      select: {
+        id: true,
+        storageKey: true,
+        url: true,
+      },
+    });
+
+    if (replacedDocs.length > 0) {
+      await this.prisma.propertyDocument.deleteMany({
+        where: { id: { in: replacedDocs.map((item) => item.id) } },
+      });
+
+      for (const replaced of replacedDocs) {
+        if (this.isCloudinaryDocumentUrl(replaced.url)) {
+          await this.destroyCloudinaryDocument(replaced.storageKey);
+          continue;
+        }
+        this.cleanupLegacyDocumentFile(replaced.storageKey);
+      }
+    }
 
     await this.applyVendorEditState(propertyId, prop.status);
 

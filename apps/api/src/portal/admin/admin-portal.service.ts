@@ -56,6 +56,22 @@ type AdminOverview = {
   };
 };
 
+type PropertyDetailDocumentRow = {
+  id: string;
+  type: string;
+  url: string | null;
+  storageKey: string | null;
+  originalName: string | null;
+  mimeType: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  uploadedByUser: {
+    id: string;
+    email: string;
+    fullName: string | null;
+  } | null;
+};
+
 @Injectable()
 export class AdminPortalService {
   constructor(
@@ -76,6 +92,11 @@ export class AdminPortalService {
 
   private toIsoDay(value: Date): string {
     return value.toISOString().slice(0, 10);
+  }
+
+  private generateDownloadUrl(url: string): string | null {
+    if (!url) return null;
+    return url.replace('/upload/', '/upload/fl_attachment/');
   }
 
   async getOverview(params: {
@@ -869,6 +890,10 @@ export class AdminPortalService {
         lat: true,
         lng: true,
         status: true,
+        documentUrl: true,
+        documentPublicId: true,
+        documentStatus: true,
+        documentRejectionReason: true,
         basePrice: true,
         cleaningFee: true,
         currency: true,
@@ -986,22 +1011,28 @@ export class AdminPortalService {
       bookingStats.map((item) => [item.status, item._count._all]),
     );
 
+    const documentRows = property.documents as PropertyDetailDocumentRow[];
+    const documents = documentRows.map((doc) => ({
+      ...doc,
+      createdAt: doc.createdAt.toISOString(),
+      updatedAt: doc.updatedAt.toISOString(),
+      documentUrl: doc.url ?? null,
+      documentPublicId: doc.storageKey ?? null,
+      downloadUrl:
+        typeof doc.url === 'string'
+          ? (this.generateDownloadUrl(doc.url) ??
+            `/api/admin/properties/${property.id}/documents/${doc.id}/download`)
+          : `/api/admin/properties/${property.id}/documents/${doc.id}/download`,
+      viewUrl:
+        doc.url ??
+        `/api/admin/properties/${property.id}/documents/${doc.id}/view`,
+    }));
+
     return {
       ...property,
       createdAt: property.createdAt.toISOString(),
       updatedAt: property.updatedAt.toISOString(),
-      documents: property.documents.map((doc) => ({
-        ...doc,
-        createdAt: doc.createdAt.toISOString(),
-        updatedAt: doc.updatedAt.toISOString(),
-        documentUrl: doc.url ?? null,
-        documentPublicId: doc.storageKey ?? null,
-        downloadUrl:
-          typeof doc.url === 'string' && doc.url.includes('/upload/')
-            ? doc.url.replace('/upload/', '/upload/fl_attachment/')
-            : `/api/admin/properties/${property.id}/documents/${doc.id}/download`,
-        viewUrl: doc.url ?? `/api/admin/properties/${property.id}/documents/${doc.id}/view`,
-      })),
+      documents,
       bookingStatusBreakdown: statusBreakdown,
       upcomingBookings: upcomingBookings.map((booking) => ({
         ...booking,
@@ -1009,6 +1040,56 @@ export class AdminPortalService {
         checkOut: booking.checkOut.toISOString(),
       })),
     };
+  }
+
+  async approveDocument(params: {
+    userId: string;
+    role: UserRole;
+    propertyId: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.property.update({
+      where: { id: params.propertyId },
+      data: {
+        documentStatus: 'approved',
+        documentRejectionReason: null,
+      },
+      select: {
+        id: true,
+        documentStatus: true,
+        documentRejectionReason: true,
+        documentUrl: true,
+        documentPublicId: true,
+      },
+    });
+  }
+
+  async rejectDocument(params: {
+    userId: string;
+    role: UserRole;
+    propertyId: string;
+    reason: string;
+  }) {
+    this.assertAdmin(params.role);
+    const reason = params.reason.trim();
+    if (!reason) {
+      throw new BadRequestException('Document rejection reason is required.');
+    }
+
+    return this.prisma.property.update({
+      where: { id: params.propertyId },
+      data: {
+        documentStatus: 'rejected',
+        documentRejectionReason: reason,
+      },
+      select: {
+        id: true,
+        documentStatus: true,
+        documentRejectionReason: true,
+        documentUrl: true,
+        documentPublicId: true,
+      },
+    });
   }
 
   async listBookings(params: {

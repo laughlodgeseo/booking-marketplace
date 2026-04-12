@@ -170,6 +170,32 @@ export class AdminPortalController {
     });
   }
 
+  @Post('properties/:propertyId/document/approve')
+  approvePropertyDocument(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+  ) {
+    return this.service.approveDocument({
+      userId: user.id,
+      role: user.role,
+      propertyId,
+    });
+  }
+
+  @Post('properties/:propertyId/document/reject')
+  rejectPropertyDocument(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.service.rejectDocument({
+      userId: user.id,
+      role: user.role,
+      propertyId,
+      reason: body.reason ?? '',
+    });
+  }
+
   @Get('bookings')
   bookings(
     @CurrentUser() user: User,
