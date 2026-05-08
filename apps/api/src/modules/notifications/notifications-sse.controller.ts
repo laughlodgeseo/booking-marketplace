@@ -8,12 +8,14 @@ import {
 import { Observable, interval, switchMap, of, map, catchError } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { requiredJwtSecret } from '../../common/config/env.validation';
 
 type JwtUser = { id: string; email: string; role: string };
 
 /**
  * Server-Sent Events endpoint for real-time notifications.
- * Supports token via Authorization header or query parameter (for EventSource).
+ * Tokens must be supplied via Authorization header; query tokens are rejected
+ * because URLs are commonly logged by browsers, proxies, and CDNs.
  */
 @Controller('notifications')
 export class NotificationsSseController {
@@ -24,16 +26,13 @@ export class NotificationsSseController {
 
   private extractToken(req: {
     headers?: Record<string, string>;
-    query?: Record<string, string>;
   }): string | null {
-    // Try Authorization header first
     const authHeader =
       req.headers?.['authorization'] ?? req.headers?.['Authorization'] ?? '';
     if (authHeader.startsWith('Bearer ')) {
       return authHeader.slice(7);
     }
-    // Fall back to query param
-    return req.query?.['token'] ?? null;
+    return null;
   }
 
   @Sse('stream')
@@ -41,7 +40,6 @@ export class NotificationsSseController {
     @Req()
     req: {
       headers: Record<string, string>;
-      query: Record<string, string>;
       user?: JwtUser;
     },
   ): Observable<MessageEvent> {
@@ -58,7 +56,7 @@ export class NotificationsSseController {
 
       try {
         const raw: { sub: string } = this.jwt.verify(token, {
-          secret: process.env.JWT_ACCESS_SECRET,
+          secret: requiredJwtSecret('JWT_ACCESS_SECRET'),
         });
         userId = raw.sub;
       } catch {

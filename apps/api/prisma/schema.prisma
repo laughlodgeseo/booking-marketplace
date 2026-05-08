@@ -196,6 +196,7 @@ enum PaymentEventType {
 
 enum NotificationType {
   EMAIL_VERIFICATION_OTP
+  PASSWORD_RESET_REQUESTED
   BOOKING_CONFIRMED
   BOOKING_CANCELLED
   PAYMENT_FAILED
@@ -1343,6 +1344,8 @@ model PropertyHold {
   expiresAt  DateTime
 
   // Quote snapshot used for hold -> booking consistency.
+  adults              Int @default(1)
+  children            Int @default(0)
   quotedTotalAed     Int?
   quotedTotalDisplay Int?
   displayCurrency    String   @default("AED")

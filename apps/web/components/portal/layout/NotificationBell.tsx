@@ -11,8 +11,6 @@ import {
   markAllPortalNotificationsRead,
   getPortalUnreadCount,
 } from "@/lib/api/portal/notifications";
-import { getAccessToken } from "@/lib/auth/tokenStore";
-import { apiBaseUrl } from "@/lib/api/base";
 
 /* ------------------------------------------------------------------ */
 /*  Types & helpers                                                    */
@@ -45,6 +43,7 @@ const typeLabels: Record<string, string> = {
   NEW_BOOKING_RECEIVED: "New Booking",
   OPS_TASKS_CREATED: "New Ops Task",
   EMAIL_VERIFICATION_OTP: "Verification",
+  PASSWORD_RESET_REQUESTED: "Password Reset",
 };
 
 function labelForType(type: string): string {
@@ -124,53 +123,27 @@ export default function NotificationBell({
     }
   }, [open, fetchLatest]);
 
-  /* ---------- SSE real-time connection ---------- */
+  /* ---------- secure polling (no tokens in URLs) ---------- */
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) return;
+    let cancelled = false;
 
-    const base = apiBaseUrl();
-    const url = `${base}/notifications/stream`;
-
-    const es = new EventSource(`${url}?token=${encodeURIComponent(token)}`);
-
-    es.addEventListener("notification", (event) => {
+    async function refresh() {
       try {
-        const data = JSON.parse(event.data);
-        if (typeof data.unreadCount === "number") {
-          setUnreadCount(data.unreadCount);
-        }
-        if (Array.isArray(data.latest) && data.latest.length > 0) {
-          type RawItem = { id: string; type: string; entityType?: string; entityId?: string; createdAt: string };
-          setNotifications((prev) => {
-            const merged: NotificationDisplay[] = (data.latest as RawItem[]).map((n) => ({
-              id: n.id,
-              type: n.type,
-              entityType: n.entityType ?? "",
-              entityId: n.entityId ?? "",
-              createdAt: n.createdAt,
-              readAt: null,
-            }));
-            const ids = new Set(merged.map((n) => n.id));
-            for (const n of prev) {
-              if (!ids.has(n.id) && merged.length < 5) merged.push(n);
-            }
-            return merged.slice(0, 5);
-          });
-        }
+        const count = await getPortalUnreadCount(role);
+        if (!cancelled) setUnreadCount(count.unreadCount);
+        if (!cancelled && open) await fetchLatest();
       } catch {
-        // ignore parse errors
+        // silently ignore transient network/auth errors
       }
-    });
+    }
 
-    es.onerror = () => {
-      // EventSource will auto-reconnect
-    };
-
+    void refresh();
+    const intervalId = window.setInterval(refresh, 10_000);
     return () => {
-      es.close();
+      cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, []);
+  }, [fetchLatest, open, role]);
 
   /* ---------- actions ---------- */
   const handleMarkRead = useCallback(

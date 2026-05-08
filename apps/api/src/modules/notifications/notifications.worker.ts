@@ -536,6 +536,8 @@ export class NotificationsWorker implements OnModuleInit {
 
   private mapSubject(type: string, payload: JsonObject): string {
     switch (type) {
+      case 'PASSWORD_RESET_REQUESTED':
+        return 'Reset your password';
       case 'EMAIL_VERIFICATION_OTP':
         return 'Your verification code (OTP)';
       case 'BOOKING_CONFIRMED':
@@ -687,6 +689,8 @@ export class NotificationsWorker implements OnModuleInit {
 
   private mapTemplateBase(type: string) {
     switch (type) {
+      case 'PASSWORD_RESET_REQUESTED':
+        return 'password-reset-requested';
       case 'EMAIL_VERIFICATION_OTP':
         return 'email-verification-otp';
       case 'BOOKING_CONFIRMED':

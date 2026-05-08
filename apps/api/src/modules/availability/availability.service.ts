@@ -38,7 +38,17 @@ type QuoteDto = {
   checkIn: string;
   checkOut: string;
   guests?: number | null;
+  adults?: number | null;
+  children?: number | null;
   currency?: string;
+};
+
+type GuestCountDto = Pick<QuoteDto, 'guests' | 'adults' | 'children'>;
+
+type GuestCounts = {
+  adults: number;
+  children: number;
+  total: number;
 };
 
 type QuoteContext = {
@@ -94,6 +104,24 @@ export class AvailabilityService {
     if (typeof maybeUserOrId === 'string') return maybeUserOrId;
     if (this.hasStringId(maybeUserOrId)) return maybeUserOrId.id;
     return null;
+  }
+
+  private resolveGuestCounts(dto: GuestCountDto): GuestCounts {
+    const adults = dto.adults ?? dto.guests ?? 1;
+    const children = dto.children ?? 0;
+    const total = adults + children;
+
+    if (!Number.isInteger(adults) || adults < 1 || adults > 50) {
+      throw new BadRequestException('adults must be an integer between 1 and 50.');
+    }
+    if (!Number.isInteger(children) || children < 0 || children > 50) {
+      throw new BadRequestException('children must be an integer between 0 and 50.');
+    }
+    if (total < 1 || total > 50) {
+      throw new BadRequestException('Total guests must be between 1 and 50.');
+    }
+
+    return { adults, children, total };
   }
 
   private resolveDisplayCurrency(
@@ -399,6 +427,8 @@ export class AvailabilityService {
     if (ttl < 5 || ttl > 60)
       throw new BadRequestException('ttlMinutes must be between 5 and 60.');
 
+    const guestCounts = this.resolveGuestCounts(dto);
+
     const createdById = this.extractUserId(userId);
     const expiresAt = new Date(Date.now() + ttl * 60 * 1000);
 
@@ -416,11 +446,16 @@ export class AvailabilityService {
       // atomic with the hold creation. Prevents holds on draft/pending listings.
       const propertyForHold = await tx.property.findUnique({
         where: { id: propertyId },
-        select: { status: true },
+        select: { status: true, maxGuests: true },
       });
       if (!propertyForHold) throw new NotFoundException('Property not found.');
       if (propertyForHold.status !== PropertyStatus.PUBLISHED) {
         throw new ForbiddenException('Property is not available for booking.');
+      }
+      if (guestCounts.total > propertyForHold.maxGuests) {
+        throw new BadRequestException(
+          `Max guests exceeded (max ${propertyForHold.maxGuests}).`,
+        );
       }
 
       const nights = enumerateNights(checkIn, checkOut);
@@ -500,6 +535,8 @@ export class AvailabilityService {
           checkIn,
           checkOut,
           expiresAt,
+          adults: guestCounts.adults,
+          children: guestCounts.children,
           createdById,
           quotedTotalAed: pricingSnapshot?.quotedTotalAed ?? null,
           quotedTotalDisplay: pricingSnapshot?.quotedTotalDisplay ?? null,
@@ -517,6 +554,8 @@ export class AvailabilityService {
           checkIn: true,
           checkOut: true,
           expiresAt: true,
+          adults: true,
+          children: true,
           status: true,
           quotedTotalAed: true,
           quotedTotalDisplay: true,
@@ -575,10 +614,10 @@ export class AvailabilityService {
       throw new ForbiddenException('Property is not available for booking.');
     }
 
-    const guests = dto.guests ?? null;
+    const guests = this.resolveGuestCounts(dto).total;
     const reasons: string[] = [];
 
-    if (guests != null && guests > property.maxGuests) {
+    if (guests > property.maxGuests) {
       reasons.push(`Max guests exceeded (max ${property.maxGuests}).`);
     }
 
@@ -739,6 +778,8 @@ export class AvailabilityService {
       checkIn: string;
       checkOut: string;
       guests?: number | null;
+      adults?: number | null;
+      children?: number | null;
       ttlMinutes?: number | null;
       currency?: string;
     },
@@ -751,6 +792,8 @@ export class AvailabilityService {
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
         guests: dto.guests ?? null,
+        adults: dto.adults ?? null,
+        children: dto.children ?? null,
         currency: dto.currency,
       },
       context,
@@ -803,6 +846,9 @@ export class AvailabilityService {
       {
         checkIn: dto.checkIn,
         checkOut: dto.checkOut,
+        guests: dto.guests ?? null,
+        adults: dto.adults ?? null,
+        children: dto.children ?? null,
         ttlMinutes: dto.ttlMinutes ?? 15,
       },
       {

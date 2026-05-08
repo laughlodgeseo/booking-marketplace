@@ -20,4 +20,16 @@ export class CreateHoldDto {
   @Min(1)
   @Max(50)
   guests?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  adults?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  children?: number | null;
 }

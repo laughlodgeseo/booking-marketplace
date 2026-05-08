@@ -5,13 +5,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
+import { NotificationType, UserRole } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../modules/prisma/prisma.service';
 import { hashPassword, verifyPassword } from '../common/security/password';
 import { hashToken, verifyToken } from '../common/security/token-hash';
 import { JwtAccessPayload, JwtRefreshPayload } from './types/auth.types';
 import { parseDurationToSeconds } from '../common/security/duration';
+import { requiredJwtSecret } from '../common/config/env.validation';
+import { NotificationsService } from '../modules/notifications/notifications.service';
 
 type SafeAuthUser = {
   id: string;
@@ -28,6 +30,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private splitName(fullName?: string | null): {
@@ -238,15 +241,36 @@ export class AuthService {
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 30);
 
-    await this.prisma.passwordResetToken.create({
+    const resetRecord = await this.prisma.passwordResetToken.create({
       data: {
         userId: user.id,
         tokenHash: tokenHashed,
         expiresAt: expires,
       },
+      select: { id: true, expiresAt: true },
     });
 
-    return { ok: true, resetToken: tokenPlain };
+    await this.notifications.emit({
+      type: 'PASSWORD_RESET_REQUESTED' as NotificationType,
+      entityType: 'password_reset_token',
+      entityId: resetRecord.id,
+      recipientUserId: user.id,
+      payload: {
+        email,
+        resetUrl: this.buildPasswordResetUrl(tokenPlain),
+        expiresAt: resetRecord.expiresAt.toISOString(),
+        ttlMinutes: 30,
+      },
+    });
+
+    return { ok: true };
+  }
+
+  private buildPasswordResetUrl(token: string): string {
+    const origin = (process.env.APP_ORIGIN ?? 'http://localhost:3000').trim();
+    const url = new URL('/reset-password', origin);
+    url.searchParams.set('token', token);
+    return url.toString();
   }
 
   async resetPassword(token: string, newPassword: string) {
@@ -456,7 +480,7 @@ export class AuthService {
   private async signAccessToken(userId: string, email: string, role: UserRole) {
     const payload: JwtAccessPayload = { sub: userId, email, role };
     return this.jwt.signAsync(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
+      secret: requiredJwtSecret('JWT_ACCESS_SECRET'),
       expiresIn: this.accessExpiresSeconds(),
     });
   }
@@ -469,7 +493,7 @@ export class AuthService {
     const payload: JwtRefreshPayload = { sub: userId, typ: 'refresh' };
 
     const refreshToken = await this.jwt.signAsync(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
+      secret: requiredJwtSecret('JWT_REFRESH_SECRET'),
       expiresIn: this.refreshExpiresSeconds(),
     });
 

@@ -25,6 +25,18 @@ export class QuoteRequestDto {
   guests?: number | null;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  adults?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  children?: number | null;
+
+  @IsOptional()
   @IsString()
   @IsIn(SUPPORTED_CURRENCIES)
   currency?: string;

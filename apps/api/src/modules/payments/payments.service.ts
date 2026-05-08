@@ -9,6 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  Booking,
   BookingPaymentStatus,
   BookingStatus,
   CancellationMode,
@@ -139,6 +140,21 @@ export class PaymentsService {
         booking.customerId !== args.actor.id
       ) {
         throw new ForbiddenException('You can only pay for your own booking.');
+      }
+
+      if (args.actor.role === 'CUSTOMER') {
+        const actorUser = await this.prisma.user.findUnique({
+          where: { id: args.actor.id },
+          select: { isEmailVerified: true },
+        });
+        if (!actorUser?.isEmailVerified) {
+          this.logger.warn(
+            `createStripeIntent validation_failed email_unverified bookingId=${booking.id} actorId=${args.actor.id}`,
+          );
+          throw new ForbiddenException(
+            'Please verify your email before making a payment.',
+          );
+        }
       }
 
       if (booking.status !== BookingStatus.PENDING_PAYMENT) {
@@ -274,6 +290,21 @@ export class PaymentsService {
           `createStripeIntent validation_failed ownership_mismatch bookingId=${booking.id} bookingCustomerId=${booking.customerId} actorId=${args.actor.id}`,
         );
         throw new ForbiddenException('You can only pay for your own booking.');
+      }
+
+      if (args.actor.role === 'CUSTOMER') {
+        const actorUser = await this.prisma.user.findUnique({
+          where: { id: args.actor.id },
+          select: { isEmailVerified: true },
+        });
+        if (!actorUser?.isEmailVerified) {
+          this.logger.warn(
+            `createStripeIntent validation_failed email_unverified bookingId=${booking.id} actorId=${args.actor.id}`,
+          );
+          throw new ForbiddenException(
+            'Please verify your email before making a payment.',
+          );
+        }
       }
 
       if (booking.status !== BookingStatus.PENDING_PAYMENT) {
@@ -728,9 +759,10 @@ export class PaymentsService {
             },
           });
 
-          const refreshedBooking = await tx.booking.findUnique({
-            where: { id: booking.id },
-          });
+          const refreshedBooking = await this.reconcileSuccessfulPaymentBooking(
+            tx,
+            booking,
+          );
 
           let ops = {
             createdTypes: [] as OpsTaskType[],
@@ -770,10 +802,10 @@ export class PaymentsService {
           },
         });
 
-        const updatedBooking = await tx.booking.update({
-          where: { id: booking.id },
-          data: { status: BookingStatus.CONFIRMED },
-        });
+        const updatedBooking = await this.reconcileSuccessfulPaymentBooking(
+          tx,
+          booking,
+        );
 
         await tx.paymentEvent.create({
           data: {
@@ -804,13 +836,12 @@ export class PaymentsService {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
 
-    await this.emitConfirmedNotifications(
-      txResult.booking,
-      txResult.vendorId ?? null,
-      txResult.ops,
-    );
-
     if (!txResult.reused && txResult.booking) {
+      await this.emitConfirmedNotifications(
+        txResult.booking,
+        txResult.vendorId ?? null,
+        txResult.ops,
+      );
       this.emitPaymentSucceededDomainEvent(txResult.booking.id);
     }
 
@@ -1462,6 +1493,8 @@ export class PaymentsService {
         });
 
         if (existing) {
+          const reconciledBooking =
+            await this.reconcileSuccessfulPaymentBooking(tx, booking);
           const ops = await this.ensureOpsTasksForConfirmedBooking(
             tx,
             booking.id,
@@ -1469,15 +1502,12 @@ export class PaymentsService {
           await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
           await this.ensureLedgerForCapturedBooking(tx, booking.id);
 
-          const refreshedBooking = await tx.booking.findUnique({
-            where: { id: booking.id },
-          });
-
           return {
-            booking: refreshedBooking ?? booking,
+            booking: reconciledBooking,
             vendorId: booking.property.vendorId,
             ops,
             reused: true,
+            shouldNotify: false,
           } as const;
         }
 
@@ -1518,12 +1548,12 @@ export class PaymentsService {
           },
         });
 
-        if (booking.status === BookingStatus.PENDING_PAYMENT) {
-          await tx.booking.update({
-            where: { id: booking.id },
-            data: { status: BookingStatus.CONFIRMED },
-          });
-        }
+        const shouldNotify = booking.status === BookingStatus.PENDING_PAYMENT;
+
+        const updatedBooking = await this.reconcileSuccessfulPaymentBooking(
+          tx,
+          booking,
+        );
 
         await tx.paymentEvent.create({
           data: {
@@ -1547,15 +1577,12 @@ export class PaymentsService {
         await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
         await this.ensureLedgerForCapturedBooking(tx, booking.id);
 
-        const refreshedBooking = await tx.booking.findUnique({
-          where: { id: booking.id },
-        });
-
         return {
-          booking: refreshedBooking ?? booking,
+          booking: updatedBooking,
           vendorId: booking.property.vendorId,
           ops,
           reused: false,
+          shouldNotify,
         } as const;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -1565,13 +1592,12 @@ export class PaymentsService {
       return { ok: true, reused: false, ignored: true };
     }
 
-    await this.emitConfirmedNotifications(
-      txResult.booking,
-      txResult.vendorId ?? null,
-      txResult.ops,
-    );
-
-    if (!txResult.reused && txResult.booking) {
+    if (!txResult.reused && txResult.shouldNotify && txResult.booking) {
+      await this.emitConfirmedNotifications(
+        txResult.booking,
+        txResult.vendorId ?? null,
+        txResult.ops,
+      );
       this.emitPaymentSucceededDomainEvent(txResult.booking.id);
     }
 
@@ -2118,15 +2144,7 @@ export class PaymentsService {
     tx: Prisma.TransactionClient,
     paymentIntent: Stripe.PaymentIntent,
   ): Promise<{
-    booking: {
-      id: string;
-      customerId: string;
-      propertyId: string;
-      checkIn: Date;
-      checkOut: Date;
-      totalAmount: number;
-      currency: string;
-      status: BookingStatus;
+    booking: Booking & {
       property: { vendorId: string };
       payment: {
         id: string;
@@ -2205,6 +2223,52 @@ export class PaymentsService {
     }
 
     return { booking, payment };
+  }
+
+  private async reconcileSuccessfulPaymentBooking(
+    tx: Prisma.TransactionClient,
+    booking: {
+      id: string;
+      status: BookingStatus;
+      paymentStatus: BookingPaymentStatus;
+      confirmedAt?: Date | null;
+    },
+  ): Promise<Booking> {
+    const data: Prisma.BookingUpdateInput = {};
+
+    if (booking.status === BookingStatus.PENDING_PAYMENT) {
+      data.status = BookingStatus.CONFIRMED;
+    }
+
+    if (booking.paymentStatus !== BookingPaymentStatus.SUCCESS) {
+      data.paymentStatus = BookingPaymentStatus.SUCCESS;
+    }
+
+    if (
+      !booking.confirmedAt &&
+      (booking.status === BookingStatus.PENDING_PAYMENT ||
+        booking.status === BookingStatus.CONFIRMED ||
+        booking.status === BookingStatus.COMPLETED)
+    ) {
+      data.confirmedAt = new Date();
+    }
+
+    if (Object.keys(data).length > 0) {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data,
+      });
+    }
+
+    const reconciledBooking = await tx.booking.findUnique({
+      where: { id: booking.id },
+    });
+
+    if (!reconciledBooking) {
+      throw new NotFoundException('Booking not found.');
+    }
+
+    return reconciledBooking;
   }
 
   private async emitConfirmedNotifications(

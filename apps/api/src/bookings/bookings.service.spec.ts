@@ -152,6 +152,8 @@ describe('BookingsService critical paths', () => {
       checkOut: new Date('2026-04-03T00:00:00.000Z'),
       status: HoldStatus.ACTIVE,
       expiresAt: new Date('2099-12-31T23:59:59.000Z'),
+      adults: 3,
+      children: 1,
       quotedTotalAed: 120000,
       quotedTotalDisplay: 32712,
       displayCurrency: 'USD',
@@ -167,6 +169,8 @@ describe('BookingsService critical paths', () => {
         totalAmountAed: number;
         displayTotalAmount: number;
         displayCurrency: string;
+        adults: number;
+        children: number;
       };
     };
 
@@ -261,6 +265,8 @@ describe('BookingsService critical paths', () => {
       totalAmountAed: 120000,
       displayTotalAmount: 32712,
       displayCurrency: 'USD',
+      adults: 3,
+      children: 1,
     });
   });
 

@@ -20,9 +20,6 @@ function resolveApiOrigin(): string {
   const fromOrigin = normalizeOrigin(process.env.NEXT_PUBLIC_API_ORIGIN);
   if (fromOrigin) return fromOrigin;
 
-  const fromBase = normalizeOrigin(process.env.NEXT_PUBLIC_API_BASE_URL);
-  if (fromBase) return fromBase;
-
   return DEFAULT_API_ORIGIN;
 }
 

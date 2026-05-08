@@ -26,6 +26,18 @@ export class ReserveRequestDto {
 
   @IsOptional()
   @IsInt()
+  @Min(1)
+  @Max(50)
+  adults?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  children?: number | null;
+
+  @IsOptional()
+  @IsInt()
   @Min(5)
   @Max(60)
   ttlMinutes?: number | null;

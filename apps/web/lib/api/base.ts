@@ -46,18 +46,6 @@ function normalizeOrigin(input: string | undefined): string | null {
   return parsed.origin;
 }
 
-function normalizeBasePath(pathname: string): string {
-  const raw = (pathname ?? "").trim();
-  if (!raw) return "/";
-
-  let path = raw.startsWith("/") ? raw : `/${raw}`;
-  path = path.replace(/\/{2,}/g, "/");
-  if (path.length > 1) {
-    path = path.replace(/\/+$/g, "");
-  }
-  return path || "/";
-}
-
 function readBooleanEnv(value: string | undefined, fallback: boolean): boolean {
   const normalized = (value ?? "").trim().toLowerCase();
   if (!normalized) return fallback;
@@ -75,35 +63,6 @@ function shouldUseSameOriginApiInBrowser(): boolean {
   // Default ON so browser requests go through Next rewrites (/api -> backend),
   // making auth cookies first-party and more reliable across browsers.
   return readBooleanEnv(process.env.NEXT_PUBLIC_API_USE_PROXY, true);
-}
-
-function readApiBaseFromEnv(): string | null {
-  const raw = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
-  if (!raw) return null;
-
-  if (/^https?:\/\//i.test(raw)) {
-    let parsed: URL;
-    try {
-      parsed = new URL(raw);
-    } catch {
-      throw new Error(
-        `Invalid NEXT_PUBLIC_API_BASE_URL: "${raw}". Expected an absolute URL or relative path like /api.`,
-      );
-    }
-
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error(
-        `Invalid NEXT_PUBLIC_API_BASE_URL protocol: "${parsed.protocol}". Use http or https.`,
-      );
-    }
-
-    const basePath = normalizeBasePath(parsed.pathname);
-    const finalPath = basePath === "/" ? DEFAULT_API_BASE_PATH : basePath;
-    return `${parsed.origin}${finalPath}`;
-  }
-
-  const basePath = normalizeBasePath(raw);
-  return basePath === "/" ? DEFAULT_API_BASE_PATH : basePath;
 }
 
 function readOriginFromEnv(): string {
@@ -136,14 +95,6 @@ export function apiOrigin(): string {
 export function apiBaseUrl(): string {
   if (shouldUseSameOriginApiInBrowser()) {
     return DEFAULT_API_BASE_PATH;
-  }
-  const fromBase = readApiBaseFromEnv();
-  if (fromBase) {
-    if (/^https?:\/\//i.test(fromBase)) return fromBase;
-    if (typeof window !== "undefined") return fromBase;
-
-    // Server-side fetch requires absolute URLs.
-    return `${apiOrigin()}${fromBase.startsWith("/") ? fromBase : `/${fromBase}`}`;
   }
   return `${apiOrigin()}${DEFAULT_API_BASE_PATH}`;
 }

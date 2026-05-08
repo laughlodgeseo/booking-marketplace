@@ -23,7 +23,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "repair:payments": "ts-node -r tsconfig-paths/register scripts/repair-payments.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BookingPaymentStatus,
   BookingStatus,
   PaymentEventType,
   PaymentProvider,
@@ -26,6 +27,9 @@ function buildPaymentsService(overrides?: {
   stripe?: Partial<StripePaymentsProvider>;
 }) {
   const prisma = {
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+    },
     booking: {
       findUnique: jest.fn(),
       update: jest.fn(),
@@ -169,6 +173,31 @@ describe('PaymentsService', () => {
           idempotencyKey: null,
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects unverified customers before creating Stripe intent', async () => {
+      const { service, prisma, stripe } = buildPaymentsService();
+      (prisma.booking.findUnique as jest.Mock).mockResolvedValue({
+        id: 'b1',
+        customerId: 'c1',
+        status: BookingStatus.PENDING_PAYMENT,
+        totalAmount: 1000,
+        currency: 'AED',
+        propertyId: 'p1',
+        payment: null,
+      });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        isEmailVerified: false,
+      });
+
+      await expect(
+        service.createStripeIntent({
+          actor: { id: 'c1', role: 'CUSTOMER' },
+          bookingId: 'b1',
+          idempotencyKey: null,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(stripe.createPaymentIntent).not.toHaveBeenCalled();
     });
 
     it('includes security deposit in PaymentIntent amount', async () => {
@@ -432,7 +461,10 @@ describe('PaymentsService', () => {
       const webhookEventId = 'evt_123';
 
       let bookingStatus: BookingStatus = BookingStatus.PENDING_PAYMENT;
+      let bookingPaymentStatus: BookingPaymentStatus =
+        BookingPaymentStatus.PENDING;
       let paymentStatus: PaymentStatus = PaymentStatus.REQUIRES_ACTION;
+      let confirmedAt: Date | null = null;
       let eventExists = false;
 
       const paymentUpdate = jest.fn().mockImplementation(() => {
@@ -440,9 +472,17 @@ describe('PaymentsService', () => {
         return { id: paymentId, status: paymentStatus };
       });
 
-      const bookingUpdate = jest.fn().mockImplementation(() => {
+      const bookingUpdate = jest.fn().mockImplementation((args) => {
+        expect(args.data.paymentStatus).toBe(BookingPaymentStatus.SUCCESS);
         bookingStatus = BookingStatus.CONFIRMED;
-        return { id: bookingId, status: bookingStatus };
+        bookingPaymentStatus = args.data.paymentStatus;
+        confirmedAt = args.data.confirmedAt ?? confirmedAt;
+        return {
+          id: bookingId,
+          status: bookingStatus,
+          paymentStatus: bookingPaymentStatus,
+          confirmedAt,
+        };
       });
 
       const paymentEventCreate = jest.fn().mockImplementation(() => {
@@ -450,10 +490,12 @@ describe('PaymentsService', () => {
         return { id: 'evt_local_1' };
       });
 
-      const bookingRecord = {
+      const buildBookingRecord = () => ({
         id: bookingId,
         customerId: 'customer_1',
         status: bookingStatus,
+        paymentStatus: bookingPaymentStatus,
+        confirmedAt,
         checkIn: new Date('2026-06-01T00:00:00.000Z'),
         checkOut: new Date('2026-06-05T00:00:00.000Z'),
         totalAmount: 1000,
@@ -469,17 +511,17 @@ describe('PaymentsService', () => {
           amount: 1000,
           currency: 'AED',
         },
-      };
+      });
 
       const tx = {
         booking: {
-          findUnique: jest.fn().mockImplementation(() => bookingRecord),
+          findUnique: jest.fn().mockImplementation(() => buildBookingRecord()),
           update: bookingUpdate,
         },
         payment: {
           findUnique: jest.fn().mockImplementation(() => ({
-            ...bookingRecord.payment,
-            booking: bookingRecord,
+            ...buildBookingRecord().payment,
+            booking: buildBookingRecord(),
           })),
           update: paymentUpdate,
         },
@@ -551,7 +593,7 @@ describe('PaymentsService', () => {
       jest
         .spyOn(service as never, 'ensureLedgerForCapturedBooking')
         .mockResolvedValue(undefined as never);
-      jest
+      const emitConfirmedNotificationsSpy = jest
         .spyOn(service as never, 'emitConfirmedNotifications')
         .mockResolvedValue(undefined as never);
 
@@ -580,6 +622,165 @@ describe('PaymentsService', () => {
       expect(paymentEventCreate).toHaveBeenCalledTimes(1);
       expect(paymentUpdate).toHaveBeenCalledTimes(1);
       expect(bookingUpdate).toHaveBeenCalledTimes(1);
+      expect(emitConfirmedNotificationsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('reconciles stale booking paymentStatus on duplicate succeeded webhook without double-apply', async () => {
+      const bookingId = 'booking_webhook_stale_1';
+      const paymentId = 'payment_webhook_stale_1';
+      const paymentIntentId = 'pi_stale_123';
+      const webhookEventId = 'evt_stale_123';
+
+      let bookingStatus: BookingStatus = BookingStatus.CONFIRMED;
+      let bookingPaymentStatus: BookingPaymentStatus =
+        BookingPaymentStatus.PENDING;
+      let paymentStatus: PaymentStatus = PaymentStatus.CAPTURED;
+      let confirmedAt: Date | null = null;
+
+      const paymentUpdate = jest.fn();
+      const paymentEventCreate = jest.fn();
+      const bookingUpdate = jest.fn().mockImplementation((args) => {
+        expect(args.data.status).toBeUndefined();
+        expect(args.data.paymentStatus).toBe(BookingPaymentStatus.SUCCESS);
+        expect(args.data.confirmedAt).toBeInstanceOf(Date);
+        bookingPaymentStatus = args.data.paymentStatus;
+        confirmedAt = args.data.confirmedAt;
+        return {
+          id: bookingId,
+          customerId: 'customer_1',
+          propertyId: 'property_1',
+          checkIn: new Date('2026-06-01T00:00:00.000Z'),
+          checkOut: new Date('2026-06-05T00:00:00.000Z'),
+          totalAmount: 1000,
+          currency: 'AED',
+          status: bookingStatus,
+          paymentStatus: bookingPaymentStatus,
+          confirmedAt,
+        };
+      });
+
+      const buildBookingRecord = () => ({
+        id: bookingId,
+        customerId: 'customer_1',
+        status: bookingStatus,
+        paymentStatus: bookingPaymentStatus,
+        confirmedAt,
+        checkIn: new Date('2026-06-01T00:00:00.000Z'),
+        checkOut: new Date('2026-06-05T00:00:00.000Z'),
+        totalAmount: 1000,
+        currency: 'AED',
+        propertyId: 'property_1',
+        property: { vendorId: 'vendor_1' },
+        payment: {
+          id: paymentId,
+          provider: PaymentProvider.STRIPE,
+          providerRef: paymentIntentId,
+          stripePaymentIntentId: paymentIntentId,
+          status: paymentStatus,
+          amount: 1000,
+          currency: 'AED',
+        },
+      });
+
+      const tx = {
+        booking: {
+          findUnique: jest.fn().mockImplementation(() => buildBookingRecord()),
+          update: bookingUpdate,
+        },
+        payment: {
+          findUnique: jest.fn().mockImplementation(() => ({
+            ...buildBookingRecord().payment,
+            booking: buildBookingRecord(),
+          })),
+          update: paymentUpdate,
+        },
+        paymentEvent: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'evt_local_existing',
+            paymentId,
+            type: PaymentEventType.WEBHOOK,
+            idempotencyKey: webhookEventId,
+          }),
+          create: paymentEventCreate,
+        },
+      };
+
+      const prisma = {
+        $transaction: jest.fn().mockImplementation(
+          (
+            fn: (trx: typeof tx) => Promise<{
+              booking: { status: BookingStatus };
+              reused: boolean;
+            }>,
+          ) => fn(tx),
+        ),
+        customerDocument: { findMany: jest.fn().mockResolvedValue([]) },
+        booking: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: bookingId,
+            payment: {
+              id: paymentId,
+              amount: 1000,
+              currency: 'AED',
+              provider: PaymentProvider.STRIPE,
+            },
+            property: { vendorId: 'vendor_1' },
+          }),
+        },
+      } as unknown as PrismaService;
+
+      const service = new PaymentsService(
+        prisma,
+        {} as ManualPaymentsProvider,
+        {} as StripePaymentsProvider,
+        {
+          isActivationPaymentIntent: jest.fn().mockReturnValue(false),
+          handleStripePaymentIntentSucceeded: jest.fn(),
+          handleStripePaymentIntentFailed: jest.fn(),
+          handleStripePaymentIntentProcessing: jest.fn(),
+          handleStripePaymentIntentCanceled: jest.fn(),
+        } as unknown as ActivationPaymentService,
+        {
+          emit: jest.fn().mockResolvedValue(undefined),
+        } as unknown as NotificationsService,
+        {} as BookingsService,
+        {
+          publish: jest.fn(),
+          subscribe: jest.fn(),
+        } as unknown as import('./../../events/event-bus.service').EventBusService,
+      );
+
+      jest
+        .spyOn(service as never, 'ensureOpsTasksForConfirmedBooking')
+        .mockResolvedValue({ createdTypes: [], scheduledFor: null } as never);
+      jest
+        .spyOn(service as never, 'ensureSecurityDepositForConfirmedBooking')
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(service as never, 'ensureLedgerForCapturedBooking')
+        .mockResolvedValue(undefined as never);
+      const emitConfirmedNotificationsSpy = jest
+        .spyOn(service as never, 'emitConfirmedNotifications')
+        .mockResolvedValue(undefined as never);
+
+      const paymentIntent = {
+        id: paymentIntentId,
+        amount: 100000,
+        currency: 'aed',
+        metadata: { bookingId },
+      } as unknown as Stripe.PaymentIntent;
+
+      const result = await service.handleStripePaymentIntentSucceeded({
+        eventId: webhookEventId,
+        paymentIntent,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.reused).toBe(true);
+      expect(bookingUpdate).toHaveBeenCalledTimes(1);
+      expect(paymentUpdate).not.toHaveBeenCalled();
+      expect(paymentEventCreate).not.toHaveBeenCalled();
+      expect(emitConfirmedNotificationsSpy).not.toHaveBeenCalled();
     });
   });
 });

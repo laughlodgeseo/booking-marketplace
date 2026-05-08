@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   Logger,
   Optional,
   Post,
@@ -99,6 +100,9 @@ export class PaymentsWebhooksController {
       this.logger.error(
         `stripe_webhook sync_processing_failed eventType=${event.type}`,
         error instanceof Error ? error.stack : undefined,
+      );
+      throw new InternalServerErrorException(
+        'Stripe webhook processing failed. Please retry.',
       );
     }
 

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, type StrategyOptions } from 'passport-jwt';
 import type { UserRole } from '@prisma/client';
+import { requiredJwtSecret } from '../../common/config/env.validation';
 
 export type JwtAccessPayload = {
   sub: string;
@@ -20,7 +21,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor() {
     const options: StrategyOptions = {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_ACCESS_SECRET ?? 'dev_access_secret',
+      secretOrKey: requiredJwtSecret('JWT_ACCESS_SECRET'),
     };
     super(options);
   }

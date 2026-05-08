@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, type StrategyOptions } from 'passport-jwt';
 import type { Request } from 'express';
 import type { JwtRefreshPayload } from '../types/auth.types';
+import { requiredJwtSecret } from '../../common/config/env.validation';
 
 export type RefreshAuthUser = {
   id: string;
@@ -31,7 +32,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
   constructor() {
     const options: StrategyOptions = {
       jwtFromRequest: (req: Request) => extractRefreshTokenFromCookie(req),
-      secretOrKey: process.env.JWT_REFRESH_SECRET ?? 'dev_refresh_secret',
+      secretOrKey: requiredJwtSecret('JWT_REFRESH_SECRET'),
       passReqToCallback: true,
     };
     super(options);

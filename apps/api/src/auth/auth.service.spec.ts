@@ -41,12 +41,25 @@ function buildService() {
   const jwt = {
     signAsync: jest.fn().mockResolvedValue('mock_jwt_token'),
   };
+  const notifications = {
+    emit: jest.fn().mockResolvedValue(undefined),
+  };
 
-  const service = new AuthService(prisma as never, jwt as never);
-  return { service, prisma, jwt };
+  const service = new AuthService(
+    prisma as never,
+    jwt as never,
+    notifications as never,
+  );
+  return { service, prisma, jwt, notifications };
 }
 
 describe('AuthService', () => {
+  beforeAll(() => {
+    process.env.JWT_ACCESS_SECRET = 'test_access_secret_32_chars_minimum';
+    process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_32_chars_minimum';
+    process.env.APP_ORIGIN = 'http://localhost:3000';
+  });
+
   describe('register', () => {
     it('creates customer by default', async () => {
       const { service, prisma } = buildService();
@@ -230,16 +243,27 @@ describe('AuthService', () => {
       expect(result.ok).toBe(true);
     });
 
-    it('creates reset token for existing user', async () => {
-      const { service, prisma } = buildService();
+    it('creates reset token and queues email without returning token', async () => {
+      const { service, prisma, notifications } = buildService();
       prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
-      prisma.passwordResetToken.create.mockResolvedValue({ id: 'prt1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
 
       const result = await service.requestPasswordReset('user@test.com');
 
       expect(result.ok).toBe(true);
-      expect(result.resetToken).toBeDefined();
+      expect('resetToken' in result).toBe(false);
       expect(prisma.passwordResetToken.create).toHaveBeenCalled();
+      expect(notifications.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'PASSWORD_RESET_REQUESTED',
+          entityType: 'password_reset_token',
+          entityId: 'prt1',
+          recipientUserId: 'u1',
+        }),
+      );
     });
   });
 });

@@ -16,6 +16,7 @@ import {
   parseLocaleFromAcceptLanguage,
 } from './common/i18n/locale';
 import type { AppRequest } from './common/i18n/app-request';
+import { validateCriticalEnvironment } from './common/config/env.validation';
 
 type CorsOriginCallback = (error: Error | null, allow?: boolean) => void;
 
@@ -25,6 +26,10 @@ function normalizeOrigin(value: string): string {
 }
 
 async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  validateCriticalEnvironment();
+
   const rawDbUrl = (process.env.DATABASE_URL || '').trim();
   if (!rawDbUrl) {
     console.warn('DATABASE_URL is not set. API will fail to connect to the database.');
@@ -38,8 +43,6 @@ async function bootstrap() {
       console.warn('DATABASE_URL is set but could not be parsed.');
     }
   }
-
-  const app = await NestFactory.create(AppModule);
 
   // Global API prefix
   app.setGlobalPrefix('api');

@@ -11,6 +11,18 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { UserRole } from '@prisma/client';
 
+type GoogleTokenInfo = {
+  sub?: string;
+  email?: string;
+  email_verified?: string;
+  name?: string;
+  picture?: string;
+  iss?: string;
+  aud?: string;
+  exp?: string;
+  error_description?: string;
+};
+
 /**
  * OAuth controller — handles token-based social login (SPA-friendly).
  *
@@ -38,10 +50,7 @@ export class OAuthController {
       throw new BadRequestException('Google credential is required.');
     }
 
-    // Decode the Google ID token (JWT) to extract user info.
-    // In production, you should verify the token signature with Google's public keys.
-    // For MVP, we decode and validate the issuer/audience.
-    const payload = this.decodeGoogleToken(body.credential);
+    const payload = await this.verifyGoogleToken(body.credential);
 
     if (!payload.email) {
       throw new BadRequestException('Google account has no email.');
@@ -66,33 +75,28 @@ export class OAuthController {
     };
   }
 
-  /**
-   * Decode Google ID token (JWT).
-   * IMPORTANT: In production, verify signature against Google's JWKS:
-   * https://www.googleapis.com/oauth2/v3/certs
-   */
-  private decodeGoogleToken(token: string): {
+  private async verifyGoogleToken(token: string): Promise<{
     sub: string;
     email: string;
     name?: string;
     picture?: string;
-  } {
+  }> {
     try {
-      const parts = token.split('.');
-      if (parts.length !== 3) throw new Error('Invalid JWT format');
-      const payload = JSON.parse(
-        Buffer.from(parts[1], 'base64url').toString('utf-8'),
-      ) as {
-        sub?: string;
-        email?: string;
-        iss?: string;
-        aud?: string;
-        exp?: number;
-        name?: string;
-        picture?: string;
-      };
+      const expectedAud = (
+        process.env.GOOGLE_CLIENT_ID ??
+        process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ??
+        ''
+      ).trim();
+      if (!expectedAud) throw new Error('GOOGLE_CLIENT_ID is not configured');
 
-      // Basic validation
+      const response = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`,
+      );
+      if (!response.ok) throw new Error('Google token verification failed');
+
+      const payload = (await response.json()) as GoogleTokenInfo;
+      if (payload.error_description) throw new Error(payload.error_description);
+
       if (!payload.sub || !payload.email) {
         throw new Error('Missing required claims');
       }
@@ -103,15 +107,16 @@ export class OAuthController {
         throw new Error('Invalid issuer');
       }
 
-      // Verify audience matches our Client ID (prevents tokens from other apps being accepted)
-      const expectedAud = process.env.GOOGLE_CLIENT_ID;
-      if (expectedAud && payload.aud !== expectedAud) {
+      if (payload.aud !== expectedAud) {
         throw new Error('Token audience mismatch');
       }
+      if (payload.email_verified !== 'true') {
+        throw new Error('Google email is not verified');
+      }
 
-      // Check expiry
       const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
+      const exp = Number(payload.exp);
+      if (!Number.isFinite(exp) || exp < now) {
         throw new Error('Token expired');
       }
 
@@ -123,7 +128,7 @@ export class OAuthController {
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.warn(`Google token decode failed: ${msg}`);
+      this.logger.warn(`Google token verification failed: ${msg}`);
       throw new BadRequestException('Invalid Google credential.');
     }
   }
@@ -131,12 +136,20 @@ export class OAuthController {
   private setRefreshCookie(res: Response, refreshToken: string) {
     const isProduction = process.env.NODE_ENV === 'production';
     const cookieName = process.env.AUTH_COOKIE_NAME || 'rentpropertyuae_rt';
+    const envSecure = process.env.AUTH_COOKIE_SECURE;
+    const envSameSite = process.env.AUTH_COOKIE_SAMESITE;
+    const envDomain = process.env.AUTH_COOKIE_DOMAIN;
     const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
 
     res.cookie(cookieName, refreshToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: envSecure !== undefined ? envSecure === 'true' : isProduction,
+      sameSite: (envSameSite !== undefined
+        ? envSameSite
+        : isProduction
+          ? 'none'
+          : 'lax') as 'lax' | 'strict' | 'none',
+      domain: envDomain || undefined,
       path: '/',
       maxAge,
     });
