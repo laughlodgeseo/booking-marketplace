@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "pnpm --filter api start:prod"
+startCommand = "/app/.pnpm/bin/pnpm --filter api start:prod"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"

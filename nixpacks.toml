@@ -3,12 +3,12 @@ nixPkgs = ["nodejs_22"]
 
 [phases.install]
 cmds = [
-  "npm install -g pnpm@10.28.2 && ln -sf $(npm bin -g)/pnpm /usr/bin/pnpm",
-  "pnpm install --frozen-lockfile"
+  "npm install -g --prefix /app/.pnpm pnpm@10.28.2",
+  "/app/.pnpm/bin/pnpm install --frozen-lockfile"
 ]
 
 [phases.build]
-cmds = ["pnpm --filter api build"]
+cmds = ["/app/.pnpm/bin/pnpm --filter api build"]
 
 [start]
-cmd = "pnpm --filter api start:prod"
+cmd = "/app/.pnpm/bin/pnpm --filter api start:prod"
