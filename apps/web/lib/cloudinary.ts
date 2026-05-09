@@ -58,16 +58,21 @@ export function uploadFileToCloudinary(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
-    form.append("file", file);
-    form.append("folder", params.folder);
-    form.append("public_id", params.publicId);
+    const folder = params.folder;
+    const public_id = params.publicId;
+    const timestamp = params.timestamp;
+    const upload_preset = params.uploadPreset;
 
-    if (params.uploadPreset) {
-      form.append("upload_preset", params.uploadPreset);
+    form.append("file", file);
+    form.append("folder", folder);
+    form.append("public_id", public_id);
+
+    if (upload_preset) {
+      form.append("upload_preset", upload_preset);
     }
-    if (params.apiKey && params.signature && params.timestamp !== undefined) {
+    if (params.apiKey && params.signature && timestamp !== undefined) {
       form.append("api_key", params.apiKey);
-      form.append("timestamp", String(params.timestamp));
+      form.append("timestamp", String(timestamp));
       form.append("signature", params.signature);
     }
 

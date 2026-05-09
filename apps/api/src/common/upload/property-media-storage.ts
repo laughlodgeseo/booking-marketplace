@@ -37,7 +37,7 @@ export function getCloudinaryUploadParams(
   const cfg = loadCloudinaryConfig();
   if (!cfg) return { mode: 'server' };
 
-  const timestamp = Math.floor(Date.now() / 1000);
+  const timestamp = Math.round(Date.now() / 1000);
   const propertySegment = normalizeSegment(propertyId);
   const folder = `${cfg.baseFolder}/${scope}/${propertySegment}`;
   const publicId = `${scope}-${propertySegment}-${randomUUID()}`;
@@ -57,7 +57,12 @@ export function getCloudinaryUploadParams(
     params.apiKey = cfg.apiKey;
     params.timestamp = timestamp;
     params.signature = cloudinarySignature(
-      { folder, public_id: publicId, timestamp },
+      cloudinaryUploadSignatureParams({
+        folder,
+        publicId,
+        timestamp,
+        uploadPreset: cfg.uploadPreset,
+      }),
       cfg.apiSecret,
     );
   }
@@ -147,7 +152,7 @@ function loadCloudinaryConfig(): CloudinaryConfig | null {
 }
 
 function cloudinarySignature(
-  params: Record<string, string | number>,
+  params: Record<string, string | number | undefined>,
   apiSecret: string,
 ): string {
   const serialized = Object.entries(params)
@@ -158,6 +163,20 @@ function cloudinarySignature(
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
   return createHash('sha1').update(`${serialized}${apiSecret}`).digest('hex');
+}
+
+function cloudinaryUploadSignatureParams(input: {
+  folder: string;
+  publicId: string;
+  timestamp: number;
+  uploadPreset?: string;
+}): Record<string, string | number | undefined> {
+  return {
+    folder: input.folder,
+    public_id: input.publicId,
+    timestamp: input.timestamp,
+    upload_preset: input.uploadPreset,
+  };
 }
 
 function localPropertyImageUrl(file: Express.Multer.File): string {
@@ -208,7 +227,7 @@ export async function resolvePropertyImageUrl(
   }
 
   const bytes = readUploadBytes(input.file);
-  const timestamp = Math.floor(Date.now() / 1000);
+  const timestamp = Math.round(Date.now() / 1000);
   const ext = extensionForUpload(input.file);
   const propertySegment = normalizeSegment(input.propertyId);
   const folder = `${cfg.baseFolder}/${input.scope}/${propertySegment}`;
@@ -236,11 +255,12 @@ export async function resolvePropertyImageUrl(
     form.append(
       'signature',
       cloudinarySignature(
-        {
+        cloudinaryUploadSignatureParams({
           folder,
-          public_id: publicId,
+          publicId,
           timestamp,
-        },
+          uploadPreset: cfg.uploadPreset,
+        }),
         cfg.apiSecret,
       ),
     );
