@@ -1,6 +1,12 @@
 import { runDemoSeed } from './seed/demo';
+import { runShowcaseSeed } from './seeds/showcase';
 
 async function main() {
+  if (process.env.SEED_MODE === 'showcase') {
+    await runShowcaseSeed();
+    return;
+  }
+
   if (process.env.SEED_MODE === 'demo') {
     await runDemoSeed();
     return;

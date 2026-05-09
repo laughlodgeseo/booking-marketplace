@@ -34,5 +34,6 @@ coverage/
 # Upload artifacts (must never be versioned)
 apps/api/private_uploads/
 apps/api/uploads/
+apps/api/prisma/.cache/
 # Misrouted uploads from incorrect API working-dir config
 apps/api/apps/
