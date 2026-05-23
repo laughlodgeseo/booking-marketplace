@@ -10,6 +10,7 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import { BookingStatus } from '@prisma/client';
 import { AdminPortalService } from './admin-portal.service';
 import { AdminAuditService } from './admin-audit.service';
 
@@ -19,7 +20,6 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 import {
-  BookingStatus,
   BlockRequestStatus,
   CustomerDocumentStatus,
   OpsTaskStatus,
@@ -144,6 +144,34 @@ export class AdminPortalController {
     });
   }
 
+  @Post('vendors/:vendorId/approve')
+  approveVendor(
+    @CurrentUser() user: User,
+    @Param('vendorId', new ParseUUIDPipe()) vendorId: string,
+  ) {
+    return this.service.approveVendor({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      vendorId,
+    });
+  }
+
+  @Post('vendors/:vendorId/reject')
+  rejectVendor(
+    @CurrentUser() user: User,
+    @Param('vendorId', new ParseUUIDPipe()) vendorId: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.service.rejectVendor({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      vendorId,
+      reason: body?.reason,
+    });
+  }
+
   @Get('properties')
   properties(
     @CurrentUser() user: User,
@@ -179,6 +207,7 @@ export class AdminPortalController {
   ) {
     return this.service.approveDocument({
       userId: user.id,
+      actorEmail: user.email,
       role: user.role,
       propertyId,
     });
@@ -192,9 +221,66 @@ export class AdminPortalController {
   ) {
     return this.service.rejectDocument({
       userId: user.id,
+      actorEmail: user.email,
       role: user.role,
       propertyId,
       reason: body.reason ?? '',
+    });
+  }
+
+  @Post('properties/:propertyId/approve')
+  approveProperty(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+  ) {
+    return this.service.approveProperty({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      propertyId,
+    });
+  }
+
+  @Post('properties/:propertyId/reject')
+  rejectProperty(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.service.rejectProperty({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      propertyId,
+      reason: body.reason ?? '',
+    });
+  }
+
+  @Post('properties/:propertyId/suspend')
+  suspendProperty(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.service.suspendProperty({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      propertyId,
+      reason: body?.reason,
+    });
+  }
+
+  @Post('properties/:propertyId/archive')
+  archiveProperty(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+  ) {
+    return this.service.archiveProperty({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      propertyId,
     });
   }
 
@@ -414,6 +500,7 @@ export class AdminPortalController {
   ) {
     return this.service.approveCustomerDocument({
       userId: user.id,
+      actorEmail: user.email,
       role: user.role,
       documentId,
       notes: body?.notes,
@@ -428,6 +515,7 @@ export class AdminPortalController {
   ) {
     return this.service.rejectCustomerDocument({
       userId: user.id,
+      actorEmail: user.email,
       role: user.role,
       documentId,
       notes: body?.notes,
@@ -499,6 +587,81 @@ export class AdminPortalController {
       status: query.status,
       page,
       pageSize,
+    });
+  }
+
+  @Post('bookings/:bookingId/cancel')
+  cancelBookingByAdmin(
+    @CurrentUser() user: User,
+    @Param('bookingId', new ParseUUIDPipe()) bookingId: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.service.cancelBookingByAdmin({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      bookingId,
+      reason: body?.reason,
+    });
+  }
+
+  @Post('bookings/:bookingId/status')
+  overrideBookingStatus(
+    @CurrentUser() user: User,
+    @Param('bookingId', new ParseUUIDPipe()) bookingId: string,
+    @Body() body: { status: BookingStatus; reason?: string },
+  ) {
+    return this.service.overrideBookingStatus({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      bookingId,
+      newStatus: body.status,
+      reason: body.reason,
+    });
+  }
+
+  @Post('bookings/:bookingId/refund')
+  issueAdminRefund(
+    @CurrentUser() user: User,
+    @Param('bookingId', new ParseUUIDPipe()) bookingId: string,
+    @Body() body: { amount: number; reason: string },
+  ) {
+    return this.service.issueAdminRefund({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      bookingId,
+      amount: body.amount,
+      reason: body.reason,
+    });
+  }
+
+  @Post('payouts/:payoutId/approve')
+  approvePayout(
+    @CurrentUser() user: User,
+    @Param('payoutId', new ParseUUIDPipe()) payoutId: string,
+  ) {
+    return this.service.approvePayout({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      payoutId,
+    });
+  }
+
+  @Post('payouts/:payoutId/mark-paid')
+  markPayoutPaid(
+    @CurrentUser() user: User,
+    @Param('payoutId', new ParseUUIDPipe()) payoutId: string,
+    @Body() body?: { providerRef?: string },
+  ) {
+    return this.service.markPayoutPaid({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      payoutId,
+      providerRef: body?.providerRef,
     });
   }
 

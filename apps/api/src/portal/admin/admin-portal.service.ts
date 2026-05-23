@@ -10,13 +10,16 @@ import {
   BlockRequestStatus,
   BookingStatus,
   CalendarDayStatus,
+  CancellationReason,
   CustomerDocumentStatus,
   CustomerDocumentType,
   HoldStatus,
   NotificationType,
   OpsTaskStatus,
   PaymentStatus,
+  PayoutStatus,
   PropertyStatus,
+  RefundReason,
   RefundStatus,
   UserRole,
   VendorStatus,
@@ -37,6 +40,7 @@ import {
   CUSTOMER_DOCUMENTS_DIR,
 } from '../../common/upload/storage-paths';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { AdminAuditService } from './admin-audit.service';
 
 type AdminOverview = {
   kpis: {
@@ -77,6 +81,7 @@ export class AdminPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly audit: AdminAuditService,
   ) {}
 
   private assertAdmin(role: UserRole) {
@@ -1078,29 +1083,41 @@ export class AdminPortalService {
 
   async approveDocument(params: {
     userId: string;
+    actorEmail?: string | null;
     role: UserRole;
     propertyId: string;
   }) {
     this.assertAdmin(params.role);
-    return this.prisma.property.update({
-      where: { id: params.propertyId },
-      data: {
-        documentStatus: 'approved',
-        documentRejectionReason: null,
-      },
-      select: {
-        id: true,
-        documentStatus: true,
-        documentRejectionReason: true,
-        documentUrl: true,
-        documentPublicId: true,
-        documentResourceType: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.property.update({
+        where: { id: params.propertyId },
+        data: {
+          documentStatus: 'approved',
+          documentRejectionReason: null,
+        },
+        select: {
+          id: true,
+          documentStatus: true,
+          documentRejectionReason: true,
+          documentUrl: true,
+          documentPublicId: true,
+          documentResourceType: true,
+        },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PROPERTY_DOCUMENT_APPROVED',
+        targetType: 'Property',
+        targetId: params.propertyId,
+      });
+      return result;
     });
   }
 
   async rejectDocument(params: {
     userId: string;
+    actorEmail?: string | null;
     role: UserRole;
     propertyId: string;
     reason: string;
@@ -1111,20 +1128,31 @@ export class AdminPortalService {
       throw new BadRequestException('Document rejection reason is required.');
     }
 
-    return this.prisma.property.update({
-      where: { id: params.propertyId },
-      data: {
-        documentStatus: 'rejected',
-        documentRejectionReason: reason,
-      },
-      select: {
-        id: true,
-        documentStatus: true,
-        documentRejectionReason: true,
-        documentUrl: true,
-        documentPublicId: true,
-        documentResourceType: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.property.update({
+        where: { id: params.propertyId },
+        data: {
+          documentStatus: 'rejected',
+          documentRejectionReason: reason,
+        },
+        select: {
+          id: true,
+          documentStatus: true,
+          documentRejectionReason: true,
+          documentUrl: true,
+          documentPublicId: true,
+          documentResourceType: true,
+        },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PROPERTY_DOCUMENT_REJECTED',
+        targetType: 'Property',
+        targetId: params.propertyId,
+        metadata: { reason },
+      });
+      return result;
     });
   }
 
@@ -1921,97 +1949,123 @@ export class AdminPortalService {
 
   async approveCustomerDocument(params: {
     userId: string;
+    actorEmail?: string | null;
     role: UserRole;
     documentId: string;
     notes?: string;
   }) {
     this.assertAdmin(params.role);
 
-    const existing = await this.prisma.customerDocument.findUnique({
-      where: { id: params.documentId },
-      select: { id: true },
-    });
-    if (!existing) throw new NotFoundException('Customer document not found.');
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.customerDocument.findUnique({
+        where: { id: params.documentId },
+        select: { id: true },
+      });
+      if (!existing)
+        throw new NotFoundException('Customer document not found.');
 
-    const now = new Date();
-    const updated = await this.prisma.customerDocument.update({
-      where: { id: params.documentId },
-      data: {
-        status: CustomerDocumentStatus.VERIFIED,
-        reviewedByAdminId: params.userId,
-        reviewedAt: now,
-        reviewNotes: params.notes?.trim() || null,
-        verifiedAt: now,
-      },
-      select: {
-        id: true,
-        userId: true,
-        type: true,
-        status: true,
-        notes: true,
-        reviewNotes: true,
-        reviewedAt: true,
-        verifiedAt: true,
-        updatedAt: true,
-        reviewedByAdmin: {
-          select: { id: true, email: true, fullName: true },
+      const now = new Date();
+      const updated = await tx.customerDocument.update({
+        where: { id: params.documentId },
+        data: {
+          status: CustomerDocumentStatus.VERIFIED,
+          reviewedByAdminId: params.userId,
+          reviewedAt: now,
+          reviewNotes: params.notes?.trim() || null,
+          verifiedAt: now,
         },
-      },
-    });
+        select: {
+          id: true,
+          userId: true,
+          type: true,
+          status: true,
+          notes: true,
+          reviewNotes: true,
+          reviewedAt: true,
+          verifiedAt: true,
+          updatedAt: true,
+          reviewedByAdmin: {
+            select: { id: true, email: true, fullName: true },
+          },
+        },
+      });
 
-    return {
-      ...updated,
-      reviewedAt: updated.reviewedAt?.toISOString() ?? null,
-      verifiedAt: updated.verifiedAt?.toISOString() ?? null,
-      updatedAt: updated.updatedAt.toISOString(),
-    };
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'CUSTOMER_DOCUMENT_APPROVED',
+        targetType: 'CustomerDocument',
+        targetId: params.documentId,
+        metadata: { notes: params.notes?.trim() || null },
+      });
+
+      return {
+        ...updated,
+        reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+        verifiedAt: updated.verifiedAt?.toISOString() ?? null,
+        updatedAt: updated.updatedAt.toISOString(),
+      };
+    });
   }
 
   async rejectCustomerDocument(params: {
     userId: string;
+    actorEmail?: string | null;
     role: UserRole;
     documentId: string;
     notes?: string;
   }) {
     this.assertAdmin(params.role);
 
-    const existing = await this.prisma.customerDocument.findUnique({
-      where: { id: params.documentId },
-      select: { id: true },
-    });
-    if (!existing) throw new NotFoundException('Customer document not found.');
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.customerDocument.findUnique({
+        where: { id: params.documentId },
+        select: { id: true },
+      });
+      if (!existing)
+        throw new NotFoundException('Customer document not found.');
 
-    const updated = await this.prisma.customerDocument.update({
-      where: { id: params.documentId },
-      data: {
-        status: CustomerDocumentStatus.REJECTED,
-        reviewedByAdminId: params.userId,
-        reviewedAt: new Date(),
-        reviewNotes: params.notes?.trim() || null,
-        verifiedAt: null,
-      },
-      select: {
-        id: true,
-        userId: true,
-        type: true,
-        status: true,
-        notes: true,
-        reviewNotes: true,
-        reviewedAt: true,
-        verifiedAt: true,
-        updatedAt: true,
-        reviewedByAdmin: {
-          select: { id: true, email: true, fullName: true },
+      const updated = await tx.customerDocument.update({
+        where: { id: params.documentId },
+        data: {
+          status: CustomerDocumentStatus.REJECTED,
+          reviewedByAdminId: params.userId,
+          reviewedAt: new Date(),
+          reviewNotes: params.notes?.trim() || null,
+          verifiedAt: null,
         },
-      },
-    });
+        select: {
+          id: true,
+          userId: true,
+          type: true,
+          status: true,
+          notes: true,
+          reviewNotes: true,
+          reviewedAt: true,
+          verifiedAt: true,
+          updatedAt: true,
+          reviewedByAdmin: {
+            select: { id: true, email: true, fullName: true },
+          },
+        },
+      });
 
-    return {
-      ...updated,
-      reviewedAt: updated.reviewedAt?.toISOString() ?? null,
-      verifiedAt: updated.verifiedAt?.toISOString() ?? null,
-      updatedAt: updated.updatedAt.toISOString(),
-    };
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'CUSTOMER_DOCUMENT_REJECTED',
+        targetType: 'CustomerDocument',
+        targetId: params.documentId,
+        metadata: { notes: params.notes?.trim() || null },
+      });
+
+      return {
+        ...updated,
+        reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+        verifiedAt: updated.verifiedAt?.toISOString() ?? null,
+        updatedAt: updated.updatedAt.toISOString(),
+      };
+    });
   }
 
   async listPayments(params: {
@@ -2682,5 +2736,490 @@ export class AdminPortalService {
         createdAt: t.createdAt.toISOString(),
       })),
     };
+  }
+
+  // ─── P1 Audit-Wired Admin Mutations ────────────────────────────────────────
+
+  async approveProperty(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    propertyId: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({
+        where: { id: params.propertyId },
+        select: { id: true, status: true },
+      });
+      if (!property) throw new NotFoundException('Property not found.');
+      if (
+        property.status === PropertyStatus.APPROVED ||
+        property.status === PropertyStatus.PUBLISHED
+      ) {
+        throw new BadRequestException(
+          `Property is already ${property.status.toLowerCase()}.`,
+        );
+      }
+      const updated = await tx.property.update({
+        where: { id: params.propertyId },
+        data: { status: PropertyStatus.APPROVED },
+        select: { id: true, status: true, title: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PROPERTY_APPROVED',
+        targetType: 'Property',
+        targetId: params.propertyId,
+        metadata: { previousStatus: property.status },
+      });
+      return updated;
+    });
+  }
+
+  async rejectProperty(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    propertyId: string;
+    reason: string;
+  }) {
+    this.assertAdmin(params.role);
+    const reason = params.reason.trim();
+    if (!reason) throw new BadRequestException('Rejection reason is required.');
+    return this.prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({
+        where: { id: params.propertyId },
+        select: { id: true, status: true },
+      });
+      if (!property) throw new NotFoundException('Property not found.');
+      const updated = await tx.property.update({
+        where: { id: params.propertyId },
+        data: { status: PropertyStatus.REJECTED },
+        select: { id: true, status: true, title: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PROPERTY_REJECTED',
+        targetType: 'Property',
+        targetId: params.propertyId,
+        metadata: { reason, previousStatus: property.status },
+      });
+      return updated;
+    });
+  }
+
+  async suspendProperty(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    propertyId: string;
+    reason?: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({
+        where: { id: params.propertyId },
+        select: { id: true, status: true },
+      });
+      if (!property) throw new NotFoundException('Property not found.');
+      if (property.status === PropertyStatus.SUSPENDED) {
+        throw new BadRequestException('Property is already suspended.');
+      }
+      const updated = await tx.property.update({
+        where: { id: params.propertyId },
+        data: { status: PropertyStatus.SUSPENDED },
+        select: { id: true, status: true, title: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PROPERTY_SUSPENDED',
+        targetType: 'Property',
+        targetId: params.propertyId,
+        metadata: {
+          reason: params.reason?.trim() || null,
+          previousStatus: property.status,
+        },
+      });
+      return updated;
+    });
+  }
+
+  async archiveProperty(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    propertyId: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const property = await tx.property.findUnique({
+        where: { id: params.propertyId },
+        select: { id: true, status: true },
+      });
+      if (!property) throw new NotFoundException('Property not found.');
+      if (property.status === PropertyStatus.ARCHIVED) {
+        throw new BadRequestException('Property is already archived.');
+      }
+      const updated = await tx.property.update({
+        where: { id: params.propertyId },
+        data: { status: PropertyStatus.ARCHIVED },
+        select: { id: true, status: true, title: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PROPERTY_ARCHIVED',
+        targetType: 'Property',
+        targetId: params.propertyId,
+        metadata: { previousStatus: property.status },
+      });
+      return updated;
+    });
+  }
+
+  async approveVendor(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    vendorId: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const vendor = await tx.vendorProfile.findUnique({
+        where: { id: params.vendorId },
+        select: { id: true, userId: true, status: true },
+      });
+      if (!vendor) throw new NotFoundException('Vendor not found.');
+      if (vendor.status === VendorStatus.APPROVED) {
+        throw new BadRequestException('Vendor is already approved.');
+      }
+      const updated = await tx.vendorProfile.update({
+        where: { id: params.vendorId },
+        data: { status: VendorStatus.APPROVED },
+        select: { id: true, userId: true, status: true, displayName: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'VENDOR_APPROVED',
+        targetType: 'VendorProfile',
+        targetId: params.vendorId,
+        metadata: { previousStatus: vendor.status },
+      });
+      return updated;
+    });
+  }
+
+  async rejectVendor(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    vendorId: string;
+    reason?: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const vendor = await tx.vendorProfile.findUnique({
+        where: { id: params.vendorId },
+        select: { id: true, userId: true, status: true },
+      });
+      if (!vendor) throw new NotFoundException('Vendor not found.');
+      const updated = await tx.vendorProfile.update({
+        where: { id: params.vendorId },
+        data: { status: VendorStatus.REJECTED },
+        select: { id: true, userId: true, status: true, displayName: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'VENDOR_REJECTED',
+        targetType: 'VendorProfile',
+        targetId: params.vendorId,
+        metadata: {
+          reason: params.reason?.trim() || null,
+          previousStatus: vendor.status,
+        },
+      });
+      return updated;
+    });
+  }
+
+  async cancelBookingByAdmin(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    bookingId: string;
+    reason?: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id: params.bookingId },
+        select: {
+          id: true,
+          status: true,
+          propertyId: true,
+          checkIn: true,
+          checkOut: true,
+        },
+      });
+      if (!booking) throw new NotFoundException('Booking not found.');
+      if (booking.status === BookingStatus.CANCELLED) {
+        throw new BadRequestException('Booking is already cancelled.');
+      }
+      if (booking.status === BookingStatus.COMPLETED) {
+        throw new BadRequestException('Cannot cancel a completed booking.');
+      }
+
+      await tx.booking.update({
+        where: { id: params.bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancelledBy: 'ADMIN',
+          cancellationReason: CancellationReason.ADMIN_OVERRIDE,
+        },
+      });
+
+      // Release blocked dates for the booking's date range
+      const dates: Date[] = [];
+      let cur = new Date(booking.checkIn);
+      while (cur < booking.checkOut) {
+        dates.push(new Date(cur));
+        cur = new Date(cur.getTime() + 86_400_000);
+      }
+      if (dates.length > 0) {
+        await tx.bookingBlockedDate.deleteMany({
+          where: { propertyId: booking.propertyId, date: { in: dates } },
+        });
+      }
+
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'BOOKING_CANCELLED_BY_ADMIN',
+        targetType: 'Booking',
+        targetId: params.bookingId,
+        metadata: {
+          previousStatus: booking.status,
+          reason: params.reason?.trim() || null,
+        },
+      });
+      return { id: booking.id, status: BookingStatus.CANCELLED };
+    });
+  }
+
+  async overrideBookingStatus(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    bookingId: string;
+    newStatus: BookingStatus;
+    reason?: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id: params.bookingId },
+        select: { id: true, status: true },
+      });
+      if (!booking) throw new NotFoundException('Booking not found.');
+      await tx.booking.update({
+        where: { id: params.bookingId },
+        data: { status: params.newStatus },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'BOOKING_STATUS_OVERRIDDEN',
+        targetType: 'Booking',
+        targetId: params.bookingId,
+        metadata: {
+          previousStatus: booking.status,
+          newStatus: params.newStatus,
+          reason: params.reason?.trim() || null,
+        },
+      });
+      return { id: booking.id, status: params.newStatus };
+    });
+  }
+
+  async issueAdminRefund(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    bookingId: string;
+    amount: number;
+    reason: string;
+  }) {
+    this.assertAdmin(params.role);
+    const reason = params.reason.trim();
+    if (!reason) throw new BadRequestException('Refund reason is required.');
+    if (params.amount <= 0)
+      throw new BadRequestException('Refund amount must be positive.');
+
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id: params.bookingId },
+        select: {
+          id: true,
+          currency: true,
+          payment: {
+            select: {
+              id: true,
+              status: true,
+              amount: true,
+              provider: true,
+            },
+          },
+        },
+      });
+      if (!booking) throw new NotFoundException('Booking not found.');
+      if (!booking.payment)
+        throw new BadRequestException('No payment found for this booking.');
+      if (booking.payment.status !== PaymentStatus.CAPTURED) {
+        throw new BadRequestException(
+          'Can only issue a refund against a captured payment.',
+        );
+      }
+      if (params.amount > booking.payment.amount) {
+        throw new BadRequestException(
+          'Refund amount exceeds the captured payment amount.',
+        );
+      }
+
+      const idempotencyKey = `admin-refund-${params.bookingId}-${params.userId}-${Date.now()}`;
+      const refund = await tx.refund.create({
+        data: {
+          bookingId: params.bookingId,
+          paymentId: booking.payment.id,
+          status: RefundStatus.PENDING,
+          reason: RefundReason.GOODWILL,
+          amount: params.amount,
+          currency: booking.currency,
+          provider: booking.payment.provider,
+          idempotencyKey,
+        },
+        select: { id: true, status: true, amount: true, currency: true },
+      });
+
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'REFUND_ISSUED',
+        targetType: 'Booking',
+        targetId: params.bookingId,
+        metadata: {
+          refundId: refund.id,
+          amount: params.amount,
+          currency: booking.currency,
+          reason,
+        },
+      });
+      return refund;
+    });
+  }
+
+  async approvePayout(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    payoutId: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const payout = await tx.payout.findUnique({
+        where: { id: params.payoutId },
+        select: {
+          id: true,
+          status: true,
+          vendorId: true,
+          amount: true,
+          currency: true,
+        },
+      });
+      if (!payout) throw new NotFoundException('Payout not found.');
+      if (payout.status !== PayoutStatus.PENDING) {
+        throw new BadRequestException(
+          `Payout cannot be approved from status ${payout.status}.`,
+        );
+      }
+      const updated = await tx.payout.update({
+        where: { id: params.payoutId },
+        data: { status: PayoutStatus.PROCESSING },
+        select: { id: true, status: true, amount: true, currency: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PAYOUT_APPROVED',
+        targetType: 'Payout',
+        targetId: params.payoutId,
+        metadata: {
+          vendorId: payout.vendorId,
+          amount: payout.amount,
+          currency: payout.currency,
+        },
+      });
+      return updated;
+    });
+  }
+
+  async markPayoutPaid(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    payoutId: string;
+    providerRef?: string;
+  }) {
+    this.assertAdmin(params.role);
+    return this.prisma.$transaction(async (tx) => {
+      const payout = await tx.payout.findUnique({
+        where: { id: params.payoutId },
+        select: {
+          id: true,
+          status: true,
+          vendorId: true,
+          amount: true,
+          currency: true,
+        },
+      });
+      if (!payout) throw new NotFoundException('Payout not found.');
+      if (
+        payout.status !== PayoutStatus.PENDING &&
+        payout.status !== PayoutStatus.PROCESSING
+      ) {
+        throw new BadRequestException(
+          `Payout cannot be marked paid from status ${payout.status}.`,
+        );
+      }
+      const updated = await tx.payout.update({
+        where: { id: params.payoutId },
+        data: {
+          status: PayoutStatus.SUCCEEDED,
+          processedAt: new Date(),
+          providerRef: params.providerRef?.trim() || null,
+        },
+        select: { id: true, status: true, amount: true, currency: true },
+      });
+      await this.audit.record(tx, {
+        actorId: params.userId,
+        actorEmail: params.actorEmail,
+        action: 'PAYOUT_MARKED_PAID',
+        targetType: 'Payout',
+        targetId: params.payoutId,
+        metadata: {
+          vendorId: payout.vendorId,
+          amount: payout.amount,
+          currency: payout.currency,
+          providerRef: params.providerRef?.trim() || null,
+        },
+      });
+      return updated;
+    });
   }
 }

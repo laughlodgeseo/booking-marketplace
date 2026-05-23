@@ -71,8 +71,12 @@ describe('P1 AUDIT — AdminAuditService', () => {
 
   it('list() filters by action', async () => {
     const { service, prisma } = buildService();
-    (prisma.adminActionLog as unknown as { findMany: jest.Mock }).findMany.mockResolvedValue([]);
-    (prisma.adminActionLog as unknown as { count: jest.Mock }).count.mockResolvedValue(0);
+    (
+      prisma.adminActionLog as unknown as { findMany: jest.Mock }
+    ).findMany.mockResolvedValue([]);
+    (
+      prisma.adminActionLog as unknown as { count: jest.Mock }
+    ).count.mockResolvedValue(0);
 
     const result = await service.list({ action: 'PROPERTY_APPROVED' });
 
