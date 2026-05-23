@@ -906,6 +906,30 @@ export class PaymentsService {
         }
       }
 
+      // Validate amountOverride: must be a positive integer and cannot exceed
+      // the original captured payment amount (prevents over-refunding).
+      if (args.amountOverride !== undefined) {
+        if (
+          typeof args.amountOverride !== 'number' ||
+          !Number.isFinite(args.amountOverride) ||
+          args.amountOverride <= 0
+        ) {
+          throw new BadRequestException(
+            'Refund amountOverride must be a positive number.',
+          );
+        }
+        if (!Number.isInteger(args.amountOverride)) {
+          throw new BadRequestException(
+            'Refund amountOverride must be an integer (minor currency units).',
+          );
+        }
+        if (args.amountOverride > payment.amount) {
+          throw new BadRequestException(
+            `Refund amount cannot exceed original payment amount (${payment.amount}).`,
+          );
+        }
+      }
+
       const amount =
         typeof args.amountOverride === 'number' && args.amountOverride > 0
           ? args.amountOverride

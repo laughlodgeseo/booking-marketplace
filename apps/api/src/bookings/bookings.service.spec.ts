@@ -7,6 +7,7 @@ import {
   HoldStatus,
   NotificationType,
   Prisma,
+  PropertyStatus,
   UserRole,
 } from '@prisma/client';
 import { BookingsService } from './bookings.service';
@@ -120,11 +121,18 @@ describe('BookingsService critical paths', () => {
       async (
         fn: (tx: {
           propertyHold: { findUnique: jest.Mock };
+          property: { findUnique: jest.Mock };
           booking: { findFirst: jest.Mock };
         }) => Promise<unknown>,
       ) =>
         fn({
           propertyHold: { findUnique: jest.fn().mockResolvedValue(hold) },
+          property: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: hold.propertyId,
+              status: PropertyStatus.PUBLISHED,
+            }),
+          },
           booking: {
             findFirst: jest.fn().mockResolvedValue({ id: 'overlap_1' }),
           },
@@ -213,6 +221,7 @@ describe('BookingsService critical paths', () => {
             findFirst: jest.Mock;
             update: jest.Mock;
           };
+          property: { findUnique: jest.Mock };
           booking: {
             findFirst: jest.Mock;
             create: jest.Mock;
@@ -231,6 +240,12 @@ describe('BookingsService critical paths', () => {
             update: jest.fn().mockResolvedValue({
               id: hold.id,
               status: HoldStatus.CONVERTED,
+            }),
+          },
+          property: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: hold.propertyId,
+              status: PropertyStatus.PUBLISHED,
             }),
           },
           booking: {

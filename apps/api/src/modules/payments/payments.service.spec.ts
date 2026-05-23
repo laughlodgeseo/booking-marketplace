@@ -631,10 +631,10 @@ describe('PaymentsService', () => {
       const paymentIntentId = 'pi_stale_123';
       const webhookEventId = 'evt_stale_123';
 
-      let bookingStatus: BookingStatus = BookingStatus.CONFIRMED;
+      const bookingStatus: BookingStatus = BookingStatus.CONFIRMED;
       let bookingPaymentStatus: BookingPaymentStatus =
         BookingPaymentStatus.PENDING;
-      let paymentStatus: PaymentStatus = PaymentStatus.CAPTURED;
+      const paymentStatus: PaymentStatus = PaymentStatus.CAPTURED;
       let confirmedAt: Date | null = null;
 
       const paymentUpdate = jest.fn();

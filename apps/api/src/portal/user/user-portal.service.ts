@@ -18,7 +18,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import { existsSync, unlinkSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, sep } from 'path';
 import {
   BOOKING_DOCUMENTS_DIR,
   CUSTOMER_DOCUMENTS_DIR,
@@ -76,6 +76,24 @@ export class UserPortalService {
   private assertCustomer(role: UserRole) {
     if (role !== UserRole.CUSTOMER)
       throw new ForbiddenException('Not allowed.');
+  }
+
+  private assertSafeStorageKey(storageKey: string, baseDir: string): void {
+    if (
+      storageKey.includes('..') ||
+      storageKey.includes('\\') ||
+      storageKey.startsWith('/') ||
+      /^[a-zA-Z]:/.test(storageKey)
+    ) {
+      throw new BadRequestException('Invalid document path.');
+    }
+
+    const resolved = resolve(join(baseDir, storageKey));
+    const base = resolve(baseDir);
+
+    if (!resolved.startsWith(base + sep)) {
+      throw new BadRequestException('Invalid document path.');
+    }
   }
 
   private labelFromEnum(value: string): string {
@@ -959,6 +977,8 @@ export class UserPortalService {
       throw new NotFoundException('Document not found.');
     }
 
+    this.assertSafeStorageKey(doc.storageKey, BOOKING_DOCUMENTS_DIR);
+
     const absolutePath = join(BOOKING_DOCUMENTS_DIR, doc.storageKey);
 
     if (!existsSync(absolutePath)) {
@@ -1109,6 +1129,8 @@ export class UserPortalService {
     if (doc.userId !== params.userId) {
       throw new ForbiddenException('Not allowed to access this document.');
     }
+
+    this.assertSafeStorageKey(doc.fileKey, CUSTOMER_DOCUMENTS_DIR);
 
     const absolutePath = join(CUSTOMER_DOCUMENTS_DIR, doc.fileKey);
     if (!existsSync(absolutePath)) {

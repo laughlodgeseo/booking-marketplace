@@ -147,6 +147,7 @@ export class AuthController {
 
   @Post('refresh')
   @UseGuards(JwtRefreshGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async refresh(
     @Req() req: RefreshRequest,
     @Res({ passthrough: true }) res: Response,

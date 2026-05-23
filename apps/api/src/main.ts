@@ -32,7 +32,9 @@ async function bootstrap() {
 
   const rawDbUrl = (process.env.DATABASE_URL || '').trim();
   if (!rawDbUrl) {
-    console.warn('DATABASE_URL is not set. API will fail to connect to the database.');
+    console.warn(
+      'DATABASE_URL is not set. API will fail to connect to the database.',
+    );
   } else {
     try {
       const parsed = new URL(rawDbUrl);
@@ -63,11 +65,9 @@ async function bootstrap() {
   app.use(helmet());
 
   app.use((req: AppRequest, res: Response, next: NextFunction) => {
-    const incoming = req.headers['x-correlation-id'];
-    const correlationId =
-      typeof incoming === 'string' && incoming.trim()
-        ? incoming.trim()
-        : randomUUID();
+    // Always generate a server-side UUID. Never trust the incoming header
+    // to prevent log poisoning via malicious X-Correlation-Id values.
+    const correlationId = randomUUID();
 
     req.headers['x-correlation-id'] = correlationId;
     res.setHeader('X-Correlation-Id', correlationId);
@@ -136,6 +136,8 @@ async function bootstrap() {
   app.use('/uploads', express.static(PUBLIC_UPLOADS_DIR));
 
   const staticAllowedOrigins = new Set<string>([
+    'https://www.rentpropertyuae.com',
+    'https://rentpropertyuae.com',
     'https://rentpropertyuae.vercel.app',
     'http://localhost:3000',
     'http://localhost:3100',
@@ -196,24 +198,76 @@ async function bootstrap() {
   );
 
   /**
-   * Swagger — disabled in production to avoid exposing the full API surface.
-   * Enable by setting NODE_ENV != 'production' or SWAGGER_ENABLED=true.
+   * Swagger — disabled in production by default.
+   * Set SWAGGER_ENABLED=true to enable. In production, also set
+   * SWAGGER_USER and SWAGGER_PASS to protect /docs with Basic Auth.
+   * If SWAGGER_USER/SWAGGER_PASS are not set in production, /docs is blocked.
    */
   const swaggerEnabled =
     process.env.NODE_ENV !== 'production' ||
     process.env.SWAGGER_ENABLED === 'true';
 
   if (swaggerEnabled) {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('Booking Marketplace API')
-      .setDescription('API for booking marketplace (customer / vendor / admin)')
-      .setVersion('1.0.0')
-      .addBearerAuth()
-      .build();
+    const isProd = process.env.NODE_ENV === 'production';
+    const swaggerUser = (process.env.SWAGGER_USER ?? '').trim();
+    const swaggerPass = (process.env.SWAGGER_PASS ?? '').trim();
 
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('docs', app, document);
-    console.log('📚 Swagger docs: /docs');
+    if (isProd) {
+      if (!swaggerUser || !swaggerPass) {
+        console.warn(
+          'SWAGGER_ENABLED=true in production but SWAGGER_USER/SWAGGER_PASS not set. /docs will be blocked.',
+        );
+        // Protect /docs with a 401 wall when credentials are missing
+        app.use('/docs', (_req: Request, res: Response) => {
+          res.status(401).json({ message: 'Swagger is not available.' });
+        });
+      } else {
+        // Basic Auth guard for /docs in production
+        app.use('/docs', (req: Request, res: Response, next: NextFunction) => {
+          const authHeader = req.headers['authorization'] ?? '';
+          const b64 = authHeader.startsWith('Basic ')
+            ? authHeader.slice(6)
+            : '';
+          const decoded = Buffer.from(b64, 'base64').toString('utf8');
+          const [user, ...passParts] = decoded.split(':');
+          const pass = passParts.join(':');
+
+          if (user === swaggerUser && pass === swaggerPass) {
+            next();
+            return;
+          }
+
+          res.setHeader('WWW-Authenticate', 'Basic realm="API Docs"');
+          res.status(401).json({ message: 'Unauthorized.' });
+        });
+
+        const swaggerConfig = new DocumentBuilder()
+          .setTitle('Booking Marketplace API')
+          .setDescription(
+            'API for booking marketplace (customer / vendor / admin)',
+          )
+          .setVersion('1.0.0')
+          .addBearerAuth()
+          .build();
+
+        const document = SwaggerModule.createDocument(app, swaggerConfig);
+        SwaggerModule.setup('docs', app, document);
+        console.log('Swagger docs: /docs (Basic Auth protected)');
+      }
+    } else {
+      const swaggerConfig = new DocumentBuilder()
+        .setTitle('Booking Marketplace API')
+        .setDescription(
+          'API for booking marketplace (customer / vendor / admin)',
+        )
+        .setVersion('1.0.0')
+        .addBearerAuth()
+        .build();
+
+      const document = SwaggerModule.createDocument(app, swaggerConfig);
+      SwaggerModule.setup('docs', app, document);
+      console.log('Swagger docs: /docs');
+    }
   }
 
   const port = Number(process.env.PORT ?? 10000);

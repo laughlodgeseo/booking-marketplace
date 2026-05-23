@@ -31,7 +31,7 @@ import type {
 } from '../common/portal.types';
 import { formatLabel } from '../common/portal.utils';
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, sep } from 'path';
 import {
   BOOKING_DOCUMENTS_DIR,
   CUSTOMER_DOCUMENTS_DIR,
@@ -97,6 +97,31 @@ export class AdminPortalService {
   private generateDownloadUrl(url: string): string | null {
     if (!url) return null;
     return url.replace('/upload/', '/upload/fl_attachment/');
+  }
+
+  /**
+   * Validates that storageKey cannot escape the base directory.
+   * Rejects path traversal sequences, absolute paths, and backslash variants.
+   * Throws BadRequestException for any suspicious key.
+   */
+  private assertSafeStorageKey(storageKey: string, baseDir: string): void {
+    // Reject traversal sequences, backslashes (Windows traversal), and
+    // any path that is absolute (starts with / on Unix or drive letter on Windows).
+    if (
+      storageKey.includes('..') ||
+      storageKey.includes('\\') ||
+      storageKey.startsWith('/') ||
+      /^[a-zA-Z]:/.test(storageKey) // Windows absolute path
+    ) {
+      throw new BadRequestException('Invalid document path.');
+    }
+
+    const resolved = resolve(join(baseDir, storageKey));
+    const base = resolve(baseDir);
+
+    if (!resolved.startsWith(base + sep)) {
+      throw new BadRequestException('Invalid document path.');
+    }
   }
 
   async getOverview(params: {
@@ -1544,6 +1569,8 @@ export class AdminPortalService {
       throw new NotFoundException('Document not found.');
     }
 
+    this.assertSafeStorageKey(doc.storageKey, BOOKING_DOCUMENTS_DIR);
+
     const absolutePath = join(BOOKING_DOCUMENTS_DIR, doc.storageKey);
 
     if (!existsSync(absolutePath)) {
@@ -1877,6 +1904,8 @@ export class AdminPortalService {
     });
 
     if (!doc) throw new NotFoundException('Customer document not found.');
+
+    this.assertSafeStorageKey(doc.fileKey, CUSTOMER_DOCUMENTS_DIR);
 
     const absolutePath = join(CUSTOMER_DOCUMENTS_DIR, doc.fileKey);
     if (!existsSync(absolutePath)) {

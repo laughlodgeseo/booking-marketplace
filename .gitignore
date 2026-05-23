@@ -37,3 +37,10 @@ apps/api/uploads/
 apps/api/prisma/.cache/
 # Misrouted uploads from incorrect API working-dir config
 apps/api/apps/
+
+.claude/
+.codex
+
+docs/
+
+CLAUDE.md

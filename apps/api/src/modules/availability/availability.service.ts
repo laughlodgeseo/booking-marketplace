@@ -112,10 +112,14 @@ export class AvailabilityService {
     const total = adults + children;
 
     if (!Number.isInteger(adults) || adults < 1 || adults > 50) {
-      throw new BadRequestException('adults must be an integer between 1 and 50.');
+      throw new BadRequestException(
+        'adults must be an integer between 1 and 50.',
+      );
     }
     if (!Number.isInteger(children) || children < 0 || children > 50) {
-      throw new BadRequestException('children must be an integer between 0 and 50.');
+      throw new BadRequestException(
+        'children must be an integer between 0 and 50.',
+      );
     }
     if (total < 1 || total > 50) {
       throw new BadRequestException('Total guests must be between 1 and 50.');

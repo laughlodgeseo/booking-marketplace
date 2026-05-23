@@ -15,6 +15,7 @@ import {
   OpsTaskStatus,
   PaymentStatus,
   Prisma,
+  PropertyStatus,
   RefundReason,
   RefundStatus,
   UserRole,
@@ -146,6 +147,22 @@ export class BookingsService {
               data: { status: HoldStatus.EXPIRED },
             });
             throw new BadRequestException('Hold has expired.');
+          }
+
+          // 0️⃣ Property must still be PUBLISHED at booking creation time
+          const property = await tx.property.findUnique({
+            where: { id: hold.propertyId },
+            select: { id: true, status: true },
+          });
+
+          if (!property) {
+            throw new NotFoundException('Property not found.');
+          }
+
+          if (property.status !== PropertyStatus.PUBLISHED) {
+            throw new BadRequestException(
+              `Property is not available for booking (status: ${property.status}).`,
+            );
           }
 
           // 1️⃣ Booking overlap check
