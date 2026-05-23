@@ -3,6 +3,9 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
+# Migration runs as a release command BEFORE the new container receives traffic.
+# This prevents the app from restarting in a loop if a migration fails.
+releaseCommand = "pnpm --filter api db:migrate:deploy"
 startCommand = "pnpm --filter api start:prod"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300

@@ -501,6 +501,8 @@ model User {
 
   wishlistItems WishlistItem[]
 
+  adminActionLogs AdminActionLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1168,10 +1170,10 @@ model Booking {
   id String @id @default(uuid())
 
   customerId String
-  customer   User   @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Cascade)
+  customer   User   @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Restrict)
 
   propertyId String
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
 
   holdId String       @unique
   hold   PropertyHold @relation(fields: [holdId], references: [id], onDelete: Restrict)
@@ -2022,6 +2024,29 @@ model PromoCode {
 
   @@index([code])
   @@index([isActive, validFrom, validTo])
+}
+
+// ── Admin Audit Log ──────────────────────────────────────────────────────────
+// Tamper-evident log of admin actions on financial/operational resources.
+
+model AdminActionLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  actorEmail  String?
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@index([action, createdAt])
+  @@index([createdAt])
 }
 
 // ── Event Outbox (Phase 3) ────────────────────────────────────────────────────

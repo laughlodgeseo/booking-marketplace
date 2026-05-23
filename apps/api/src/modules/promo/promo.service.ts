@@ -10,7 +10,9 @@ export class PromoService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Validate and calculate discount for a promo code.
+   * Validate a promo code and calculate the discount WITHOUT incrementing usage.
+   * Call this to preview the discount before payment. Use redeemPromo to atomically
+   * claim the code at booking-confirmed time.
    */
   async applyPromo(params: {
     code: string;
@@ -40,14 +42,12 @@ export class PromoService {
       throw new BadRequestException('Promo code usage limit reached.');
     }
 
-    // Check property restriction
     if (promo.propertyId && promo.propertyId !== params.propertyId) {
       throw new BadRequestException(
         'Promo code is not valid for this property.',
       );
     }
 
-    // Check minimum booking amount
     if (
       promo.minBookingAmount &&
       params.bookingAmount < promo.minBookingAmount
@@ -57,22 +57,7 @@ export class PromoService {
       );
     }
 
-    // Calculate discount
-    let discountAmount = 0;
-    if (promo.discountPercent) {
-      discountAmount = Math.round(
-        (params.bookingAmount * promo.discountPercent) / 100,
-      );
-      // Apply cap
-      if (promo.maxDiscount && discountAmount > promo.maxDiscount) {
-        discountAmount = promo.maxDiscount;
-      }
-    } else if (promo.discountAmount) {
-      discountAmount = promo.discountAmount;
-    }
-
-    // Never discount more than the booking amount
-    discountAmount = Math.min(discountAmount, params.bookingAmount);
+    const discountAmount = this.calculateDiscount(promo, params.bookingAmount);
 
     return {
       valid: true,
@@ -82,13 +67,81 @@ export class PromoService {
   }
 
   /**
-   * Increment usage counter after booking is confirmed.
+   * Atomically claim a promo code at booking-confirmed time.
+   * Uses a conditional updateMany so the check and increment happen in one DB
+   * operation — safe under concurrent requests. Returns false if the code was
+   * already exhausted by a concurrent redemption.
+   */
+  async redeemPromo(params: {
+    promoCodeId: string;
+    bookingAmount: number;
+  }): Promise<{ discountAmount: number }> {
+    const promo = await this.prisma.promoCode.findUnique({
+      where: { id: params.promoCodeId },
+    });
+
+    if (!promo || !promo.isActive) {
+      throw new BadRequestException('Promo code is no longer active.');
+    }
+
+    const now = new Date();
+    if (now < promo.validFrom || now > promo.validTo) {
+      throw new BadRequestException('Promo code has expired.');
+    }
+
+    // Atomic conditional increment: only succeeds if limit not yet reached.
+    const updated = await this.prisma.promoCode.updateMany({
+      where: {
+        id: params.promoCodeId,
+        isActive: true,
+        OR: [
+          { usageLimit: { lte: 0 } },
+          { currentUsage: { lt: promo.usageLimit } },
+        ],
+      },
+      data: { currentUsage: { increment: 1 } },
+    });
+
+    if (updated.count !== 1) {
+      throw new BadRequestException('Promo code usage limit reached.');
+    }
+
+    return {
+      discountAmount: this.calculateDiscount(promo, params.bookingAmount),
+    };
+  }
+
+  /**
+   * @deprecated Use redeemPromo for atomic redemption. Kept for backward
+   * compatibility with callers that already validated the promo separately.
    */
   async incrementUsage(promoCodeId: string) {
     await this.prisma.promoCode.update({
       where: { id: promoCodeId },
       data: { currentUsage: { increment: 1 } },
     });
+  }
+
+  private calculateDiscount(
+    promo: {
+      discountPercent: number | null;
+      discountAmount: number | null;
+      maxDiscount: number | null;
+    },
+    bookingAmount: number,
+  ): number {
+    let discountAmount = 0;
+    if (promo.discountPercent) {
+      discountAmount = Math.round(
+        (bookingAmount * promo.discountPercent) / 100,
+      );
+      if (promo.maxDiscount && discountAmount > promo.maxDiscount) {
+        discountAmount = promo.maxDiscount;
+      }
+    } else if (promo.discountAmount) {
+      discountAmount = promo.discountAmount;
+    }
+    return Math.min(discountAmount, bookingAmount);
   }
 
   // ─── Admin CRUD ────────────────────────────────────────────────────

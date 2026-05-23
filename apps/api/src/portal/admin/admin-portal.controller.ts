@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminPortalService } from './admin-portal.service';
+import { AdminAuditService } from './admin-audit.service';
 
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -48,6 +49,7 @@ export class AdminPortalController {
   constructor(
     private readonly service: AdminPortalService,
     private readonly notifications: PortalNotificationsService,
+    private readonly adminAudit: AdminAuditService,
   ) {}
 
   private parseOptionalBoolean(value?: string): boolean | undefined {
@@ -495,6 +497,35 @@ export class AdminPortalController {
       userId: user.id,
       role: user.role,
       status: query.status,
+      page,
+      pageSize,
+    });
+  }
+
+  @Get('audit-log')
+  getAuditLog(
+    @CurrentUser() user: User,
+    @Query()
+    query: {
+      action?: string;
+      targetType?: string;
+      actorId?: string;
+      fromDate?: string;
+      toDate?: string;
+      page?: string;
+      pageSize?: string;
+    },
+  ) {
+    if (user.role !== UserRole.ADMIN) {
+      return { items: [], total: 0, page: 1, pageSize: 20 };
+    }
+    const { page, pageSize } = parsePageParams(query);
+    return this.adminAudit.list({
+      action: query.action,
+      targetType: query.targetType,
+      actorId: query.actorId,
+      fromDate: query.fromDate,
+      toDate: query.toDate,
       page,
       pageSize,
     });
