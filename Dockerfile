@@ -18,6 +18,7 @@ WORKDIR /app
 RUN npm install -g pnpm@10.28.2
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
 
 RUN pnpm --filter api build
