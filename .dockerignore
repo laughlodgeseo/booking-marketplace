@@ -12,6 +12,7 @@ apps/api/.env.production
 .env.local
 .env.production
 test-results
+.codex-run
 *.log
 .git
 .github
