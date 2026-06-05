@@ -26,7 +26,6 @@ import {
   BookingDocumentType,
   CustomerDocumentType,
   RefundStatus,
-  UserRole,
   type User,
 } from '@prisma/client';
 import { parseDateRange, parsePageParams } from '../common/portal.utils';
