@@ -76,13 +76,17 @@ export async function refreshAccessToken(): Promise<AuthResponse> {
 }
 
 export async function logout(): Promise<{ ok: true }> {
-  const res = await apiFetch<{ ok: true }>("/auth/logout", {
-    method: "POST",
-    credentials: "include",
-  });
-  const data = unwrap(res);
-  clearAccessToken();
-  return data;
+  try {
+    const res = await apiFetch<{ ok: true }>("/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    return unwrap(res);
+  } finally {
+    // Always clear local token regardless of server response so the client
+    // never remains in a half-authenticated state after a logout attempt.
+    clearAccessToken();
+  }
 }
 
 export async function requestPasswordReset(

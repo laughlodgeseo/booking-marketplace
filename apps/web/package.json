@@ -8,7 +8,8 @@
     "analyze": "ANALYZE=true next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
@@ -43,6 +44,7 @@
     "eslint-module-utils": "^2.12.1",
     "eslint-plugin-import": "^2.32.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }

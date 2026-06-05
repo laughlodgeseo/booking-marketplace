@@ -4,49 +4,31 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/http";
-import { clearAccessToken, setAccessToken } from "@/lib/auth/tokenStore";
+import { login as apiLogin } from "@/lib/auth/authApi";
+import { clearAccessToken } from "@/lib/auth/tokenStore";
+import { useAuth } from "@/lib/auth/auth-context";
 
-type LoginResponse = {
-  accessToken: string;
-  user?: {
-    id: string;
-    email: string;
-    role: "CUSTOMER" | "VENDOR" | "ADMIN";
-  };
-};
-
-type MeResponse = {
-  user?: {
-    id: string;
-    email: string;
-    role: "CUSTOMER" | "VENDOR" | "ADMIN";
-  };
-  id?: string;
-  email?: string;
-  role?: "CUSTOMER" | "VENDOR" | "ADMIN";
-};
-
-function extractMeUser(data: MeResponse): {
-  id: string;
-  email: string;
-  role: "CUSTOMER" | "VENDOR" | "ADMIN";
-} {
-  if (data.user) return data.user;
-  if (!data.id || !data.email || !data.role) {
-    throw new Error("Invalid /auth/me response shape.");
-  }
-  return {
-    id: data.id,
-    email: data.email,
-    role: data.role,
-  };
-}
+// Reject auth/login paths as next targets to prevent redirect loops
+const REJECT_AS_NEXT = new Set([
+  "/login",
+  "/vendor/login",
+  "/admin/login",
+  "/logout",
+  "/forgot",
+  "/forgot-password",
+  "/signup",
+  "/reset-password",
+  "/verify-email",
+  "/auth",
+]);
 
 function safePath(v: string | null): string {
   if (!v) return "/vendor";
   const s = v.trim();
   if (!s.startsWith("/")) return "/vendor";
+  if (s.startsWith("//")) return "/vendor";
+  const pathOnly = s.split("?")[0];
+  if (REJECT_AS_NEXT.has(pathOnly)) return "/vendor";
   return s;
 }
 
@@ -74,6 +56,7 @@ function VendorLoginContent() {
   const tPortal = useTranslations("portal");
   const router = useRouter();
   const sp = useSearchParams();
+  const { refresh } = useAuth();
 
   const nextPath = useMemo(() => safePath(sp.get("next")), [sp]);
   const forgotHref = useMemo(() => {
@@ -92,47 +75,18 @@ function VendorLoginContent() {
     setBusy(true);
 
     try {
-      // 1) Login -> accessToken
-      const loginRes = await apiFetch<LoginResponse>("/auth/login", {
-        method: "POST",
-        credentials: "include",
-        cache: "no-store",
-        body: { email: email.trim(), password },
-      });
+      const data = await apiLogin({ email: email.trim(), password });
 
-      if (!loginRes.ok) {
-        throw new Error(loginRes.message);
-      }
-
-      const token = loginRes.data.accessToken;
-      if (!token || token.trim().length === 0) {
-        throw new Error(tPortal("vendorLogin.errors.missingToken"));
-      }
-
-      // Store token for all portal API calls (your current auth strategy)
-      setAccessToken(token);
-
-      // 2) Confirm role == VENDOR
-      const meRes = await apiFetch<MeResponse>("/auth/me", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (!meRes.ok) {
+      if (data.user.role !== "VENDOR") {
         clearAccessToken();
-        throw new Error(meRes.message);
+        throw new Error(tPortal("vendorLogin.errors.roleMismatch", { role: data.user.role }));
       }
 
-      const meUser = extractMeUser(meRes.data);
-      if (meUser.role !== "VENDOR") {
-        clearAccessToken();
-        throw new Error(tPortal("vendorLogin.errors.roleMismatch", { role: meUser.role }));
-      }
+      // Sync global AuthContext so RequireAuth passes on all vendor portal pages
+      await refresh();
 
       router.replace(nextPath);
     } catch (ex) {
-      clearAccessToken();
       setErr(ex instanceof Error ? ex.message : tPortal("vendorLogin.errors.loginFailed"));
     } finally {
       setBusy(false);
