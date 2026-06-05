@@ -22,8 +22,9 @@ const HEADER_COPY = {
     signupSubtitle: "Complete secure onboarding for bookings, payments, and account controls.",
     forgotTitle: "Reset your password",
     forgotSubtitle: "Request a secure reset link to restore access quickly.",
-    loginTitle: (roleLabel: string) => `${roleLabel} account sign in`,
-    loginSubtitle: "Secure access to bookings, account settings, and operational workflows.",
+    loginTitle: (roleLabel: string) => `${roleLabel} portal sign in`,
+    loginSubtitleCustomer: "Secure access to bookings, account settings, and operational workflows.",
+    loginSubtitleVendor: "Secure access to listings, bookings, calendar, payouts, and property operations.",
   },
   ar: {
     roleCustomer: "عميل",
@@ -32,8 +33,9 @@ const HEADER_COPY = {
     signupSubtitle: "أكمل تسجيل آمن للحجوزات والمدفوعات وضوابط الحساب.",
     forgotTitle: "إعادة تعيين كلمة المرور",
     forgotSubtitle: "اطلب رابطاً آمناً لإعادة التعيين واستعادة الوصول بسرعة.",
-    loginTitle: (roleLabel: string) => `تسجيل الدخول إلى حساب ${roleLabel}`,
-    loginSubtitle: "وصول آمن إلى الحجوزات وإعدادات الحساب ومسارات التشغيل.",
+    loginTitle: (roleLabel: string) => `تسجيل الدخول إلى بوابة ${roleLabel}`,
+    loginSubtitleCustomer: "وصول آمن إلى الحجوزات وإعدادات الحساب ومسارات التشغيل.",
+    loginSubtitleVendor: "وصول آمن إلى العقارات والحجوزات والتقويم والمدفوعات وعمليات العقار.",
   },
 } as const;
 
@@ -46,6 +48,9 @@ export function AuthFlowRouter({ panel }: AuthFlowRouterProps) {
   const nextPath = useMemo(() => safeNextPath(searchParams.get("next") ?? "/"), [searchParams]);
   const direction: 1 | -1 = (searchParams.get("dir") ?? "forward") === "back" ? -1 : 1;
   const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
+
+  const loginSubtitle =
+    role === "vendor" ? copy.loginSubtitleVendor : copy.loginSubtitleCustomer;
 
   const header =
     panel === "signup"
@@ -60,7 +65,7 @@ export function AuthFlowRouter({ panel }: AuthFlowRouterProps) {
           }
         : {
             title: copy.loginTitle(roleLabel),
-            subtitle: copy.loginSubtitle,
+            subtitle: loginSubtitle,
           };
 
   return (

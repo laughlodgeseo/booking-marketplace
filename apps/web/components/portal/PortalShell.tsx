@@ -29,8 +29,9 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 function loginHrefForRole(role?: PortalRole): string {
-  if (role === "vendor") return "/vendor/login";
-  if (role === "customer") return "/login?role=customer";
+  if (role === "vendor") return "/vendor/login?next=%2Fvendor";
+  if (role === "customer") return "/login?role=customer&next=%2Faccount";
+  if (role === "admin") return "/login?next=%2Fadmin";
   return "/login";
 }
 

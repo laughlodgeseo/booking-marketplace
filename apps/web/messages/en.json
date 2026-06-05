@@ -454,7 +454,6 @@
       "passwordPlaceholder": "••••••••",
       "signIn": "Sign in",
       "signingIn": "Signing in…",
-      "authNote": "Current portal auth uses a token stored in sessionStorage. Next step: upgrade to SSR-safe cookie auth so server components can fetch with auth too.",
       "errors": {
         "missingToken": "Login failed: missing access token.",
         "roleMismatch": "This account is \"{role}\". Vendor portal requires role \"VENDOR\".",
