@@ -43,4 +43,5 @@ apps/api/apps/
 .codex/
 docs/
 
+.codex-run/
 CLAUDE.md

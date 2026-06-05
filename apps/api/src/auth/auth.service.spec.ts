@@ -12,11 +12,13 @@ jest.mock('../common/security/password', () => ({
   verifyPassword: jest.fn().mockResolvedValue(true),
 }));
 jest.mock('../common/security/token-hash', () => ({
-  hashToken: jest.fn().mockResolvedValue('hashed_token'),
+  hashToken: jest.fn().mockResolvedValue('bcrypt_hashed_token'),
   verifyToken: jest.fn().mockResolvedValue(true),
+  hashTokenDeterministic: jest.fn().mockReturnValue('sha256_lookup_hash'),
 }));
 
 const { verifyPassword } = require('../common/security/password');
+const { verifyToken } = require('../common/security/token-hash');
 
 function buildService() {
   const prisma = {
@@ -33,9 +35,12 @@ function buildService() {
     },
     passwordResetToken: {
       create: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
+    $transaction: jest.fn().mockImplementation((ops: unknown[]) => Promise.all(ops)),
   };
 
   const jwt = {
@@ -235,7 +240,7 @@ describe('AuthService', () => {
   });
 
   describe('requestPasswordReset', () => {
-    it('returns ok=true even for non-existent emails', async () => {
+    it('returns ok=true even for non-existent emails (account enumeration protection)', async () => {
       const { service, prisma } = buildService();
       prisma.user.findUnique.mockResolvedValue(null);
 
@@ -262,6 +267,218 @@ describe('AuthService', () => {
           entityType: 'password_reset_token',
           entityId: 'prt1',
           recipientUserId: 'u1',
+        }),
+      );
+    });
+
+    it('stores both tokenHash and tokenLookupHash', async () => {
+      const { service, prisma } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
+
+      await service.requestPasswordReset('user@test.com');
+
+      const createCall = prisma.passwordResetToken.create.mock.calls[0][0];
+      expect(createCall.data).toMatchObject({
+        userId: 'u1',
+        tokenHash: 'bcrypt_hashed_token',
+        tokenLookupHash: 'sha256_lookup_hash',
+      });
+    });
+
+    it('email payload includes ttlMinutes matching PASSWORD_RESET_EXPIRE_MINUTES', async () => {
+      const { service, prisma, notifications } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
+
+      await service.requestPasswordReset('user@test.com');
+
+      const emitCall = notifications.emit.mock.calls[0][0];
+      expect(emitCall.payload.ttlMinutes).toBe(30);
+    });
+
+    it('reset URL is built from APP_ORIGIN without localhost in non-production', async () => {
+      process.env.APP_ORIGIN = 'http://localhost:3000';
+      const { service, prisma, notifications } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
+
+      await service.requestPasswordReset('user@test.com');
+
+      const emitCall = notifications.emit.mock.calls[0][0];
+      expect(emitCall.payload.resetUrl).toMatch(
+        /^http:\/\/localhost:3000\/reset-password\?token=/,
+      );
+    });
+
+    it('reset URL uses APP_ORIGIN when set to production origin', async () => {
+      process.env.APP_ORIGIN = 'https://www.rentpropertyuae.com';
+      const { service, prisma, notifications } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
+
+      await service.requestPasswordReset('user@test.com');
+
+      const emitCall = notifications.emit.mock.calls[0][0];
+      expect(emitCall.payload.resetUrl).toMatch(
+        /^https:\/\/www\.rentpropertyuae\.com\/reset-password\?token=/,
+      );
+    });
+
+    it('trailing slash in APP_ORIGIN does not produce double-slash in URL', async () => {
+      process.env.APP_ORIGIN = 'https://www.rentpropertyuae.com/';
+      const { service, prisma, notifications } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
+
+      await service.requestPasswordReset('user@test.com');
+
+      const emitCall = notifications.emit.mock.calls[0][0];
+      expect(emitCall.payload.resetUrl).not.toContain('//reset-password');
+      expect(emitCall.payload.resetUrl).toMatch(
+        /^https:\/\/www\.rentpropertyuae\.com\/reset-password\?token=/,
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    const FUTURE = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    it('succeeds with valid token found via deterministic lookup hash', async () => {
+      const { service, prisma } = buildService();
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'prt1',
+        userId: 'u1',
+        usedAt: null,
+        expiresAt: FUTURE,
+        tokenLookupHash: 'sha256_lookup_hash',
+      });
+
+      const result = await service.resetPassword('valid-token', 'NewPassword1!');
+      expect(result.ok).toBe(true);
+      expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('rejects expired token found via deterministic lookup', async () => {
+      const { service, prisma } = buildService();
+      const PAST = new Date(Date.now() - 1000);
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'prt1',
+        userId: 'u1',
+        usedAt: null,
+        expiresAt: PAST,
+        tokenLookupHash: 'sha256_lookup_hash',
+      });
+
+      await expect(
+        service.resetPassword('expired-token', 'NewPassword1!'),
+      ).rejects.toThrow('Invalid or expired reset link');
+    });
+
+    it('rejects already-used token found via deterministic lookup', async () => {
+      const { service, prisma } = buildService();
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'prt1',
+        userId: 'u1',
+        usedAt: new Date(), // already used
+        expiresAt: FUTURE,
+        tokenLookupHash: 'sha256_lookup_hash',
+      });
+
+      await expect(
+        service.resetPassword('used-token', 'NewPassword1!'),
+      ).rejects.toThrow('Invalid or expired reset link');
+    });
+
+    it('rejects completely invalid token (not in DB)', async () => {
+      const { service, prisma } = buildService();
+      // Fast path finds nothing
+      prisma.passwordResetToken.findUnique.mockResolvedValue(null);
+      // Legacy scan finds nothing either
+      prisma.passwordResetToken.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.resetPassword('garbage-token', 'NewPassword1!'),
+      ).rejects.toThrow('Invalid or expired reset link');
+    });
+
+    it('falls back to bcrypt scan for legacy tokens (tokenLookupHash=null)', async () => {
+      const { service, prisma } = buildService();
+      // Fast lookup misses (no record for this lookup hash)
+      prisma.passwordResetToken.findUnique.mockResolvedValue(null);
+      // Legacy scan returns a matching candidate
+      prisma.passwordResetToken.findMany.mockResolvedValue([
+        {
+          id: 'prt_legacy',
+          userId: 'u1',
+          tokenHash: 'bcrypt_hashed_token',
+          usedAt: null,
+          expiresAt: FUTURE,
+          tokenLookupHash: null,
+        },
+      ]);
+      verifyToken.mockResolvedValueOnce(true);
+
+      const result = await service.resetPassword('legacy-token', 'NewPassword1!');
+      expect(result.ok).toBe(true);
+    });
+
+    it('invalidates all other active tokens for the same user on success', async () => {
+      const { service, prisma } = buildService();
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'prt1',
+        userId: 'u1',
+        usedAt: null,
+        expiresAt: FUTURE,
+        tokenLookupHash: 'sha256_lookup_hash',
+      });
+
+      await service.resetPassword('valid-token', 'NewPassword1!');
+
+      // Verify the transaction contains updateMany to invalidate other tokens
+      const txArgs = prisma.$transaction.mock.calls[0][0] as unknown[];
+      // updateMany call for other tokens should be present
+      expect(prisma.passwordResetToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'u1',
+            usedAt: null,
+            id: { not: 'prt1' },
+          }),
+        }),
+      );
+    });
+
+    it('revokes all active refresh tokens for the user on success', async () => {
+      const { service, prisma } = buildService();
+      prisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'prt1',
+        userId: 'u1',
+        usedAt: null,
+        expiresAt: FUTURE,
+        tokenLookupHash: 'sha256_lookup_hash',
+      });
+
+      await service.resetPassword('valid-token', 'NewPassword1!');
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u1', revokedAt: null },
         }),
       );
     });

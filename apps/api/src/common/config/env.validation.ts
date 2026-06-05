@@ -37,8 +37,43 @@ export function requiredJwtSecret(
 export function validateCriticalEnvironment(): void {
   requiredJwtSecret('JWT_ACCESS_SECRET');
   requiredJwtSecret('JWT_REFRESH_SECRET');
+  validateAppOriginInProduction();
   validateCloudinaryInProduction();
   validateStripeKeysInProduction();
+}
+
+export function validateAppOriginInProduction(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const origin = (process.env.APP_ORIGIN ?? '').trim();
+
+  if (!origin) {
+    throw new Error(
+      'APP_ORIGIN is required in production. ' +
+        'Set it to the canonical frontend URL, e.g. https://www.rentpropertyuae.com',
+    );
+  }
+
+  const localhostPatterns = [
+    /^https?:\/\/localhost/i,
+    /^https?:\/\/127\./,
+    /^https?:\/\/0\.0\.0\.0/,
+  ];
+
+  for (const pattern of localhostPatterns) {
+    if (pattern.test(origin)) {
+      throw new Error(
+        `APP_ORIGIN must not be a localhost address in production. Got: ${origin}`,
+      );
+    }
+  }
+
+  if (!origin.startsWith('https://')) {
+    throw new Error(
+      `APP_ORIGIN must use https:// in production. Got: ${origin}. ` +
+        'HTTP origins are not permitted in production.',
+    );
+  }
 }
 
 function validateCloudinaryInProduction(): void {

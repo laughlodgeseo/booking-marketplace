@@ -9,11 +9,16 @@ import { NotificationType, UserRole } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../modules/prisma/prisma.service';
 import { hashPassword, verifyPassword } from '../common/security/password';
-import { hashToken, verifyToken } from '../common/security/token-hash';
+import {
+  hashToken,
+  hashTokenDeterministic,
+  verifyToken,
+} from '../common/security/token-hash';
 import { JwtAccessPayload, JwtRefreshPayload } from './types/auth.types';
 import { parseDurationToSeconds } from '../common/security/duration';
 import { requiredJwtSecret } from '../common/config/env.validation';
 import { NotificationsService } from '../modules/notifications/notifications.service';
+import { PASSWORD_RESET_EXPIRE_MINUTES } from './auth.const';
 
 type SafeAuthUser = {
   id: string;
@@ -236,15 +241,19 @@ export class AuthService {
     if (!user) return { ok: true };
 
     const tokenPlain = cryptoRandomToken(32);
-    const tokenHashed = await hashToken(tokenPlain);
+    const [tokenHashed, tokenLookupHash] = await Promise.all([
+      hashToken(tokenPlain),
+      Promise.resolve(hashTokenDeterministic(tokenPlain)),
+    ]);
 
     const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 30);
+    expires.setMinutes(expires.getMinutes() + PASSWORD_RESET_EXPIRE_MINUTES);
 
     const resetRecord = await this.prisma.passwordResetToken.create({
       data: {
         userId: user.id,
         tokenHash: tokenHashed,
+        tokenLookupHash,
         expiresAt: expires,
       },
       select: { id: true, expiresAt: true },
@@ -259,7 +268,7 @@ export class AuthService {
         email,
         resetUrl: this.buildPasswordResetUrl(tokenPlain),
         expiresAt: resetRecord.expiresAt.toISOString(),
-        ttlMinutes: 30,
+        ttlMinutes: PASSWORD_RESET_EXPIRE_MINUTES,
       },
     });
 
@@ -267,44 +276,84 @@ export class AuthService {
   }
 
   private buildPasswordResetUrl(token: string): string {
-    const origin = (process.env.APP_ORIGIN ?? 'http://localhost:3000').trim();
-    const url = new URL('/reset-password', origin);
+    const origin = resolveAppOrigin();
+    // Strip trailing slash so URL constructor doesn't produce double-slash.
+    const base = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    const url = new URL('/reset-password', base);
     url.searchParams.set('token', token);
     return url.toString();
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const candidates = await this.prisma.passwordResetToken.findMany({
-      where: { usedAt: null, expiresAt: { gt: new Date() } },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
+    const lookupHash = hashTokenDeterministic(token);
+    const now = new Date();
+
+    // Fast path: O(1) lookup by deterministic SHA-256 hash (new tokens).
+    const byLookup = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenLookupHash: lookupHash },
     });
 
-    for (const c of candidates) {
-      const match = await verifyToken(token, c.tokenHash);
-      if (!match) continue;
-
-      const newHash = await hashPassword(newPassword);
-
-      await this.prisma.$transaction([
-        this.prisma.passwordResetToken.update({
-          where: { id: c.id },
-          data: { usedAt: new Date() },
-        }),
-        this.prisma.user.update({
-          where: { id: c.userId },
-          data: { passwordHash: newHash },
-        }),
-        this.prisma.refreshToken.updateMany({
-          where: { userId: c.userId, revokedAt: null },
-          data: { revokedAt: new Date() },
-        }),
-      ]);
-
-      return { ok: true };
+    if (byLookup) {
+      if (byLookup.usedAt !== null || byLookup.expiresAt <= now) {
+        throw new BadRequestException('Invalid or expired reset link');
+      }
+      return this.applyPasswordReset(byLookup.id, byLookup.userId, newPassword);
     }
 
-    throw new BadRequestException('Invalid or expired token');
+    // Fallback path: bcrypt scan for tokens created before the migration
+    // (tokenLookupHash is NULL on pre-migration rows). Safe because the 30-min
+    // TTL means at most a handful of such tokens can exist at any time.
+    const legacyCandidates = await this.prisma.passwordResetToken.findMany({
+      where: {
+        tokenLookupHash: null,
+        usedAt: null,
+        expiresAt: { gt: now },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    for (const c of legacyCandidates) {
+      const match = await verifyToken(token, c.tokenHash);
+      if (!match) continue;
+      return this.applyPasswordReset(c.id, c.userId, newPassword);
+    }
+
+    throw new BadRequestException('Invalid or expired reset link');
+  }
+
+  private async applyPasswordReset(
+    tokenId: string,
+    userId: string,
+    newPassword: string,
+  ) {
+    const newHash = await hashPassword(newPassword);
+    const now = new Date();
+
+    await this.prisma.$transaction([
+      // Mark this token as used.
+      this.prisma.passwordResetToken.update({
+        where: { id: tokenId },
+        data: { usedAt: now },
+      }),
+      // Invalidate ALL other active reset tokens for this user.
+      this.prisma.passwordResetToken.updateMany({
+        where: { userId, usedAt: null, id: { not: tokenId } },
+        data: { usedAt: now },
+      }),
+      // Update the user's password hash.
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: newHash },
+      }),
+      // Revoke all active refresh tokens (forces re-login with new password).
+      this.prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: now },
+      }),
+    ]);
+
+    return { ok: true };
   }
 
   async refresh(
@@ -514,4 +563,20 @@ export class AuthService {
 
 function cryptoRandomToken(bytes: number): string {
   return randomBytes(bytes).toString('hex');
+}
+
+function resolveAppOrigin(): string {
+  const raw = (process.env.APP_ORIGIN ?? '').trim();
+
+  if (!raw) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'APP_ORIGIN is not set. Production startup should have caught this — ' +
+          'check validateCriticalEnvironment() is called on boot.',
+      );
+    }
+    return 'http://localhost:3000';
+  }
+
+  return raw;
 }

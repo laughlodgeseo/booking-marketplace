@@ -9,6 +9,15 @@
  * 5. Production + Stripe test key → throws
  * 6. Production + Stripe live key → no throw
  * 7. Production + webhook secret not starting with whsec_ → throws
+ *
+ * APP_ORIGIN Production Tests:
+ * 8.  Production + APP_ORIGIN missing → throws
+ * 9.  Production + APP_ORIGIN=http://localhost:3000 → throws
+ * 10. Production + APP_ORIGIN=http://127.0.0.1:3000 → throws
+ * 11. Production + APP_ORIGIN=http://rentpropertyuae.com (http, not https) → throws
+ * 12. Production + APP_ORIGIN=https://www.rentpropertyuae.com → no throw
+ * 13. Production + APP_ORIGIN with trailing slash → no throw
+ * 14. Non-production + APP_ORIGIN=http://localhost:3000 → no throw
  */
 
 const originalEnv = process.env;
@@ -39,6 +48,7 @@ describe('P1 ENV-001 — Cloudinary production validation', () => {
     NODE_ENV: 'production',
     JWT_ACCESS_SECRET: 'a'.repeat(32),
     JWT_REFRESH_SECRET: 'b'.repeat(32),
+    APP_ORIGIN: 'https://www.rentpropertyuae.com',
   };
 
   it('throws when CLOUDINARY_CLOUD_NAME set but API key/secret missing in production', () => {
@@ -110,12 +120,90 @@ describe('P1 ENV-001 — Cloudinary production validation', () => {
   });
 });
 
+describe('P2 ENV-003 — APP_ORIGIN production validation', () => {
+  const BASE_VALID = {
+    NODE_ENV: 'production',
+    JWT_ACCESS_SECRET: 'a'.repeat(32),
+    JWT_REFRESH_SECRET: 'b'.repeat(32),
+    CLOUDINARY_CLOUD_NAME: '',
+    STRIPE_SECRET_KEY: 'sk_live_somekey',
+    STRIPE_WEBHOOK_SECRET: 'whsec_valid',
+  };
+
+  it('throws when APP_ORIGIN is missing in production', () => {
+    withEnv({ ...BASE_VALID, APP_ORIGIN: '' }, () => {
+      const { validateCriticalEnvironment } = loadValidation();
+      expect(() => validateCriticalEnvironment()).toThrow(/APP_ORIGIN is required/);
+    });
+  });
+
+  it('throws when APP_ORIGIN is http://localhost in production', () => {
+    withEnv({ ...BASE_VALID, APP_ORIGIN: 'http://localhost:3000' }, () => {
+      const { validateCriticalEnvironment } = loadValidation();
+      expect(() => validateCriticalEnvironment()).toThrow(/localhost/);
+    });
+  });
+
+  it('throws when APP_ORIGIN is 127.0.0.1 in production', () => {
+    withEnv({ ...BASE_VALID, APP_ORIGIN: 'http://127.0.0.1:3000' }, () => {
+      const { validateCriticalEnvironment } = loadValidation();
+      expect(() => validateCriticalEnvironment()).toThrow(/localhost/i);
+    });
+  });
+
+  it('throws when APP_ORIGIN uses plain http in production', () => {
+    withEnv(
+      { ...BASE_VALID, APP_ORIGIN: 'http://rentpropertyuae.com' },
+      () => {
+        const { validateCriticalEnvironment } = loadValidation();
+        expect(() => validateCriticalEnvironment()).toThrow(/https:\/\//);
+      },
+    );
+  });
+
+  it('does not throw when APP_ORIGIN is a valid https URL in production', () => {
+    withEnv(
+      { ...BASE_VALID, APP_ORIGIN: 'https://www.rentpropertyuae.com' },
+      () => {
+        const { validateCriticalEnvironment } = loadValidation();
+        expect(() => validateCriticalEnvironment()).not.toThrow();
+      },
+    );
+  });
+
+  it('does not throw when APP_ORIGIN has a trailing slash in production', () => {
+    withEnv(
+      { ...BASE_VALID, APP_ORIGIN: 'https://www.rentpropertyuae.com/' },
+      () => {
+        const { validateCriticalEnvironment } = loadValidation();
+        expect(() => validateCriticalEnvironment()).not.toThrow();
+      },
+    );
+  });
+
+  it('does not throw when APP_ORIGIN is localhost in non-production', () => {
+    withEnv(
+      {
+        NODE_ENV: 'development',
+        JWT_ACCESS_SECRET: 'a'.repeat(32),
+        JWT_REFRESH_SECRET: 'b'.repeat(32),
+        APP_ORIGIN: 'http://localhost:3000',
+      },
+      () => {
+        const { validateCriticalEnvironment } = loadValidation();
+        expect(() => validateCriticalEnvironment()).not.toThrow();
+      },
+    );
+  });
+});
+
 describe('P1 ENV-002 — Stripe key production validation', () => {
   const BASE_VALID = {
     NODE_ENV: 'production',
     JWT_ACCESS_SECRET: 'a'.repeat(32),
     JWT_REFRESH_SECRET: 'b'.repeat(32),
     CLOUDINARY_CLOUD_NAME: '',
+    APP_ORIGIN: 'https://www.rentpropertyuae.com',
   };
 
   it('throws when Stripe secret key is a test key in production', () => {
