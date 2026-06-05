@@ -450,8 +450,6 @@ describe('AuthService', () => {
 
       await service.resetPassword('valid-token', 'NewPassword1!');
 
-      // Verify the transaction contains updateMany to invalidate other tokens
-      const txArgs = prisma.$transaction.mock.calls[0][0] as unknown[];
       // updateMany call for other tokens should be present
       expect(prisma.passwordResetToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
