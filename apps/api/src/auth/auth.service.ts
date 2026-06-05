@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -32,6 +33,8 @@ type SafeAuthUser = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -237,40 +240,79 @@ export class AuthService {
   async requestPasswordReset(emailRaw: string) {
     const email = emailRaw.trim().toLowerCase();
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) return { ok: true };
+    // Always return { ok: true } — never distinguish existing vs non-existing
+    // email to prevent account enumeration. All internal errors are logged and
+    // swallowed so they never surface as 500 to the caller.
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) return { ok: true };
 
-    const tokenPlain = cryptoRandomToken(32);
-    const [tokenHashed, tokenLookupHash] = await Promise.all([
-      hashToken(tokenPlain),
-      Promise.resolve(hashTokenDeterministic(tokenPlain)),
-    ]);
+      const tokenPlain = cryptoRandomToken(32);
+      const [tokenHashed, tokenLookupHash] = await Promise.all([
+        hashToken(tokenPlain),
+        Promise.resolve(hashTokenDeterministic(tokenPlain)),
+      ]);
 
-    const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + PASSWORD_RESET_EXPIRE_MINUTES);
+      const expires = new Date();
+      expires.setMinutes(expires.getMinutes() + PASSWORD_RESET_EXPIRE_MINUTES);
 
-    const resetRecord = await this.prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        tokenHash: tokenHashed,
-        tokenLookupHash,
-        expiresAt: expires,
-      },
-      select: { id: true, expiresAt: true },
-    });
+      const resetRecord = await this.prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: tokenHashed,
+          tokenLookupHash,
+          expiresAt: expires,
+        },
+        select: { id: true, expiresAt: true },
+      });
 
-    await this.notifications.emit({
-      type: 'PASSWORD_RESET_REQUESTED' as NotificationType,
-      entityType: 'password_reset_token',
-      entityId: resetRecord.id,
-      recipientUserId: user.id,
-      payload: {
-        email,
-        resetUrl: this.buildPasswordResetUrl(tokenPlain),
-        expiresAt: resetRecord.expiresAt.toISOString(),
-        ttlMinutes: PASSWORD_RESET_EXPIRE_MINUTES,
-      },
-    });
+      this.logger.log(
+        JSON.stringify({ event: 'password_reset_requested', userId: user.id }),
+      );
+
+      // Email dispatch is fire-and-forget at this layer: failures are logged
+      // but must not convert a successful token creation into a 500 error.
+      await this.notifications
+        .emit({
+          type: 'PASSWORD_RESET_REQUESTED' as NotificationType,
+          entityType: 'password_reset_token',
+          entityId: resetRecord.id,
+          recipientUserId: user.id,
+          payload: {
+            email,
+            resetUrl: this.buildPasswordResetUrl(tokenPlain),
+            expiresAt: resetRecord.expiresAt.toISOString(),
+            ttlMinutes: PASSWORD_RESET_EXPIRE_MINUTES,
+          },
+        })
+        .then(() =>
+          this.logger.log(
+            JSON.stringify({
+              event: 'password_reset_email_queued',
+              userId: user.id,
+            }),
+          ),
+        )
+        .catch((notifyErr: unknown) =>
+          this.logger.error(
+            JSON.stringify({
+              event: 'password_reset_email_failed',
+              userId: user.id,
+              error:
+                notifyErr instanceof Error
+                  ? notifyErr.message
+                  : String(notifyErr),
+            }),
+          ),
+        );
+    } catch (err) {
+      this.logger.error(
+        JSON.stringify({
+          event: 'password_reset_request_failed',
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
 
     return { ok: true };
   }

@@ -354,6 +354,45 @@ describe('AuthService', () => {
         /^https:\/\/www\.rentpropertyuae\.com\/reset-password\?token=/,
       );
     });
+
+    it('returns { ok: true } and does not throw when token DB write fails', async () => {
+      const { service, prisma } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      // Simulate migration not applied: column does not exist
+      prisma.passwordResetToken.create.mockRejectedValue(
+        new Error('column "tokenLookupHash" of relation "PasswordResetToken" does not exist'),
+      );
+
+      const result = await service.requestPasswordReset('user@test.com');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('returns { ok: true } and does not throw when notifications.emit fails', async () => {
+      const { service, prisma, notifications } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockResolvedValue({
+        id: 'prt1',
+        expiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      });
+      notifications.emit.mockRejectedValue(new Error('Resend API key invalid'));
+
+      const result = await service.requestPasswordReset('user@test.com');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('response never contains Internal server error or stack trace on failure', async () => {
+      const { service, prisma } = buildService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
+      prisma.passwordResetToken.create.mockRejectedValue(
+        new Error('Internal server error'),
+      );
+
+      const result = await service.requestPasswordReset('user@test.com');
+      const body = JSON.stringify(result);
+      expect(body).not.toContain('Internal server error');
+      expect(body).not.toContain('stack');
+      expect(result).toEqual({ ok: true });
+    });
   });
 
   describe('resetPassword', () => {

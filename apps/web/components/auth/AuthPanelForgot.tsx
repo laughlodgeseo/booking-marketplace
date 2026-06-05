@@ -18,10 +18,9 @@ const INPUT_CLASS =
 
 const COPY = {
   en: {
-    requestFailed: "Request failed",
     successMessage: (email: string) =>
       `If an account exists for ${email}, you will receive password reset instructions shortly.`,
-    debugHint: (error: string) => `Note: if no email arrives, check your spam folder. (Debug: ${error})`,
+    spamNote: "If no email arrives within a few minutes, check your spam or junk folder.",
     backToLogin: "Back to login",
     intro: "Enter your account email and we will send secure reset instructions.",
     email: "Email",
@@ -30,10 +29,9 @@ const COPY = {
     sendInstructions: "Send secure reset link",
   },
   ar: {
-    requestFailed: "تعذر إرسال الطلب",
     successMessage: (email: string) =>
       `إذا كان هناك حساب مرتبط بـ ${email} فستصلك تعليمات إعادة التعيين قريباً.`,
-    debugHint: (error: string) => `ملاحظة: إذا لم تصلك رسالة، تحقق من البريد غير الهام. (تفاصيل: ${error})`,
+    spamNote: "إذا لم تصلك رسالة خلال دقائق، تحقق من مجلد البريد غير الهام.",
     backToLogin: "العودة لتسجيل الدخول",
     intro: "أدخل بريد حسابك الإلكتروني وسنرسل تعليمات إعادة تعيين آمنة.",
     email: "البريد الإلكتروني",
@@ -51,7 +49,6 @@ export function AuthPanelForgot({ role, nextPath }: AuthPanelForgotProps) {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const loginHref = useMemo(() => {
     const qs = new URLSearchParams({ role, next: nextPath, dir: "back" });
@@ -60,17 +57,16 @@ export function AuthPanelForgot({ role, nextPath }: AuthPanelForgotProps) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setSubmitting(true);
 
     try {
       await requestPasswordReset({ email });
-      setSubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : copy.requestFailed);
-      setSubmitted(true);
+    } catch {
+      // Always show the generic success state regardless of outcome.
+      // This prevents account enumeration and avoids leaking internal errors.
     } finally {
       setSubmitting(false);
+      setSubmitted(true);
     }
   }
 
@@ -89,11 +85,7 @@ export function AuthPanelForgot({ role, nextPath }: AuthPanelForgotProps) {
               {copy.successMessage(email)}
             </p>
 
-            {error ? (
-              <p className="text-xs text-slate-500">
-                {copy.debugHint(error)}
-              </p>
-            ) : null}
+            <p className="text-xs text-slate-500">{copy.spamNote}</p>
 
             <Link
               href={loginHref}
