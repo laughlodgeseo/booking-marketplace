@@ -81,44 +81,47 @@ function TrustItem({ icon, title, desc }: { icon: React.ReactNode; title: string
 
 function FirstTimeWelcome({ hasDraft, draftPropertyId }: { hasDraft?: boolean; draftPropertyId?: string }) {
   return (
-    <motion.div initial="hidden" animate="show" variants={STAGGER} className="space-y-6">
-      {/* Hero card */}
+    <motion.div initial="hidden" animate="show" variants={STAGGER} className="space-y-5">
+      {/* Hero card — dark indigo gradient */}
       <motion.div
         variants={FADE_UP}
-        className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,rgb(var(--color-surface-rgb)),rgb(var(--color-bg-2-rgb)/0.85))] p-6 sm:p-8"
+        className="site-hero-shell relative overflow-hidden rounded-3xl p-6 sm:p-8"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(800px_300px_at_50%_-40px,rgb(var(--color-accent-rgb)/0.14),transparent_60%)]" />
+        <div className="site-hero-grid pointer-events-none absolute inset-0 opacity-30" />
+        <div className="pointer-events-none absolute -top-16 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
         <div className="relative">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-brand">
-            <Sparkles className="h-3 w-3" />
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white/90">
+            <Sparkles className="h-3 w-3 text-[rgb(var(--color-gold-rgb))]" />
             Welcome to hosting
           </div>
-          <h2 className="mt-4 text-2xl font-bold text-primary sm:text-3xl">
-            Let&apos;s prepare your first property
+          <h2 className="mt-4 font-heading text-2xl font-semibold text-white sm:text-3xl">
+            {hasDraft ? "Continue your listing" : "Let’s prepare your first property"}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-secondary sm:text-base">
-            Create a polished listing, add high-quality photos, set your pricing and availability, and submit for our team to review. Dubai-focused, mobile-first, and built for professional hosts.
+          <p className="mt-2 text-sm leading-relaxed text-white/72 sm:text-base">
+            {hasDraft
+              ? "Your draft is saved — pick up where you left off. Complete all steps and submit for admin review."
+              : "Create a polished listing, add high-quality photos, set your pricing, and submit for our team to review."}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
             {hasDraft && draftPropertyId ? (
               <Link
                 href={`/vendor/properties/${encodeURIComponent(draftPropertyId)}/edit`}
-                className="inline-flex items-center gap-2 rounded-2xl bg-brand px-5 py-2.5 text-sm font-semibold text-accent-text hover:bg-brand-hover transition"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/22 bg-white/14 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20 transition"
               >
                 Continue your listing <ArrowRight className="h-4 w-4" />
               </Link>
             ) : (
               <Link
                 href="/vendor/properties/new"
-                className="inline-flex items-center gap-2 rounded-2xl bg-brand px-5 py-2.5 text-sm font-semibold text-accent-text hover:bg-brand-hover transition"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/22 bg-white/14 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20 transition"
               >
                 Start your first listing <ArrowRight className="h-4 w-4" />
               </Link>
             )}
             <Link
               href="/vendor/properties"
-              className="inline-flex items-center gap-1 rounded-2xl border border-line/60 bg-surface px-4 py-2.5 text-sm font-semibold text-secondary hover:bg-warm-alt transition"
+              className="inline-flex items-center gap-1 rounded-2xl border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/14 transition"
             >
               My listings
             </Link>
@@ -131,7 +134,7 @@ function FirstTimeWelcome({ hasDraft, draftPropertyId }: { hasDraft?: boolean; d
         <TrustItem
           icon={<ShieldCheck className="h-4 w-4" />}
           title="Secure bookings"
-          desc="Verified payments, guest screening, and secure booking management."
+          desc="Verified payments, guest screening, and dispute protection."
         />
         <TrustItem
           icon={<CheckCircle2 className="h-4 w-4" />}
@@ -145,10 +148,12 @@ function FirstTimeWelcome({ hasDraft, draftPropertyId }: { hasDraft?: boolean; d
         />
       </div>
 
-      {/* What to expect */}
-      <motion.div variants={FADE_UP} className="rounded-3xl border border-line/40 bg-surface/60 p-5">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted">Steps to publish</div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      {/* Steps to publish */}
+      <motion.div variants={FADE_UP} className="premium-card rounded-3xl p-5">
+        <div className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--text-muted-rgb))]">
+          Steps to publish
+        </div>
+        <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
           {[
             "Tell us about your property",
             "Location and address",
@@ -157,14 +162,26 @@ function FirstTimeWelcome({ hasDraft, draftPropertyId }: { hasDraft?: boolean; d
             "Ownership documents",
             "Submit for admin review",
           ].map((label, i) => (
-            <div key={label} className="flex items-center gap-2.5">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/12 text-[11px] font-bold text-brand">
+            <div key={label} className="flex items-center gap-3">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-accent-rgb)/0.12)] text-[11px] font-bold text-[rgb(var(--color-accent-rgb))]">
                 {i + 1}
               </div>
               <span className="text-sm text-secondary">{label}</span>
             </div>
           ))}
         </div>
+      </motion.div>
+
+      {/* Dubai market note */}
+      <motion.div
+        variants={FADE_UP}
+        className="flex items-start gap-3 rounded-2xl border border-[rgb(var(--color-gold-rgb)/0.22)] bg-[rgb(var(--color-gold-rgb)/0.05)] px-4 py-3.5"
+      >
+        <Waves className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--color-gold-rgb))]" />
+        <p className="text-sm text-secondary">
+          <span className="font-semibold text-primary">Dubai-first platform.</span>{" "}
+          Dirham pricing, Arabic support, and a review process aligned with DTCM holiday home permit requirements.
+        </p>
       </motion.div>
     </motion.div>
   );
@@ -175,23 +192,45 @@ function SubmittedHero() {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-      className="rounded-3xl border border-brand/20 bg-brand/5 p-6"
+      transition={{ duration: 0.3 }}
+      className="premium-card rounded-3xl p-6"
     >
       <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand/12 text-brand">
+        <div className="card-icon-plate h-11 w-11 shrink-0">
           <ClipboardCheck className="h-5 w-5" />
         </div>
-        <div>
-          <div className="text-base font-semibold text-primary">Your listing is under review</div>
-          <div className="mt-1 text-sm leading-relaxed text-secondary">
-            Our team reviews listings within 24–48 business hours. You will be notified as soon as a decision is made.
+        <div className="min-w-0 flex-1">
+          <div className="font-heading text-lg font-semibold text-primary">
+            Your listing is under review
           </div>
+          <div className="mt-1 text-sm leading-relaxed text-secondary">
+            Our team reviews new listings within 24–48 business hours. We&apos;ll notify you as soon as a decision is made.
+          </div>
+
+          {/* Progress steps */}
+          <div className="mt-4 space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-[rgb(var(--color-success-rgb))]" />
+              <span className="text-sm text-primary">Listing submitted</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                <span className="absolute h-4 w-4 animate-ping rounded-full bg-[rgb(var(--color-accent-rgb)/0.28)]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--color-accent-rgb))]" />
+              </div>
+              <span className="text-sm text-primary">Admin review in progress</span>
+            </div>
+            <div className="flex items-center gap-2.5 opacity-35">
+              <div className="h-4 w-4 shrink-0 rounded-full border-2 border-[rgb(var(--line-rgb))]" />
+              <span className="text-sm text-secondary">Live — visible to guests</span>
+            </div>
+          </div>
+
           <Link
             href="/vendor/properties"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[rgb(var(--color-accent-rgb))] hover:underline"
           >
-            View your listing status <ArrowRight className="h-3.5 w-3.5" />
+            View listing status <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>
@@ -204,21 +243,26 @@ function ChangesRequestedHero({ propertyId }: { propertyId: string }) {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.38 }}
-      className="rounded-3xl border border-warning/30 bg-warning/8 p-6"
+      transition={{ duration: 0.3 }}
+      className="overflow-hidden rounded-3xl border border-[rgb(var(--color-warning-rgb)/0.24)] bg-[rgb(var(--color-warning-rgb)/0.06)] p-6"
     >
       <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-warning/15 text-warning">
+        <div
+          className="card-icon-plate h-11 w-11 shrink-0"
+          style={{ background: "rgb(var(--color-warning-rgb)/0.14)", borderColor: "rgb(var(--color-warning-rgb)/0.30)", color: "rgb(var(--color-warning-rgb))" } as React.CSSProperties}
+        >
           <Building2 className="h-5 w-5" />
         </div>
-        <div>
-          <div className="text-base font-semibold text-primary">Changes requested on your listing</div>
+        <div className="min-w-0 flex-1">
+          <div className="font-heading text-lg font-semibold text-primary">
+            Changes requested on your listing
+          </div>
           <div className="mt-1 text-sm leading-relaxed text-secondary">
-            Our review team has requested changes. Update your listing and resubmit for approval.
+            Our review team has requested changes. Review the feedback in your properties page, make the necessary updates, and resubmit for approval.
           </div>
           <Link
             href={`/vendor/properties/${encodeURIComponent(propertyId)}/edit`}
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[rgb(var(--color-accent-rgb))] hover:underline"
           >
             Update your listing <ArrowRight className="h-3.5 w-3.5" />
           </Link>

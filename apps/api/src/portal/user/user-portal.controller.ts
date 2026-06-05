@@ -19,6 +19,7 @@ import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 
 import {
   BookingStatus,
@@ -45,7 +46,7 @@ import { PortalNotificationsService } from '../common/portal-notifications.servi
 
 @Controller('/portal/user')
 @UseGuards(JwtAccessGuard, RolesGuard)
-@Roles(UserRole.CUSTOMER)
+@Roles(...CUSTOMER_CAPABLE_ROLES)
 @Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserPortalController {
   constructor(
