@@ -40,11 +40,12 @@ export class StorageService {
 
   /**
    * Delete a file by its storage key.
+   * Pass mimeType so the cloud adapter can route to the correct resource endpoint.
    * The key encodes the provider in its prefix (local path vs Cloudinary public_id).
    */
-  async delete(key: string): Promise<void> {
+  async delete(key: string, mimeType?: string): Promise<void> {
     const adapter = this.inferAdapterFromKey(key);
-    return adapter.delete(key);
+    return adapter.delete(key, mimeType);
   }
 
   /**

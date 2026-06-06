@@ -50,7 +50,8 @@ export class LocalStorageAdapter implements IStorageAdapter {
     });
   }
 
-  delete(key: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  delete(key: string, _mimeType?: string): Promise<void> {
     const filePath = path.join(process.cwd(), key);
     try {
       fs.unlinkSync(filePath);

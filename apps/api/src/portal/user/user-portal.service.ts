@@ -1202,6 +1202,7 @@ export class UserPortalService {
         userId: true,
         fileKey: true,
         cloudinaryPublicId: true,
+        mimeType: true,
       },
     });
 
@@ -1210,21 +1211,26 @@ export class UserPortalService {
       throw new ForbiddenException('Not allowed to delete this document.');
     }
 
+    // Delete from Cloudinary before touching the DB so that if the cloud
+    // call fails unexpectedly the DB row stays intact and the user retains
+    // access to retry.
+    if (doc.cloudinaryPublicId) {
+      await this.storage.delete(
+        doc.cloudinaryPublicId,
+        doc.mimeType ?? undefined,
+      );
+    }
+
     await this.prisma.customerDocument.delete({ where: { id: doc.id } });
 
-    if (doc.cloudinaryPublicId) {
-      try {
-        await this.storage.delete(doc.cloudinaryPublicId);
-      } catch {
-        // best effort cleanup
-      }
-    } else if (doc.fileKey) {
+    // Best-effort disk cleanup for legacy (pre-Cloudinary) records.
+    if (!doc.cloudinaryPublicId && doc.fileKey) {
       const absolutePath = join(CUSTOMER_DOCUMENTS_DIR, doc.fileKey);
       if (existsSync(absolutePath)) {
         try {
           unlinkSync(absolutePath);
         } catch {
-          // best effort cleanup
+          // intentional best-effort
         }
       }
     }

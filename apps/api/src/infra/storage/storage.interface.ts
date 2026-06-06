@@ -44,8 +44,10 @@ export interface IStorageAdapter {
 
   /**
    * Delete a file by its storage key.
+   * Pass mimeType so cloud adapters can route to the correct resource endpoint
+   * (e.g. Cloudinary uses /image/destroy vs /raw/destroy).
    */
-  delete(key: string): Promise<void>;
+  delete(key: string, mimeType?: string): Promise<void>;
 
   /**
    * Generate a signed (time-limited) URL for private file access.

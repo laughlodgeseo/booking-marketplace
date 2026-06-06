@@ -83,7 +83,8 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
     };
   }
 
-  async delete(key: string): Promise<void> {
+  async delete(key: string, mimeType?: string): Promise<void> {
+    const resourceType = this.resourceTypeFromMime(mimeType ?? '');
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = this.sign({ public_id: key, timestamp });
 
@@ -93,8 +94,22 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
     form.append('api_key', this.apiKey);
     form.append('signature', signature);
 
-    const url = `https://api.cloudinary.com/v1_1/${this.cloudName}/image/destroy`;
-    await fetch(url, { method: 'POST', body: form });
+    const url = `https://api.cloudinary.com/v1_1/${this.cloudName}/${resourceType}/destroy`;
+    const response = await fetch(url, { method: 'POST', body: form });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        `Cloudinary delete failed: ${response.status} ${text}`,
+      );
+    }
+
+    const body = (await response.json()) as { result: string };
+    if (body.result !== 'ok' && body.result !== 'not found') {
+      this.logger.warn(
+        `cloudinary_delete unexpected result key=${key} result=${body.result}`,
+      );
+    }
   }
 
   getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
