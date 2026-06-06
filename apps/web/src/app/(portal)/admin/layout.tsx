@@ -4,7 +4,7 @@ import { RequireRole } from "@/components/auth/RequireRole";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <RequireAuth redirectTo="/login">
+    <RequireAuth redirectTo="/admin/login">
       <RequireRole roles={["ADMIN"]} redirectTo="/">
         {children}
       </RequireRole>

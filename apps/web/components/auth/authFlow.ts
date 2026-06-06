@@ -5,6 +5,21 @@ export type PortalIntent = AuthUiRole;
 
 export type AuthFlowPanel = "login" | "signup" | "forgot";
 
+// ---------------------------------------------------------------------------
+// Admin portal — separate from customer/vendor flow, does not extend AuthUiRole
+// ---------------------------------------------------------------------------
+
+export function safeAdminNextPath(raw: string | null): string {
+  const safe = safeNextPath(raw, "/admin");
+  // Admin login may only redirect into /admin/* to prevent cross-portal leaks.
+  if (!safe.startsWith("/admin")) return "/admin";
+  return safe;
+}
+
+export function canUserAccessAdminPortal(userRole: UserRole): boolean {
+  return userRole === "ADMIN";
+}
+
 // Paths that must never be used as a post-login redirect target.
 // Prevents login loops (/login?next=/login), open-redirect via auth pages,
 // and self-referential vendor-login traps (/vendor/login?next=/vendor/login).

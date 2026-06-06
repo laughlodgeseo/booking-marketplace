@@ -4,6 +4,8 @@ import {
   canUserUsePortal,
   resolvePostLoginPath,
   defaultPathForPortalIntent,
+  safeAdminNextPath,
+  canUserAccessAdminPortal,
 } from "../components/auth/authFlow";
 import { isCustomerCapableRole } from "../lib/auth/auth.types";
 
@@ -256,5 +258,98 @@ describe("isCustomerCapableRole", () => {
 
   it("empty string is not customer-capable", () => {
     expect(isCustomerCapableRole("")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// safeAdminNextPath — admin-only next-path validation
+// ---------------------------------------------------------------------------
+
+describe("safeAdminNextPath", () => {
+  it("returns /admin for null", () => {
+    expect(safeAdminNextPath(null)).toBe("/admin");
+  });
+
+  it("returns /admin for empty string", () => {
+    expect(safeAdminNextPath("")).toBe("/admin");
+  });
+
+  it("accepts /admin", () => {
+    expect(safeAdminNextPath("/admin")).toBe("/admin");
+  });
+
+  it("accepts /admin/review-queue", () => {
+    expect(safeAdminNextPath("/admin/review-queue")).toBe("/admin/review-queue");
+  });
+
+  it("accepts /admin/properties/deletion-requests", () => {
+    expect(safeAdminNextPath("/admin/properties/deletion-requests")).toBe(
+      "/admin/properties/deletion-requests"
+    );
+  });
+
+  it("rejects /account next → falls back to /admin", () => {
+    expect(safeAdminNextPath("/account")).toBe("/admin");
+  });
+
+  it("rejects /vendor next → falls back to /admin", () => {
+    expect(safeAdminNextPath("/vendor")).toBe("/admin");
+  });
+
+  it("rejects /login → falls back to /admin (also in REJECT_AS_NEXT)", () => {
+    expect(safeAdminNextPath("/login")).toBe("/admin");
+  });
+
+  it("rejects /admin/login → falls back to /admin (login-loop protection)", () => {
+    expect(safeAdminNextPath("/admin/login")).toBe("/admin");
+  });
+
+  it("rejects external URL → falls back to /admin", () => {
+    expect(safeAdminNextPath("https://evil.com")).toBe("/admin");
+  });
+
+  it("rejects protocol-relative URL → falls back to /admin", () => {
+    expect(safeAdminNextPath("//evil.com")).toBe("/admin");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// canUserAccessAdminPortal — admin portal access check
+// ---------------------------------------------------------------------------
+
+describe("canUserAccessAdminPortal", () => {
+  it("ADMIN can access admin portal", () => {
+    expect(canUserAccessAdminPortal("ADMIN")).toBe(true);
+  });
+
+  it("CUSTOMER cannot access admin portal", () => {
+    expect(canUserAccessAdminPortal("CUSTOMER")).toBe(false);
+  });
+
+  it("VENDOR cannot access admin portal", () => {
+    expect(canUserAccessAdminPortal("VENDOR")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cross-portal next safety — customer/vendor login must not reach /admin
+// (already tested in resolvePostLoginPath but made explicit here)
+// ---------------------------------------------------------------------------
+
+describe("cross-portal next safety", () => {
+  it("customer login with /admin next falls back to /account", () => {
+    expect(resolvePostLoginPath("customer", "/admin")).toBe("/account");
+  });
+
+  it("vendor login with /admin next falls back to /vendor", () => {
+    expect(resolvePostLoginPath("vendor", "/admin")).toBe("/vendor");
+  });
+
+  it("customer login with /admin/review-queue next falls back to /account", () => {
+    expect(resolvePostLoginPath("customer", "/admin/review-queue")).toBe("/account");
+  });
+
+  it("vendor login with /admin/bookings next falls back to /vendor", () => {
+    expect(resolvePostLoginPath("vendor", "/admin/bookings")).toBe("/vendor");
   });
 });
