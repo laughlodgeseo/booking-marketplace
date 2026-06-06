@@ -28,6 +28,7 @@ import { NotificationsService } from '../modules/notifications/notifications.ser
 import { buildOverlapFilter } from '../common/date-range';
 import { PricingService } from '../modules/pricing/pricing.service';
 import { DubaiTaxService } from '../common/pricing/dubai-tax.service';
+import { CUSTOMER_CAPABLE_ROLES } from '../common/rbac.constants';
 
 const PAYMENT_WINDOW_MINUTES = 15;
 
@@ -103,8 +104,8 @@ export class BookingsService {
     holdId: string;
     idempotencyKey?: string | null;
   }) {
-    if (args.userRole !== UserRole.CUSTOMER) {
-      throw new ForbiddenException('Only CUSTOMER users can create bookings.');
+    if (!CUSTOMER_CAPABLE_ROLES.includes(args.userRole)) {
+      throw new ForbiddenException('Only customer-capable accounts can create bookings.');
     }
 
     const idempotencyKey = args.idempotencyKey?.trim() || null;

@@ -5,6 +5,7 @@ import {
   resolvePostLoginPath,
   defaultPathForPortalIntent,
 } from "../components/auth/authFlow";
+import { isCustomerCapableRole } from "../lib/auth/auth.types";
 
 // ---------------------------------------------------------------------------
 // safeNextPath — redirect sanitizer unit tests
@@ -225,5 +226,35 @@ describe("resolvePostLoginPath", () => {
 
   it("vendor intent rejects admin next and returns /vendor", () => {
     expect(resolvePostLoginPath("vendor", "/admin")).toBe("/vendor");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isCustomerCapableRole — frontend capability helper
+// ---------------------------------------------------------------------------
+
+describe("isCustomerCapableRole", () => {
+  it("CUSTOMER is customer-capable", () => {
+    expect(isCustomerCapableRole("CUSTOMER")).toBe(true);
+  });
+
+  it("VENDOR is customer-capable (dual-portal)", () => {
+    expect(isCustomerCapableRole("VENDOR")).toBe(true);
+  });
+
+  it("ADMIN is not customer-capable", () => {
+    expect(isCustomerCapableRole("ADMIN")).toBe(false);
+  });
+
+  it("null is not customer-capable", () => {
+    expect(isCustomerCapableRole(null)).toBe(false);
+  });
+
+  it("undefined is not customer-capable", () => {
+    expect(isCustomerCapableRole(undefined)).toBe(false);
+  });
+
+  it("empty string is not customer-capable", () => {
+    expect(isCustomerCapableRole("")).toBe(false);
   });
 });

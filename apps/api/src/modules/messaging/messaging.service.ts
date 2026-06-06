@@ -10,6 +10,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 
 type ThreadActor = {
   userId: string;
@@ -293,12 +294,13 @@ export class MessagingService {
       throw new NotFoundException('Counterparty user not found.');
     }
 
-    const expectedRole =
+    // VENDOR is customer-capable: an admin may address a VENDOR user as a CUSTOMER counterparty.
+    const isValidCounterparty =
       input.counterpartyRole === MessageCounterpartyRole.VENDOR
-        ? UserRole.VENDOR
-        : UserRole.CUSTOMER;
+        ? counterpartyUser.role === UserRole.VENDOR
+        : CUSTOMER_CAPABLE_ROLES.includes(counterpartyUser.role);
 
-    if (counterpartyUser.role !== expectedRole) {
+    if (!isValidCounterparty) {
       throw new BadRequestException(
         'Counterparty role does not match user role.',
       );

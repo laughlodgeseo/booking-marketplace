@@ -1,5 +1,10 @@
 export type UserRole = "CUSTOMER" | "VENDOR" | "ADMIN";
 
+/** Returns true for roles that can access the customer/guest portal. */
+export function isCustomerCapableRole(role: UserRole | string | null | undefined): boolean {
+  return role === "CUSTOMER" || role === "VENDOR";
+}
+
 export interface AuthUser {
   id: string;
   email: string;

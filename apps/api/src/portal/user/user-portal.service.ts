@@ -23,6 +23,7 @@ import {
   BOOKING_DOCUMENTS_DIR,
   CUSTOMER_DOCUMENTS_DIR,
 } from '../../common/upload/storage-paths';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 import type {
   Paginated,
   PortalCalendarEvent,
@@ -74,7 +75,7 @@ export class UserPortalService {
   ];
 
   private assertCustomer(role: UserRole) {
-    if (role !== UserRole.CUSTOMER)
+    if (!CUSTOMER_CAPABLE_ROLES.includes(role))
       throw new ForbiddenException('Not allowed.');
   }
 
@@ -958,7 +959,7 @@ export class UserPortalService {
     bookingId: string;
     documentId: string;
   }) {
-    if (params.role === UserRole.CUSTOMER) {
+    if (CUSTOMER_CAPABLE_ROLES.includes(params.role)) {
       await this.assertBookingOwnership(params.userId, params.bookingId);
     }
 
@@ -1110,7 +1111,7 @@ export class UserPortalService {
     role: UserRole;
     documentId: string;
   }) {
-    if (params.role !== UserRole.CUSTOMER) {
+    if (!CUSTOMER_CAPABLE_ROLES.includes(params.role)) {
       throw new ForbiddenException('Not allowed to access this document.');
     }
 
@@ -1149,7 +1150,7 @@ export class UserPortalService {
     role: UserRole;
     documentId: string;
   }) {
-    if (params.role !== UserRole.CUSTOMER) {
+    if (!CUSTOMER_CAPABLE_ROLES.includes(params.role)) {
       throw new ForbiddenException('Not allowed to delete this document.');
     }
 

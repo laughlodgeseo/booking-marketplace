@@ -101,31 +101,33 @@ export default function AccountOverviewPage() {
           <StatCard label={tPortal("accountOverview.kpi.refundsTotal")} value={kpis.refundsTotal} variant="tinted" />
         </div>
 
-        <div className="premium-card premium-card-tinted rounded-2xl p-6">
-          <div className="text-sm font-semibold text-primary">{tPortal("accountOverview.becomeHostTitle")}</div>
-          <div className="mt-2 text-sm text-secondary">
-            {tPortal("accountOverview.becomeHostDescription")}
-          </div>
+        {user?.role !== "VENDOR" ? (
+          <div className="premium-card premium-card-tinted rounded-2xl p-6">
+            <div className="text-sm font-semibold text-primary">{tPortal("accountOverview.becomeHostTitle")}</div>
+            <div className="mt-2 text-sm text-secondary">
+              {tPortal("accountOverview.becomeHostDescription")}
+            </div>
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Link
-              href="/owners"
-              className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt"
-            >
-              {tPortal("accountOverview.learnHosting")}
-            </Link>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/owners"
+                className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt"
+              >
+                {tPortal("accountOverview.learnHosting")}
+              </Link>
 
-            <Link
-              href="/vendor/onboarding"
-              className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
-            >
-              {tPortal("accountOverview.listProperty")}
-            </Link>
+              <Link
+                href="/vendor/onboarding"
+                className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
+              >
+                {tPortal("accountOverview.listProperty")}
+              </Link>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     );
-  }, [state, tPortal, user?.email, user?.isEmailVerified]);
+  }, [state, tPortal, user?.email, user?.isEmailVerified, user?.role]);
 
   return (
     <PortalShell

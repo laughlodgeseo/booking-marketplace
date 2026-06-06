@@ -157,9 +157,11 @@ export class UserMessagesController {
     @CurrentUser() user: User,
     @Query() query: MessageThreadListQueryDto,
   ) {
+    // User portal always acts as a CUSTOMER counterparty regardless of actual DB role.
+    // A VENDOR who is also customer-capable has their guest threads stored as CUSTOMER.
     return this.messaging.listThreads({
       userId: user.id,
-      role: user.role,
+      role: UserRole.CUSTOMER,
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 20,
       unreadOnly: query.unreadOnly,
@@ -188,7 +190,7 @@ export class UserMessagesController {
   ) {
     return this.messaging.getThread(threadId, {
       userId: user.id,
-      role: user.role,
+      role: UserRole.CUSTOMER,
     });
   }
 
@@ -200,7 +202,7 @@ export class UserMessagesController {
   ) {
     return this.messaging.sendMessage(
       threadId,
-      { userId: user.id, role: user.role },
+      { userId: user.id, role: UserRole.CUSTOMER },
       dto.body,
     );
   }
