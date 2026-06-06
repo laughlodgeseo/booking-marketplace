@@ -19,6 +19,7 @@ import { getUserOverview } from "@/lib/api/portal/user";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatCard } from "@/components/portal/StatCard";
+import { HostIllustration } from "@/components/portal/ui/PortalIllustration";
 
 type ViewState =
   | { kind: "loading" }
@@ -227,32 +228,31 @@ export default function AccountOverviewPage() {
 
         {/* Become a host — only for pure CUSTOMER users */}
         {user?.role !== "VENDOR" ? (
-          <div className="overflow-hidden rounded-2xl border border-line/50 bg-gradient-to-br from-brand/6 to-surface p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/12 text-brand">
-                <Sparkles className="h-4 w-4" />
+          <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-surface p-5 sm:flex sm:items-center sm:gap-5">
+            {/* Illustration — hidden on very small */}
+            <div className="hidden shrink-0 sm:block">
+              <HostIllustration className="h-[88px] w-auto opacity-90" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-primary">
+                {tPortal("accountOverview.becomeHostTitle")}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-primary">
-                  {tPortal("accountOverview.becomeHostTitle")}
-                </div>
-                <div className="mt-1 text-xs leading-relaxed text-secondary">
-                  {tPortal("accountOverview.becomeHostDescription")}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href="/vendor/onboarding"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand-hover transition"
-                  >
-                    {tPortal("accountOverview.listProperty")} <ArrowRight className="h-3 w-3" />
-                  </Link>
-                  <Link
-                    href="/owners"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-line/60 bg-surface px-4 py-2 text-xs font-semibold text-primary hover:bg-warm-alt transition"
-                  >
-                    {tPortal("accountOverview.learnHosting")}
-                  </Link>
-                </div>
+              <div className="mt-1 text-xs leading-relaxed text-secondary">
+                {tPortal("accountOverview.becomeHostDescription")}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/vendor/onboarding"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+                >
+                  {tPortal("accountOverview.listProperty")} <ArrowRight className="h-3 w-3" />
+                </Link>
+                <Link
+                  href="/owners"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-xs font-semibold text-primary hover:bg-neutral-50 transition"
+                >
+                  {tPortal("accountOverview.learnHosting")}
+                </Link>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { createTranslator } from "next-intl";
+import { MapPin } from "lucide-react";
 import UnifiedSearchBar from "@/components/search/UnifiedSearchBar";
 import PropertiesSearchShell from "@/components/search/properties/PropertiesSearchShell";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
@@ -70,21 +71,37 @@ export default async function PropertiesPage(props: PageProps) {
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(listJsonLd)}
       </script>
-      <section className="relative overflow-x-hidden border-b border-neutral-100 bg-white pb-10 pt-[88px] sm:pt-[96px]">
-        <div className="relative mx-auto max-w-7xl px-4 pb-2 pt-6 sm:px-6 sm:pt-8 lg:px-8">
-          <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#b87333]">
+
+      {/* ── Premium indigo hero ─────────────────────────────────────── */}
+      <section className="site-hero-shell relative overflow-x-hidden pt-[72px] sm:pt-[80px]">
+        {/* Subtle geometry grid */}
+        <div className="site-hero-grid pointer-events-none absolute inset-0 opacity-30" />
+
+        {/* Soft radial glows */}
+        <div className="pointer-events-none absolute -left-32 bottom-0 h-64 w-64 rounded-full bg-indigo-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-indigo-200/16 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+          {/* Eyebrow */}
+          <div className="flex items-center gap-2">
+            <MapPin className="h-3.5 w-3.5 text-[#b87333]" aria-hidden="true" />
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[#b87333]">
               {t("eyebrow")}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-              {t("title")}
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 sm:text-base">
-              {t("subtitle")}
             </p>
           </div>
 
-          <div className="mt-6">
+          {/* Hero heading */}
+          <h1 className="mt-2 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.6rem]">
+            {t("title")}
+          </h1>
+
+          {/* Subheading */}
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/74 sm:text-base">
+            {t("subtitle")}
+          </p>
+
+          {/* Search card — elevated white panel */}
+          <div className="mt-6 rounded-2xl border border-white/18 bg-white/96 p-3 shadow-[0_20px_56px_rgba(15,10,60,0.28)] backdrop-blur-sm sm:p-4">
             <UnifiedSearchBar
               variant="properties"
               defaultQ={query.q}
@@ -93,9 +110,9 @@ export default async function PropertiesPage(props: PageProps) {
               defaultCheckOut={query.checkOut}
             />
           </div>
-
         </div>
       </section>
+      {/* ── End hero ───────────────────────────────────────────────── */}
 
       <section className="bg-transparent py-8 lg:py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

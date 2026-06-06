@@ -22,6 +22,7 @@ import { StatCard } from "@/components/portal/StatCard";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
 import { FilterChips } from "@/components/portal/ui/FilterChips";
 import { getAdminAnalytics, getAdminOverview } from "@/lib/api/portal/admin";
+import { AnalyticsIllustration } from "@/components/portal/ui/PortalIllustration";
 
 type AdminOverviewData = Awaited<ReturnType<typeof getAdminOverview>>;
 type AdminAnalyticsData = Awaited<ReturnType<typeof getAdminAnalytics>>;
@@ -201,23 +202,31 @@ export default function AdminDashboardPage() {
 
     return (
       <div className="space-y-6">
-        {/* Command-center hero */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 p-5 sm:p-6">
-          <div className="pointer-events-none absolute -bottom-12 -right-12 h-48 w-48 rounded-full bg-white/6 blur-3xl" />
-          <div className="pointer-events-none absolute left-1/3 top-0 h-32 w-32 rounded-full bg-brand/20 blur-3xl" />
+        {/* Command-center hero — deep indigo brand */}
+        <div className="site-hero-shell relative overflow-hidden rounded-2xl p-5 sm:p-6">
+          {/* Geometry grid overlay */}
+          <div className="site-hero-grid pointer-events-none absolute inset-0 opacity-25" />
+          <div className="pointer-events-none absolute -bottom-12 -right-12 h-48 w-48 rounded-full bg-white/8 blur-3xl" />
+          <div className="pointer-events-none absolute left-1/4 top-0 h-32 w-32 rounded-full bg-indigo-300/18 blur-3xl" />
 
           <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/80">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                Operations Center
+            <div className="flex items-start gap-4">
+              {/* Analytics illustration */}
+              <div className="hidden shrink-0 sm:block">
+                <AnalyticsIllustration className="h-[80px] w-auto opacity-80" />
               </div>
-              <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
-                {tPortal("adminDashboard.title")}
-              </h2>
-              <p className="mt-1 text-sm text-white/68">
-                {tPortal("adminDashboard.subtitle")}
-              </p>
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/80">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                  Operations Center
+                </div>
+                <h2 className="mt-3 text-xl font-bold tracking-tight text-white sm:text-2xl">
+                  {tPortal("adminDashboard.title")}
+                </h2>
+                <p className="mt-1 text-sm text-white/70">
+                  {tPortal("adminDashboard.subtitle")}
+                </p>
+              </div>
             </div>
 
             {/* Live counters */}
@@ -230,9 +239,9 @@ export default function AdminDashboardPage() {
                 <div className="text-2xl font-bold text-white">{kpis.usersTotal ?? 0}</div>
                 <div className="text-[10px] text-white/60">Total Users</div>
               </div>
-              <div className="rounded-xl border border-amber-400/30 bg-amber-400/12 px-3 py-2 text-center">
-                <div className="text-2xl font-bold text-amber-300">{kpis.propertiesUnderReview ?? 0}</div>
-                <div className="text-[10px] text-amber-300/70">Awaiting Review</div>
+              <div className="rounded-xl border border-[#b87333]/40 bg-[#b87333]/16 px-3 py-2 text-center">
+                <div className="text-2xl font-bold text-[#f5c08a]">{kpis.propertiesUnderReview ?? 0}</div>
+                <div className="text-[10px] text-[#f5c08a]/80">Awaiting Review</div>
               </div>
             </div>
           </div>

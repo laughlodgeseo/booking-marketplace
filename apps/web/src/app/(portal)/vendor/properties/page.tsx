@@ -15,6 +15,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
+import { PropertyIllustration } from "@/components/portal/ui/PortalIllustration";
 
 import { getVendorProperties, type VendorPropertyListItem } from "@/lib/api/portal/vendor";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -167,16 +168,14 @@ function PropertyCard(props: {
 function EmptyProperties() {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 bg-surface/60 px-6 py-12 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-        <Building2 className="h-6 w-6" />
-      </div>
+      <PropertyIllustration className="opacity-90" />
       <div className="mt-4 text-sm font-semibold text-primary">No properties yet</div>
-      <div className="mt-1 max-w-xs text-xs leading-relaxed text-muted">
-        Create your first listing to start reaching guests on the Laugh & Lodge marketplace.
+      <div className="mt-1.5 max-w-xs text-xs leading-relaxed text-secondary">
+        Create your first listing to start reaching guests on the Laugh &amp; Lodge marketplace.
       </div>
       <Link
         href="/vendor/properties/new"
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover transition"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
       >
         <Plus className="h-4 w-4" /> Create first property
       </Link>

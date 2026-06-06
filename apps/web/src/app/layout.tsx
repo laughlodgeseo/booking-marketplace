@@ -32,7 +32,7 @@ const latinFont = Manrope({
   subsets: ["latin"],
   variable: "--font-latin",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const displayFont = Cormorant_Garamond({

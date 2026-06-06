@@ -5,7 +5,16 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, Menu, X, ArrowRight, LogOut, User2, UserRound } from "lucide-react";
+import {
+  Building2,
+  ChevronDown,
+  LogOut,
+  Menu,
+  ArrowRight,
+  User2,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { UserRole } from "@/lib/auth/auth.types";
@@ -43,6 +52,123 @@ function dashboardPathForRole(role: UserRole): string {
   return "/account";
 }
 
+function getFirstName(user: { firstName?: string | null; fullName?: string | null; email?: string | null } | null | undefined): string | null {
+  if (!user) return null;
+  return user.firstName?.trim() || user.fullName?.split(" ")[0]?.trim() || null;
+}
+
+function getInitials(user: { firstName?: string | null; fullName?: string | null; email?: string | null } | null | undefined): string {
+  const src = (user?.fullName?.trim() || user?.firstName?.trim() || user?.email?.trim() || "U");
+  const parts = src.split(/[\s._@-]+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? "U";
+  const second = parts[1]?.[0] ?? "";
+  return (first + second).toUpperCase();
+}
+
+/* ── Portal Switcher Dropdown for vendor-capable users ──────────── */
+function PortalSwitcher(props: {
+  firstName: string | null;
+  onLogout: () => void;
+  loggingOut: boolean;
+  t: ReturnType<typeof useTranslations<"nav">>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-[#ded2c2]/60 bg-[#f6efe5]/80 px-3.5 text-sm font-semibold text-primary shadow-sm transition hover:bg-[#f6efe5] active:scale-[0.98]"
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+          {props.firstName ? props.firstName[0]?.toUpperCase() : <UserRound className="h-3.5 w-3.5" />}
+        </span>
+        <span className="hidden sm:inline">{props.firstName ?? props.t("myAccount")}</span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute right-0 top-full z-[100] mt-2 w-52 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_16px_44px_rgba(30,27,75,0.16)]"
+          >
+            {/* Header */}
+            <div className="border-b border-neutral-100 px-4 py-2.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Portal access</div>
+            </div>
+
+            <div className="p-1.5 space-y-0.5">
+              <Link
+                href="/account"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition hover:bg-neutral-50"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <User2 className="h-3.5 w-3.5" />
+                </span>
+                {props.t("myAccount")}
+              </Link>
+
+              <Link
+                href="/vendor"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white">
+                  <Building2 className="h-3.5 w-3.5" />
+                </span>
+                {props.t("vendorDashboard")}
+              </Link>
+
+              <div className="my-1 border-t border-neutral-100" />
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setOpen(false); props.onLogout(); }}
+                disabled={props.loggingOut}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-secondary transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100">
+                  <LogOut className="h-3.5 w-3.5" />
+                </span>
+                {props.loggingOut ? props.t("loggingOut") : props.t("logout")}
+              </button>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function FloatingHeader() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
@@ -62,6 +188,8 @@ export default function FloatingHeader() {
     [t],
   );
   const drawerX = isRtl ? -40 : 40;
+  const firstName = getFirstName(user);
+  const initials = getInitials(user);
 
   useEffect(() => {
     const threshold = 10;
@@ -132,11 +260,11 @@ export default function FloatingHeader() {
   const headerVisibilityClass = isVisible ? "translate-y-0" : "-translate-y-full";
 
   const secondaryActionClass =
-    "inline-flex h-11 items-center justify-center rounded-full bg-[#f6efe5]/80 px-4 text-sm font-semibold text-primary transition hover:bg-brand-soft-2";
+    "inline-flex h-10 items-center justify-center rounded-full bg-[#f6efe5]/80 px-4 text-sm font-semibold text-primary transition hover:bg-brand-soft-2";
   const softActionClass =
-    "inline-flex h-11 items-center justify-center rounded-full bg-[#f6efe5] px-4 text-sm font-semibold text-primary shadow-sm transition hover:bg-brand-soft-2";
+    "inline-flex h-10 items-center justify-center rounded-full bg-[#f6efe5] px-4 text-sm font-semibold text-primary shadow-sm transition hover:bg-brand-soft-2";
   const primaryActionClass =
-    "inline-flex h-11 items-center justify-center rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:bg-indigo-800";
+    "inline-flex h-10 items-center justify-center rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:bg-indigo-800";
 
   return (
     <>
@@ -148,8 +276,9 @@ export default function FloatingHeader() {
       >
         <div className={["w-full transition-shadow duration-200 ease-out", headerSurfaceClass].join(" ")}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="hidden h-[76px] w-full items-center lg:grid lg:h-[80px] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4">
-              <nav className="flex items-center gap-5">
+            {/* ── Desktop layout ─────────────────────────────────────── */}
+            <div className="hidden h-[72px] w-full items-center lg:grid lg:h-[76px] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4">
+              <nav className="flex items-center gap-4">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
@@ -170,10 +299,10 @@ export default function FloatingHeader() {
                 <Image
                   src="/brand/logo.svg"
                   alt="Laugh & Lodge"
-                  width={220}
-                  height={80}
+                  width={200}
+                  height={72}
                   priority
-                  className="h-[3.25rem] w-auto"
+                  className="h-12 w-auto"
                 />
               </Link>
 
@@ -181,38 +310,37 @@ export default function FloatingHeader() {
                 <LanguageSwitcher compact />
 
                 {showAuthSkeleton ? (
-                  <div className="h-11 w-[180px] animate-pulse rounded-full bg-warm-alt/80" />
+                  <div className="h-10 w-[160px] animate-pulse rounded-full bg-warm-alt/80" />
                 ) : user ? (
-                  <>
-                    {user.role === "VENDOR" ? (
-                      <>
-                        <Link href="/account" className={softActionClass} title={t("myAccount")}>
-                          <User2 className="me-2 h-4 w-4" />
-                          {t("myAccount")}
-                        </Link>
-                        <Link href="/vendor" className={primaryActionClass} title={t("vendorDashboard")}>
-                          <Building2 className="me-2 h-4 w-4" />
-                          {t("vendorDashboard")}
-                        </Link>
-                      </>
-                    ) : (
+                  user.role === "VENDOR" ? (
+                    /* ── Vendor: compact portal switcher ── */
+                    <PortalSwitcher
+                      firstName={firstName}
+                      onLogout={handleLogout}
+                      loggingOut={loggingOut}
+                      t={t}
+                    />
+                  ) : (
+                    /* ── Customer/Admin: single dashboard button ── */
+                    <>
                       <Link href={dashboardHref} className={primaryActionClass} title={t("dashboard")}>
-                        <UserRound className="me-2 h-4 w-4" />
+                        <span className="me-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
+                          {initials}
+                        </span>
                         {t("dashboard")}
                       </Link>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      disabled={loggingOut}
-                      className={`${softActionClass} disabled:opacity-60`}
-                      title={t("logout")}
-                    >
-                      <LogOut className="me-2 h-4 w-4" />
-                      {loggingOut ? t("loggingOut") : t("logout")}
-                    </button>
-                  </>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        className={`${softActionClass} disabled:opacity-60`}
+                        title={t("logout")}
+                      >
+                        <LogOut className="me-2 h-4 w-4" />
+                        {loggingOut ? t("loggingOut") : t("logout")}
+                      </button>
+                    </>
+                  )
                 ) : (
                   <>
                     <Link href="/auth?mode=login" className={secondaryActionClass}>
@@ -224,8 +352,9 @@ export default function FloatingHeader() {
                   </>
                 )}
               </div>
-          </div>
+            </div>
 
+            {/* ── Mobile top bar ──────────────────────────────────────── */}
             <div className="relative flex h-16 items-center justify-between lg:hidden">
               <div className="flex items-center gap-2">
                 <LanguageSwitcher compact />
@@ -235,10 +364,10 @@ export default function FloatingHeader() {
                 <Image
                   src="/brand/logo.svg"
                   alt="Laugh & Lodge"
-                  width={220}
-                  height={80}
+                  width={200}
+                  height={72}
                   priority
-                  className="h-9 w-auto"
+                  className="h-8 w-auto"
                 />
               </Link>
 
@@ -246,7 +375,7 @@ export default function FloatingHeader() {
                 <motion.button
                   type="button"
                   onClick={() => setMobileOpen((v) => !v)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
                   aria-label={t("toggleMenu")}
                   aria-expanded={mobileOpen}
                   whileTap={{ scale: 0.95 }}
@@ -265,6 +394,7 @@ export default function FloatingHeader() {
         </div>
       </header>
 
+      {/* ── Mobile drawer ──────────────────────────────────────────── */}
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div
@@ -285,36 +415,44 @@ export default function FloatingHeader() {
               transition={{ type: "spring", stiffness: 360, damping: 32 }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Auth section */}
               <div className="mb-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
                 {showAuthSkeleton ? (
-                  <div className="h-11 w-full animate-pulse rounded-xl bg-neutral-200" />
+                  <div className="h-10 w-full animate-pulse rounded-xl bg-neutral-200" />
                 ) : user ? (
                   <div className="space-y-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-primary">{user.email}</div>
-                      <div className="text-xs text-secondary">
-                        {t("role")}: {user.role}
-                        {!user.isEmailVerified ? ` • ${t("emailNotVerified")}` : ""}
+                    {/* User identity */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-primary">{user.email}</div>
+                        <div className="text-xs text-secondary">
+                          {user.role}
+                          {!user.isEmailVerified ? ` • ${t("emailNotVerified")}` : ""}
+                        </div>
                       </div>
                     </div>
 
+                    {/* Portal nav buttons */}
                     <div className="grid gap-2">
                       {user.role === "VENDOR" ? (
                         <>
                           <Link
                             href="/account"
                             onClick={() => setMobileOpen(false)}
-                            className={`${softActionClass} w-full`}
+                            className="flex items-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-primary hover:bg-neutral-50 transition"
                           >
-                            <User2 className="me-2 h-4 w-4" />
+                            <User2 className="h-4 w-4 text-indigo-600" />
                             {t("myAccount")}
                           </Link>
                           <Link
                             href="/vendor"
                             onClick={() => setMobileOpen(false)}
-                            className={`${primaryActionClass} w-full`}
+                            className="flex items-center gap-2.5 rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
                           >
-                            <Building2 className="me-2 h-4 w-4" />
+                            <Building2 className="h-4 w-4" />
                             {t("vendorDashboard")}
                           </Link>
                         </>
@@ -331,9 +469,9 @@ export default function FloatingHeader() {
                         type="button"
                         onClick={handleLogout}
                         disabled={loggingOut}
-                        className={`${softActionClass} w-full disabled:opacity-60`}
+                        className="flex w-full items-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-secondary hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60 transition"
                       >
-                        <LogOut className="me-2 h-4 w-4" />
+                        <LogOut className="h-4 w-4" />
                         {loggingOut ? t("loggingOut") : t("logout")}
                       </button>
                     </div>
@@ -343,7 +481,7 @@ export default function FloatingHeader() {
                     <Link
                       href="/auth?mode=login"
                       onClick={() => setMobileOpen(false)}
-                      className={`${secondaryActionClass} w-full bg-white`}
+                      className={`${secondaryActionClass} w-full`}
                     >
                       {t("login")}
                     </Link>
@@ -358,6 +496,7 @@ export default function FloatingHeader() {
                 )}
               </div>
 
+              {/* Nav items */}
               <div className="grid gap-2">
                 {navItems.map((item, idx) => (
                   <motion.div

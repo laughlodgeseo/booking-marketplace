@@ -79,11 +79,11 @@ const ROLE_DRAWER: Record<string, {
     topAccent:  "from-brand to-brand-hover",
   },
   admin: {
-    avatarBg:   "bg-slate-700",
-    activeItem: "bg-slate-100 text-slate-800",
-    activeIcon: "bg-slate-200 text-slate-700",
-    roleBadge:  "bg-slate-100 text-slate-700 ring-1 ring-slate-200/60",
-    topAccent:  "from-slate-700 to-slate-600",
+    avatarBg:   "bg-indigo-700",
+    activeItem: "bg-indigo-50 text-indigo-800",
+    activeIcon: "bg-indigo-100 text-indigo-700",
+    roleBadge:  "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/60",
+    topAccent:  "from-indigo-700 to-indigo-600",
   },
 };
 
