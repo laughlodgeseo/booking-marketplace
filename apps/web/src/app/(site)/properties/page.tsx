@@ -81,7 +81,7 @@ export default async function PropertiesPage(props: PageProps) {
         <div className="pointer-events-none absolute -left-24 bottom-0 h-48 w-48 rounded-full bg-indigo-300/18 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 top-6 h-36 w-36 rounded-full bg-indigo-200/14 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:pb-7 lg:pt-4">
+        <div className="relative mx-auto max-w-7xl px-4 pb-3 pt-3 sm:px-6 sm:pb-4 sm:pt-4 lg:px-8 lg:pb-5 lg:pt-4">
           {/* Top row: eyebrow + optional property count badge */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export default async function PropertiesPage(props: PageProps) {
       </section>
       {/* ── End hero ───────────────────────────────────────────────── */}
 
-      <section className="bg-transparent py-8 lg:py-10">
+      <section className="bg-transparent py-5 lg:py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {!res.ok ? (
             <NetworkErrorState

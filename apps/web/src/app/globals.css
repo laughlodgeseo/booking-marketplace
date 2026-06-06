@@ -286,14 +286,14 @@ textarea {
   html:not([dir="rtl"]) .site-shell h1,
   html:not([dir="rtl"]) .site-shell h2,
   html:not([dir="rtl"]) .site-shell h3 {
-    font-family: var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--font-display), var(--font-latin), "Cormorant Garamond", "Avenir Next", "Segoe UI", sans-serif;
     font-weight: 600;
   }
 
   html:not([dir="rtl"]) .auth-shell h1,
   html:not([dir="rtl"]) .auth-shell h2,
   html:not([dir="rtl"]) .auth-shell h3 {
-    font-family: var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--font-display), "Cormorant Garamond", "Georgia", serif;
     font-weight: 700;
   }
 

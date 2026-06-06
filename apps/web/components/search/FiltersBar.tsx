@@ -304,6 +304,7 @@ export default function FiltersBar(props: FiltersBarProps) {
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
 
   const [open, setOpen] = useState(false);
 
@@ -343,12 +344,43 @@ export default function FiltersBar(props: FiltersBarProps) {
     return () => clearTimeout(id);
   }, [open]);
 
-  // Scroll lock + Escape
+  // Scroll lock + Escape + focus trap
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") closeDialog(); }
+
+    function getFocusable(): HTMLElement[] {
+      if (!dialogRef.current) return [];
+      return Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    }
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { closeDialog(); return; }
+      if (e.key === "Tab") {
+        const els = getFocusable();
+        if (els.length === 0) { e.preventDefault(); return; }
+        const first = els[0];
+        const last = els[els.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey) {
+          if (active === first || !dialogRef.current?.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last || !dialogRef.current?.contains(active)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    }
+
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
@@ -445,6 +477,7 @@ export default function FiltersBar(props: FiltersBarProps) {
                   */}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-start sm:justify-center sm:px-6 sm:pt-[108px] sm:pb-8">
                     <motion.section
+                      ref={dialogRef}
                       role="dialog"
                       aria-modal="true"
                       aria-labelledby="ll-filters-title"
