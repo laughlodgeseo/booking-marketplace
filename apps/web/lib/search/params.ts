@@ -1,4 +1,45 @@
+import { isIsoDay } from "@/lib/date-range";
+
 export type RawSearchParams = Record<string, string | string[] | undefined>;
+
+// All date-related query keys the app might use (canonical + legacy aliases).
+export const DATE_QUERY_KEYS = [
+  "checkIn",
+  "checkOut",
+  "startDate",
+  "endDate",
+  "dateFrom",
+  "dateTo",
+] as const;
+
+export type DateQueryKey = (typeof DATE_QUERY_KEYS)[number];
+
+/** Returns a new URLSearchParams with every known date key removed. */
+export function removeDateParams(params: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(params.toString());
+  for (const key of DATE_QUERY_KEYS) {
+    next.delete(key);
+  }
+  return next;
+}
+
+/** Builds a /properties URL string from URLSearchParams. */
+export function buildPropertiesUrl(params: URLSearchParams): string {
+  const query = params.toString();
+  return query ? `/properties?${query}` : "/properties";
+}
+
+/** True if any date key is present in the params (may be partial/invalid). */
+export function hasActiveDates(params: URLSearchParams): boolean {
+  return DATE_QUERY_KEYS.some((k) => Boolean(params.get(k)));
+}
+
+/** True only when both checkIn and checkOut are valid ISO dates with checkOut > checkIn. */
+export function hasCompleteDateRange(params: URLSearchParams): boolean {
+  const checkIn = params.get("checkIn");
+  const checkOut = params.get("checkOut");
+  return isIsoDay(checkIn) && isIsoDay(checkOut) && checkOut > checkIn;
+}
 
 function pickString(v: string | string[] | undefined): string | undefined {
   if (!v) return undefined;

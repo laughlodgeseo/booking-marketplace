@@ -385,6 +385,8 @@ export default function FiltersBar(props: FiltersBarProps) {
     <>
       <button
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={() => {
           setDraft(fromUrl);
           setOpen(true);
@@ -394,10 +396,10 @@ export default function FiltersBar(props: FiltersBarProps) {
           "inline-flex h-11 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-900 transition hover:border-indigo-300 hover:bg-indigo-50"
         }
       >
-        <SlidersHorizontal className="h-4 w-4" />
+        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
         <span>{props.label ?? "Filters"}</span>
         {appliedCount > 0 ? (
-          <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white">{appliedCount}</span>
+          <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white" aria-label={`${appliedCount} active filter${appliedCount > 1 ? "s" : ""}`}>{appliedCount}</span>
         ) : null}
       </button>
 

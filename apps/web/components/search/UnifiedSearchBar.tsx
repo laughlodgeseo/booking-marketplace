@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, MapPin, Search } from "lucide-react";
+import { CalendarDays, MapPin, Search, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import { createPortal } from "react-dom";
 import DateRangePicker, { type DateRangeValue, type DateSelectionPhase } from "@/components/booking/DateRangePicker";
@@ -11,6 +11,7 @@ import DateRangePopover from "@/components/search/DateRangePopover";
 import FiltersBar from "@/components/search/FiltersBar";
 import { isValidIsoRange } from "@/lib/date-range";
 import { normalizeLocale } from "@/lib/i18n/config";
+import { DATE_QUERY_KEYS, buildPropertiesUrl } from "@/lib/search/params";
 
 type Variant = "home" | "properties";
 
@@ -192,6 +193,8 @@ function clampInt(n: number, min: number, max: number) {
 
 export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locale = normalizeLocale(useLocale());
   const copy = UI_COPY[locale];
   const locationListId = useId();
@@ -274,6 +277,18 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
       window.removeEventListener("resize", updateViewportWidth);
     };
   }, []);
+
+  // Keep draft date fields in sync with URL on the properties page.
+  // Fires whenever the URL changes (e.g. after clearDates, FiltersBar apply, or back/forward navigation).
+  useEffect(() => {
+    if (props.variant !== "properties") return;
+    const urlCheckIn = searchParams.get("checkIn") ?? "";
+    const urlCheckOut = searchParams.get("checkOut") ?? "";
+    setDraft((s) => {
+      if (s.checkIn === urlCheckIn && s.checkOut === urlCheckOut) return s;
+      return { ...s, checkIn: urlCheckIn, checkOut: urlCheckOut };
+    });
+  }, [searchParams, props.variant]);
 
   useEffect(() => {
     if (!locationOpen) return;
@@ -362,6 +377,17 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   function clearDates() {
     setDraft((s) => ({ ...s, checkIn: "", checkOut: "" }));
     setSelectionPhase("checkin");
+    setCalendarOpen(false);
+
+    // On the properties page, drive the URL so results refresh with no date filter.
+    if (props.variant === "properties") {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const key of DATE_QUERY_KEYS) {
+        params.delete(key);
+      }
+      params.delete("page");
+      router.replace(buildPropertiesUrl(params), { scroll: false });
+    }
   }
 
   function adjustGuests(delta: number) {
@@ -380,7 +406,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   const surfaceClass =
     props.variant === "home"
       ? "mx-auto w-full max-w-5xl rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.76))] px-3 py-3 shadow-[0_16px_34px_rgba(33,39,53,0.12)] backdrop-blur-sm md:h-[72px] md:px-4 md:py-2"
-      : "mx-auto w-full max-w-5xl rounded-[1.75rem] border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafbff_100%)] p-3 shadow-[0_18px_34px_rgba(15,23,42,0.08)]";
+      : "mx-auto w-full max-w-5xl rounded-[1.75rem] border border-white/40 bg-[linear-gradient(180deg,rgba(255,255,255,0.99)_0%,rgba(250,251,255,0.98)_100%)] p-3 shadow-[0_22px_64px_rgba(19,16,60,0.26)] backdrop-blur-sm";
 
   const sectionClass = isPropertiesVariant
     ? "flex h-12 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 shadow-[0_3px_10px_rgba(15,23,42,0.05)] transition-all duration-300 focus-within:border-indigo-300 focus-within:shadow-[0_8px_20px_rgba(79,70,229,0.12)] md:h-[56px] md:rounded-xl md:border-none md:shadow-none md:focus-within:shadow-none"
@@ -727,13 +753,20 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
       </DateRangePopover>
 
       {hasAnyDate ? (
-        <div className="mt-2 flex justify-end">
+        <div className="mt-2.5 flex justify-center sm:justify-end px-1">
           <button
             type="button"
             onClick={clearDates}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+            aria-label={copy.clearDates}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/14 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur-sm transition hover:bg-white/24 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
           >
-            {copy.clearDates}
+            <CalendarDays className="h-3 w-3 shrink-0" aria-hidden="true" />
+            <span>
+              {draft.checkIn && draft.checkOut
+                ? `${draft.checkIn} – ${draft.checkOut}`
+                : draft.checkIn || draft.checkOut}
+            </span>
+            <X className="h-3 w-3 shrink-0 opacity-70" aria-hidden="true" />
           </button>
         </div>
       ) : null}

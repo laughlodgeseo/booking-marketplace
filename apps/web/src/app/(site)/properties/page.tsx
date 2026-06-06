@@ -112,17 +112,15 @@ export default async function PropertiesPage(props: PageProps) {
             </div>
           </div>
 
-          {/* Search module — clean integrated panel */}
-          <div className="mt-4 overflow-hidden rounded-2xl border border-white/20 bg-white/96 shadow-[0_12px_36px_rgba(15,10,60,0.22)] backdrop-blur-sm sm:mt-5">
-            <div className="px-2.5 py-2.5 sm:px-3 sm:py-3">
-              <UnifiedSearchBar
-                variant="properties"
-                defaultQ={query.q}
-                defaultGuests={query.guests}
-                defaultCheckIn={query.checkIn}
-                defaultCheckOut={query.checkOut}
-              />
-            </div>
+          {/* Search module — sits directly on the hero, no outer card */}
+          <div className="mt-5 sm:mt-6">
+            <UnifiedSearchBar
+              variant="properties"
+              defaultQ={query.q}
+              defaultGuests={query.guests}
+              defaultCheckIn={query.checkIn}
+              defaultCheckOut={query.checkOut}
+            />
           </div>
         </div>
       </section>
