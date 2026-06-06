@@ -458,18 +458,23 @@ export class AdminPortalController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const file = await this.service.getCustomerDocumentDownload({
+    const result = await this.service.getCustomerDocumentDownload({
       userId: user.id,
       role: user.role,
       documentId,
     });
 
-    res.setHeader('Content-Type', file.mimeType);
+    if (result.kind === 'redirect') {
+      res.redirect(302, result.signedUrl);
+      return;
+    }
+
+    res.setHeader('Content-Type', result.mimeType);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(file.downloadName)}"`,
+      `attachment; filename="${encodeURIComponent(result.downloadName)}"`,
     );
-    return new StreamableFile(createReadStream(file.absolutePath));
+    return new StreamableFile(createReadStream(result.absolutePath));
   }
 
   @Get('customer-documents/:documentId/view')
@@ -478,18 +483,23 @@ export class AdminPortalController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const file = await this.service.getCustomerDocumentDownload({
+    const result = await this.service.getCustomerDocumentDownload({
       userId: user.id,
       role: user.role,
       documentId,
     });
 
-    res.setHeader('Content-Type', file.mimeType);
+    if (result.kind === 'redirect') {
+      res.redirect(302, result.signedUrl);
+      return;
+    }
+
+    res.setHeader('Content-Type', result.mimeType);
     res.setHeader(
       'Content-Disposition',
-      `inline; filename="${encodeURIComponent(file.downloadName)}"`,
+      `inline; filename="${encodeURIComponent(result.downloadName)}"`,
     );
-    return new StreamableFile(createReadStream(file.absolutePath));
+    return new StreamableFile(createReadStream(result.absolutePath));
   }
 
   @Post('customer-documents/:documentId/approve')

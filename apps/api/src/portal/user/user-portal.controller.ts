@@ -33,7 +33,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { documentFileFilter } from '../../common/upload/document-file.filter';
 import {
   bookingDocumentUploadStorage,
-  customerDocumentUploadStorage,
+  customerDocumentMemoryStorage,
 } from '../../common/upload/multer.config';
 import { UploadBookingDocumentDto } from './dto/upload-booking-document.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -227,7 +227,7 @@ export class UserPortalController {
   @Post('documents')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: customerDocumentUploadStorage,
+      storage: customerDocumentMemoryStorage,
       fileFilter: documentFileFilter,
       limits: { fileSize: 15 * 1024 * 1024 },
     }),
@@ -252,18 +252,23 @@ export class UserPortalController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const file = await this.service.getCustomerDocumentDownload({
+    const result = await this.service.getCustomerDocumentDownload({
       userId: user.id,
       role: user.role,
       documentId,
     });
 
-    res.setHeader('Content-Type', file.mimeType);
+    if (result.kind === 'redirect') {
+      res.redirect(302, result.signedUrl);
+      return;
+    }
+
+    res.setHeader('Content-Type', result.mimeType);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(file.downloadName)}"`,
+      `attachment; filename="${encodeURIComponent(result.downloadName)}"`,
     );
-    return new StreamableFile(createReadStream(file.absolutePath));
+    return new StreamableFile(createReadStream(result.absolutePath));
   }
 
   @Get('documents/:documentId/view')
@@ -272,18 +277,23 @@ export class UserPortalController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const file = await this.service.getCustomerDocumentDownload({
+    const result = await this.service.getCustomerDocumentDownload({
       userId: user.id,
       role: user.role,
       documentId,
     });
 
-    res.setHeader('Content-Type', file.mimeType);
+    if (result.kind === 'redirect') {
+      res.redirect(302, result.signedUrl);
+      return;
+    }
+
+    res.setHeader('Content-Type', result.mimeType);
     res.setHeader(
       'Content-Disposition',
-      `inline; filename="${encodeURIComponent(file.downloadName)}"`,
+      `inline; filename="${encodeURIComponent(result.downloadName)}"`,
     );
-    return new StreamableFile(createReadStream(file.absolutePath));
+    return new StreamableFile(createReadStream(result.absolutePath));
   }
 
   @Delete('documents/:documentId')

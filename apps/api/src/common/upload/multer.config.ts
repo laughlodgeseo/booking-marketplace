@@ -1,4 +1,4 @@
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
 import { mkdirSync } from 'fs';
@@ -57,3 +57,5 @@ export const customerDocumentUploadStorage = diskStorage({
     cb(null, uniqueName);
   },
 });
+
+export const customerDocumentMemoryStorage = memoryStorage();

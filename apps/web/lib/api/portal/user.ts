@@ -235,6 +235,7 @@ export type UserCustomerDocument = {
   status: CustomerDocumentStatus;
   originalName: string | null;
   mimeType: string | null;
+  sizeBytes: number | null;
   notes: string | null;
   reviewNotes: string | null;
   reviewedAt: string | null;

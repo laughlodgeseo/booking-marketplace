@@ -41,6 +41,7 @@ import {
 } from '../../common/upload/storage-paths';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
 import { AdminAuditService } from './admin-audit.service';
+import { StorageService } from '../../infra/storage/storage.service';
 
 type AdminOverview = {
   kpis: {
@@ -82,6 +83,7 @@ export class AdminPortalService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly audit: AdminAuditService,
+    private readonly storage: StorageService,
   ) {}
 
   private assertAdmin(role: UserRole) {
@@ -1918,7 +1920,15 @@ export class AdminPortalService {
     userId: string;
     role: UserRole;
     documentId: string;
-  }) {
+  }): Promise<
+    | { kind: 'redirect'; signedUrl: string }
+    | {
+        kind: 'disk';
+        absolutePath: string;
+        mimeType: string;
+        downloadName: string;
+      }
+  > {
     this.assertAdmin(params.role);
 
     const doc = await this.prisma.customerDocument.findUnique({
@@ -1926,12 +1936,23 @@ export class AdminPortalService {
       select: {
         id: true,
         fileKey: true,
+        cloudinaryPublicId: true,
         originalName: true,
         mimeType: true,
       },
     });
 
     if (!doc) throw new NotFoundException('Customer document not found.');
+
+    if (doc.cloudinaryPublicId) {
+      const signedUrl = await this.storage.getSignedUrl(
+        doc.cloudinaryPublicId,
+        { expiresInSeconds: 300 },
+      );
+      return { kind: 'redirect', signedUrl };
+    }
+
+    if (!doc.fileKey) throw new NotFoundException('Document file not found.');
 
     this.assertSafeStorageKey(doc.fileKey, CUSTOMER_DOCUMENTS_DIR);
 
@@ -1941,6 +1962,7 @@ export class AdminPortalService {
     }
 
     return {
+      kind: 'disk',
       absolutePath,
       mimeType: doc.mimeType ?? 'application/octet-stream',
       downloadName: doc.originalName ?? doc.fileKey,

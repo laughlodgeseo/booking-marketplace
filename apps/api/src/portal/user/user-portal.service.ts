@@ -24,6 +24,7 @@ import {
   CUSTOMER_DOCUMENTS_DIR,
 } from '../../common/upload/storage-paths';
 import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
+import { StorageService } from '../../infra/storage/storage.service';
 import type {
   Paginated,
   PortalCalendarEvent,
@@ -67,7 +68,10 @@ type UserOverview = {
 
 @Injectable()
 export class UserPortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   private readonly requiredCustomerDocumentTypes: CustomerDocumentType[] = [
     CustomerDocumentType.PASSPORT,
@@ -1006,7 +1010,8 @@ export class UserPortalService {
           userId: true,
           type: true,
           status: true,
-          fileKey: true,
+          cloudinaryPublicId: true,
+          sizeBytes: true,
           originalName: true,
           mimeType: true,
           notes: true,
@@ -1051,6 +1056,17 @@ export class UserPortalService {
     const file = params.file;
     if (!file) throw new BadRequestException('File upload failed.');
 
+    const buffer = file.buffer;
+    if (!buffer || buffer.length === 0)
+      throw new BadRequestException('File upload failed — empty file.');
+
+    const uploaded = await this.storage.upload(buffer, {
+      folder: `laugh-lodge/customer-documents/${params.userId}`,
+      mimeType: file.mimetype,
+      originalName: file.originalname,
+      isPrivate: true,
+    });
+
     const doc = await this.prisma.customerDocument.upsert({
       where: {
         userId_type: {
@@ -1060,7 +1076,9 @@ export class UserPortalService {
       },
       update: {
         status: CustomerDocumentStatus.PENDING,
-        fileKey: file.filename,
+        cloudinaryUrl: uploaded.url,
+        cloudinaryPublicId: uploaded.key,
+        sizeBytes: uploaded.size,
         originalName: file.originalname,
         mimeType: file.mimetype,
         notes: params.notes?.trim() || null,
@@ -1073,7 +1091,9 @@ export class UserPortalService {
         userId: params.userId,
         type: params.type,
         status: CustomerDocumentStatus.PENDING,
-        fileKey: file.filename,
+        cloudinaryUrl: uploaded.url,
+        cloudinaryPublicId: uploaded.key,
+        sizeBytes: uploaded.size,
         originalName: file.originalname,
         mimeType: file.mimetype,
         notes: params.notes?.trim() || null,
@@ -1083,7 +1103,8 @@ export class UserPortalService {
         userId: true,
         type: true,
         status: true,
-        fileKey: true,
+        cloudinaryPublicId: true,
+        sizeBytes: true,
         originalName: true,
         mimeType: true,
         notes: true,
@@ -1110,7 +1131,15 @@ export class UserPortalService {
     userId: string;
     role: UserRole;
     documentId: string;
-  }) {
+  }): Promise<
+    | { kind: 'redirect'; signedUrl: string }
+    | {
+        kind: 'disk';
+        absolutePath: string;
+        mimeType: string;
+        downloadName: string;
+      }
+  > {
     if (!CUSTOMER_CAPABLE_ROLES.includes(params.role)) {
       throw new ForbiddenException('Not allowed to access this document.');
     }
@@ -1121,6 +1150,7 @@ export class UserPortalService {
         id: true,
         userId: true,
         fileKey: true,
+        cloudinaryPublicId: true,
         originalName: true,
         mimeType: true,
       },
@@ -1131,6 +1161,16 @@ export class UserPortalService {
       throw new ForbiddenException('Not allowed to access this document.');
     }
 
+    if (doc.cloudinaryPublicId) {
+      const signedUrl = await this.storage.getSignedUrl(
+        doc.cloudinaryPublicId,
+        { expiresInSeconds: 300 },
+      );
+      return { kind: 'redirect', signedUrl };
+    }
+
+    if (!doc.fileKey) throw new NotFoundException('Document file not found.');
+
     this.assertSafeStorageKey(doc.fileKey, CUSTOMER_DOCUMENTS_DIR);
 
     const absolutePath = join(CUSTOMER_DOCUMENTS_DIR, doc.fileKey);
@@ -1139,6 +1179,7 @@ export class UserPortalService {
     }
 
     return {
+      kind: 'disk',
       absolutePath,
       mimeType: doc.mimeType ?? 'application/octet-stream',
       downloadName: doc.originalName ?? doc.fileKey,
@@ -1160,6 +1201,7 @@ export class UserPortalService {
         id: true,
         userId: true,
         fileKey: true,
+        cloudinaryPublicId: true,
       },
     });
 
@@ -1168,16 +1210,22 @@ export class UserPortalService {
       throw new ForbiddenException('Not allowed to delete this document.');
     }
 
-    await this.prisma.customerDocument.delete({
-      where: { id: doc.id },
-    });
+    await this.prisma.customerDocument.delete({ where: { id: doc.id } });
 
-    const absolutePath = join(CUSTOMER_DOCUMENTS_DIR, doc.fileKey);
-    if (existsSync(absolutePath)) {
+    if (doc.cloudinaryPublicId) {
       try {
-        unlinkSync(absolutePath);
+        await this.storage.delete(doc.cloudinaryPublicId);
       } catch {
         // best effort cleanup
+      }
+    } else if (doc.fileKey) {
+      const absolutePath = join(CUSTOMER_DOCUMENTS_DIR, doc.fileKey);
+      if (existsSync(absolutePath)) {
+        try {
+          unlinkSync(absolutePath);
+        } catch {
+          // best effort cleanup
+        }
       }
     }
 

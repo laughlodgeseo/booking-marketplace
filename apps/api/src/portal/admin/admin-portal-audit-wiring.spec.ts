@@ -116,7 +116,7 @@ function buildService() {
 
   const notifications = {} as unknown as NotificationsService;
 
-  const service = new AdminPortalService(prisma, notifications, audit);
+  const service = new AdminPortalService(prisma, notifications, audit, {} as any);
 
   return { service, prisma, audit, txMock };
 }
@@ -280,7 +280,7 @@ describe('P1 AUDIT WIRING — AdminPortalService', () => {
       record: jest.fn().mockRejectedValue(new Error('DB write failed')),
     } as unknown as AdminAuditService;
     const notifications = {} as unknown as NotificationsService;
-    const service = new AdminPortalService(prisma, notifications, audit);
+    const service = new AdminPortalService(prisma, notifications, audit, {} as any);
 
     await expect(
       service.approveDocument({ ...ADMIN_PARAMS, propertyId: 'prop_1' }),
