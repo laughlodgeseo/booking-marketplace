@@ -246,7 +246,7 @@ export default function VendorPropertiesPage() {
       right={
         <Link
           href="/vendor/properties/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-sm hover:bg-brand-hover transition"
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
         >
           <Plus className="h-4 w-4" /> New property
         </Link>

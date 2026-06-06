@@ -90,8 +90,8 @@ export default async function PropertiesPage(props: PageProps) {
             </p>
           </div>
 
-          {/* Hero heading */}
-          <h1 className="mt-2 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.6rem]">
+          {/* Hero heading — Cormorant Garamond via globals.css site-shell h1 rule */}
+          <h1 className="mt-2 max-w-2xl text-[2.2rem] leading-[1.1] text-white sm:text-[2.8rem] lg:text-[3.4rem]">
             {t("title")}
           </h1>
 

@@ -128,7 +128,7 @@ export function PortalHeader(props: {
 
         {/* Desktop right controls */}
         <div className="ml-auto hidden items-center gap-2 lg:flex xl:gap-2.5">
-          {props.right ? <div className="hidden shrink-0 xl:block">{props.right}</div> : null}
+          {props.right ? <div className="shrink-0">{props.right}</div> : null}
 
           <LanguageSwitcher compact />
 
@@ -140,10 +140,10 @@ export function PortalHeader(props: {
 
           {/* Account chip */}
           <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-1.5 ring-1 ring-neutral-200/80">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-[11px] font-bold text-white">
               {badge}
             </div>
-            <div className="hidden xl:block">
+            <div className="hidden lg:block">
               <div className="max-w-[130px] truncate text-sm font-semibold text-primary">{firstName}</div>
               <div className="text-[11px] text-muted leading-tight">{roleName}</div>
             </div>
@@ -157,7 +157,7 @@ export function PortalHeader(props: {
             className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-neutral-200/80 bg-white px-3 text-sm font-medium text-secondary hover:border-danger/30 hover:bg-danger/5 hover:text-danger transition-all"
           >
             <LogOut className="h-4 w-4" />
-            <span className="hidden xl:inline">{tPortal("logout")}</span>
+            <span className="hidden lg:inline">{tPortal("logout")}</span>
           </button>
         </div>
       </div>

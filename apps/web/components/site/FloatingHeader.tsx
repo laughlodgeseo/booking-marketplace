@@ -119,7 +119,7 @@ function PortalSwitcher(props: {
           >
             {/* Header */}
             <div className="border-b border-neutral-100 px-4 py-2.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Portal access</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">You&apos;re in guest mode</div>
             </div>
 
             <div className="p-1.5 space-y-0.5">
@@ -132,7 +132,7 @@ function PortalSwitcher(props: {
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                   <User2 className="h-3.5 w-3.5" />
                 </span>
-                {props.t("myAccount")}
+                Guest account
               </Link>
 
               <Link
@@ -144,7 +144,7 @@ function PortalSwitcher(props: {
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white">
                   <Building2 className="h-3.5 w-3.5" />
                 </span>
-                {props.t("vendorDashboard")}
+                Switch to host dashboard
               </Link>
 
               <div className="my-1 border-t border-neutral-100" />
@@ -445,7 +445,7 @@ export default function FloatingHeader() {
                             className="flex items-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-primary hover:bg-neutral-50 transition"
                           >
                             <User2 className="h-4 w-4 text-indigo-600" />
-                            {t("myAccount")}
+                            Guest account
                           </Link>
                           <Link
                             href="/vendor"
@@ -453,7 +453,7 @@ export default function FloatingHeader() {
                             className="flex items-center gap-2.5 rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
                           >
                             <Building2 className="h-4 w-4" />
-                            {t("vendorDashboard")}
+                            Switch to host dashboard
                           </Link>
                         </>
                       ) : (

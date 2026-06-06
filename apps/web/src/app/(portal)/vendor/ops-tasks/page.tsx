@@ -8,6 +8,7 @@ import { ClipboardList, RefreshCw, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { MaintenanceIllustration } from "@/components/portal/ui/PortalIllustration";
 import { getVendorOpsTasks } from "@/lib/api/portal/vendor";
 
 type ViewState =
@@ -109,12 +110,10 @@ export default function VendorOpsTasksPage() {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-              <ClipboardList className="h-5 w-5" />
-            </div>
-            <div className="mt-3 text-sm font-semibold text-primary">No ops tasks</div>
-            <div className="mt-1 text-xs text-muted">No active tasks found for your listings.</div>
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 px-6 py-12 text-center">
+            <MaintenanceIllustration className="opacity-90" />
+            <div className="mt-4 text-sm font-semibold text-primary">No ops tasks</div>
+            <div className="mt-1 max-w-xs text-xs leading-relaxed text-muted">No active tasks found for your listings.</div>
           </div>
         ) : (
           <div className="grid gap-3">

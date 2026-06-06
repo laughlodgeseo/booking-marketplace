@@ -7,6 +7,7 @@ import { Download, FileText, RefreshCw, ShieldCheck, Trash2, Upload } from "luci
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { DocumentsIllustration } from "@/components/portal/ui/PortalIllustration";
 import {
   deleteUserCustomerDocument,
   downloadUserCustomerDocument,
@@ -239,12 +240,10 @@ export default function AccountDocumentsPage() {
               </div>
 
               {state.data.items.length === 0 ? (
-                <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-8 text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-100 text-muted">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="mt-2 text-sm font-semibold text-primary">No documents uploaded yet</div>
-                  <div className="mt-1 text-xs text-muted">Upload your first document using the form above.</div>
+                <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 px-6 py-10 text-center">
+                  <DocumentsIllustration className="opacity-90" />
+                  <div className="mt-4 text-sm font-semibold text-primary">No documents uploaded yet</div>
+                  <div className="mt-1 max-w-xs text-xs leading-relaxed text-muted">Upload your first document using the form above.</div>
                 </div>
               ) : (
                 <div className="grid gap-3">

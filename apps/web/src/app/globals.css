@@ -131,7 +131,7 @@ html {
 body {
   background: var(--site-bg);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.55;
   overflow-x: clip;
 }
@@ -285,13 +285,16 @@ textarea {
 
   html:not([dir="rtl"]) .site-shell h1,
   html:not([dir="rtl"]) .site-shell h2,
-  html:not([dir="rtl"]) .site-shell h3,
+  html:not([dir="rtl"]) .site-shell h3 {
+    font-family: var(--font-display), var(--font-latin), "Cormorant Garamond", "Avenir Next", "Segoe UI", sans-serif;
+    font-weight: 600;
+  }
+
   html:not([dir="rtl"]) .auth-shell h1,
   html:not([dir="rtl"]) .auth-shell h2,
   html:not([dir="rtl"]) .auth-shell h3 {
     font-family: var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
     font-weight: 700;
-    letter-spacing: -0.03em;
   }
 
   .site-shell p,
@@ -442,7 +445,7 @@ textarea {
 
   /* ====== PORTAL ====== */
   .portal-density {
-    font-size: 14.5px;
+    font-size: 15px;
     line-height: 1.5;
     overflow-x: clip;
 
@@ -719,8 +722,8 @@ textarea {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.4rem;
-    padding: 0.875rem;
+    gap: 0.5rem;
+    padding: 1rem;
     border-radius: 1rem;
     border: 1px solid rgb(var(--line-rgb) / 0.14);
     background: rgb(var(--color-surface-rgb) / 0.90);
@@ -1182,6 +1185,22 @@ textarea {
     border-color: rgb(var(--color-accent-rgb) / 0.30);
     background: rgb(var(--color-accent-rgb) / 0.10);
     color: rgb(var(--color-accent-rgb) / 0.92);
+  }
+
+  /* Scoped display heading — Cormorant Garamond for premium marketing headings */
+  .marketing-display-heading {
+    font-family: var(--font-display), "Cormorant Garamond", "Georgia", serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  /* Scoped portal heading — Manrope for UI/dashboard headings */
+  .portal-page-heading {
+    font-family: var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
   }
 }
 

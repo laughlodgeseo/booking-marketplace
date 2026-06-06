@@ -13,6 +13,7 @@ import {
   type AdminReviewQueueItem,
   type ReviewQueueStatus,
 } from "@/lib/api/admin/reviewQueue";
+import { ReviewQueueIllustration } from "@/components/portal/ui/PortalIllustration";
 
 type StatusFilter = "ALL" | ReviewQueueStatus;
 
@@ -223,12 +224,10 @@ export default function AdminReviewQueuePage() {
               </div>
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-12 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-                <ClipboardCheck className="h-5 w-5" />
-              </div>
-              <div className="mt-3 text-sm font-semibold text-primary">No listings in this queue</div>
-              <div className="mt-1 text-xs text-muted">
+            <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 px-6 py-12 text-center">
+              <ReviewQueueIllustration className="opacity-90" />
+              <div className="mt-4 text-sm font-semibold text-primary">No listings in this queue</div>
+              <div className="mt-1 max-w-xs text-xs leading-relaxed text-muted">
                 {q.trim()
                   ? `No results for "${q.trim()}" in the selected status.`
                   : "There are no properties matching the selected status."}

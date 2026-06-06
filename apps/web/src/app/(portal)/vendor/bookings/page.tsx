@@ -7,6 +7,7 @@ import { BookOpen, CalendarDays, RefreshCw, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { BookingIllustration } from "@/components/portal/ui/PortalIllustration";
 import { getVendorBookings } from "@/lib/api/portal/vendor";
 
 type VendorBooking = Awaited<ReturnType<typeof getVendorBookings>>["items"][number];
@@ -161,14 +162,14 @@ export default function VendorBookingsPage() {
             </button>
           </div>
         ) : !derived || derived.filtered.length === 0 ? (
-          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div className="mt-3 text-sm font-semibold text-primary">
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 px-6 py-12 text-center">
+            <BookingIllustration className="opacity-90" />
+            <div className="mt-4 text-sm font-semibold text-primary">
               {query || statusFilter !== "ALL" ? "No bookings match" : "No bookings yet"}
             </div>
-            <div className="mt-1 text-xs text-muted">Try adjusting your filters.</div>
+            <div className="mt-1 max-w-xs text-xs leading-relaxed text-muted">
+              {query || statusFilter !== "ALL" ? "Try adjusting your filters." : "When guests book your properties, reservations will appear here."}
+            </div>
             {(query || statusFilter !== "ALL") ? (
               <button type="button" onClick={() => { setQuery(""); setStatusFilter("ALL"); }} className="mt-3 text-xs font-semibold text-brand hover:underline">
                 Clear filters
