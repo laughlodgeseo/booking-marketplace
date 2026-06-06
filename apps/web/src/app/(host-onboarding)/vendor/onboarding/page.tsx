@@ -104,11 +104,11 @@ function StepRow({ step, label, sublabel }: { step: number; label: string; subla
 
 function StatPill({ value, label }: { value: string; label: string }) {
   return (
-    <div className="text-center">
-      <div className="text-2xl font-bold text-[rgb(var(--color-accent-rgb))] sm:text-3xl">
+    <div className="px-2 py-3 text-center sm:px-4">
+      <div className="text-2xl font-bold tracking-tight text-white drop-shadow-sm sm:text-3xl">
         {value}
       </div>
-      <div className="mt-0.5 text-xs text-secondary">{label}</div>
+      <div className="mt-0.5 text-xs font-medium text-white/78">{label}</div>
     </div>
   );
 }
@@ -159,7 +159,7 @@ function CustomerWelcomeView({
           variants={FADE_UP}
           className="mt-4 font-heading text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl"
         >
-          List your Dubai<br />property with us
+          List your Dubai<br />property with confidence
         </motion.h1>
 
         <motion.p
@@ -173,15 +173,42 @@ function CustomerWelcomeView({
         {/* Platform stats */}
         <motion.div
           variants={FADE_UP}
-          className="mt-7 grid grid-cols-3 gap-4 rounded-2xl border border-white/14 bg-white/8 p-4 backdrop-blur-sm"
+          className="mt-7 overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_32px_rgba(30,27,75,0.18)] backdrop-blur-sm"
         >
-          <StatPill value="AED" label="Native currency" />
-          <StatPill value="24h" label="Avg. review time" />
-          <StatPill value="8" label="Steps to listing" />
+          <div className="grid grid-cols-3 divide-x divide-white/10">
+            <StatPill value="AED" label="Native currency" />
+            <StatPill value="24h" label="Avg. review time" />
+            <StatPill value="8" label="Steps to listing" />
+          </div>
+        </motion.div>
+
+        {/* CTA — desktop/tablet (inside hero, glass style) */}
+        <motion.div
+          variants={FADE_UP}
+          className="mt-7 hidden items-center gap-3 md:flex"
+        >
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={starting}
+            className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-base font-semibold text-indigo-700 shadow-lg transition hover:bg-indigo-50 disabled:opacity-50"
+          >
+            {starting ? (
+              <><Loader2 className="h-5 w-5 animate-spin" />Setting up your account…</>
+            ) : (
+              <>Start your listing <ArrowRight className="h-5 w-5" /></>
+            )}
+          </button>
+          <Link
+            href="/owners"
+            className="inline-flex items-center gap-1 rounded-2xl border border-white/25 bg-white/15 px-5 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/22"
+          >
+            How hosting works
+          </Link>
         </motion.div>
       </HeroShell>
 
-      {/* Trust cards — mobile only */}
+      {/* Trust cards — below hero on mobile/tablet; on desktop the side panel covers this */}
       <div className="px-5 pt-6 sm:px-8 lg:hidden">
         <div className="mx-auto max-w-lg">
           <div className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--text-muted-rgb))]">
@@ -218,7 +245,8 @@ function CustomerWelcomeView({
       </div>
 
       {/* Step preview */}
-      <div className="flex-1 px-5 py-6 sm:px-8">
+      {/* pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] reserves space above the mobile sticky CTA */}
+      <div className="px-5 py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:px-8 md:pb-10">
         <div className="mx-auto max-w-lg">
           <div className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--text-muted-rgb))]">
             What to expect
@@ -246,8 +274,8 @@ function CustomerWelcomeView({
         </div>
       </div>
 
-      {/* Sticky CTA */}
-      <div className="sticky bottom-0 border-t border-[rgb(var(--line-rgb)/0.12)] bg-[rgb(var(--color-bg-rgb)/0.94)] px-5 py-4 backdrop-blur-md sm:px-8">
+      {/* Sticky CTA — mobile/tablet only; desktop sees CTA inside the hero above */}
+      <div className="sticky bottom-0 border-t border-[rgb(var(--line-rgb)/0.12)] bg-[rgb(var(--color-bg-rgb)/0.95)] px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md sm:px-8 md:hidden">
         <div className="mx-auto flex max-w-lg flex-col gap-2.5 sm:flex-row sm:items-center">
           <button
             type="button"
@@ -285,7 +313,7 @@ function CustomerWelcomeView({
 function FirstTimeVendorView() {
   return (
     <motion.div
-      className="flex min-h-[calc(100dvh-56px)] flex-col"
+      className="flex flex-col"
       initial="hidden"
       animate="show"
       variants={STAGGER}
@@ -308,14 +336,25 @@ function FirstTimeVendorView() {
 
         <motion.p
           variants={FADE_UP}
-          className="mt-3 text-base leading-relaxed text-white/72"
+          className="mt-3 text-base leading-relaxed text-white/75"
         >
           Your host account is ready. Create your first listing and our team will
-          review it within 24 hours before it goes live.
+          review it within 24–48 hours before it goes live.
         </motion.p>
+
+        {/* Desktop CTA — inside hero */}
+        <motion.div variants={FADE_UP} className="mt-6 hidden md:block">
+          <Link
+            href="/vendor/properties/new"
+            className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-base font-semibold text-indigo-700 shadow-lg transition hover:bg-indigo-50"
+          >
+            Start your first listing
+            <ArrowRight className="h-5 w-5" />
+          </Link>
+        </motion.div>
       </HeroShell>
 
-      <div className="flex-1 px-5 py-6 sm:px-8">
+      <div className="px-5 py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:px-8 md:pb-10">
         <div className="mx-auto max-w-lg space-y-4">
           <div className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--text-muted-rgb))]">
             Your steps
@@ -356,7 +395,8 @@ function FirstTimeVendorView() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 border-t border-[rgb(var(--line-rgb)/0.12)] bg-[rgb(var(--color-bg-rgb)/0.94)] px-5 py-4 backdrop-blur-md sm:px-8">
+      {/* Sticky CTA — mobile/tablet only */}
+      <div className="sticky bottom-0 border-t border-[rgb(var(--line-rgb)/0.12)] bg-[rgb(var(--color-bg-rgb)/0.95)] px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md sm:px-8 md:hidden">
         <div className="mx-auto max-w-lg">
           <Link
             href="/vendor/properties/new"
