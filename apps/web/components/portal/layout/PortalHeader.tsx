@@ -54,16 +54,14 @@ export function PortalHeader(props: {
 
         {/* Logo */}
         <Link href="/" className="group inline-flex shrink-0 items-center gap-2">
-          <span className="rounded-xl bg-white px-2 py-1 shadow-sm ring-1 ring-neutral-200/80">
-            <Image
-              src="/brand/logo.svg"
-              alt="Laugh & Lodge"
-              width={150}
-              height={48}
-              className="h-7 w-auto sm:h-8"
-              priority
-            />
-          </span>
+          <Image
+            src="/brand/logo.svg"
+            alt="Laugh & Lodge"
+            width={150}
+            height={48}
+            className="h-7 w-auto sm:h-8"
+            priority
+          />
         </Link>
 
         {/* ── MOBILE topbar: title + menu button only ─────────────────────────── */}
@@ -95,7 +93,7 @@ export function PortalHeader(props: {
             <button
               type="button"
               onClick={props.onOpenMenu}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm ring-1 ring-neutral-200"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm hover:bg-neutral-50"
               aria-label={tPortal("shell.openNavigation")}
             >
               <Menu className="h-5 w-5" />
@@ -142,7 +140,7 @@ export function PortalHeader(props: {
 
           {/* Account chip */}
           <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-1.5 ring-1 ring-neutral-200/80">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-[11px] font-bold text-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white">
               {badge}
             </div>
             <div className="hidden xl:block">

@@ -70,20 +70,16 @@ export default async function PropertiesPage(props: PageProps) {
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(listJsonLd)}
       </script>
-      <section className="relative overflow-x-hidden bg-indigo-600 text-white">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:34px_34px]" />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-14 lg:px-8">
+      <section className="relative overflow-x-hidden border-b border-neutral-100 bg-white pb-10 pt-[88px] sm:pt-[96px]">
+        <div className="relative mx-auto max-w-7xl px-4 pb-2 pt-6 sm:px-6 sm:pt-8 lg:px-8">
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-indigo-100/90">
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#b87333]">
               {t("eyebrow")}
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
               {t("title")}
             </h1>
-            <p className="mt-2 text-sm text-indigo-100 sm:text-base">
+            <p className="mt-2 text-sm text-slate-500 sm:text-base">
               {t("subtitle")}
             </p>
           </div>

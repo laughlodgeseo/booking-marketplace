@@ -90,9 +90,8 @@ export default {
       },
       fontFamily: {
         heading: [
-          "var(--font-display)",
           "var(--font-latin)",
-          '"Cormorant Garamond"',
+          '"Manrope"',
           '"Avenir Next"',
           '"Segoe UI"',
           "sans-serif",

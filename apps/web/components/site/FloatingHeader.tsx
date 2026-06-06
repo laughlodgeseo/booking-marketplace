@@ -180,11 +180,6 @@ export default function FloatingHeader() {
               <div className="flex items-center justify-end gap-2">
                 <LanguageSwitcher compact />
 
-                <Link href="/properties" className={softActionClass}>
-                  {t("explore")}
-                  <ArrowRight className="ms-2 h-4 w-4 rtl:rotate-180" />
-                </Link>
-
                 {showAuthSkeleton ? (
                   <div className="h-11 w-[180px] animate-pulse rounded-full bg-warm-alt/80" />
                 ) : user ? (

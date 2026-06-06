@@ -560,34 +560,29 @@ export default async function HomePage() {
         />
       </div>
 
-      <section className="relative my-4 overflow-hidden py-16 sm:my-6 sm:py-20 lg:py-24">
-        <div aria-hidden className="absolute inset-0 bg-[linear-gradient(135deg,#edf0ff_0%,#c7d2fe_48%,#d8e7ff_100%)]" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-58">
+      <section className="relative my-4 overflow-hidden rounded-3xl mx-4 py-14 sm:mx-6 sm:my-6 sm:py-20 lg:mx-8 lg:py-24">
+        {/* Clean indigo-tinted background */}
+        <div aria-hidden className="absolute inset-0 rounded-3xl bg-indigo-50" />
+        {/* Subtle lottie illustration */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20">
           <SofaLottieDeferred className="scale-[1.04]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_26%,rgba(99,102,241,0.28),transparent_52%),radial-gradient(circle_at_82%_72%,rgba(79,70,229,0.36),transparent_48%)]" />
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-[44%] bg-[linear-gradient(115deg,rgba(79,70,229,0.22)_0%,rgba(99,102,241,0.08)_46%,transparent_100%)]"
-        />
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_12%,rgba(255,255,255,0.24),transparent_48%)]" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/16 via-transparent to-indigo-200/28" />
 
         <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <div className="rounded-[30px] border border-indigo-100/95 bg-white/60 px-6 py-7 shadow-[0_18px_42px_rgba(99,102,241,0.2)] backdrop-blur-[1px] sm:px-8 sm:py-9">
+          <div className="rounded-[28px] border border-indigo-100 bg-white px-6 py-7 shadow-[0_12px_32px_rgba(79,70,229,0.12)] sm:px-8 sm:py-9">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-700">{copy.assurance.eyebrow}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b87333]">{copy.assurance.eyebrow}</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-indigo-950 sm:text-3xl">
                   {copy.assurance.title}
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-indigo-900/85 sm:text-base">
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
                   {copy.assurance.body}
                 </p>
               </div>
               <Link
                 href="/properties"
-                className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(79,70,229,0.34)] ring-1 ring-indigo-200/85 transition hover:-translate-y-0.5 hover:bg-indigo-700"
+                className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(79,70,229,0.30)] transition hover:-translate-y-0.5 hover:bg-indigo-700"
               >
                 {copy.assurance.cta}
               </Link>

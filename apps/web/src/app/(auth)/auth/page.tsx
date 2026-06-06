@@ -101,7 +101,7 @@ function RoleCard({ active, title, desc, icon, iconActiveCls, iconIdleCls, onCli
       aria-checked={active}
       onClick={onClick}
       className={[
-        "group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-200",
+        "group relative overflow-hidden rounded-2xl p-4 text-center transition-all duration-200",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
         "min-h-[44px]",
         active
@@ -109,13 +109,15 @@ function RoleCard({ active, title, desc, icon, iconActiveCls, iconIdleCls, onCli
           : "bg-white/50 ring-1 ring-slate-200/80 hover:bg-white/70 hover:ring-slate-300/90 hover:shadow-sm",
       ].join(" ")}
     >
-      <div
-        className={[
-          "inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200",
-          active ? iconActiveCls : iconIdleCls,
-        ].join(" ")}
-      >
-        {icon}
+      <div className="flex justify-center">
+        <div
+          className={[
+            "inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200",
+            active ? iconActiveCls : iconIdleCls,
+          ].join(" ")}
+        >
+          {icon}
+        </div>
       </div>
       <div className="mt-3">
         <div className={["text-sm font-semibold", active ? "text-indigo-900" : "text-slate-800"].join(" ")}>

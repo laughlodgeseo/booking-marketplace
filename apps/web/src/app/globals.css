@@ -111,6 +111,11 @@
   --surface-card: color-mix(in srgb, var(--surface) 96%, transparent);
   --surface-border: rgb(var(--line-rgb) / 0.12);
   --surface-border-strong: rgb(var(--line-rgb) / 0.18);
+
+  /* Sand-brown brand accent (client-approved palette) */
+  --ll-sand: #b87333;
+  --ll-sand-soft: #f3e5d0;
+  --ll-sand-muted: #8a5a2b;
 }
 
 html,
@@ -138,7 +143,7 @@ body {
 }
 
 .font-heading {
-  font-family: var(--font-display), var(--font-latin), "Cormorant Garamond", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .font-arabic-locale {
@@ -965,35 +970,22 @@ textarea {
     --home-accent: #b87333;
     --home-trust: #0f766e;
     --home-border-rgb: 218 206 190;
-    background:
-      radial-gradient(70% 42% at 14% 0%, rgba(79, 70, 229, 0.13), transparent 62%),
-      radial-gradient(48% 36% at 91% 12%, rgba(184, 115, 51, 0.12), transparent 66%),
-      linear-gradient(180deg, #faf8f5 0%, #f4eee4 44%, #faf8f5 100%);
+    background: #ffffff;
     color: var(--home-ink);
   }
 
   .home-top-atmosphere {
     background:
-      radial-gradient(88% 68% at 9% 0%, rgba(79, 70, 229, 0.15), transparent 60%),
-      radial-gradient(72% 58% at 88% 9%, rgba(184, 115, 51, 0.13), transparent 64%),
-      radial-gradient(42% 36% at 78% 42%, rgba(15, 118, 110, 0.055), transparent 70%),
-      linear-gradient(180deg, rgba(250, 248, 245, 0.98) 0%, rgba(244, 238, 228, 0.92) 72%, rgba(250, 248, 245, 0.98) 100%);
+      radial-gradient(70% 38% at 14% 0%, rgba(79, 70, 229, 0.05), transparent 60%),
+      radial-gradient(50% 30% at 88% 9%, rgba(184, 115, 51, 0.04), transparent 64%);
   }
 
   .home-top-to-trust-fade {
-    background: linear-gradient(
-      180deg,
-      rgba(250, 248, 245, 0) 0%,
-      rgba(244, 238, 228, 0.86) 32%,
-      rgba(250, 248, 245, 0.98) 100%
-    );
+    background: transparent;
   }
 
   .home-trust-section {
-    background:
-      radial-gradient(64% 52% at 14% 12%, rgba(79, 70, 229, 0.10), transparent 64%),
-      radial-gradient(48% 46% at 88% 70%, rgba(184, 115, 51, 0.10), transparent 68%),
-      linear-gradient(180deg, rgba(250, 248, 245, 0.74) 0%, rgba(242, 233, 219, 0.90) 54%, rgba(250, 248, 245, 0.96) 100%);
+    background: transparent;
   }
 
   .home-section-fade-top {
@@ -1061,10 +1053,7 @@ textarea {
   }
 
   .home-featured-section {
-    background:
-      radial-gradient(48% 42% at 13% 0%, rgba(184, 115, 51, 0.10), transparent 68%),
-      radial-gradient(56% 46% at 86% 18%, rgba(79, 70, 229, 0.09), transparent 68%),
-      linear-gradient(180deg, rgba(250, 248, 245, 0.98) 0%, rgba(239, 229, 214, 0.82) 54%, rgba(250, 248, 245, 0.98) 100%);
+    background: #ffffff;
   }
 
   .home-featured-eyebrow {
