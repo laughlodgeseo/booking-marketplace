@@ -73,7 +73,7 @@ export default async function PropertiesPage(props: PageProps) {
       </script>
 
       {/* ── Premium indigo hero ─────────────────────────────────────── */}
-      <section className="site-hero-shell relative overflow-x-hidden pt-[72px] sm:pt-[80px]">
+      <section className="site-hero-shell relative overflow-x-hidden pt-5 sm:pt-6 lg:pt-7">
         {/* Subtle geometry grid */}
         <div className="site-hero-grid pointer-events-none absolute inset-0 opacity-25" />
 
@@ -81,7 +81,7 @@ export default async function PropertiesPage(props: PageProps) {
         <div className="pointer-events-none absolute -left-24 bottom-0 h-48 w-48 rounded-full bg-indigo-300/18 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 top-6 h-36 w-36 rounded-full bg-indigo-200/14 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-6 pt-5 sm:px-6 sm:pb-7 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-7">
+        <div className="relative mx-auto max-w-7xl px-4 pb-5 pt-3 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:pb-7 lg:pt-4">
           {/* Top row: eyebrow + optional property count badge */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -98,22 +98,18 @@ export default async function PropertiesPage(props: PageProps) {
             ) : null}
           </div>
 
-          {/* Two-column layout on large: heading left, search spanning full */}
-          <div className="mt-2 lg:grid lg:grid-cols-[1fr_auto] lg:items-end lg:gap-8">
-            <div>
-              {/* Hero heading — Cormorant Garamond via site-shell rule */}
-              <h1 className="max-w-2xl text-[1.85rem] leading-[1.1] text-white sm:text-[2.4rem] lg:text-[2.9rem]">
-                {t("title")}
-              </h1>
-              {/* Subheading */}
-              <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/72 sm:text-[0.9rem]">
-                {t("subtitle")}
-              </p>
-            </div>
+          {/* Heading + subtitle */}
+          <div className="mt-2">
+            <h1 className="max-w-2xl text-[1.75rem] leading-[1.1] text-white sm:text-[2.2rem] lg:text-[2.6rem]">
+              {t("title")}
+            </h1>
+            <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-white/72 sm:text-[0.88rem]">
+              {t("subtitle")}
+            </p>
           </div>
 
           {/* Search module — sits directly on the hero, no outer card */}
-          <div className="mt-5 sm:mt-6">
+          <div className="mt-4">
             <UnifiedSearchBar
               variant="properties"
               defaultQ={query.q}

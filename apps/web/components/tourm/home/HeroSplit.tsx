@@ -123,7 +123,7 @@ export default function HeroSplit(props: HeroSplitProps) {
 
               <motion.h1
                 {...reveal(0.08, reduceMotion)}
-                className="balance-wrap text-[30px] font-heading font-semibold leading-[1.1] tracking-[-0.017em] text-[#0f1638] sm:text-[3.3rem]"
+                className="marketing-display-heading balance-wrap text-[30px] text-[#0f1638] sm:text-[3.3rem]"
               >
                 <span className="block">{headlineTop}</span>
                 <span className="block bg-gradient-to-r from-[#1a2350] via-[#273c8f] to-[#4157b8] bg-clip-text text-transparent">

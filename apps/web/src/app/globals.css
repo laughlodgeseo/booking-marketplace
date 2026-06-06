@@ -286,7 +286,7 @@ textarea {
   html:not([dir="rtl"]) .site-shell h1,
   html:not([dir="rtl"]) .site-shell h2,
   html:not([dir="rtl"]) .site-shell h3 {
-    font-family: var(--font-display), var(--font-latin), "Cormorant Garamond", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--font-latin), "Manrope", "Avenir Next", "Segoe UI", sans-serif;
     font-weight: 600;
   }
 
@@ -1193,6 +1193,20 @@ textarea {
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.05;
+  }
+
+  /* Scoped display heading — Cormorant Garamond for auth page editorial headings */
+  .auth-display-heading {
+    font-family: var(--font-display), "Cormorant Garamond", "Georgia", serif;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    line-height: 1.08;
+  }
+
+  html[dir="rtl"] .marketing-display-heading,
+  html[dir="rtl"] .auth-display-heading {
+    font-family: var(--font-arabic-display), var(--font-arabic), "Noto Naskh Arabic", "Tajawal", "Segoe UI", sans-serif !important;
+    letter-spacing: 0;
   }
 
   /* Scoped portal heading — Manrope for UI/dashboard headings */

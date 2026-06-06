@@ -174,7 +174,7 @@ function HeaderCopy({
       </span>
 
       <h1
-        className={`mt-3 font-semibold tracking-[-0.01em] text-slate-900 ${
+        className={`auth-display-heading mt-3 text-slate-900 ${
           compact ? "text-[30px] leading-[1.1]" : "text-[1.98rem] leading-tight lg:text-[2.18rem]"
         }`}
       >

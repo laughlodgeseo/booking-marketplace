@@ -170,7 +170,7 @@ function AuthGatewayContent() {
 
           {/* Header */}
           <header className="mb-5">
-            <h1 className="text-[27px] font-semibold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[1.85rem]">
+            <h1 className="auth-display-heading text-[27px] text-slate-900 sm:text-[1.85rem]">
               {mode === "login" ? copy.titleLogin : copy.titleSignup}
             </h1>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-500">

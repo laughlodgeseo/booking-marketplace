@@ -123,7 +123,7 @@ export function AuthShell({ panel, direction = 1, title, subtitle, panels }: Aut
               {copy.secureAccess}
             </span>
 
-            <motion.h1 layout className="mt-2.5 text-[1.64rem] font-semibold tracking-tight leading-[1.15] sm:text-[1.74rem]">
+            <motion.h1 layout className="auth-display-heading mt-2.5 text-[1.64rem] sm:text-[1.74rem]">
               {title}
             </motion.h1>
 

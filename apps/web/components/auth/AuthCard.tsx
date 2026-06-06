@@ -75,7 +75,7 @@ export function AuthCard({
                 </div>
               ) : null}
 
-              <h1 className="mt-3 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] text-primary sm:text-[2.1rem] sm:leading-tight">
+              <h1 className="auth-display-heading mt-3 text-[30px] text-primary sm:text-[2.1rem]">
                 {title}
               </h1>
 
