@@ -8,6 +8,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { AnalyticsIllustration } from "@/components/portal/ui/PortalIllustration";
+import { portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import { vendorListStatements, type VendorStatementListItem } from "@/lib/api/portal/finance";
 
 type ViewState =
@@ -149,7 +150,7 @@ export default function VendorStatementsPage() {
                         </div>
                         <Link
                           href={`/vendor/statements/${encodeURIComponent(statement.id)}`}
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                          className={portalRowPrimary}
                         >
                           View statement
                         </Link>
@@ -167,8 +168,8 @@ export default function VendorStatementsPage() {
           <div className="flex items-center justify-between rounded-xl border border-line/40 bg-surface/80 px-4 py-3">
             <div className="text-xs text-muted">Page {state.page} · {state.total} total</div>
             <div className="flex gap-2">
-              <button type="button" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Previous</button>
-              <button type="button" disabled={!canNext} onClick={() => setPage((p) => p + 1)} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Next</button>
+              <button type="button" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))} className={portalRowSecondary}>Previous</button>
+              <button type="button" disabled={!canNext} onClick={() => setPage((p) => p + 1)} className={portalRowSecondary}>Next</button>
             </div>
           </div>
         ) : null}

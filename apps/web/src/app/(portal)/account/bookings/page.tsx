@@ -9,6 +9,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { BookingIllustration } from "@/components/portal/ui/PortalIllustration";
+import { portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getUserBookings } from "@/lib/api/portal/user";
 
@@ -80,7 +81,7 @@ function BookingCard({ booking, onOpen }: { booking: Booking; onOpen: () => void
               <Link
                 href={`/account/bookings/${booking.id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                className={portalRowPrimary}
               >
                 View details
               </Link>
@@ -246,14 +247,14 @@ function AccountBookingsContent() {
               <Link
                 href={`/account/bookings?page=${Math.max(1, pageMeta.currentPage - 1)}&pageSize=${pageMeta.pageSize}`}
                 aria-disabled={pageMeta.currentPage <= 1}
-                className={`h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition ${pageMeta.currentPage <= 1 ? "pointer-events-none opacity-40" : ""}`}
+                className={`${portalRowSecondary} ${pageMeta.currentPage <= 1 ? "pointer-events-none opacity-50" : ""}`}
               >
                 Previous
               </Link>
               <Link
                 href={`/account/bookings?page=${Math.min(pageMeta.totalPages, pageMeta.currentPage + 1)}&pageSize=${pageMeta.pageSize}`}
                 aria-disabled={pageMeta.currentPage >= pageMeta.totalPages}
-                className={`h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition ${pageMeta.currentPage >= pageMeta.totalPages ? "pointer-events-none opacity-40" : ""}`}
+                className={`${portalRowSecondary} ${pageMeta.currentPage >= pageMeta.totalPages ? "pointer-events-none opacity-50" : ""}`}
               >
                 Next
               </Link>

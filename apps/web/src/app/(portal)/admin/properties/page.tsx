@@ -9,6 +9,13 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { DataTable, type Column } from "@/components/portal/ui/DataTable";
 import { SkeletonTable } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import {
+  portalActionPrimary,
+  portalActionSecondary,
+  portalIconButton,
+  portalRowPrimary,
+  portalRowSecondary,
+} from "@/components/portal/ui/portal-actions";
 import { getAdminProperties, type AdminListResponse } from "@/lib/api/portal/admin";
 
 type AdminPropertyRow = AdminListResponse["items"][number];
@@ -135,10 +142,10 @@ export default function AdminPropertiesPage() {
     {
       key: "property",
       header: "Property",
-      className: "col-span-4",
+      className: "col-span-3",
       render: (row) => (
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100">
             <Building2 className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0">
@@ -179,7 +186,7 @@ export default function AdminPropertiesPage() {
     {
       key: "updated",
       header: "Updated",
-      className: "col-span-2",
+      className: "col-span-1",
       render: (row) => <span className="text-[11px] text-muted">{formatDate(getUpdated(row))}</span>,
     },
   ], []);
@@ -191,26 +198,32 @@ export default function AdminPropertiesPage() {
     <PortalShell
       role="admin"
       title="Properties"
-      subtitle="All marketplace property listings"
+      subtitle="Manage all marketplace property listings"
       right={
-        <Link
-          href="/admin/properties/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-sm hover:bg-brand-hover transition"
-        >
-          <Plus className="h-4 w-4" /> Create property
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => void load(page)}
+            className={portalActionSecondary}
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </button>
+          <Link href="/admin/properties/new" className={portalActionPrimary}>
+            <Plus className="h-4 w-4" /> Create property
+          </Link>
+        </div>
       }
     >
       <div className="space-y-4">
         {/* Command bar */}
-        <div className="portal-command-bar">
+        <div className="portal-command-bar bg-[linear-gradient(135deg,rgb(var(--color-surface-rgb)/0.98),rgb(var(--color-accent-rgb)/0.045))] shadow-[0_12px_30px_rgba(33,39,53,0.08)]">
           <div className="relative min-w-0 flex-1" style={{ minWidth: "180px" }}>
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search title, city, owner..."
-              className="h-9 w-full rounded-lg bg-neutral-50 pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-neutral-200/60 focus:ring-2 focus:ring-brand/20 focus:bg-white transition-all"
+              className="h-10 w-full rounded-xl bg-white pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-slate-200/80 placeholder:text-muted focus:bg-white focus:ring-2 focus:ring-brand/25 transition-all"
             />
           </div>
 
@@ -238,13 +251,14 @@ export default function AdminPropertiesPage() {
           <button
             type="button"
             onClick={() => void load(page)}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-200/80 bg-white text-muted hover:bg-neutral-50 hover:text-primary transition"
+            className={`${portalIconButton} h-10 w-10 shrink-0`}
             title="Refresh"
+            aria-label="Refresh properties"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
 
-          <div className="ml-auto hidden text-[11px] text-muted sm:block">
+          <div className="ml-auto rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-secondary ring-1 ring-slate-200/80">
             {state.kind === "ready" ? `${filteredRows.length} of ${state.total} properties` : "Loading…"}
           </div>
         </div>
@@ -291,13 +305,13 @@ export default function AdminPropertiesPage() {
                   <>
                     <Link
                       href={`/admin/properties/${encodeURIComponent(id)}`}
-                      className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-2.5 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                      className={portalRowPrimary}
                     >
                       View
                     </Link>
                     <Link
                       href={`/admin/properties/${encodeURIComponent(id)}/edit`}
-                      className="inline-flex h-8 items-center rounded-lg bg-brand px-2.5 text-xs font-semibold text-white hover:bg-brand-hover transition"
+                      className={portalRowSecondary}
                     >
                       Edit
                     </Link>
@@ -313,7 +327,7 @@ export default function AdminPropertiesPage() {
             />
 
             {/* Pagination */}
-            <div className="flex items-center justify-between rounded-xl border border-line/40 bg-surface/80 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/92 px-4 py-3 shadow-sm ring-1 ring-slate-200/80">
               <div className="text-xs text-muted">
                 Page {state.page} · {state.total} records
               </div>
@@ -322,7 +336,7 @@ export default function AdminPropertiesPage() {
                   type="button"
                   onClick={() => setPage((v) => Math.max(1, v - 1))}
                   disabled={!canPrev}
-                  className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition"
+                  className={portalRowSecondary}
                 >
                   Previous
                 </button>
@@ -330,7 +344,7 @@ export default function AdminPropertiesPage() {
                   type="button"
                   onClick={() => setPage((v) => v + 1)}
                   disabled={!canNext}
-                  className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition"
+                  className={portalRowSecondary}
                 >
                   Next
                 </button>

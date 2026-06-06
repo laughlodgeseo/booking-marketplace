@@ -8,6 +8,7 @@ import { BookOpen, CalendarDays, RefreshCw, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import { getAdminBookings } from "@/lib/api/portal/admin";
 
 type ViewState =
@@ -185,7 +186,7 @@ export default function AdminBookingsPage() {
                           <Link
                             href={route}
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex h-8 items-center gap-1 rounded-lg bg-brand px-3 text-xs font-semibold text-white hover:bg-brand-hover transition"
+                            className={portalRowPrimary}
                           >
                             Open
                           </Link>
@@ -204,8 +205,8 @@ export default function AdminBookingsPage() {
           <div className="flex items-center justify-between rounded-xl border border-line/40 bg-surface/80 px-4 py-3">
             <div className="text-xs text-muted">Page {state.data.page} of {derived?.totalPages ?? 1} · {state.data.total} records</div>
             <div className="flex gap-2">
-              <button type="button" disabled={state.data.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Previous</button>
-              <button type="button" disabled={state.data.page >= (derived?.totalPages ?? 1)} onClick={() => setPage((p) => p + 1)} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Next</button>
+              <button type="button" disabled={state.data.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className={portalRowSecondary}>Previous</button>
+              <button type="button" disabled={state.data.page >= (derived?.totalPages ?? 1)} onClick={() => setPage((p) => p + 1)} className={portalRowSecondary}>Next</button>
             </div>
           </div>
         ) : null}

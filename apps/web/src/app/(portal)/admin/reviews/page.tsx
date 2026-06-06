@@ -6,6 +6,7 @@ import { Star } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { portalActionDanger, portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminGuestReview,
   deleteAdminGuestReview,
@@ -78,7 +79,7 @@ export default function AdminGuestReviewsPage() {
               className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
                 status === value
                   ? "bg-brand text-white shadow-sm"
-                  : "border border-line/50 bg-surface text-primary hover:bg-warm-alt"
+                  : portalRowSecondary
               }`}
             >
               {label}
@@ -146,7 +147,7 @@ export default function AdminGuestReviewsPage() {
                                 .then(() => setReloadTick((v) => v + 1))
                                 .finally(() => setBusy(null));
                             }}
-                            className="inline-flex h-8 items-center rounded-lg bg-success/90 px-3 text-xs font-semibold text-white hover:bg-success disabled:opacity-60 transition"
+                            className={portalRowPrimary}
                           >
                             Approve
                           </button>
@@ -160,7 +161,7 @@ export default function AdminGuestReviewsPage() {
                                 .then(() => setReloadTick((v) => v + 1))
                                 .finally(() => setBusy(null));
                             }}
-                            className="inline-flex h-8 items-center rounded-lg bg-danger/90 px-3 text-xs font-semibold text-white hover:bg-danger disabled:opacity-60 transition"
+                            className={portalActionDanger}
                           >
                             Reject
                           </button>
@@ -174,7 +175,7 @@ export default function AdminGuestReviewsPage() {
                                 .then(() => setReloadTick((v) => v + 1))
                                 .finally(() => setBusy(null));
                             }}
-                            className="inline-flex h-8 items-center rounded-lg border border-danger/40 px-3 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-60 transition"
+                            className={portalActionDanger}
                           >
                             Delete
                           </button>
@@ -191,7 +192,7 @@ export default function AdminGuestReviewsPage() {
                                 .then(() => setReloadTick((v) => v + 1))
                                 .finally(() => setBusy(null));
                             }}
-                            className="inline-flex h-8 items-center rounded-lg border border-danger/40 px-3 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-60 transition"
+                            className={portalActionDanger}
                           >
                             Delete
                           </button>

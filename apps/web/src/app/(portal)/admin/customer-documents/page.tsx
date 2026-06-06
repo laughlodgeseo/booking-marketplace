@@ -7,6 +7,7 @@ import { FileCheck, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionDanger, portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminCustomerDocument,
   downloadAdminCustomerDocument,
@@ -212,19 +213,19 @@ export default function AdminCustomerDocumentsPage() {
                       ) : null}
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Link href={`/admin/customer-documents/${encodeURIComponent(item.id)}`} className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition">
+                        <Link href={`/admin/customer-documents/${encodeURIComponent(item.id)}`} className={portalRowPrimary}>
                           Open page
                         </Link>
-                        <button type="button" disabled={busy !== null} onClick={() => void view(item)} className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60 transition">
+                        <button type="button" disabled={busy !== null} onClick={() => void view(item)} className={portalRowSecondary}>
                           View
                         </button>
-                        <button type="button" disabled={busy !== null} onClick={() => void download(item)} className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60 transition">
+                        <button type="button" disabled={busy !== null} onClick={() => void download(item)} className={portalRowSecondary}>
                           Download
                         </button>
-                        <button type="button" disabled={busy !== null} onClick={() => void approve(item)} className="inline-flex h-8 items-center rounded-lg bg-success/90 px-3 text-xs font-semibold text-white hover:bg-success disabled:opacity-60 transition">
+                        <button type="button" disabled={busy !== null} onClick={() => void approve(item)} className="inline-flex min-h-8 items-center justify-center rounded-xl bg-success px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/40 disabled:opacity-50">
                           Approve
                         </button>
-                        <button type="button" disabled={busy !== null} onClick={() => void reject(item)} className="inline-flex h-8 items-center rounded-lg bg-danger/90 px-3 text-xs font-semibold text-white hover:bg-danger disabled:opacity-60 transition">
+                        <button type="button" disabled={busy !== null} onClick={() => void reject(item)} className={portalActionDanger}>
                           Reject
                         </button>
                       </div>

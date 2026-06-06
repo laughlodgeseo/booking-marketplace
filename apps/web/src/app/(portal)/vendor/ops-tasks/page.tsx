@@ -9,6 +9,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { MaintenanceIllustration } from "@/components/portal/ui/PortalIllustration";
+import { portalRowPrimary } from "@/components/portal/ui/portal-actions";
 import { getVendorOpsTasks } from "@/lib/api/portal/vendor";
 
 type ViewState =
@@ -151,7 +152,7 @@ export default function VendorOpsTasksPage() {
                           <Link
                             href={`/vendor/ops-tasks/${encodeURIComponent(id)}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                            className={portalRowPrimary}
                           >
                             View task
                           </Link>

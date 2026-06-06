@@ -6,7 +6,19 @@ function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "danger"
+  | "outline"
+  | "portalPrimary"
+  | "portalSecondary"
+  | "portalGhost"
+  | "portalRowPrimary"
+  | "portalRowSecondary"
+  | "portalDanger"
+  | "portalIcon";
 type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = {
@@ -28,6 +40,13 @@ const variantClasses: Record<ButtonVariant, string> = {
     "bg-gradient-to-b from-danger/95 to-danger text-inverted ring-1 ring-danger/34 shadow-[0_10px_24px_rgba(220,38,38,0.28)] hover:brightness-105 active:scale-95",
   outline:
     "border border-neutral-300 bg-transparent text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800 active:scale-95",
+  portalPrimary: "portal-action-primary active:scale-95",
+  portalSecondary: "portal-action-secondary active:scale-95",
+  portalGhost: "portal-action-ghost active:scale-95",
+  portalRowPrimary: "portal-row-primary active:scale-95",
+  portalRowSecondary: "portal-row-secondary active:scale-95",
+  portalDanger: "portal-action-danger active:scale-95",
+  portalIcon: "portal-icon-button active:scale-95",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

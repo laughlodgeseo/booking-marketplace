@@ -11,7 +11,7 @@ import {
   deleteUserCustomerDocument,
   downloadUserCustomerDocument,
   getUserCustomerDocuments,
-  viewUserCustomerDocument,
+  getUserCustomerDocumentSignedViewUrl,
   type UserCustomerDocument,
 } from "@/lib/api/portal/user";
 
@@ -38,6 +38,11 @@ function previewAllowed(mimeType: string | null): boolean {
   return mimeType.startsWith("image/") || mimeType === "application/pdf";
 }
 
+function labelDocType(type: string): string {
+  if (type === "EMIRATES_ID") return "Emirates ID";
+  return type.replaceAll("_", " ");
+}
+
 export default function AccountDocumentDetailPage() {
   const params = useParams<{ documentId: string }>();
   const router = useRouter();
@@ -46,6 +51,12 @@ export default function AccountDocumentDetailPage() {
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [preview, setPreview] = useState<PreviewState>({ kind: "idle" });
   const [busy, setBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+
+  const showToast = useCallback((kind: "success" | "error", message: string) => {
+    setToast({ kind, message });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
 
   const load = useCallback(async () => {
     if (!documentId) {
@@ -74,14 +85,6 @@ export default function AccountDocumentDetailPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    return () => {
-      if (preview.kind === "ready") {
-        URL.revokeObjectURL(preview.url);
-      }
-    };
-  }, [preview]);
-
   const canPreview = useMemo(() => {
     if (state.kind !== "ready") return false;
     return previewAllowed(state.doc.mimeType);
@@ -101,6 +104,9 @@ export default function AccountDocumentDetailPage() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+      showToast("success", "Download started.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Download failed.");
     } finally {
       setBusy(null);
     }
@@ -112,16 +118,8 @@ export default function AccountDocumentDetailPage() {
 
     setPreview({ kind: "loading" });
     try {
-      const blob = await viewUserCustomerDocument(state.doc.id);
-      const mimeType = blob.type || state.doc.mimeType || "application/octet-stream";
-      const url = URL.createObjectURL(blob);
-
-      setPreview((prev) => {
-        if (prev.kind === "ready") {
-          URL.revokeObjectURL(prev.url);
-        }
-        return { kind: "ready", url, mimeType };
-      });
+      const { url, mimeType } = await getUserCustomerDocumentSignedViewUrl(state.doc.id);
+      setPreview({ kind: "ready", url, mimeType: mimeType ?? state.doc.mimeType ?? "application/octet-stream" });
     } catch (error) {
       setPreview({ kind: "error", message: error instanceof Error ? error.message : "Failed to load preview" });
     }
@@ -137,8 +135,7 @@ export default function AccountDocumentDetailPage() {
       await deleteUserCustomerDocument(state.doc.id);
       router.replace("/account/documents");
     } catch (error) {
-      setPreview({ kind: "error", message: error instanceof Error ? error.message : "Failed to delete document" });
-    } finally {
+      showToast("error", error instanceof Error ? error.message : "Failed to delete document.");
       setBusy(null);
     }
   }
@@ -158,6 +155,7 @@ export default function AccountDocumentDetailPage() {
       }
     >
       <div className="space-y-5">
+        {/* Breadcrumb */}
         <div className="text-xs font-semibold uppercase tracking-wide text-muted">
           <Link href="/account" className="hover:text-primary">Portal Home</Link>
           <span className="mx-2">/</span>
@@ -166,19 +164,31 @@ export default function AccountDocumentDetailPage() {
           <span className="text-primary">Detail</span>
         </div>
 
+        {/* Toast */}
+        {toast ? (
+          <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            toast.kind === "success"
+              ? "border-success/30 bg-success/10 text-success"
+              : "border-danger/30 bg-danger/10 text-danger"
+          }`}>
+            {toast.message}
+          </div>
+        ) : null}
+
         {state.kind === "loading" ? (
           <div className="space-y-3">
-            <SkeletonBlock className="h-24" />
+            <SkeletonBlock className="h-28" />
             <SkeletonBlock className="h-52" />
           </div>
         ) : state.kind === "error" ? (
           <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">{state.message}</div>
         ) : (
           <>
+            {/* Header card */}
             <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-primary">{state.doc.type}</h2>
+                  <h2 className="text-lg font-semibold text-primary">{labelDocType(state.doc.type)}</h2>
                   <div className="mt-1 text-xs text-secondary">{state.doc.originalName || state.doc.id}</div>
                 </div>
                 <StatusPill status={state.doc.status}>{state.doc.status}</StatusPill>
@@ -187,32 +197,32 @@ export default function AccountDocumentDetailPage() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={!canPreview}
+                  disabled={!canPreview || busy !== null}
                   onClick={() => void runView()}
-                  className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+                  className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  View
+                  {preview.kind === "loading" ? "Loading..." : "View Document"}
                 </button>
                 <button
                   type="button"
                   disabled={busy !== null}
                   onClick={() => void runDownload()}
-                  className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
+                  className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
                 >
-                  Download
+                  {busy === "Downloading..." ? "Downloading..." : "Download"}
                 </button>
                 <button
                   type="button"
                   disabled={busy !== null}
                   onClick={() => void remove()}
-                  className="rounded-xl border border-danger/30 bg-danger/12 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/12 disabled:opacity-60"
+                  className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/20 disabled:opacity-50"
                 >
                   Delete
                 </button>
               </div>
-              {busy ? <div className="mt-3 text-xs font-semibold text-secondary">{busy}</div> : null}
             </section>
 
+            {/* Metadata */}
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Info label="Uploaded" value={fmtDate(state.doc.createdAt)} />
               <Info label="Reviewed" value={fmtDate(state.doc.reviewedAt)} />
@@ -220,11 +230,22 @@ export default function AccountDocumentDetailPage() {
               <Info label="MIME type" value={state.doc.mimeType || "-"} />
             </section>
 
+            {/* Review notes */}
+            {state.doc.reviewNotes ? (
+              <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted">Review Note</div>
+                <div className="mt-2 text-sm text-primary">{state.doc.reviewNotes}</div>
+              </section>
+            ) : null}
+
+            {/* Preview */}
             <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-              <div className="text-sm font-semibold text-primary">Preview</div>
+              <div className="text-sm font-semibold text-primary">Document Preview</div>
               {preview.kind === "idle" ? (
-                <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
-                  {canPreview ? "Click View to load this file preview." : "Preview is unavailable for this file type."}
+                <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-8 text-center text-sm text-secondary">
+                  {canPreview
+                    ? "Click \"View Document\" above to load the preview."
+                    : "Preview is unavailable for this file type."}
                 </div>
               ) : preview.kind === "loading" ? (
                 <div className="mt-3 space-y-2">
@@ -232,15 +253,19 @@ export default function AccountDocumentDetailPage() {
                   <SkeletonBlock className="h-72" />
                 </div>
               ) : preview.kind === "error" ? (
-                <div className="mt-3 rounded-2xl border border-danger/30 bg-danger/12 p-4 text-sm text-danger">{preview.message}</div>
+                <div className="mt-3 rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">{preview.message}</div>
               ) : preview.mimeType.startsWith("image/") ? (
                 <div className="mt-3 overflow-hidden rounded-2xl border border-line/70 bg-warm-base">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview.url} alt={state.doc.originalName || state.doc.type} className="max-h-[520px] w-full object-contain" />
+                  <img
+                    src={preview.url}
+                    alt={state.doc.originalName || state.doc.type}
+                    className="max-h-[540px] w-full object-contain"
+                  />
                 </div>
               ) : (
                 <div className="mt-3 overflow-hidden rounded-2xl border border-line/70 bg-warm-base">
-                  <iframe src={preview.url} title="Document preview" className="h-[520px] w-full" />
+                  <iframe src={preview.url} title="Document preview" className="h-[540px] w-full" />
                 </div>
               )}
             </section>

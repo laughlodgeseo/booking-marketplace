@@ -70,9 +70,11 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
       secure_url: string;
       bytes: number;
       format: string;
+      resource_type: string;
+      type: string;
     };
 
-    this.logger.debug(`cloudinary_upload key=${result.public_id}`);
+    this.logger.debug(`cloudinary_upload key=${result.public_id} resource_type=${result.resource_type} type=${result.type}`);
 
     return {
       key: result.public_id,
@@ -80,6 +82,8 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
       mimeType: options?.mimeType ?? `image/${result.format}`,
       size: result.bytes,
       provider: 'cloudinary',
+      resourceType: result.resource_type,
+      deliveryType: result.type,
     };
   }
 
@@ -120,8 +124,11 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
       timestamp: expiresAt.toString(),
     });
 
+    const resourceType = options?.resourceType ?? 'image';
+    const deliveryType = options?.deliveryType ?? 'authenticated';
+
     return Promise.resolve(
-      `https://res.cloudinary.com/${this.cloudName}/image/authenticated/` +
+      `https://res.cloudinary.com/${this.cloudName}/${resourceType}/${deliveryType}/` +
         `s--${signature}--/v${expiresAt}/${key}`,
     );
   }

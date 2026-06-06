@@ -1081,12 +1081,14 @@ model CustomerDocument {
   type   CustomerDocumentType   @default(OTHER)
   status CustomerDocumentStatus @default(PENDING)
 
-  fileKey            String?
-  cloudinaryUrl      String?
-  cloudinaryPublicId String?
-  sizeBytes          Int?
-  originalName       String?
-  mimeType           String?
+  fileKey                String?
+  cloudinaryUrl          String?
+  cloudinaryPublicId     String?
+  cloudinaryResourceType String?
+  cloudinaryDeliveryType String?
+  sizeBytes              Int?
+  originalName           String?
+  mimeType               String?
   notes              String?
   reviewedAt         DateTime?
   reviewNotes        String?

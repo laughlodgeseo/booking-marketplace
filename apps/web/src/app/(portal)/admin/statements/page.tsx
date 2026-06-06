@@ -11,6 +11,7 @@ import { DateText } from "@/components/portal/ui/DateText";
 import { MoneyText } from "@/components/portal/ui/MoneyText";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonTable } from "@/components/portal/ui/Skeleton";
+import { portalActionPrimary, portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import { adminGenerateStatements, adminListStatements, type VendorStatementListItem } from "@/lib/api/portal/finance";
 
 type ViewState =
@@ -63,7 +64,10 @@ export default function AdminStatementsPage() {
     }
   }, [page, status]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const filteredRows = useMemo(() => {
     if (state.kind !== "ready") return [];
@@ -163,7 +167,7 @@ export default function AdminStatementsPage() {
               <input value={genCurrency} onChange={(e) => setGenCurrency(e.target.value)} className="h-10 w-full rounded-xl border border-line/80 bg-surface px-3 text-sm text-primary" placeholder="AED" />
             </label>
             <div className="flex items-end">
-              <button type="button" disabled={busy !== null} onClick={() => void generate()} className="h-10 w-full rounded-xl bg-brand px-4 text-sm font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-60">
+              <button type="button" disabled={busy !== null} onClick={() => void generate()} className={`w-full ${portalActionPrimary}`}>
                 Generate
               </button>
             </div>
@@ -203,7 +207,7 @@ export default function AdminStatementsPage() {
               columns={columns}
               onRowClick={(row) => router.push(`/admin/statements/${encodeURIComponent(row.id)}`)}
               rowActions={(row) => (
-                <Link href={`/admin/statements/${encodeURIComponent(row.id)}`} className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition">
+                <Link href={`/admin/statements/${encodeURIComponent(row.id)}`} className={portalRowPrimary}>
                   Open
                 </Link>
               )}
@@ -211,8 +215,8 @@ export default function AdminStatementsPage() {
             <div className="flex items-center justify-between rounded-xl border border-line/40 bg-surface/80 px-4 py-3">
               <div className="text-xs text-muted">Page {state.page} · {state.total} records</div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setPage((v) => Math.max(1, v - 1))} disabled={!canPrev} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Previous</button>
-                <button type="button" onClick={() => setPage((v) => v + 1)} disabled={!canNext} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Next</button>
+                <button type="button" onClick={() => setPage((v) => Math.max(1, v - 1))} disabled={!canPrev} className={portalRowSecondary}>Previous</button>
+                <button type="button" onClick={() => setPage((v) => v + 1)} disabled={!canNext} className={portalRowSecondary}>Next</button>
               </div>
             </div>
           </>

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionPrimary, portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import {
   getVendorReviews,
   submitHostResponse,
@@ -129,7 +130,7 @@ function ReviewCard({
           <button
             type="button"
             onClick={() => setReplying(true)}
-            className="inline-flex h-9 items-center rounded-xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22 lg:bg-surface"
+            className={portalRowPrimary}
           >
             {t("replyAsHost")}
           </button>
@@ -157,7 +158,7 @@ function ReviewCard({
                   setSubmitError(null);
                 }}
                 disabled={submitting}
-                className="inline-flex h-9 items-center rounded-xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-secondary shadow-sm hover:bg-accent-soft/22 disabled:opacity-50 lg:bg-surface"
+                className={portalRowSecondary}
               >
                 {t("cancel")}
               </button>
@@ -165,7 +166,7 @@ function ReviewCard({
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !responseText.trim()}
-                className="inline-flex h-9 items-center rounded-xl bg-brand px-5 text-sm font-semibold text-white shadow-sm hover:bg-brand/90 disabled:opacity-50"
+                className={portalActionPrimary}
               >
                 {submitting ? t("submitting") : t("submit")}
               </button>
@@ -275,7 +276,7 @@ export default function VendorReviewsPage() {
                 type="button"
                 disabled={state.data.page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="h-8 flex-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition sm:flex-none"
+                className={`${portalRowSecondary} flex-1 sm:flex-none`}
               >
                 {t("prev")}
               </button>
@@ -284,7 +285,7 @@ export default function VendorReviewsPage() {
                 type="button"
                 disabled={state.data.page >= totalPages}
                 onClick={() => setPage((current) => current + 1)}
-                className="h-8 flex-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition sm:flex-none"
+                className={`${portalRowSecondary} flex-1 sm:flex-none`}
               >
                 {t("next")}
               </button>

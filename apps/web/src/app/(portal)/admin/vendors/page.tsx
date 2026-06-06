@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Mail, Search, Users } from "lucide-react";
+import { Building2, Mail, Search } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { HostIllustration } from "@/components/portal/ui/PortalIllustration";
+import { portalRowPrimary } from "@/components/portal/ui/portal-actions";
 import { getAdminVendors } from "@/lib/api/portal/admin";
 
 type AdminVendorsResponse = Awaited<ReturnType<typeof getAdminVendors>>;
@@ -134,6 +135,9 @@ export default function AdminVendorsPage() {
                         <Building2 className="h-3 w-3 shrink-0" />
                         Open vendor detail page
                       </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className={portalRowPrimary}>Open profile</span>
                     </div>
                   </div>
                 </Link>

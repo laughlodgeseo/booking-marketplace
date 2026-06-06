@@ -473,6 +473,20 @@ export async function viewUserCustomerDocument(documentId: string): Promise<Blob
   return unwrap(res);
 }
 
+export async function getUserCustomerDocumentSignedViewUrl(
+  documentId: string
+): Promise<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }> {
+  const res = await apiFetch<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }>(
+    `/portal/user/documents/${encodeURIComponent(documentId)}/signed-view-url`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  return unwrap(res);
+}
+
 export async function deleteUserCustomerDocument(
   documentId: string
 ): Promise<{ ok: true; id: string }> {

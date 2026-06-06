@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import { getVendorProperties, type VendorPropertyListItem } from "@/lib/api/portal/vendor";
 import {
   listPricingRules,
@@ -274,13 +275,13 @@ function RuleCard({
                 onDelete(rule.id);
                 setConfirmDelete(false);
               }}
-              className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+              className="portal-action-danger rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-red-700"
             >
               {t("confirm")}
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="rounded-xl p-1.5 hover:bg-warm-alt/40 transition-colors"
+              className={portalRowSecondary}
               aria-label={t("aria.cancelDelete")}
             >
               <X className="h-4 w-4" />
@@ -500,10 +501,10 @@ function AddRuleForm({
           type="submit"
           disabled={saving || !startDate || !endDate}
           className={cn(
-            "rounded-2xl px-6 py-2.5 text-sm font-semibold text-white transition-colors",
+            portalActionPrimary,
             saving
               ? "bg-brand/50 cursor-not-allowed"
-              : "bg-brand hover:bg-brand-hover",
+              : "",
           )}
         >
           {saving ? t("saving") : t("saveRule")}
@@ -751,7 +752,7 @@ export default function VendorPricingPage() {
           <div className="rounded-3xl ring-1 ring-line/70 bg-surface/90 overflow-hidden">
             <button
               onClick={() => setShowForm(!showForm)}
-              className="w-full flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 hover:bg-warm-alt/30 transition-colors"
+              className="flex w-full items-center justify-between px-4 py-3 text-primary transition-colors hover:bg-indigo-50/70 sm:px-6 sm:py-4"
             >
               <span className="flex items-center gap-2 text-sm font-semibold">
                 <Plus className="h-4 w-4" />

@@ -296,6 +296,18 @@ export class UserPortalController {
     return new StreamableFile(createReadStream(result.absolutePath));
   }
 
+  @Get('documents/:documentId/signed-view-url')
+  async getCustomerDocumentSignedViewUrl(
+    @CurrentUser() user: User,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+  ) {
+    return this.service.getCustomerDocumentSignedViewUrl({
+      userId: user.id,
+      role: user.role,
+      documentId,
+    });
+  }
+
   @Delete('documents/:documentId')
   async deleteCustomerDocument(
     @CurrentUser() user: User,

@@ -21,6 +21,12 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  portalActionDanger,
+  portalActionPrimary,
+  portalRowPrimary,
+  portalRowSecondary,
+} from "@/components/portal/ui/portal-actions";
+import {
   deleteUserCustomerDocument,
   getUserCustomerDocuments,
   uploadUserCustomerDocument,
@@ -576,7 +582,7 @@ export default function AccountDocumentsPage() {
                         disabled={!uploadFile || uploading}
                         className={`flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-sm font-bold tracking-wide shadow-sm transition-all ${
                           uploadFile && !uploading
-                            ? "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98] shadow-[0_4px_12px_rgba(79,70,229,0.30)]"
+                            ? portalActionPrimary
                             : "cursor-not-allowed bg-gray-100 text-gray-400"
                         }`}
                         aria-disabled={!uploadFile || uploading}
@@ -680,7 +686,7 @@ export default function AccountDocumentsPage() {
                                     <Link
                                       href={`/account/documents/${encodeURIComponent(doc.id)}`}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[rgb(210_218_240/0.40)] bg-white px-3 text-[11px] font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition-colors"
+                                      className={portalRowPrimary}
                                     >
                                       <FileText className="h-3 w-3" /> View
                                     </Link>
@@ -688,7 +694,7 @@ export default function AccountDocumentsPage() {
                                       href={`/api${doc.downloadUrl}`}
                                       download
                                       onClick={(e) => e.stopPropagation()}
-                                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[rgb(210_218_240/0.40)] bg-white px-3 text-[11px] font-semibold text-gray-700 hover:border-indigo-300 hover:text-indigo-700 transition-colors"
+                                      className={portalRowSecondary}
                                     >
                                       <Download className="h-3 w-3" /> Download
                                     </a>
@@ -696,7 +702,7 @@ export default function AccountDocumentsPage() {
                                       type="button"
                                       disabled={busy === doc.id}
                                       onClick={(e) => { e.stopPropagation(); void handleDelete(doc); }}
-                                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-200/60 bg-red-50 px-3 text-[11px] font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors"
+                                      className={portalActionDanger}
                                     >
                                       {busy === doc.id ? (
                                         <span className="h-3 w-3 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />

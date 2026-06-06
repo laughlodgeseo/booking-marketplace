@@ -7,6 +7,7 @@ import { ArrowLeft, MessageCircle, Send, Wifi, WifiOff } from "lucide-react";
 import { PortalShell, type PortalRole } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { portalActionPrimary, portalRowPrimary } from "@/components/portal/ui/portal-actions";
 import { useMessagingSocket } from "@/lib/hooks/useMessagingSocket";
 import type {
   MessageThreadDetail,
@@ -311,7 +312,7 @@ export default function PortalMessagesView(props: Props) {
             <button
               type="button"
               onClick={() => setShowComposer(true)}
-              className="inline-flex h-8 items-center gap-1 rounded-lg bg-brand px-3 text-xs font-semibold text-white hover:bg-brand-hover transition"
+              className={portalRowPrimary}
             >
               + New
             </button>
@@ -575,7 +576,7 @@ export default function PortalMessagesView(props: Props) {
             type="button"
             disabled={!newBody.trim() || busyLabel !== null}
             onClick={() => void createThread()}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60 transition"
+                className={portalActionPrimary}
           >
             <Send className="h-3.5 w-3.5" />
             {tPortal("messages.startThread")}

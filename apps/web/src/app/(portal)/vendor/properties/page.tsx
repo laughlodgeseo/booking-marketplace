@@ -16,6 +16,11 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import NetworkErrorState from "@/components/ui/NetworkErrorState";
 import { PropertyIllustration } from "@/components/portal/ui/PortalIllustration";
+import {
+  portalActionPrimary,
+  portalRowPrimary,
+  portalRowSecondary,
+} from "@/components/portal/ui/portal-actions";
 
 import { getVendorProperties, type VendorPropertyListItem } from "@/lib/api/portal/vendor";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -137,7 +142,7 @@ function PropertyCard(props: {
               <Link
                 href={activationHref}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-hover transition"
+                className={portalRowPrimary}
               >
                 Pay &amp; Activate <ArrowRight className="h-3 w-3" />
               </Link>
@@ -150,14 +155,14 @@ function PropertyCard(props: {
           <Link
             href={editHref}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+            className={portalRowPrimary}
           >
             {showContinueEditing ? "Continue editing" : "Edit listing"}
           </Link>
           <Link
             href={previewHref}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 text-[12px] font-semibold text-primary shadow-sm hover:bg-neutral-50 hover:border-neutral-300 transition"
+            className={portalRowSecondary}
           >
             Preview
           </Link>
@@ -177,7 +182,7 @@ function EmptyProperties() {
       </div>
       <Link
         href="/vendor/properties/new"
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+        className={`mt-5 ${portalActionPrimary}`}
       >
         <Plus className="h-4 w-4" /> Create first property
       </Link>
@@ -248,7 +253,7 @@ export default function VendorPropertiesPage() {
       right={
         <Link
           href="/vendor/properties/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+          className={portalActionPrimary}
         >
           <Plus className="h-4 w-4" /> New property
         </Link>
@@ -337,7 +342,7 @@ export default function VendorPropertiesPage() {
                   type="button"
                   disabled={state.page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="h-9 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-primary shadow-sm hover:bg-neutral-50 disabled:opacity-40 transition"
+                  className={portalRowSecondary}
                 >
                   Previous
                 </button>
@@ -345,7 +350,7 @@ export default function VendorPropertiesPage() {
                   type="button"
                   disabled={state.page >= (derived?.totalPages ?? 1)}
                   onClick={() => setPage((p) => p + 1)}
-                  className="h-9 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-primary shadow-sm hover:bg-neutral-50 disabled:opacity-40 transition"
+                  className={portalRowSecondary}
                 >
                   Next
                 </button>

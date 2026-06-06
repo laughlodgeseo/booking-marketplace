@@ -7,6 +7,7 @@ import { MessageSquare, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import {
   getAdminContactSubmissions,
   updateAdminContactSubmissionStatus,
@@ -145,7 +146,7 @@ export default function AdminContactSubmissionsPage() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Link
                           href={`/admin/contact-submissions/${encodeURIComponent(item.id)}`}
-                          className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                          className={portalRowPrimary}
                         >
                           Open detail
                         </Link>
@@ -153,7 +154,7 @@ export default function AdminContactSubmissionsPage() {
                           type="button"
                           disabled={busyId === item.id}
                           onClick={() => void toggleResolved(item)}
-                          className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60 transition"
+                          className={portalRowSecondary}
                         >
                           {item.status === "RESOLVED" ? "Mark open" : "Mark resolved"}
                         </button>

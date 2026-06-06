@@ -6,6 +6,7 @@ import { Ban, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionDanger, portalRowPrimary } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminBlockRequest,
   getAdminBlockRequests,
@@ -169,7 +170,7 @@ export default function AdminBlockRequestsPage() {
                             type="button"
                             disabled={busyId === item.id}
                             onClick={() => void approve(item)}
-                            className="inline-flex h-8 items-center rounded-lg bg-brand px-3 text-xs font-semibold text-white hover:bg-brand-hover disabled:opacity-60 transition"
+                            className={portalRowPrimary}
                           >
                             Approve
                           </button>
@@ -177,7 +178,7 @@ export default function AdminBlockRequestsPage() {
                             type="button"
                             disabled={busyId === item.id}
                             onClick={() => void reject(item)}
-                            className="inline-flex h-8 items-center rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60 transition"
+                            className={portalActionDanger}
                           >
                             Reject
                           </button>

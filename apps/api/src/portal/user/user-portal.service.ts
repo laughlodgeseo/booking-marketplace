@@ -1078,6 +1078,8 @@ export class UserPortalService {
         status: CustomerDocumentStatus.PENDING,
         cloudinaryUrl: uploaded.url,
         cloudinaryPublicId: uploaded.key,
+        cloudinaryResourceType: uploaded.resourceType ?? null,
+        cloudinaryDeliveryType: uploaded.deliveryType ?? null,
         sizeBytes: uploaded.size,
         originalName: file.originalname,
         mimeType: file.mimetype,
@@ -1093,6 +1095,8 @@ export class UserPortalService {
         status: CustomerDocumentStatus.PENDING,
         cloudinaryUrl: uploaded.url,
         cloudinaryPublicId: uploaded.key,
+        cloudinaryResourceType: uploaded.resourceType ?? null,
+        cloudinaryDeliveryType: uploaded.deliveryType ?? null,
         sizeBytes: uploaded.size,
         originalName: file.originalname,
         mimeType: file.mimetype,
@@ -1151,6 +1155,8 @@ export class UserPortalService {
         userId: true,
         fileKey: true,
         cloudinaryPublicId: true,
+        cloudinaryResourceType: true,
+        cloudinaryDeliveryType: true,
         originalName: true,
         mimeType: true,
       },
@@ -1164,7 +1170,11 @@ export class UserPortalService {
     if (doc.cloudinaryPublicId) {
       const signedUrl = await this.storage.getSignedUrl(
         doc.cloudinaryPublicId,
-        { expiresInSeconds: 300 },
+        {
+          expiresInSeconds: 300,
+          resourceType: doc.cloudinaryResourceType ?? 'image',
+          deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
+        },
       );
       return { kind: 'redirect', signedUrl };
     }
@@ -1184,6 +1194,46 @@ export class UserPortalService {
       mimeType: doc.mimeType ?? 'application/octet-stream',
       downloadName: doc.originalName ?? doc.fileKey,
     };
+  }
+
+  async getCustomerDocumentSignedViewUrl(params: {
+    userId: string;
+    role: UserRole;
+    documentId: string;
+  }): Promise<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }> {
+    if (!CUSTOMER_CAPABLE_ROLES.includes(params.role)) {
+      throw new ForbiddenException('Not allowed to access this document.');
+    }
+
+    const doc = await this.prisma.customerDocument.findUnique({
+      where: { id: params.documentId },
+      select: {
+        id: true,
+        userId: true,
+        cloudinaryPublicId: true,
+        cloudinaryResourceType: true,
+        cloudinaryDeliveryType: true,
+        originalName: true,
+        mimeType: true,
+      },
+    });
+
+    if (!doc) throw new NotFoundException('Document not found.');
+    if (doc.userId !== params.userId) {
+      throw new ForbiddenException('Not allowed to access this document.');
+    }
+    if (!doc.cloudinaryPublicId) {
+      throw new NotFoundException('Document not available for preview.');
+    }
+
+    const expiresInSeconds = 300;
+    const url = await this.storage.getSignedUrl(doc.cloudinaryPublicId, {
+      expiresInSeconds,
+      resourceType: doc.cloudinaryResourceType ?? 'image',
+      deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
+    });
+
+    return { url, expiresInSeconds, mimeType: doc.mimeType, fileName: doc.originalName };
   }
 
   async deleteCustomerDocument(params: {

@@ -6,6 +6,7 @@ import { EyeOff } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionDanger, portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminPropertyUnpublishRequest,
   getAdminPropertyUnpublishRequests,
@@ -95,7 +96,7 @@ export default function AdminUnpublishRequestsPage() {
               className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
                 status === value
                   ? "bg-brand text-white shadow-sm"
-                  : "border border-line/50 bg-surface text-primary hover:bg-warm-alt"
+                  : portalRowSecondary
               }`}
             >
               {label}
@@ -148,8 +149,8 @@ export default function AdminUnpublishRequestsPage() {
                         {request.adminNotes ? <div className="mt-1 text-xs text-muted">Admin note: {request.adminNotes}</div> : null}
                         {request.status === "PENDING" ? (
                           <div className="mt-3 flex gap-2">
-                            <button type="button" disabled={busy !== null} onClick={() => void approve(request)} className="inline-flex h-8 items-center rounded-lg bg-success/90 px-3 text-xs font-semibold text-white hover:bg-success disabled:opacity-60 transition">Approve</button>
-                            <button type="button" disabled={busy !== null} onClick={() => void reject(request)} className="inline-flex h-8 items-center rounded-lg bg-danger/90 px-3 text-xs font-semibold text-white hover:bg-danger disabled:opacity-60 transition">Reject</button>
+                            <button type="button" disabled={busy !== null} onClick={() => void approve(request)} className={portalRowPrimary}>Approve</button>
+                            <button type="button" disabled={busy !== null} onClick={() => void reject(request)} className={portalActionDanger}>Reject</button>
                           </div>
                         ) : null}
                       </div>

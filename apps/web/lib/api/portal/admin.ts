@@ -969,6 +969,20 @@ export async function viewAdminCustomerDocument(documentId: string): Promise<Blo
   return unwrap(res);
 }
 
+export async function getAdminCustomerDocumentSignedViewUrl(
+  documentId: string
+): Promise<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }> {
+  const res = await apiFetch<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }>(
+    `/portal/admin/customer-documents/${encodeURIComponent(documentId)}/signed-view-url`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  return unwrap(res);
+}
+
 export async function forceCancelAdminBooking(
   bookingId: string,
   input?: { notes?: string }

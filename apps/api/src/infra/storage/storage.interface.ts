@@ -17,6 +17,10 @@ export interface UploadedFile {
   size: number;
   /** Provider name for traceability. */
   provider: 'local' | 'cloudinary' | 's3';
+  /** Cloudinary resource type (image, raw, video) — only set for cloudinary uploads. */
+  resourceType?: string;
+  /** Cloudinary delivery type (upload, authenticated) — only set for cloudinary uploads. */
+  deliveryType?: string;
 }
 
 export interface UploadOptions {
@@ -33,6 +37,10 @@ export interface UploadOptions {
 export interface SignedUrlOptions {
   /** How long the URL is valid for, in seconds. Default: 3600. */
   expiresInSeconds?: number;
+  /** Cloudinary resource type override (image, raw, video). Defaults to 'image'. */
+  resourceType?: string;
+  /** Cloudinary delivery type override (upload, authenticated). Defaults to 'authenticated'. */
+  deliveryType?: string;
 }
 
 export interface IStorageAdapter {

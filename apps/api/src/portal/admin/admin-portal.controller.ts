@@ -502,6 +502,18 @@ export class AdminPortalController {
     return new StreamableFile(createReadStream(result.absolutePath));
   }
 
+  @Get('customer-documents/:documentId/signed-view-url')
+  async getCustomerDocumentSignedViewUrl(
+    @CurrentUser() user: User,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+  ) {
+    return this.service.getCustomerDocumentSignedViewUrl({
+      userId: user.id,
+      role: user.role,
+      documentId,
+    });
+  }
+
   @Post('customer-documents/:documentId/approve')
   approveCustomerDocument(
     @CurrentUser() user: User,

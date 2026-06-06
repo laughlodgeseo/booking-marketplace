@@ -8,6 +8,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { BookingIllustration } from "@/components/portal/ui/PortalIllustration";
+import { portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import { getVendorBookings } from "@/lib/api/portal/vendor";
 
 type VendorBooking = Awaited<ReturnType<typeof getVendorBookings>>["items"][number];
@@ -69,7 +70,7 @@ function BookingCard({ booking, onOpen }: { booking: VendorBooking; onOpen: () =
               <Link
                 href={`/vendor/bookings/${encodeURIComponent(booking.id)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                className={portalRowPrimary}
               >
                 View details
               </Link>
@@ -197,7 +198,7 @@ export default function VendorBookingsPage() {
                 type="button"
                 disabled={state.data.page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition"
+                className={portalRowSecondary}
               >
                 Previous
               </button>
@@ -205,7 +206,7 @@ export default function VendorBookingsPage() {
                 type="button"
                 disabled={state.data.page >= (derived?.totalPages ?? 1)}
                 onClick={() => setPage((p) => p + 1)}
-                className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition"
+                className={portalRowSecondary}
               >
                 Next
               </button>

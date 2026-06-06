@@ -6,6 +6,7 @@ import { ChevronRight, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { PortalCard } from "@/components/portal/ui/PortalCard";
 import { SectionHeader } from "@/components/portal/ui/SectionHeader";
+import { portalActionSecondary, portalRowPrimary } from "@/components/portal/ui/portal-actions";
 
 const JsonDrawer = dynamic(
   () => import("@/components/portal/ui/JsonDrawer").then((mod) => mod.JsonDrawer),
@@ -68,7 +69,7 @@ function DataRow<Row extends { id?: string }>(props: {
         }
       }}
       className={cn(
-        "group grid grid-cols-12 gap-4 px-4 text-sm transition sm:px-5",
+        "group grid grid-cols-12 gap-3 px-4 text-sm transition sm:px-5",
         props.compact ? "py-3" : "py-4",
         props.clickable
           ? "cursor-pointer hover:bg-accent-soft/22 focus-visible:ring-4 focus-visible:ring-brand/15"
@@ -149,7 +150,7 @@ function MobileDataRow<Row extends { id?: string }>(props: {
               e.stopPropagation();
               props.onRowClick?.(props.row);
             }}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-4 text-sm font-semibold text-accent-text shadow-sm hover:bg-brand-hover"
+            className={portalRowPrimary}
           >
             {props.openLabel}
           </button>
@@ -161,14 +162,14 @@ function MobileDataRow<Row extends { id?: string }>(props: {
             e.stopPropagation();
             props.onMoreDetails(props.row);
           }}
-          className="inline-flex h-11 items-center justify-center rounded-2xl border border-line/45 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22"
+          className={portalActionSecondary}
         >
           {props.moreDetailsLabel}
         </button>
 
         {props.rowActions ? (
           <div
-            className="ml-auto flex flex-wrap items-center gap-2 [&_a]:inline-flex [&_a]:h-11 [&_a]:items-center [&_a]:rounded-2xl [&_a]:px-4 [&_a]:text-sm [&_button]:h-11 [&_button]:rounded-2xl [&_button]:px-4 [&_button]:text-sm"
+            className="ml-auto flex flex-wrap items-center gap-2 [&_a]:min-h-11 [&_a]:px-4 [&_a]:text-sm [&_button]:min-h-11 [&_button]:px-4 [&_button]:text-sm"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
@@ -362,7 +363,7 @@ export function DataTable<Row extends { id?: string }>(props: {
               {variant === "table" ? (
                 <div className="px-4 pb-4 sm:px-5">
                   {props.rows.map((row, idx) => (
-                    <div key={row.id ?? `row_${idx}`} className="rounded-2xl bg-warm-alt/62">
+                    <div key={row.id ?? `row_${idx}`} className="rounded-2xl bg-white/76 shadow-sm ring-1 ring-slate-200/70">
                       <DataRow
                         row={row}
                         columns={props.columns}
@@ -381,7 +382,7 @@ export function DataTable<Row extends { id?: string }>(props: {
                   {props.rows.map((row, idx) => (
                     <div
                       key={row.id ?? `row_${idx}`}
-                      className="overflow-hidden rounded-3xl border border-line/40 bg-warm-alt/66"
+                      className="overflow-hidden rounded-2xl bg-white/78 shadow-sm ring-1 ring-slate-200/70"
                     >
                       <DataRow
                         row={row}

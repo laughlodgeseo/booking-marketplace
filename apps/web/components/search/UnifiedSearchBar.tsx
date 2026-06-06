@@ -284,10 +284,13 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     if (props.variant !== "properties") return;
     const urlCheckIn = searchParams.get("checkIn") ?? "";
     const urlCheckOut = searchParams.get("checkOut") ?? "";
-    setDraft((s) => {
-      if (s.checkIn === urlCheckIn && s.checkOut === urlCheckOut) return s;
-      return { ...s, checkIn: urlCheckIn, checkOut: urlCheckOut };
-    });
+    const timer = window.setTimeout(() => {
+      setDraft((s) => {
+        if (s.checkIn === urlCheckIn && s.checkOut === urlCheckOut) return s;
+        return { ...s, checkIn: urlCheckIn, checkOut: urlCheckOut };
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [searchParams, props.variant]);
 
   useEffect(() => {

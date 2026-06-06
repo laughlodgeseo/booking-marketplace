@@ -8,6 +8,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { DataTable, type Column } from "@/components/portal/ui/DataTable";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonTable } from "@/components/portal/ui/Skeleton";
+import { portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
 import {
   getAdminReviewQueue,
   type AdminReviewQueueItem,
@@ -79,7 +80,8 @@ export default function AdminReviewQueuePage() {
   }, [status, page, pageSize]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const filteredItems = useMemo(() => {
@@ -193,7 +195,7 @@ export default function AdminReviewQueuePage() {
                 className={`h-8 shrink-0 rounded-lg px-3 text-xs font-semibold transition ${
                   status === value
                     ? "bg-brand text-white shadow-sm"
-                    : "border border-line/50 bg-surface text-primary hover:bg-warm-alt"
+                    : "portal-row-secondary"
                 }`}
               >
                 {label}
@@ -249,7 +251,7 @@ export default function AdminReviewQueuePage() {
               rowActions={(row) => (
                 <Link
                   href={`/admin/review-queue/${encodeURIComponent(row.id)}`}
-                  className="inline-flex h-8 items-center rounded-lg bg-brand px-3 text-xs font-semibold text-accent-text shadow-sm transition hover:bg-brand-hover hover:shadow-md active:scale-95"
+                  className={portalRowPrimary}
                 >
                   Review
                 </Link>
@@ -264,7 +266,7 @@ export default function AdminReviewQueuePage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="h-8 rounded-lg border border-line/60 px-3 text-xs font-semibold text-primary transition hover:bg-warm-alt disabled:opacity-40"
+                className={portalRowSecondary}
               >
                 Previous
               </button>
@@ -275,7 +277,7 @@ export default function AdminReviewQueuePage() {
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="h-8 rounded-lg border border-line/60 px-3 text-xs font-semibold text-primary transition hover:bg-warm-alt disabled:opacity-40"
+                className={portalRowSecondary}
               >
                 Next
               </button>
