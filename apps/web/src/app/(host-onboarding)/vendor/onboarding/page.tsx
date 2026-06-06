@@ -736,47 +736,53 @@ export default function VendorOnboardingPage() {
     useState<OnboardingStateResponse | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
-
-  const load = useCallback(async () => {
-    if (status === "loading") return;
-    if (status === "anonymous") return;
-
-    setPhase("loading");
-    try {
-      const state = await getHostOnboardingState();
-      setOnboardingState(state);
-
-      switch (state.status) {
-        case "CUSTOMER":
-          setPhase("customer-welcome");
-          break;
-        case "FIRST_TIME":
-          setPhase("vendor-first-time");
-          break;
-        case "HAS_DRAFT":
-          setPhase("vendor-has-draft");
-          break;
-        case "SUBMITTED":
-          setPhase("vendor-submitted");
-          break;
-        case "CHANGES_REQUESTED":
-          setPhase("vendor-changes-requested");
-          break;
-        case "REJECTED":
-          setPhase("vendor-rejected");
-          break;
-        case "HAS_PROPERTIES":
-          router.replace("/vendor/properties");
-          return;
-      }
-    } catch {
-      setPhase("error");
-    }
-  }, [status, router]);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (status === "loading" || status === "anonymous") return;
+
+    let alive = true;
+
+    async function run() {
+      setPhase("loading");
+      try {
+        const state = await getHostOnboardingState();
+        if (!alive) return;
+        setOnboardingState(state);
+
+        switch (state.status) {
+          case "CUSTOMER":
+            setPhase("customer-welcome");
+            break;
+          case "FIRST_TIME":
+            setPhase("vendor-first-time");
+            break;
+          case "HAS_DRAFT":
+            setPhase("vendor-has-draft");
+            break;
+          case "SUBMITTED":
+            setPhase("vendor-submitted");
+            break;
+          case "CHANGES_REQUESTED":
+            setPhase("vendor-changes-requested");
+            break;
+          case "REJECTED":
+            setPhase("vendor-rejected");
+            break;
+          case "HAS_PROPERTIES":
+            router.replace("/vendor/properties");
+            return;
+        }
+      } catch {
+        if (alive) setPhase("error");
+      }
+    }
+
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [status, router, reloadKey]);
 
   const handleStartOnboarding = useCallback(async () => {
     setStartError(null);
@@ -822,7 +828,7 @@ export default function VendorOnboardingPage() {
               Please refresh the page to try again.
             </div>
             <button
-              onClick={() => void load()}
+              onClick={() => setReloadKey((k) => k + 1)}
               className="site-cta-primary mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition"
             >
               Try again
@@ -870,7 +876,7 @@ export default function VendorOnboardingPage() {
     starting,
     onboardingState,
     handleStartOnboarding,
-    load,
+    setReloadKey,
   ]);
 
   return (
