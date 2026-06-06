@@ -32,11 +32,11 @@ export function SimpleBarChart(props: {
   const total = props.points.reduce((sum, p) => sum + p.value, 0);
 
   return (
-    <PortalCard className="rounded-2xl p-4 sm:p-5 lg:p-6" as="div">
+    <PortalCard className="rounded-2xl p-4 sm:p-5" as="div">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <div className="text-base font-semibold text-primary lg:text-sm">{props.title}</div>
-          {props.subtitle ? <div className="mt-1 text-xs text-muted">{props.subtitle}</div> : null}
+          <div className="text-sm font-semibold text-primary">{props.title}</div>
+          {props.subtitle ? <div className="mt-0.5 text-[11px] text-muted">{props.subtitle}</div> : null}
         </div>
         <div className="text-right">
           <div className="text-lg font-semibold text-primary">{formatValue(total)}{props.valueSuffix ?? ""}</div>
@@ -44,7 +44,7 @@ export function SimpleBarChart(props: {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-2">
+      <div className="mt-4 grid gap-1.5">
         {props.points.length === 0 ? (
           <div className="text-sm text-secondary">{tPortal("chart.noData")}</div>
         ) : (

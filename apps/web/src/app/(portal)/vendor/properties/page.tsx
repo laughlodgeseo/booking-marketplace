@@ -81,8 +81,8 @@ function PropertyCard(props: {
         <div className="flex flex-wrap items-start justify-between gap-3">
           {/* Property identity */}
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                 <Building2 className="h-4 w-4" />
               </div>
               <div className="min-w-0">
@@ -94,24 +94,26 @@ function PropertyCard(props: {
             </div>
           </div>
 
-          {/* Status + price */}
+          {/* Status pill */}
           <div className="flex shrink-0 items-center gap-2">
             <StatusPill status={property.status}>{prettyStatus(property.status)}</StatusPill>
           </div>
         </div>
 
         {/* Meta row */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           <div className="flex items-center gap-1.5 text-[11px] text-muted">
-            <CalendarDays className="h-3.5 w-3.5" />
+            <CalendarDays className="h-3 w-3" />
             Updated {formatDate(property.updatedAt || property.createdAt)}
           </div>
           {property.priceFrom ? (
-            <div className="text-[11px] font-semibold text-secondary">
+            <div className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
               From AED {property.priceFrom} / night
             </div>
           ) : null}
-          <div className="font-mono text-[10px] text-muted/60">{property.slug}</div>
+          {property.slug ? (
+            <div className="font-mono text-[10px] text-muted/50">{property.slug}</div>
+          ) : null}
         </div>
 
         {/* Activation payment CTA */}
@@ -148,14 +150,14 @@ function PropertyCard(props: {
           <Link
             href={editHref}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-[12px] font-semibold text-white hover:bg-brand-hover transition"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
           >
             {showContinueEditing ? "Continue editing" : "Edit listing"}
           </Link>
           <Link
             href={previewHref}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line/50 bg-surface px-3 text-[12px] font-semibold text-primary hover:bg-warm-alt transition"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 text-[12px] font-semibold text-primary shadow-sm hover:bg-neutral-50 hover:border-neutral-300 transition"
           >
             Preview
           </Link>
@@ -335,7 +337,7 @@ export default function VendorPropertiesPage() {
                   type="button"
                   disabled={state.page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="h-9 rounded-xl border border-line/50 bg-surface px-4 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition"
+                  className="h-9 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-primary shadow-sm hover:bg-neutral-50 disabled:opacity-40 transition"
                 >
                   Previous
                 </button>
@@ -343,7 +345,7 @@ export default function VendorPropertiesPage() {
                   type="button"
                   disabled={state.page >= (derived?.totalPages ?? 1)}
                   onClick={() => setPage((p) => p + 1)}
-                  className="h-9 rounded-xl border border-line/50 bg-surface px-4 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition"
+                  className="h-9 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-primary shadow-sm hover:bg-neutral-50 disabled:opacity-40 transition"
                 >
                   Next
                 </button>

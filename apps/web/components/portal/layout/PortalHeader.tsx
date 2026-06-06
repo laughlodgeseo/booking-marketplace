@@ -23,7 +23,7 @@ export function initials(email: string): string {
 const ROLE_BADGE: Record<string, { bg: string; text: string; dot: string }> = {
   customer: { bg: "bg-indigo-50 ring-1 ring-indigo-200/60", text: "text-indigo-700", dot: "bg-indigo-400" },
   vendor:   { bg: "bg-brand/10 ring-1 ring-brand/20",       text: "text-brand",      dot: "bg-brand" },
-  admin:    { bg: "bg-slate-100 ring-1 ring-slate-200/60",   text: "text-slate-700",  dot: "bg-slate-500" },
+  admin:    { bg: "bg-indigo-50 ring-1 ring-indigo-200/60",   text: "text-indigo-800", dot: "bg-indigo-600" },
 };
 
 export function PortalHeader(props: {

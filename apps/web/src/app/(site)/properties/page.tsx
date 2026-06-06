@@ -75,40 +75,54 @@ export default async function PropertiesPage(props: PageProps) {
       {/* ── Premium indigo hero ─────────────────────────────────────── */}
       <section className="site-hero-shell relative overflow-x-hidden pt-[72px] sm:pt-[80px]">
         {/* Subtle geometry grid */}
-        <div className="site-hero-grid pointer-events-none absolute inset-0 opacity-30" />
+        <div className="site-hero-grid pointer-events-none absolute inset-0 opacity-25" />
 
-        {/* Soft radial glows */}
-        <div className="pointer-events-none absolute -left-32 bottom-0 h-64 w-64 rounded-full bg-indigo-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-indigo-200/16 blur-3xl" />
+        {/* Ambient glows */}
+        <div className="pointer-events-none absolute -left-24 bottom-0 h-48 w-48 rounded-full bg-indigo-300/18 blur-3xl" />
+        <div className="pointer-events-none absolute -right-12 top-6 h-36 w-36 rounded-full bg-indigo-200/14 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pt-10 lg:px-8">
-          {/* Eyebrow */}
-          <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-[#b87333]" aria-hidden="true" />
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[#b87333]">
-              {t("eyebrow")}
-            </p>
+        <div className="relative mx-auto max-w-7xl px-4 pb-6 pt-5 sm:px-6 sm:pb-7 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-7">
+          {/* Top row: eyebrow + optional property count badge */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3 w-3 text-[#b87333]" aria-hidden="true" />
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#b87333]">
+                {t("eyebrow")}
+              </p>
+            </div>
+            {meta?.total ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/18 bg-white/12 px-3 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                {meta.total} {meta.total === 1 ? "property" : "properties"} available
+              </span>
+            ) : null}
           </div>
 
-          {/* Hero heading — Cormorant Garamond via globals.css site-shell h1 rule */}
-          <h1 className="mt-2 max-w-2xl text-[2.2rem] leading-[1.1] text-white sm:text-[2.8rem] lg:text-[3.4rem]">
-            {t("title")}
-          </h1>
+          {/* Two-column layout on large: heading left, search spanning full */}
+          <div className="mt-2 lg:grid lg:grid-cols-[1fr_auto] lg:items-end lg:gap-8">
+            <div>
+              {/* Hero heading — Cormorant Garamond via site-shell rule */}
+              <h1 className="max-w-2xl text-[1.85rem] leading-[1.1] text-white sm:text-[2.4rem] lg:text-[2.9rem]">
+                {t("title")}
+              </h1>
+              {/* Subheading */}
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/72 sm:text-[0.9rem]">
+                {t("subtitle")}
+              </p>
+            </div>
+          </div>
 
-          {/* Subheading */}
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/74 sm:text-base">
-            {t("subtitle")}
-          </p>
-
-          {/* Search card — elevated white panel */}
-          <div className="mt-6 rounded-2xl border border-white/18 bg-white/96 p-3 shadow-[0_20px_56px_rgba(15,10,60,0.28)] backdrop-blur-sm sm:p-4">
-            <UnifiedSearchBar
-              variant="properties"
-              defaultQ={query.q}
-              defaultGuests={query.guests}
-              defaultCheckIn={query.checkIn}
-              defaultCheckOut={query.checkOut}
-            />
+          {/* Search module — clean integrated panel */}
+          <div className="mt-4 overflow-hidden rounded-2xl border border-white/20 bg-white/96 shadow-[0_12px_36px_rgba(15,10,60,0.22)] backdrop-blur-sm sm:mt-5">
+            <div className="px-2.5 py-2.5 sm:px-3 sm:py-3">
+              <UnifiedSearchBar
+                variant="properties"
+                defaultQ={query.q}
+                defaultGuests={query.guests}
+                defaultCheckIn={query.checkIn}
+                defaultCheckOut={query.checkOut}
+              />
+            </div>
           </div>
         </div>
       </section>

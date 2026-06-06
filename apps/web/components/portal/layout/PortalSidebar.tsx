@@ -55,14 +55,14 @@ const ROLE_STYLE: Record<string, {
     accentText:  "text-brand",
   },
   admin: {
-    roleChip:    "bg-slate-100 text-slate-700 ring-1 ring-slate-200/60",
-    roleDot:     "bg-slate-500",
-    activeItem:  "bg-slate-100 text-slate-800",
-    activeIcon:  "bg-slate-200 text-slate-700",
-    activeBullet: "bg-slate-600",
-    signedInBg:  "bg-gradient-to-br from-slate-100 to-slate-50",
-    avatarBg:    "bg-slate-700",
-    accentText:  "text-slate-700",
+    roleChip:    "bg-indigo-50 text-indigo-800 ring-1 ring-indigo-200/60",
+    roleDot:     "bg-indigo-600",
+    activeItem:  "bg-indigo-50 text-indigo-800",
+    activeIcon:  "bg-indigo-100 text-indigo-700",
+    activeBullet: "bg-indigo-700",
+    signedInBg:  "bg-gradient-to-br from-indigo-50/80 to-slate-50",
+    avatarBg:    "bg-indigo-700",
+    accentText:  "text-indigo-700",
   },
 };
 

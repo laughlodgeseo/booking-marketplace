@@ -220,12 +220,12 @@ export function PortalAvailabilityCalendar(props: {
   }
 
   const propertySelector = (
-    <label className="flex items-center gap-3 rounded-2xl bg-surface/82 px-4 py-3 ring-1 ring-line/24">
-      <span className="text-xs font-semibold tracking-wide text-muted">{tPortal("calendar.propertyLabel")}</span>
+    <label className="flex min-w-0 items-center gap-2">
+      <span className="shrink-0 text-[11px] font-semibold text-muted">{tPortal("calendar.propertyLabel")}</span>
       <select
         value={selectedPropertyId ?? data?.selectedPropertyId ?? ""}
         onChange={(event) => setSelectedPropertyId(event.target.value || null)}
-        className="w-full bg-transparent text-sm font-semibold text-primary outline-none"
+        className="min-w-0 flex-1 truncate rounded-lg border border-neutral-200/70 bg-neutral-50 px-2.5 py-1.5 text-sm font-semibold text-primary outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
         disabled={!data || data.properties.length === 0}
       >
         {(data?.properties ?? []).map((property) => (

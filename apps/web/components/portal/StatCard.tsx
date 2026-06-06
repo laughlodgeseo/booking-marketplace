@@ -43,10 +43,10 @@ export function StatCard(props: StatCardProps) {
         ? ROLE_ICON_PLATE[props.roleAccent]
         : "card-icon-plate";
 
-  const pad = compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5 lg:p-6";
+  const pad = compact ? "p-3.5 sm:p-4" : "p-4 sm:p-5";
   const valueSize = compact
     ? "mt-1.5 text-xl font-semibold text-primary sm:text-2xl"
-    : "mt-2 text-2xl font-semibold text-primary sm:text-3xl";
+    : "mt-2 text-xl font-semibold text-primary sm:text-2xl";
   const iconSize = compact ? "h-8 w-8 rounded-xl" : "h-10 w-10 rounded-2xl";
 
   return (

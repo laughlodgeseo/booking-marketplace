@@ -1202,6 +1202,54 @@ textarea {
     letter-spacing: -0.025em;
     line-height: 1.1;
   }
+
+  /* ── Calendar premium cell — used in portal availability calendar ── */
+  .cal-cell {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .cal-cell:active {
+    transform: scale(0.96);
+  }
+
+  /* ── Portal admin accent — uses indigo brand (not slate) ── */
+  .portal-role-admin {
+    --portal-role-accent-rgb: 67 56 202;
+    --portal-role-soft-rgb: 67 56 202;
+    --portal-role-name-color: rgb(67 56 202 / 0.82);
+    --portal-role-badge-bg: rgb(67 56 202 / 0.10);
+    --portal-role-badge-color: rgb(49 46 129);
+    --portal-header-tint: linear-gradient(135deg, rgb(67 56 202 / 0.08) 0%, rgb(79 70 229 / 0.04) 100%);
+  }
+
+  /* ── Solid outline button — visible on white & light surfaces ── */
+  .btn-outline-solid {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(var(--line-strong-rgb) / 0.7);
+    background: #ffffff;
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    transition: background 200ms ease, border-color 200ms ease;
+  }
+
+  .btn-outline-solid:hover {
+    background: rgb(var(--color-bg-2-rgb));
+    border-color: rgb(var(--line-strong-rgb));
+  }
+
+  /* ── Hero search panel — more integrated feeling ── */
+  .hero-search-panel {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 12px 36px rgba(15, 10, 60, 0.22);
+    backdrop-filter: blur(8px);
+  }
 }
 
 @keyframes preloaderFade {

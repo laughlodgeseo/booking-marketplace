@@ -89,11 +89,11 @@ function tone(status: SharedAvailabilityStatus): {
 } {
   if (status === "AVAILABLE") {
     return {
-      fill: "bg-emerald-500/18",
-      hoverFill: "hover:bg-emerald-500/28",
+      fill: "bg-emerald-500/14",
+      hoverFill: "hover:bg-emerald-500/24",
       rail: "bg-emerald-500/85",
       dot: "bg-emerald-500",
-      chipBg: "bg-emerald-500/14",
+      chipBg: "bg-emerald-100",
       chipText: "text-emerald-700",
       focusRing: "focus-visible:ring-emerald-400/30",
     };
@@ -101,11 +101,11 @@ function tone(status: SharedAvailabilityStatus): {
 
   if (status === "BOOKED") {
     return {
-      fill: "bg-rose-500/18",
-      hoverFill: "hover:bg-rose-500/26",
+      fill: "bg-rose-500/14",
+      hoverFill: "hover:bg-rose-500/22",
       rail: "bg-rose-500/85",
       dot: "bg-rose-500",
-      chipBg: "bg-rose-500/14",
+      chipBg: "bg-rose-100",
       chipText: "text-rose-700",
       focusRing: "focus-visible:ring-rose-400/30",
     };
@@ -113,53 +113,70 @@ function tone(status: SharedAvailabilityStatus): {
 
   if (status === "HOLD") {
     return {
-      fill: "bg-amber-400/20",
-      hoverFill: "hover:bg-amber-400/28",
+      fill: "bg-amber-400/16",
+      hoverFill: "hover:bg-amber-400/24",
       rail: "bg-amber-400/90",
       dot: "bg-amber-400",
-      chipBg: "bg-amber-400/18",
+      chipBg: "bg-amber-100",
       chipText: "text-amber-700",
       focusRing: "focus-visible:ring-amber-400/30",
     };
   }
 
-  // BLOCKED — cool slate
+  // BLOCKED — neutral
   return {
-    fill: "bg-slate-400/14",
-    hoverFill: "hover:bg-slate-400/20",
-    rail: "bg-slate-400/80",
-    dot: "bg-slate-400",
-    chipBg: "bg-slate-100",
-    chipText: "text-slate-600",
-    focusRing: "focus-visible:ring-slate-400/25",
+    fill: "bg-neutral-200/50",
+    hoverFill: "hover:bg-neutral-200/70",
+    rail: "bg-neutral-400/70",
+    dot: "bg-neutral-400",
+    chipBg: "bg-neutral-200",
+    chipText: "text-neutral-600",
+    focusRing: "focus-visible:ring-neutral-400/25",
   };
 }
 
-function LegendPill(props: { status: SharedAvailabilityStatus; label: string }) {
+/* ── Legend pill — two variants ─────────────────────────────── */
+function LegendPill(props: {
+  status: SharedAvailabilityStatus;
+  label: string;
+  solid?: boolean;
+}) {
   const t = tone(props.status);
+  const bg = props.solid
+    ? "bg-neutral-100 ring-1 ring-neutral-200/70"
+    : "bg-white/86 ring-1 ring-white/72 shadow-sm";
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/86 px-2.5 py-1 shadow-sm ring-1 ring-white/72">
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1", bg)}>
       <span className={cn("h-2 w-2 rounded-full", t.dot)} />
-      <span className="text-xs font-semibold text-primary">{props.label}</span>
+      <span className="text-[11px] font-semibold text-primary">{props.label}</span>
     </span>
   );
 }
 
-/* ── Month navigation header ────────────────────────────────────── */
+/* ── Month navigation header ────────────────────────────────── */
 function CalendarNavHeader(props: {
   month: Date;
   onPrev: () => void;
   onNext: () => void;
   compact?: boolean;
+  darkBg?: boolean;
 }) {
+  const btnBase = props.darkBg
+    ? "bg-white/18 ring-1 ring-white/30 text-white hover:bg-white/28"
+    : "bg-white ring-1 ring-neutral-200/80 text-primary shadow-sm hover:bg-neutral-50";
+  const labelBase = props.darkBg
+    ? "bg-white/18 ring-1 ring-white/30 text-white"
+    : "bg-white ring-1 ring-neutral-200/80 text-primary shadow-sm";
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <button
         type="button"
         onClick={props.onPrev}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl bg-white/90 text-primary shadow-sm ring-1 ring-white/72 hover:bg-white active:scale-95 transition",
+          "inline-flex items-center justify-center rounded-lg transition active:scale-95",
           props.compact ? "h-8 w-8" : "h-9 w-9",
+          btnBase,
         )}
         aria-label="Previous month"
       >
@@ -167,8 +184,9 @@ function CalendarNavHeader(props: {
       </button>
 
       <div className={cn(
-        "rounded-xl bg-white/90 px-3 py-1.5 font-semibold text-primary shadow-sm ring-1 ring-white/72",
+        "rounded-lg px-3 py-1.5 font-semibold",
         props.compact ? "text-sm" : "text-sm",
+        labelBase,
       )}>
         {format(props.month, "MMMM yyyy")}
       </div>
@@ -177,8 +195,9 @@ function CalendarNavHeader(props: {
         type="button"
         onClick={props.onNext}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl bg-white/90 text-primary shadow-sm ring-1 ring-white/72 hover:bg-white active:scale-95 transition",
+          "inline-flex items-center justify-center rounded-lg transition active:scale-95",
           props.compact ? "h-8 w-8" : "h-9 w-9",
+          btnBase,
         )}
         aria-label="Next month"
       >
@@ -188,7 +207,7 @@ function CalendarNavHeader(props: {
   );
 }
 
-/* ── Day Cell ───────────────────────────────────────────────────── */
+/* ── Day Cell ────────────────────────────────────────────────── */
 function DayCell(props: {
   day: Date;
   status: SharedAvailabilityStatus;
@@ -201,37 +220,45 @@ function DayCell(props: {
   onClick?: () => void;
   isPublicPremium?: boolean;
 }) {
-  const { day, status, selected, isRangeStart, isRangeEnd, isRangeMiddle, isCurrentMonth } = props;
+  const { day, status, selected, isRangeStart, isRangeEnd, isCurrentMonth } = props;
   const t = tone(status);
   const srLabel = labelForStatus(status, props.role);
   const blockedPattern = props.isPublicPremium && (status === "BOOKED" || status === "BLOCKED");
   const dotColor = blockedPattern ? "bg-black/40" : t.dot;
+  const isEdge = selected && (isRangeStart || isRangeEnd);
 
   const cellClass = cn(
-    "relative overflow-hidden transition outline-none",
-    // Size: tiny on mobile, comfortable on desktop
+    "relative overflow-hidden transition-all outline-none",
+    // Public premium: square cells
     props.isPublicPremium
-      ? "aspect-square rounded-lg p-1 shadow-[0_4px_10px_rgba(11,15,25,0.07)]"
-      : "rounded-xl p-1.5 shadow-[0_4px_10px_rgba(11,15,25,0.06)] h-10 sm:h-14",
-    "ring-1 ring-black/5",
-    t.fill,
-    t.hoverFill,
-    selected && isRangeMiddle && "bg-emerald-500/18 ring-emerald-400/20",
-    selected && (isRangeStart || isRangeEnd) && "!bg-emerald-600 ring-0",
-    !isCurrentMonth && "opacity-40",
-    blockedPattern && "bg-black/[0.05] hover:bg-black/[0.07]",
-    selected && "ring-2 ring-emerald-500/45",
+      ? "aspect-square rounded-lg p-1 shadow-[0_2px_6px_rgba(11,15,25,0.06)]"
+      : "rounded-lg p-1.5 h-9 sm:h-11",
+    // Ring
+    props.isPublicPremium ? "ring-1 ring-black/5" : "ring-1 ring-black/[0.04]",
+    // Background fill
+    isEdge ? "!bg-indigo-600 ring-0" : t.fill,
+    props.isPublicPremium && isEdge && "!bg-emerald-600",
+    !isEdge && props.isPublicPremium && blockedPattern
+      ? "bg-black/[0.05] hover:bg-black/[0.07]"
+      : !isEdge && t.hoverFill,
+    // Range middle tint
+    selected && props.isRangeMiddle && !isEdge && "!bg-indigo-100/60 ring-indigo-200/30",
+    props.isPublicPremium && selected && props.isRangeMiddle && "!bg-emerald-500/18 ring-emerald-400/20",
+    // Disabled month days
+    !isCurrentMonth && "opacity-35",
+    // Blocked pattern overlay
+    blockedPattern &&
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[repeating-linear-gradient(135deg,rgba(17,24,39,0.07)_0,rgba(17,24,39,0.07)_1.5px,transparent_1.5px,transparent_7px)]",
+    // Focus ring
     "focus-visible:ring-4",
     t.focusRing,
     props.onClick && "cursor-pointer active:scale-[0.97]",
-    blockedPattern &&
-      "before:pointer-events-none before:absolute before:inset-0 before:bg-[repeating-linear-gradient(135deg,rgba(17,24,39,0.07)_0,rgba(17,24,39,0.07)_1.5px,transparent_1.5px,transparent_7px)]",
   );
 
   const content = props.isPublicPremium ? (
     <>
       <div className="flex items-start justify-between">
-        <span className={cn("text-xs font-semibold leading-none", selected && (isRangeStart || isRangeEnd) ? "text-white" : "text-primary")}>
+        <span className={cn("text-xs font-semibold leading-none", isEdge ? "text-white" : "text-primary")}>
           {format(day, "d")}
         </span>
         <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} aria-hidden="true" />
@@ -240,17 +267,15 @@ function DayCell(props: {
     </>
   ) : (
     <>
-      {/* Status rail — left edge */}
-      <div className={cn("pointer-events-none absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-full", t.rail)} />
-      <div className="flex items-start justify-between gap-1 pl-2">
-        <span className={cn("text-xs font-semibold leading-none", selected && (isRangeStart || isRangeEnd) ? "text-white" : "text-primary")}>
+      <div className="flex items-start justify-between">
+        <span className={cn("text-[11px] font-semibold leading-none sm:text-xs", isEdge ? "text-white" : "text-primary")}>
           {format(day, "d")}
         </span>
-        <span className={cn("mt-0.5 h-2 w-2 shrink-0 rounded-full", dotColor)} aria-hidden="true" />
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotColor)} aria-hidden="true" />
       </div>
-      {/* Status label — hidden on very small, visible sm+ */}
-      <div className="mt-1 hidden pl-2 sm:block">
-        <span className={cn("inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide", t.chipBg, t.chipText)}>
+      {/* Status chip — sm+ only, hidden on mobile to keep cells compact */}
+      <div className="mt-1 hidden sm:block">
+        <span className={cn("inline-flex rounded-md px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide", t.chipBg, t.chipText)}>
           {srLabel.slice(0, 4)}
         </span>
       </div>
@@ -268,7 +293,7 @@ function DayCell(props: {
   return <div className={cellClass}>{content}</div>;
 }
 
-/* ── Main calendar component ────────────────────────────────────── */
+/* ── Main calendar component ─────────────────────────────────── */
 export function SharedAvailabilityCalendar(props: {
   role: SharedAvailabilityRole;
   month: Date;
@@ -312,14 +337,13 @@ export function SharedAvailabilityCalendar(props: {
     if (delta > 0) props.onMonthChange(addMonths(props.month, -1));
   }
 
-  /* ── Calendar grid ──────────────────────────────────────────── */
+  /* ── Calendar grid ───────────────────────────────────────── */
   const calendarGrid = (
     <div
       className={cn(
-        "rounded-2xl p-2.5 shadow-sm ring-1 ring-white/70",
         isPublicPremium
-          ? "bg-white/74 p-2"
-          : "bg-white/80 sm:p-3",
+          ? "rounded-xl bg-white/74 p-2 shadow-sm ring-1 ring-white/70"
+          : "rounded-xl bg-neutral-50/60",
       )}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -327,12 +351,12 @@ export function SharedAvailabilityCalendar(props: {
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-wide text-muted">
         {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((label) => (
-          <div key={label} className="py-1">{label}</div>
+          <div key={label} className="py-1.5">{label}</div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
+      <div className="mt-1 grid grid-cols-7 gap-1">
         {gridDays.map((day) => {
           const rawStatus = dayMap.get(toIsoDay(day)) ?? "AVAILABLE";
           const status = normalizeStatusByRole(rawStatus, props.role);
@@ -360,7 +384,7 @@ export function SharedAvailabilityCalendar(props: {
     </div>
   );
 
-  /* ── Public premium variant ─────────────────────────────────── */
+  /* ── Public premium variant ──────────────────────────────── */
   if (isPublicPremium) {
     return (
       <section
@@ -385,7 +409,7 @@ export function SharedAvailabilityCalendar(props: {
         <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_200px]">
           <div>{calendarGrid}</div>
           <aside className="space-y-3">
-            <div className="rounded-2xl bg-white/78 p-3 ring-1 ring-white/72">
+            <div className="rounded-xl bg-white/78 p-3 ring-1 ring-white/72">
               <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Legend</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {legend.map((item) => (
@@ -393,7 +417,7 @@ export function SharedAvailabilityCalendar(props: {
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl bg-white/78 p-3 ring-1 ring-white/72">
+            <div className="rounded-xl bg-white/78 p-3 ring-1 ring-white/72">
               <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Policy notes</div>
               <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-secondary">
                 <li>Rates and availability refresh in real time.</li>
@@ -414,19 +438,21 @@ export function SharedAvailabilityCalendar(props: {
     );
   }
 
-  /* ── Portal (default) variant ───────────────────────────────── */
+  /* ── Portal (default) variant — premium redesign ─────────── */
   return (
-    <section
+    <div
       className={cn(
-        "premium-card-tinted rounded-2xl p-4 shadow-sm sm:p-5",
+        "overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm",
         props.className,
       )}
     >
-      {/* Header row */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* Header band — indigo-tinted, contains title + month nav */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 bg-gradient-to-br from-indigo-50/60 to-slate-50/20 px-4 py-3 sm:px-5">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-primary">{props.title}</div>
-          {props.subtitle ? <div className="mt-0.5 text-xs text-secondary">{props.subtitle}</div> : null}
+          {props.subtitle ? (
+            <div className="mt-0.5 text-[11px] text-secondary">{props.subtitle}</div>
+          ) : null}
         </div>
         <CalendarNavHeader
           month={props.month}
@@ -437,41 +463,23 @@ export function SharedAvailabilityCalendar(props: {
       </div>
 
       {/* Property selector + legend row */}
-      <div
-        className={cn(
-          "mt-3 grid gap-2",
-          props.propertySelector
-            ? "lg:grid-cols-[1fr_auto] lg:items-center"
-            : "sm:flex sm:items-center sm:justify-end",
-        )}
-      >
-        {props.propertySelector ?? null}
-
-        {/* Desktop legend */}
-        <div className="hidden flex-wrap items-center gap-2 sm:flex">
+      <div className="flex flex-wrap items-center gap-3 border-b border-neutral-100 px-4 py-2.5 sm:px-5">
+        {props.propertySelector ? (
+          <div className="min-w-0 flex-1">{props.propertySelector}</div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-1.5">
           {legend.map((item) => (
-            <LegendPill key={item.status} status={item.status} label={item.label} />
+            <LegendPill key={item.status} status={item.status} label={item.label} solid />
           ))}
         </div>
-
-        {/* Mobile collapsible legend */}
-        <details className="sm:hidden">
-          <summary className="cursor-pointer rounded-xl bg-white/86 px-3 py-2 text-xs font-semibold text-primary shadow-sm ring-1 ring-white/72">
-            Calendar legend ▸
-          </summary>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {legend.map((item) => (
-              <LegendPill key={`m-${item.status}`} status={item.status} label={item.label} />
-            ))}
-          </div>
-        </details>
       </div>
 
-      {/* Swipe hint — mobile only */}
-      <p className="mt-1.5 text-[10px] text-muted sm:hidden">Swipe calendar to change month.</p>
-
-      {/* Grid */}
-      <div className="mt-3">{calendarGrid}</div>
-    </section>
+      {/* Calendar grid body */}
+      <div className="p-3 sm:p-4">
+        {/* Mobile swipe hint */}
+        <p className="mb-2 text-[10px] text-muted sm:hidden">Swipe left or right to change month.</p>
+        {calendarGrid}
+      </div>
+    </div>
   );
 }
