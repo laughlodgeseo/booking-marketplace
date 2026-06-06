@@ -577,6 +577,159 @@ textarea {
     }
   }
 
+  /* ====== PORTAL ROLE THEMES ====== */
+  /* Customer portal: calm lavender/blue tint */
+  .portal-role-customer {
+    --portal-role-accent-rgb: 99 102 241;       /* soft indigo-blue */
+    --portal-role-soft-rgb: 99 102 241;
+    --portal-role-name-color: rgb(99 102 241 / 0.82);
+    --portal-role-badge-bg: rgb(99 102 241 / 0.10);
+    --portal-role-badge-color: rgb(79 70 229);
+    --portal-header-tint: linear-gradient(135deg, rgb(99 102 241 / 0.06) 0%, rgb(79 70 229 / 0.03) 100%);
+  }
+
+  /* Vendor portal: deep indigo operations console */
+  .portal-role-vendor {
+    --portal-role-accent-rgb: 79 70 229;        /* deep indigo */
+    --portal-role-soft-rgb: 79 70 229;
+    --portal-role-name-color: rgb(79 70 229 / 0.90);
+    --portal-role-badge-bg: rgb(79 70 229 / 0.12);
+    --portal-role-badge-color: rgb(67 56 202);
+    --portal-header-tint: linear-gradient(135deg, rgb(79 70 229 / 0.09) 0%, rgb(67 56 202 / 0.04) 100%);
+  }
+
+  /* Admin portal: deep navy command center */
+  .portal-role-admin {
+    --portal-role-accent-rgb: 30 58 138;        /* deep navy */
+    --portal-role-soft-rgb: 30 58 138;
+    --portal-role-name-color: rgb(30 58 138 / 0.80);
+    --portal-role-badge-bg: rgb(30 58 138 / 0.10);
+    --portal-role-badge-color: rgb(30 58 138);
+    --portal-header-tint: linear-gradient(135deg, rgb(30 58 138 / 0.07) 0%, rgb(79 70 229 / 0.04) 100%);
+  }
+
+  /* Portal command bar — filter/search row above tables */
+  .portal-command-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(var(--line-rgb) / 0.14);
+    background: rgb(var(--color-surface-rgb) / 0.92);
+    padding: 0.625rem 0.875rem;
+    box-shadow: 0 1px 3px rgba(33, 39, 53, 0.05);
+  }
+
+  /* Premium select input for portal filter bars */
+  .portal-select {
+    height: 2.25rem;
+    border-radius: 0.65rem;
+    border: 1px solid rgb(var(--line-rgb) / 0.22);
+    background: rgb(var(--color-bg-2-rgb) / 0.80);
+    padding-inline: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 200ms, box-shadow 200ms;
+    cursor: pointer;
+  }
+
+  .portal-select:focus {
+    border-color: rgb(var(--color-accent-rgb) / 0.45);
+    box-shadow: 0 0 0 3px rgb(var(--color-accent-rgb) / 0.12);
+  }
+
+  /* Property/record card with status color accent */
+  .portal-record-card {
+    position: relative;
+    border-radius: 1.25rem;
+    border: 1px solid rgb(var(--line-rgb) / 0.14);
+    background: rgb(var(--color-surface-rgb) / 0.94);
+    box-shadow: 0 4px 14px rgba(33, 39, 53, 0.07);
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+    overflow: hidden;
+  }
+
+  .portal-record-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(33, 39, 53, 0.11);
+    border-color: rgb(var(--color-accent-rgb) / 0.20);
+  }
+
+  .portal-record-card-status-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 0 0 0 0;
+  }
+
+  /* Thread list item for messages */
+  .portal-thread-item {
+    display: block;
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid rgb(var(--line-rgb) / 0.16);
+    background: rgb(var(--color-surface-rgb) / 0.90);
+    padding: 0.75rem;
+    text-align: left;
+    transition: all 200ms ease;
+    cursor: pointer;
+  }
+
+  .portal-thread-item:hover {
+    background: rgb(var(--color-bg-2-rgb) / 0.92);
+    border-color: rgb(var(--color-accent-rgb) / 0.22);
+    transform: translateX(2px);
+  }
+
+  .portal-thread-item-active {
+    background: rgb(var(--color-accent-rgb) / 0.08);
+    border-color: rgb(var(--color-accent-rgb) / 0.34);
+  }
+
+  .portal-thread-item-active:hover {
+    background: rgb(var(--color-accent-rgb) / 0.11);
+    transform: none;
+  }
+
+  /* Avatar circle */
+  .portal-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+
+  /* Quick action tile */
+  .portal-quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(var(--line-rgb) / 0.14);
+    background: rgb(var(--color-surface-rgb) / 0.90);
+    transition: all 200ms ease;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .portal-quick-action:hover {
+    border-color: rgb(var(--color-accent-rgb) / 0.26);
+    background: rgb(var(--color-surface-rgb) / 0.98);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(33, 39, 53, 0.09);
+  }
+
   /* ✅ Portal-wide background (use in PortalShell with fixed inset layer) */
   .portal-shell-bg {
     background:

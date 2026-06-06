@@ -92,7 +92,8 @@
     "shell": {
       "openNavigation": "فتح تنقّل البوابة",
       "closeNavigation": "إغلاق تنقّل البوابة",
-      "userFallback": "مستخدم"
+      "userFallback": "مستخدم",
+      "loggingOut": "جارٍ تسجيل الخروج..."
     },
     "table": {
       "open": "فتح",

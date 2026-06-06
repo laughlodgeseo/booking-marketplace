@@ -92,7 +92,8 @@
     "shell": {
       "openNavigation": "Open portal navigation",
       "closeNavigation": "Close portal navigation",
-      "userFallback": "User"
+      "userFallback": "User",
+      "loggingOut": "Logging out..."
     },
     "table": {
       "open": "Open",
