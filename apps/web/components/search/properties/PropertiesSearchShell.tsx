@@ -347,7 +347,7 @@ export default function PropertiesSearchShell(props: Props) {
               type="button"
               onClick={() => setViewMode("cards")}
               className={[
-                "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
+                "h-9 flex-1 rounded-full px-3.5 text-sm font-medium transition sm:flex-none",
                 viewMode === "cards" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
               ].join(" ")}
             >
@@ -357,7 +357,7 @@ export default function PropertiesSearchShell(props: Props) {
               type="button"
               onClick={() => setViewMode("map")}
               className={[
-                "h-11 flex-1 rounded-full px-4 text-sm font-medium transition sm:flex-none",
+                "h-9 flex-1 rounded-full px-3.5 text-sm font-medium transition sm:flex-none",
                 viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "bg-transparent text-primary hover:bg-surface/70",
               ].join(" ")}
             >
@@ -368,7 +368,7 @@ export default function PropertiesSearchShell(props: Props) {
       </div>
 
       {viewMode === "cards" ? (
-        renderResultsSection("grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-7")
+        renderResultsSection("grid w-full max-w-full grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-6")
       ) : (
         <div ref={mapSectionRef} className="grid w-full max-w-full gap-4 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)] lg:gap-6">
           <div

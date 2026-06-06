@@ -244,7 +244,7 @@ export default function TourmPropertyCard({
   return (
     <article
       className={[
-        "premium-card premium-card-tinted premium-card-hover group relative flex h-full cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 ease-out hover:-translate-y-3 hover:shadow-[0_34px_80px_rgba(11,15,25,0.24)] hover:ring-1 hover:ring-indigo-300/45 before:!bg-[linear-gradient(180deg,rgb(99_102_241_/_0.12),transparent_68%)]",
+        "premium-card premium-card-tinted premium-card-hover group relative flex h-full cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(30,27,75,0.10)] hover:ring-1 hover:ring-indigo-200/70 before:!bg-[linear-gradient(180deg,rgb(99_102_241_/_0.12),transparent_68%)]",
         isHorizontal ? "flex-col md:h-[22rem] md:flex-row" : "flex-col",
       ].join(" ")}
       onClick={(event) => {
@@ -257,7 +257,7 @@ export default function TourmPropertyCard({
         className={
           isHorizontal
             ? "relative h-[17rem] w-full overflow-hidden md:h-full md:w-[54%] lg:w-[56%] xl:w-[58%]"
-            : "relative h-[19rem] w-full overflow-hidden md:h-[20rem] lg:h-[22rem] xl:h-[24rem]"
+            : "relative w-full overflow-hidden aspect-[16/10]"
         }
       >
         {slideCount > 0 ? (
@@ -292,7 +292,7 @@ export default function TourmPropertyCard({
                   alt={slide.alt}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 640px"
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.1]"
+                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 />
               </Link>
             ))}
@@ -328,33 +328,31 @@ export default function TourmPropertyCard({
         ) : null}
       </div>
 
-        <div className={isHorizontal ? "flex flex-1 flex-col gap-3 p-4 md:p-5 lg:p-6" : "flex flex-1 flex-col gap-3 p-4 md:p-5"}>
-        <div className="flex-1 flex flex-col gap-2.5">
-          <div className="inline-flex items-center self-start rounded-full bg-indigo-100/85 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+      <div className={isHorizontal ? "flex flex-1 flex-col gap-2 p-3.5 md:p-5 lg:p-5" : "flex flex-1 flex-col gap-2 p-3 md:p-4"}>
+        <div className="flex-1 flex flex-col gap-1.5">
+          <div className="inline-flex items-center self-start rounded-full bg-indigo-100/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-700">
             {propertyType}
           </div>
-          <h3 className="line-clamp-2 text-base font-semibold leading-snug tracking-tight text-primary md:text-xl">
+          <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight text-primary">
             <Link href={`/properties/${item.slug}`} className="transition hover:text-secondary">
               {title}
             </Link>
           </h3>
 
-          {meta ? <p className="line-clamp-1 text-sm text-neutral-500">{meta}</p> : null}
+          {meta ? <p className="line-clamp-1 text-xs text-neutral-500">{meta}</p> : null}
         </div>
 
         {isHorizontal ? (
-          <div className="mt-auto space-y-3 pt-3">
-            <div className="flex flex-wrap gap-2">
-              {amenityPills.map((pill) => (
-                <span key={pill} className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {pill}
-                </span>
-              ))}
-            </div>
+          <div className="mt-auto space-y-2 pt-2">
+            {amenityPills.length > 0 ? (
+              <p className="text-xs font-medium text-neutral-500">
+                {amenityPills.join(" · ")}
+              </p>
+            ) : null}
 
-            <div className="flex items-center justify-between gap-3 border-t border-neutral-200/70 pt-3">
+            <div className="flex items-center justify-between gap-2 border-t border-neutral-200/70 pt-2">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-primary">
+                <p className="text-[15px] font-semibold text-primary">
                   {price ? t("perNight", { price }) : t("priceOnRequest")}
                 </p>
                 {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
@@ -362,35 +360,23 @@ export default function TourmPropertyCard({
 
               <Link
                 href={`/properties/${item.slug}#book`}
-                className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
                 {t("view")}
               </Link>
             </div>
           </div>
         ) : (
-          <div className="mt-auto space-y-3 pt-3">
-            <div className="flex flex-wrap gap-2">
-              {guests ? (
-                <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {t("guests", { count: guests })}
-                </span>
-              ) : null}
-              {beds ? (
-                <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {t("beds", { count: beds })}
-                </span>
-              ) : null}
-              {baths ? (
-                <span className="rounded-full bg-indigo-100/85 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {t("baths", { count: baths })}
-                </span>
-                ) : null}
-            </div>
+          <div className="mt-auto space-y-2 pt-2">
+            {amenityPills.length > 0 ? (
+              <p className="text-xs font-medium text-neutral-500">
+                {amenityPills.join(" · ")}
+              </p>
+            ) : null}
 
-            <div className="flex items-center justify-between gap-3 border-t border-neutral-200/70 pt-3">
+            <div className="flex items-center justify-between gap-2 border-t border-neutral-200/70 pt-2">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-primary">
+                <p className="text-[15px] font-semibold text-primary">
                   {price ? t("perNight", { price }) : t("priceOnRequest")}
                 </p>
                 {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
@@ -398,7 +384,7 @@ export default function TourmPropertyCard({
 
               <Link
                 href={`/properties/${item.slug}#book`}
-                className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
                 {t("view")}
               </Link>
