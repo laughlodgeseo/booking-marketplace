@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ClipboardList, RefreshCw, Search } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
-import { CardList, type CardListItem } from "@/components/portal/ui/CardList";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { getVendorOpsTasks } from "@/lib/api/portal/vendor";
@@ -15,36 +15,35 @@ type ViewState =
   | { kind: "error"; message: string }
   | { kind: "ready"; data: Awaited<ReturnType<typeof getVendorOpsTasks>> };
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null) return null;
-  return value as Record<string, unknown>;
+function asRecord(v: unknown): Record<string, unknown> | null {
+  return typeof v === "object" && v !== null ? (v as Record<string, unknown>) : null;
+}
+function getString(v: unknown, key: string): string | null {
+  const r = asRecord(v);
+  if (!r) return null;
+  return typeof r[key] === "string" ? (r[key] as string) : null;
 }
 
-function getString(value: unknown, key: string): string | null {
-  const row = asRecord(value);
-  if (!row) return null;
-  const raw = row[key];
-  return typeof raw === "string" ? raw : null;
+function prettyStatus(s: string): string {
+  return s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function fmtDate(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
+function prettyType(t: string): string {
+  return t.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function toneForStatus(status: string | null): "neutral" | "success" | "warning" | "danger" {
-  const s = (status ?? "").toUpperCase();
-  if (s.includes("DONE") || s.includes("COMPLETE")) return "success";
-  if (s.includes("FAIL") || s.includes("CANCEL")) return "danger";
-  if (s.includes("OPEN") || s.includes("PENDING")) return "warning";
-  return "neutral";
+function formatDate(v: string | null): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return v;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
 }
 
 export default function VendorOpsTasksPage() {
   const router = useRouter();
   const [state, setState] = useState<ViewState>({ kind: "loading" });
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   useEffect(() => {
     let alive = true;
@@ -56,74 +55,117 @@ export default function VendorOpsTasksPage() {
         setState({ kind: "ready", data });
       } catch (err) {
         if (!alive) return;
-        setState({
-          kind: "error",
-          message: err instanceof Error ? err.message : "Failed to load ops tasks",
-        });
+        setState({ kind: "error", message: err instanceof Error ? err.message : "Failed to load ops tasks" });
       }
     }
     void run();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
-  const items = useMemo<CardListItem[]>(() => {
-    if (state.kind !== "ready") return [];
-
-    return (state.data.items ?? []).map((row, index) => {
-      const id = getString(row, "id") ?? `task-${index}`;
-      const type = getString(row, "type") ?? "Task";
-      const status = getString(row, "status") ?? "UNKNOWN";
-      const bookingId = getString(row, "bookingId") ?? "—";
-      const propertyId = getString(row, "propertyId") ?? "—";
-      const dueAt = getString(row, "dueAt") ?? getString(row, "scheduledAt");
-
-      return {
-        id,
-        title: type,
-        subtitle: `Due: ${fmtDate(dueAt)}`,
-        status: <StatusPill tone={toneForStatus(status)}>{status}</StatusPill>,
-        meta: (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-full bg-warm-alt px-3 py-1 font-semibold text-secondary">Task: {id}</span>
-            <span className="rounded-full bg-warm-alt px-3 py-1 font-semibold text-secondary">Property: {propertyId}</span>
-            <span className="rounded-full bg-warm-alt px-3 py-1 font-semibold text-secondary">Booking: {bookingId}</span>
-          </div>
-        ),
-        actions: (
-          <Link
-            href={`/vendor/ops-tasks/${encodeURIComponent(id)}`}
-            className="rounded-xl border border-line/80 bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-warm-alt"
-          >
-            Open page
-          </Link>
-        ),
-        onClick: () => {
-          router.push(`/vendor/ops-tasks/${encodeURIComponent(id)}`);
-        },
-      };
-    });
-  }, [router, state]);
+  const { statuses, filtered } = useMemo(() => {
+    if (state.kind !== "ready") return { statuses: [], filtered: [] };
+    const items = state.data.items ?? [];
+    const statuses = Array.from(new Set(items.map((r) => getString(r, "status")).filter(Boolean) as string[])).sort();
+    const q = query.trim().toLowerCase();
+    const filtered = items
+      .filter((r) => statusFilter === "ALL" || getString(r, "status") === statusFilter)
+      .filter((r) => !q || JSON.stringify(r).toLowerCase().includes(q));
+    return { statuses, filtered };
+  }, [state, query, statusFilter]);
 
   return (
     <PortalShell role="vendor" title="Ops Tasks" subtitle="Operational tasks generated from bookings and workflows">
-      {state.kind === "loading" ? (
-        <div className="space-y-3">
-          <SkeletonBlock className="h-24" />
-          <SkeletonBlock className="h-24" />
+      <div className="space-y-4">
+        <div className="portal-command-bar">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search tasks..."
+              className="h-9 w-full rounded-lg bg-neutral-50 pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-neutral-200/60 focus:ring-2 focus:ring-brand/20 focus:bg-white transition-all"
+            />
+          </div>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="portal-select">
+            <option value="ALL">All statuses</option>
+            {statuses.map((s) => <option key={s} value={s}>{prettyStatus(s)}</option>)}
+          </select>
+          {state.kind === "ready" ? (
+            <div className="ml-auto text-[11px] text-muted">{filtered.length} tasks</div>
+          ) : null}
         </div>
-      ) : state.kind === "error" ? (
-        <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">{state.message}</div>
-      ) : (
-        <CardList
-          title="Ops tasks"
-          subtitle="Open detail pages for each task"
-          items={items}
-          emptyTitle="No ops tasks"
-          emptyDescription="No active tasks found for your listings."
-        />
-      )}
+
+        {state.kind === "loading" ? (
+          <div className="space-y-3">
+            <SkeletonBlock className="h-20" />
+            <SkeletonBlock className="h-20" />
+          </div>
+        ) : state.kind === "error" ? (
+          <div className="rounded-2xl border border-danger/20 bg-danger/8 p-5">
+            <div className="text-sm font-semibold text-primary">Could not load tasks</div>
+            <div className="mt-1 text-sm text-secondary">{state.message}</div>
+            <button type="button" onClick={() => setState({ kind: "loading" })} className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+              <ClipboardList className="h-5 w-5" />
+            </div>
+            <div className="mt-3 text-sm font-semibold text-primary">No ops tasks</div>
+            <div className="mt-1 text-xs text-muted">No active tasks found for your listings.</div>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {filtered.map((row, index) => {
+              const id = getString(row, "id") ?? `task-${index}`;
+              const type = getString(row, "type") ?? "Task";
+              const status = getString(row, "status") ?? "UNKNOWN";
+              const dueAt = getString(row, "dueAt") ?? getString(row, "scheduledAt");
+              const bookingId = getString(row, "bookingId");
+
+              return (
+                <article
+                  key={id}
+                  onClick={() => router.push(`/vendor/ops-tasks/${encodeURIComponent(id)}`)}
+                  className="portal-record-card group cursor-pointer"
+                >
+                  <div className="px-4 py-4 sm:px-5">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand transition group-hover:bg-brand/16">
+                        <ClipboardList className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <div className="text-sm font-semibold text-primary">{prettyType(type)}</div>
+                            {dueAt ? <div className="mt-0.5 text-[11px] text-muted">Due {formatDate(dueAt)}</div> : null}
+                          </div>
+                          <StatusPill status={status}>{prettyStatus(status)}</StatusPill>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-lg bg-neutral-100 px-2 py-0.5 font-mono text-[10px] text-muted">#{id.slice(0, 8)}</span>
+                            {bookingId ? <span className="rounded-lg bg-neutral-100 px-2 py-0.5 text-[11px] text-secondary">Booking #{bookingId.slice(0, 8)}</span> : null}
+                          </div>
+                          <Link
+                            href={`/vendor/ops-tasks/${encodeURIComponent(id)}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                          >
+                            View task
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </PortalShell>
   );
 }

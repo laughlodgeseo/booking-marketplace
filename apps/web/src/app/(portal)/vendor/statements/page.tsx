@@ -2,36 +2,40 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { FileText, RefreshCw, Search } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
-import { Toolbar } from "@/components/portal/ui/Toolbar";
-import { DataTable, type Column } from "@/components/portal/ui/DataTable";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
-import { DateText } from "@/components/portal/ui/DateText";
-import { MoneyText } from "@/components/portal/ui/MoneyText";
-import { SkeletonTable } from "@/components/portal/ui/Skeleton";
-
+import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { vendorListStatements, type VendorStatementListItem } from "@/lib/api/portal/finance";
 
 type ViewState =
   | { kind: "loading" }
   | { kind: "error"; message: string }
-  | {
-      kind: "ready";
-      items: VendorStatementListItem[];
-      page: number;
-      pageSize: number;
-      total: number;
-    };
+  | { kind: "ready"; items: VendorStatementListItem[]; page: number; pageSize: number; total: number };
 
 function safeInt(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
 
-function monthLabel(periodStartISO: string): string {
-  const d = new Date(periodStartISO);
-  if (Number.isNaN(d.getTime())) return periodStartISO;
-  return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+function prettyStatus(s: string): string {
+  return s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function monthLabel(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleString("en-US", { month: "long", year: "numeric" });
+}
+
+function formatMoney(amount: number | null | undefined, currency: string | null | undefined): string {
+  if (amount == null) return "—";
+  const cur = (currency ?? "AED").toUpperCase();
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: cur, maximumFractionDigits: 0 }).format(amount);
+  } catch {
+    return `${cur} ${amount.toLocaleString()}`;
+  }
 }
 
 export default function VendorStatementsPage() {
@@ -40,192 +44,136 @@ export default function VendorStatementsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const nav = useMemo(
-    () => [
-      { href: "/vendor", label: "Overview" },
-      { href: "/vendor/analytics", label: "Analytics" },
-      { href: "/vendor/properties", label: "Properties" },
-      { href: "/vendor/bookings", label: "Bookings" },
-      { href: "/vendor/calendar", label: "Calendar" },
-      { href: "/vendor/ops-tasks", label: "Ops Tasks" },
-      { href: "/vendor/statements", label: "Statements" },
-    ],
-    []
-  );
-
   useEffect(() => {
     let alive = true;
-
     async function run() {
       setState({ kind: "loading" });
       try {
         const res = await vendorListStatements({ page, pageSize });
         const items = Array.isArray(res.items) ? res.items : [];
-        const resolvedPage = safeInt(res.page, page);
-        const resolvedPageSize = safeInt(res.pageSize, pageSize);
-        const resolvedTotal = safeInt(res.total, items.length);
-
         if (!alive) return;
         setState({
           kind: "ready",
           items,
-          page: resolvedPage,
-          pageSize: resolvedPageSize,
-          total: resolvedTotal,
+          page: safeInt(res.page, page),
+          pageSize: safeInt(res.pageSize, pageSize),
+          total: safeInt(res.total, items.length),
         });
       } catch (e) {
         if (!alive) return;
-        setState({
-          kind: "error",
-          message: e instanceof Error ? e.message : "Failed to load statements",
-        });
+        setState({ kind: "error", message: e instanceof Error ? e.message : "Failed to load statements" });
       }
     }
-
     void run();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [page]);
 
   const filtered = useMemo(() => {
     if (state.kind !== "ready") return [];
     const qq = q.trim().toLowerCase();
     if (!qq) return state.items;
-
-    return state.items.filter((s) => {
-      const blob = [
-        s.id,
-        s.vendorId,
-        s.status,
-        s.currency,
-        s.periodStart,
-        s.periodEnd,
-      ]
-        .join(" | ")
-        .toLowerCase();
-      return blob.includes(qq);
-    });
+    return state.items.filter((s) =>
+      [s.id, s.vendorId, s.status, s.currency, s.periodStart, s.periodEnd].join(" | ").toLowerCase().includes(qq)
+    );
   }, [state, q]);
 
   const canPrev = state.kind === "ready" ? state.page > 1 : false;
-  const canNext =
-    state.kind === "ready" ? state.page * state.pageSize < state.total : false;
-
-  const columns = useMemo<Array<Column<VendorStatementListItem>>>(() => {
-    return [
-      {
-        key: "period",
-        header: "Period",
-        className: "col-span-4",
-        render: (row) => (
-          <div>
-            <div className="font-semibold text-primary">
-              {monthLabel(row.periodStart)}
-            </div>
-            <div className="mt-1 text-xs text-secondary">
-              <span className="font-mono">{row.id}</span>
-            </div>
-          </div>
-        ),
-      },
-      {
-        key: "status",
-        header: "Status",
-        className: "col-span-2",
-        render: (row) => <StatusPill status={row.status} />,
-      },
-      {
-        key: "net",
-        header: "Net Payable",
-        className: "col-span-3",
-        render: (row) => (
-          <div className="text-primary">
-            <MoneyText amount={row.netPayable} currency={row.currency} />
-            <div className="mt-1 text-xs text-secondary">
-              Gross: <MoneyText amount={row.grossBookings} currency={row.currency} />
-            </div>
-          </div>
-        ),
-      },
-      {
-        key: "generatedAt",
-        header: "Generated",
-        className: "col-span-3",
-        render: (row) => <DateText value={row.generatedAt} />,
-      },
-    ];
-  }, []);
+  const canNext = state.kind === "ready" ? state.page * state.pageSize < state.total : false;
 
   return (
-    <PortalShell role="vendor" title="Statements" nav={nav}>
-      {state.kind === "loading" ? (
-        <div className="space-y-4">
-          <Toolbar
-            title="Monthly statements"
-            subtitle="Your payout-ready monthly summaries (gross, fees, refunds, adjustments)."
-            onSearch={setQ}
-            searchPlaceholder="Search by id, status, month…"
-          />
-          <SkeletonTable rows={8} />
-        </div>
-      ) : state.kind === "error" ? (
-        <div className="rounded-2xl border border-line/70 bg-surface shadow-sm p-6">
-          <div className="text-sm font-semibold text-primary">
-            Could not load statements
+    <PortalShell role="vendor" title="Statements" subtitle="Monthly payout summaries — gross, fees, refunds, adjustments">
+      <div className="space-y-4">
+        {/* Command bar */}
+        <div className="portal-command-bar">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by ID, month, status..."
+              className="h-9 w-full rounded-lg bg-neutral-50 pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-neutral-200/60 focus:ring-2 focus:ring-brand/20 focus:bg-white transition-all"
+            />
           </div>
-          <div className="mt-2 text-sm text-secondary whitespace-pre-wrap">
-            {state.message}
-          </div>
+          {state.kind === "ready" ? (
+            <div className="ml-auto text-[11px] text-muted">{filtered.length} statements</div>
+          ) : null}
         </div>
-      ) : (
-        <div className="space-y-4">
-          <Toolbar
-            title="Monthly statements"
-            subtitle="Open a statement to view its ledger breakdown."
-            onSearch={setQ}
-            searchPlaceholder="Search by id, status, month…"
-          />
 
-          <DataTable
-            title="Statements"
-            subtitle="Click View to open statement detail."
-            rows={filtered}
-            columns={columns}
-            empty="No statements yet."
-            rowActions={(row) => (
-              <Link
-                href={`/vendor/statements/${encodeURIComponent(row.id)}`}
-                className="rounded-lg border border-line/70 bg-surface px-3 py-1.5 text-xs font-semibold text-primary hover:bg-warm-alt"
-              >
-                View
-              </Link>
-            )}
-          />
-
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              disabled={!canPrev}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-xl border border-line/70 bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
-            >
-              Prev
+        {state.kind === "loading" ? (
+          <div className="space-y-3">
+            <SkeletonBlock className="h-20" />
+            <SkeletonBlock className="h-20" />
+            <SkeletonBlock className="h-20" />
+          </div>
+        ) : state.kind === "error" ? (
+          <div className="rounded-2xl border border-danger/20 bg-danger/8 p-5">
+            <div className="text-sm font-semibold text-primary">Could not load statements</div>
+            <div className="mt-1 text-sm text-secondary">{state.message}</div>
+            <button type="button" onClick={() => setState({ kind: "loading" })} className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
             </button>
-            <div className="text-sm text-secondary">
-              Page {state.page} {state.total ? `· ${state.total} total` : ""}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+              <FileText className="h-5 w-5" />
             </div>
-            <button
-              type="button"
-              disabled={!canNext}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-xl border border-line/70 bg-surface px-4 py-2 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
-            >
-              Next
-            </button>
+            <div className="mt-3 text-sm font-semibold text-primary">No statements yet</div>
+            <div className="mt-1 text-xs text-muted">Monthly statements appear here once generated.</div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid gap-3">
+            {filtered.map((statement) => (
+              <article key={statement.id} className="portal-record-card">
+                <div className="px-4 py-4 sm:px-5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-primary">{monthLabel(statement.periodStart)}</div>
+                          <div className="mt-0.5 font-mono text-[10px] text-muted">{statement.id}</div>
+                        </div>
+                        <StatusPill status={statement.status}>{prettyStatus(statement.status)}</StatusPill>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          <div className="rounded-lg bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                            Net: {formatMoney(statement.netPayable, statement.currency)}
+                          </div>
+                          <div className="rounded-lg bg-neutral-100 px-2 py-0.5 text-[11px] text-secondary">
+                            Gross: {formatMoney(statement.grossBookings, statement.currency)}
+                          </div>
+                        </div>
+                        <Link
+                          href={`/vendor/statements/${encodeURIComponent(statement.id)}`}
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                        >
+                          View statement
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {state.kind === "ready" && (canPrev || canNext) ? (
+          <div className="flex items-center justify-between rounded-xl border border-line/40 bg-surface/80 px-4 py-3">
+            <div className="text-xs text-muted">Page {state.page} · {state.total} total</div>
+            <div className="flex gap-2">
+              <button type="button" disabled={!canPrev} onClick={() => setPage((p) => Math.max(1, p - 1))} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Previous</button>
+              <button type="button" disabled={!canNext} onClick={() => setPage((p) => p + 1)} className="h-8 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition">Next</button>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </PortalShell>
   );
 }

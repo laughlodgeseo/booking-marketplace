@@ -80,7 +80,7 @@ function ReviewCard({
   }
 
   return (
-    <div className="rounded-3xl border border-line/40 bg-warm-base/95 p-5 shadow-sm ring-1 ring-line/10 lg:bg-surface">
+    <div className="portal-record-card">
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
@@ -129,7 +129,7 @@ function ReviewCard({
           <button
             type="button"
             onClick={() => setReplying(true)}
-            className="inline-flex h-10 items-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22 lg:bg-surface"
+            className="inline-flex h-9 items-center rounded-xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm hover:bg-accent-soft/22 lg:bg-surface"
           >
             {t("replyAsHost")}
           </button>
@@ -157,7 +157,7 @@ function ReviewCard({
                   setSubmitError(null);
                 }}
                 disabled={submitting}
-                className="inline-flex h-10 items-center rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-secondary shadow-sm hover:bg-accent-soft/22 disabled:opacity-50 lg:bg-surface"
+                className="inline-flex h-9 items-center rounded-xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-secondary shadow-sm hover:bg-accent-soft/22 disabled:opacity-50 lg:bg-surface"
               >
                 {t("cancel")}
               </button>
@@ -165,7 +165,7 @@ function ReviewCard({
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !responseText.trim()}
-                className="inline-flex h-10 items-center rounded-2xl bg-brand px-5 text-sm font-semibold text-white shadow-sm hover:bg-brand/90 disabled:opacity-50"
+                className="inline-flex h-9 items-center rounded-xl bg-brand px-5 text-sm font-semibold text-white shadow-sm hover:bg-brand/90 disabled:opacity-50"
               >
                 {submitting ? t("submitting") : t("submit")}
               </button>
@@ -241,11 +241,11 @@ export default function VendorReviewsPage() {
           <SkeletonBlock className="h-40" />
         </div>
       ) : state.kind === "error" ? (
-        <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">
+        <div className="rounded-2xl border border-danger/20 bg-danger/8 p-5 text-sm text-danger">
           {state.message}
         </div>
       ) : state.data.items.length === 0 ? (
-        <div className="rounded-3xl border border-line/40 bg-warm-base/95 p-8 text-center shadow-sm lg:bg-surface">
+        <div className="rounded-2xl border border-dashed border-line/60 p-8 text-center">
           <p className="text-sm font-semibold text-primary">{t("noReviews")}</p>
           <p className="mt-1 text-xs text-secondary">
             {t("noReviewsHint")}
@@ -275,7 +275,7 @@ export default function VendorReviewsPage() {
                 type="button"
                 disabled={state.data.page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm disabled:opacity-50 sm:flex-none lg:bg-surface"
+                className="h-8 flex-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition sm:flex-none"
               >
                 {t("prev")}
               </button>
@@ -284,7 +284,7 @@ export default function VendorReviewsPage() {
                 type="button"
                 disabled={state.data.page >= totalPages}
                 onClick={() => setPage((current) => current + 1)}
-                className="h-11 flex-1 rounded-2xl border border-line/50 bg-warm-base/95 px-4 text-sm font-semibold text-primary shadow-sm disabled:opacity-50 sm:flex-none lg:bg-surface"
+                className="h-8 flex-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-40 transition sm:flex-none"
               >
                 {t("next")}
               </button>

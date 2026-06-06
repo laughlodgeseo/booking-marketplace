@@ -2,14 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Mail, Users } from "lucide-react";
+import { Building2, Mail, Search, Users } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
-import { Toolbar } from "@/components/portal/ui/Toolbar";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
-import { EmptyState } from "@/components/portal/ui/EmptyState";
-
 import { getAdminVendors } from "@/lib/api/portal/admin";
 
 type AdminVendorsResponse = Awaited<ReturnType<typeof getAdminVendors>>;
@@ -28,12 +25,8 @@ function pickVendorString(vendor: VendorRow, keys: ReadonlyArray<string>): strin
   return null;
 }
 
-function toneForStatus(status?: string | null) {
-  if (!status) return "neutral" as const;
-  if (status.includes("APPROV") || status.includes("ACTIVE")) return "success" as const;
-  if (status.includes("PENDING") || status.includes("REVIEW")) return "warning" as const;
-  if (status.includes("REJECT") || status.includes("BLOCK") || status.includes("SUSPEND")) return "danger" as const;
-  return "neutral" as const;
+function prettyStatus(s: string): string {
+  return s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function initials(email?: string | null) {
@@ -56,58 +49,54 @@ export default function AdminVendorsPage() {
         setState({ kind: "ready", data });
       } catch (error) {
         if (!alive) return;
-        setState({
-          kind: "error",
-          message: error instanceof Error ? error.message : "Failed to load vendors",
-        });
+        setState({ kind: "error", message: error instanceof Error ? error.message : "Failed to load vendors" });
       }
     }
     void run();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   const vendors = useMemo(() => {
     if (state.kind !== "ready") return [];
     const query = q.trim().toLowerCase();
     if (!query) return state.data.items;
-
-    return state.data.items.filter((vendor) =>
-      JSON.stringify(vendor).toLowerCase().includes(query)
-    );
+    return state.data.items.filter((vendor) => JSON.stringify(vendor).toLowerCase().includes(query));
   }, [state, q]);
 
   return (
-    <PortalShell
-      role="admin"
-      title="Vendors"
-      subtitle="Open each vendor profile as a full page"
-    >
-      <div className="space-y-6">
-        <Toolbar
-          title="Registered vendors"
-          subtitle="Detail pages include agreements, property portfolio, and quick links."
-          searchPlaceholder="Search vendor, email, company…"
-          onSearch={setQ}
-        />
+    <PortalShell role="admin" title="Vendors" subtitle="Open each vendor profile as a full page">
+      <div className="space-y-4">
+        <div className="portal-command-bar">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search vendor, email, company..."
+              className="h-9 w-full rounded-lg bg-neutral-50 pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-neutral-200/60 focus:ring-2 focus:ring-brand/20 focus:bg-white transition-all"
+            />
+          </div>
+          {state.kind === "ready" ? (
+            <div className="ml-auto text-[11px] text-muted">{vendors.length} vendors</div>
+          ) : null}
+        </div>
 
         {state.kind === "loading" ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <SkeletonBlock key={idx} className="h-32" />
-            ))}
+            {Array.from({ length: 6 }).map((_, idx) => <SkeletonBlock key={idx} className="h-28" />)}
           </div>
         ) : state.kind === "error" ? (
-          <div className="rounded-3xl border border-danger/30 bg-danger/12 p-6 text-sm text-danger">
+          <div className="rounded-2xl border border-danger/20 bg-danger/8 p-5 text-sm text-danger">
             {state.message}
           </div>
         ) : vendors.length === 0 ? (
-          <EmptyState
-            title="No vendors found"
-            description="There are no vendors matching your search filters."
-            icon={<Users className="h-6 w-6" />}
-          />
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-10 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+              <Users className="h-5 w-5" />
+            </div>
+            <div className="mt-3 text-sm font-semibold text-primary">No vendors found</div>
+            <div className="mt-1 text-xs text-muted">Try adjusting your search.</div>
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {vendors.map((vendor) => {
@@ -115,39 +104,37 @@ export default function AdminVendorsPage() {
               if (!vendorId) return null;
 
               const email = pickVendorString(vendor, ["email", "ownerEmail", "userEmail"]);
-              const displayName =
-                pickVendorString(vendor, ["displayName", "companyName", "name"]) ||
-                "Vendor";
+              const displayName = pickVendorString(vendor, ["displayName", "companyName", "name"]) || "Vendor";
               const status = pickVendorString(vendor, ["status"]) || "UNKNOWN";
 
               return (
                 <Link
                   key={vendorId}
                   href={`/admin/vendors/${encodeURIComponent(vendorId)}`}
-                  className="group rounded-3xl border border-line/60 bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-warm-alt/60"
+                  className="portal-record-card block"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-sm font-bold text-accent-text">
-                        {initials(email)}
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-600">
+                          {initials(email)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-primary">{displayName}</div>
+                          <div className="mt-0.5 truncate text-xs text-secondary">{email ?? "—"}</div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-primary">{displayName}</div>
-                        <div className="mt-1 truncate text-xs text-secondary">{email ?? "-"}</div>
+                      <StatusPill status={status}>{prettyStatus(status)}</StatusPill>
+                    </div>
+                    <div className="mt-3 grid gap-1 text-xs text-secondary">
+                      <div className="inline-flex items-center gap-1.5">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        {email ?? "No email"}
                       </div>
-                    </div>
-
-                    <StatusPill tone={toneForStatus(status)}>{status}</StatusPill>
-                  </div>
-
-                  <div className="mt-4 grid gap-1 text-xs text-secondary">
-                    <div className="inline-flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5" />
-                      {email ?? "No email"}
-                    </div>
-                    <div className="inline-flex items-center gap-1.5">
-                      <Building2 className="h-3.5 w-3.5" />
-                      Open vendor detail page
+                      <div className="inline-flex items-center gap-1.5">
+                        <Building2 className="h-3 w-3 shrink-0" />
+                        Open vendor detail page
+                      </div>
                     </div>
                   </div>
                 </Link>

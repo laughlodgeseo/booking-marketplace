@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Download, FileText, RefreshCw, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
@@ -18,10 +19,7 @@ import {
 type ViewState =
   | { kind: "loading" }
   | { kind: "error"; message: string }
-  | {
-      kind: "ready";
-      data: Awaited<ReturnType<typeof getUserCustomerDocuments>>;
-    };
+  | { kind: "ready"; data: Awaited<ReturnType<typeof getUserCustomerDocuments>> };
 
 const DOCUMENT_TYPES: Array<{ value: CustomerDocumentType; label: string }> = [
   { value: "PASSPORT", label: "Passport" },
@@ -31,11 +29,19 @@ const DOCUMENT_TYPES: Array<{ value: CustomerDocumentType; label: string }> = [
   { value: "OTHER", label: "Other" },
 ];
 
+function prettyStatus(s: string): string {
+  return s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function prettyDocType(t: string): string {
+  return t.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function formatDateTime(value: string | null | undefined): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
 }
 
 export default function AccountDocumentsPage() {
@@ -46,7 +52,7 @@ export default function AccountDocumentsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   const load = useCallback(async () => {
     setState({ kind: "loading" });
@@ -54,38 +60,28 @@ export default function AccountDocumentsPage() {
       const data = await getUserCustomerDocuments();
       setState({ kind: "ready", data });
     } catch (error) {
-      setState({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Failed to load documents",
-      });
+      setState({ kind: "error", message: error instanceof Error ? error.message : "Failed to load documents" });
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   async function upload() {
     if (!uploadFile) {
-      setMessage("Please select a file before uploading.");
+      setMessage({ kind: "error", text: "Please select a file before uploading." });
       return;
     }
-
     setBusy("Uploading document...");
     setUploadingFileName(uploadFile.name);
     setMessage(null);
     try {
-      await uploadUserCustomerDocument({
-        file: uploadFile,
-        type: uploadType,
-        notes: uploadNotes,
-      });
+      await uploadUserCustomerDocument({ file: uploadFile, type: uploadType, notes: uploadNotes });
       setUploadFile(null);
       setUploadNotes("");
-      setMessage("Document uploaded successfully.");
+      setMessage({ kind: "success", text: "Document uploaded successfully." });
       await load();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to upload document");
+      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Failed to upload document" });
     } finally {
       setBusy(null);
       setUploadingFileName(null);
@@ -106,209 +102,214 @@ export default function AccountDocumentsPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to download document");
+      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Failed to download document" });
     } finally {
       setBusy(null);
     }
   }
 
   async function remove(doc: UserCustomerDocument) {
-    const confirmed = window.confirm("Delete this document?");
-    if (!confirmed) return;
-
+    if (!window.confirm("Delete this document?")) return;
     setBusy("Deleting document...");
     setMessage(null);
     try {
       await deleteUserCustomerDocument(doc.id);
       await load();
-      setMessage("Document deleted.");
+      setMessage({ kind: "success", text: "Document deleted." });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to delete document");
+      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Failed to delete document" });
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <PortalShell
-      role="customer"
-      title="My Documents"
-      subtitle="Upload and track guest verification documents"
-    >
+    <PortalShell role="customer" title="My Documents" subtitle="Upload and track guest verification documents">
       <div className="space-y-5">
         {state.kind === "loading" ? (
           <div className="space-y-3">
-            <SkeletonBlock className="h-28" />
-            <SkeletonBlock className="h-52" />
+            <SkeletonBlock className="h-20" />
+            <SkeletonBlock className="h-44" />
           </div>
         ) : state.kind === "error" ? (
-          <div className="rounded-3xl border border-danger/30 bg-danger/12 p-5 text-sm text-danger">
-            {state.message}
+          <div className="rounded-2xl border border-danger/20 bg-danger/8 p-5">
+            <div className="text-sm font-semibold text-primary">Could not load documents</div>
+            <div className="mt-1 text-sm text-secondary">{state.message}</div>
+            <button type="button" onClick={() => void load()} className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </button>
           </div>
         ) : (
           <>
+            {/* Compliance status banner */}
             {state.data.requirement.requiresUpload ? (
-              <section className="rounded-3xl border border-warning/40 bg-warning/12 p-5">
-                <div className="text-sm font-semibold text-primary">
-                  Action required: upload guest documents
+              <div className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/8 p-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-warning/16 text-warning">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
-                <div className="mt-2 text-sm text-secondary">
-                  Missing: {state.data.requirement.missingTypes.join(", ")}
-                </div>
-                {state.data.requirement.nextBooking ? (
-                  <div className="mt-1 text-xs text-secondary">
-                    Next check-in: {formatDateTime(state.data.requirement.nextBooking.checkIn)} at{" "}
-                    {state.data.requirement.nextBooking.property.title}
-                    {state.data.requirement.urgent ? " (Urgent: check-in within 48 hours)" : ""}
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-primary">Action required — upload guest documents</div>
+                  <div className="mt-0.5 text-xs text-secondary">
+                    Missing: {state.data.requirement.missingTypes.map(prettyDocType).join(", ")}
+                    {state.data.requirement.urgent ? " · Urgent: check-in within 48 hours" : ""}
                   </div>
-                ) : null}
-              </section>
+                  {state.data.requirement.nextBooking ? (
+                    <div className="mt-1 text-[11px] text-muted">
+                      Next check-in: {formatDateTime(state.data.requirement.nextBooking.checkIn)} at {state.data.requirement.nextBooking.property.title}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             ) : (
-              <section className="rounded-3xl border border-success/35 bg-success/12 p-5">
-                <div className="text-sm font-semibold text-primary">
-                  Documents are verified
+              <div className="flex items-center gap-3 rounded-2xl border border-success/25 bg-success/8 p-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-success/14 text-success">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
-                <div className="mt-2 text-sm text-secondary">
-                  No pending uploads are required for upcoming confirmed bookings.
+                <div>
+                  <div className="text-sm font-semibold text-primary">Documents verified</div>
+                  <div className="mt-0.5 text-xs text-secondary">No pending uploads required for upcoming confirmed bookings.</div>
                 </div>
-              </section>
+              </div>
             )}
 
-            <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-              <div className="text-sm font-semibold text-primary">Upload document</div>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {/* Upload form */}
+            <div className="rounded-2xl border border-line/40 bg-surface/90 p-5 shadow-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                  <Upload className="h-3.5 w-3.5" />
+                </div>
+                <div className="text-sm font-semibold text-primary">Upload document</div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
                 <select
                   value={uploadType}
-                  onChange={(event) => setUploadType(event.target.value as CustomerDocumentType)}
-                  className="h-10 rounded-xl border border-line/80 bg-surface px-3 text-sm font-semibold text-primary"
+                  onChange={(e) => setUploadType(e.target.value as CustomerDocumentType)}
+                  className="portal-select h-10 text-sm"
                 >
-                  {DOCUMENT_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
+                  {DOCUMENT_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
                 <input
                   type="file"
-                  onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
-                  className="h-10 rounded-xl border border-line/80 bg-surface px-3 text-sm text-primary"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                  className="h-10 rounded-xl border border-line/40 bg-neutral-50 px-3 text-sm text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-brand/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-brand"
                 />
               </div>
               <textarea
-                rows={3}
+                rows={2}
                 value={uploadNotes}
-                onChange={(event) => setUploadNotes(event.target.value)}
+                onChange={(e) => setUploadNotes(e.target.value)}
                 placeholder="Notes for admin (optional)"
-                className="mt-3 w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm text-primary"
+                className="mt-3 w-full resize-none rounded-xl border border-line/40 bg-neutral-50 px-3 py-2 text-sm text-primary outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/12 transition-all"
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="text-xs text-secondary">
-                  Accepted files: PDF, JPG, PNG, WEBP, HEIC (max 15MB)
-                </div>
+                <div className="text-[11px] text-muted">PDF, JPG, PNG, WEBP, HEIC · max 15 MB</div>
                 <button
                   type="button"
                   disabled={busy !== null || !uploadFile}
                   onClick={() => void upload()}
-                  className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover disabled:opacity-60"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60 transition"
                 >
-                  Upload
+                  {busy ? (
+                    <span className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {busy ? "Uploading..." : "Upload"}
                 </button>
               </div>
-              {busy ? (
-                <div className="mt-3 rounded-xl border border-line/70 bg-warm-base p-3 text-xs font-semibold text-secondary">
-                  <div className="flex items-center gap-2">
-                    <span className="h-4 w-4 rounded-full border-2 border-brand/25 border-t-brand animate-spin" />
-                    <span>{busy}</span>
-                  </div>
-                  {uploadingFileName ? (
-                    <div className="mt-1 text-[11px] text-muted break-all">File: {uploadingFileName}</div>
-                  ) : null}
-                </div>
-              ) : null}
-              {message ? (
-                <div className="mt-3 rounded-xl border border-line/70 bg-warm-base p-3 text-sm text-secondary">
-                  {message}
-                </div>
-              ) : null}
-            </section>
 
-            <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-              <div className="text-sm font-semibold text-primary">Uploaded documents</div>
+              {uploadingFileName ? (
+                <div className="mt-3 text-[11px] text-muted break-all">File: {uploadingFileName}</div>
+              ) : null}
+
+              {message ? (
+                <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${message.kind === "success" ? "border-success/25 bg-success/8 text-success" : "border-danger/20 bg-danger/8 text-danger"}`}>
+                  {message.text}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Document list */}
+            <div>
+              <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                Uploaded documents ({state.data.items.length})
+              </div>
+
               {state.data.items.length === 0 ? (
-                <div className="mt-3 rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
-                  No documents uploaded yet.
+                <div className="flex flex-col items-center rounded-2xl border border-dashed border-line/60 py-8 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-100 text-muted">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-primary">No documents uploaded yet</div>
+                  <div className="mt-1 text-xs text-muted">Upload your first document using the form above.</div>
                 </div>
               ) : (
-                <div className="mt-3 space-y-3">
+                <div className="grid gap-3">
                   {state.data.items.map((doc) => (
-                    <div
+                    <article
                       key={doc.id}
-                      role="button"
-                      tabIndex={0}
                       onClick={() => router.push(`/account/documents/${encodeURIComponent(doc.id)}`)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          router.push(`/account/documents/${encodeURIComponent(doc.id)}`);
-                        }
-                      }}
-                      className="rounded-2xl border border-line/70 bg-warm-base p-4 transition hover:bg-accent-soft/35"
+                      className="portal-record-card group cursor-pointer"
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-primary">
-                            {doc.type}
+                      <div className="px-4 py-4 sm:px-5">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition group-hover:bg-indigo-100">
+                            <FileText className="h-4 w-4" />
                           </div>
-                          <div className="mt-1 text-xs text-secondary">
-                            Uploaded: {formatDateTime(doc.createdAt)}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                              <div>
+                                <div className="text-sm font-semibold text-primary">{prettyDocType(doc.type)}</div>
+                                <div className="mt-0.5 text-[11px] text-muted">Uploaded {formatDateTime(doc.createdAt)}</div>
+                                {doc.reviewNotes ? (
+                                  <div className="mt-1 text-[11px] text-secondary">Admin note: {doc.reviewNotes}</div>
+                                ) : null}
+                              </div>
+                              <StatusPill status={doc.status}>{prettyStatus(doc.status)}</StatusPill>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <Link
+                                href={`/account/documents/${encodeURIComponent(doc.id)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt transition"
+                              >
+                                View
+                              </Link>
+                              <button
+                                type="button"
+                                disabled={busy !== null}
+                                onClick={(e) => { e.stopPropagation(); void download(doc); }}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-line/50 bg-surface px-3 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60 transition"
+                              >
+                                <Download className="h-3 w-3" /> Download
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy !== null}
+                                onClick={(e) => { e.stopPropagation(); void remove(doc); }}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-danger/20 bg-danger/8 px-3 text-xs font-semibold text-danger hover:bg-danger/14 disabled:opacity-60 transition"
+                              >
+                                <Trash2 className="h-3 w-3" /> Delete
+                              </button>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted">
+                              {doc.verifiedAt ? <span>Verified {formatDateTime(doc.verifiedAt)}</span> : null}
+                              {doc.reviewedAt ? <span>Reviewed {formatDateTime(doc.reviewedAt)}</span> : null}
+                              {doc.originalName ? <span className="font-mono truncate max-w-[180px]">{doc.originalName}</span> : null}
+                            </div>
                           </div>
-                          {doc.reviewNotes ? (
-                            <div className="mt-1 text-xs text-secondary">Admin note: {doc.reviewNotes}</div>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusPill status={doc.status}>{doc.status}</StatusPill>
-                          <Link
-                            href={`/account/documents/${encodeURIComponent(doc.id)}`}
-                            onClick={(event) => event.stopPropagation()}
-                            className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
-                          >
-                            View
-                          </Link>
-                          <button
-                            type="button"
-                            disabled={busy !== null}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void download(doc);
-                            }}
-                            className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-60"
-                          >
-                            Download
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy !== null}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void remove(doc);
-                            }}
-                            className="rounded-xl border border-danger/30 bg-danger/12 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/12 disabled:opacity-60"
-                          >
-                            Delete
-                          </button>
                         </div>
                       </div>
-                      <div className="mt-2 grid gap-2 text-xs text-muted sm:grid-cols-3">
-                        <span>Verified: {formatDateTime(doc.verifiedAt)}</span>
-                        <span>Reviewed: {formatDateTime(doc.reviewedAt)}</span>
-                        <span>Filename: {doc.originalName || "-"}</span>
-                      </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               )}
-            </section>
+            </div>
           </>
         )}
       </div>

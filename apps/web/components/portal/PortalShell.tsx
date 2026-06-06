@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PortalHeader } from "@/components/portal/layout/PortalHeader";
@@ -187,31 +187,9 @@ export function PortalShell(props: {
         userName={identityName}
         notificationsHref={notificationsPageHref ?? undefined}
         unreadCount={unreadCount}
-        onLogout={() => {
-          void handleLogout();
-        }}
+        onLogout={() => { void handleLogout(); }}
+        onOpenMenu={() => setMobileNavOpen(true)}
       />
-
-      {/* Mobile page context bar */}
-      <div className="px-4 pb-2 pt-3 sm:px-6 lg:hidden">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-              {roleName}
-            </div>
-            <div className="truncate text-[15px] font-semibold text-primary">{props.title}</div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm ring-1 ring-neutral-200"
-            aria-label={tPortal("shell.openNavigation")}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
 
       {/* Mobile navigation drawer */}
       <div className={cn("fixed inset-0 z-[70] overflow-x-hidden lg:hidden", mobileNavOpen ? "" : "pointer-events-none")}>

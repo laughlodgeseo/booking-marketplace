@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { LogOut, Search } from "lucide-react";
+import { Bell, LogOut, Menu, Search } from "lucide-react";
 import NotificationBell from "@/components/portal/layout/NotificationBell";
 import { useTranslations } from "next-intl";
 import type { PortalRole } from "@/components/portal/layout/portal-navigation";
@@ -13,7 +13,6 @@ import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 export function initials(email: string): string {
   const value = email.trim();
   if (!value) return "U";
-
   const local = value.split("@")[0] ?? value;
   const parts = local.split(/[._-]+/g).filter(Boolean);
   const first = parts[0]?.[0] ?? local[0] ?? "U";
@@ -36,6 +35,8 @@ export function PortalHeader(props: {
   notificationsHref?: string;
   unreadCount?: number;
   onLogout: () => void;
+  /** Mobile only: callback to open the navigation drawer */
+  onOpenMenu?: () => void;
 }) {
   const tPortal = useTranslations("portal");
   const name = props.userName?.trim() || "";
@@ -65,7 +66,46 @@ export function PortalHeader(props: {
           </span>
         </Link>
 
-        {/* Role + page title — desktop only */}
+        {/* ── MOBILE topbar: title + menu button only ─────────────────────────── */}
+        <div className="ml-2 flex min-w-0 flex-1 items-center justify-between gap-2 lg:hidden">
+          {/* Page title */}
+          <div className="min-w-0">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted">{roleName}</div>
+            <div className="max-w-[160px] truncate text-[14px] font-semibold leading-tight text-primary sm:max-w-[240px]">
+              {props.title}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Compact notification dot — shown only when unread > 0 */}
+            {unreadCount > 0 ? (
+              <Link
+                href={notificationsHref}
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl text-secondary hover:bg-neutral-100"
+                aria-label={`${unreadCount} unread notifications`}
+              >
+                <Bell className="h-4.5 w-4.5" />
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand px-1 text-[9px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              </Link>
+            ) : null}
+
+            {/* Hamburger / menu button */}
+            <button
+              type="button"
+              onClick={props.onOpenMenu}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm ring-1 ring-neutral-200"
+              aria-label={tPortal("shell.openNavigation")}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── DESKTOP topbar ───────────────────────────────────────────────────── */}
+
+        {/* Role + page title */}
         <div className="hidden min-w-0 lg:block">
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${roleBadge.bg} ${roleBadge.text}`}>
@@ -78,7 +118,7 @@ export function PortalHeader(props: {
           </div>
         </div>
 
-        {/* Search — desktop */}
+        {/* Search */}
         <div className="relative hidden min-w-0 flex-1 lg:flex" style={{ maxWidth: "420px" }}>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
@@ -106,14 +146,12 @@ export function PortalHeader(props: {
               {badge}
             </div>
             <div className="hidden xl:block">
-              <div className="max-w-[130px] truncate text-sm font-semibold text-primary">
-                {firstName}
-              </div>
+              <div className="max-w-[130px] truncate text-sm font-semibold text-primary">{firstName}</div>
               <div className="text-[11px] text-muted leading-tight">{roleName}</div>
             </div>
           </div>
 
-          {/* Logout — subtle ghost button */}
+          {/* Logout */}
           <button
             type="button"
             onClick={props.onLogout}
@@ -123,24 +161,6 @@ export function PortalHeader(props: {
             <LogOut className="h-4 w-4" />
             <span className="hidden xl:inline">{tPortal("logout")}</span>
           </button>
-        </div>
-
-        {/* Mobile right controls — compact: notifications only (language + logout in drawer) */}
-        <div className="ml-auto flex items-center gap-1.5 lg:hidden">
-          {props.right ? <div className="shrink-0">{props.right}</div> : null}
-
-          <LanguageSwitcher compact />
-
-          <NotificationBell
-            role={props.role ?? "customer"}
-            notificationsHref={notificationsHref}
-            initialUnreadCount={unreadCount}
-          />
-
-          {/* Mobile account avatar — tapping opens drawer (handled by PortalShell) */}
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand text-[11px] font-bold text-white">
-            {badge}
-          </div>
         </div>
       </div>
     </header>
