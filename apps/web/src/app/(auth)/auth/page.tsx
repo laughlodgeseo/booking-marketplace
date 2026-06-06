@@ -162,7 +162,7 @@ function AuthGatewayContent() {
       className="w-full max-w-[480px]"
     >
       {/* ── Elevated auth card ── */}
-      <div className="overflow-hidden rounded-3xl border border-white/60 bg-white/[0.94] shadow-[0_40px_120px_rgba(5,10,28,0.38),0_0_0_1px_rgba(255,255,255,0.22)] backdrop-blur-2xl">
+      <div className="overflow-hidden rounded-3xl border border-white/70 bg-[#fffdf9]/[0.95] shadow-[0_40px_120px_rgba(5,10,28,0.38),0_0_0_1px_rgba(255,255,255,0.25)] backdrop-blur-2xl">
         {/* Card body */}
         <div className="p-6 sm:p-8">
 
@@ -322,14 +322,14 @@ export default function AuthGatewayPage() {
 
       {/* ── Layer 2: Readability overlays ── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1]">
-        {/* Flat dim */}
-        <div className="absolute inset-0 bg-slate-950/[0.32]" />
-        {/* Radial vignette — darkens edges, brightens center */}
-        <div className="absolute inset-0 bg-[radial-gradient(62%_68%_at_50%_50%,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.52)_100%)]" />
-        {/* Top header area — subtle darkening for legibility */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-950/30 to-transparent" />
+        {/* Light global dim — images remain vivid */}
+        <div className="absolute inset-0 bg-slate-950/[0.18]" />
+        {/* Radial vignette — gentle brightening at center, darkening at edges */}
+        <div className="absolute inset-0 bg-[radial-gradient(65%_70%_at_50%_50%,rgba(15,23,42,0.06)_0%,rgba(15,23,42,0.44)_100%)]" />
+        {/* Top header fade — legibility for Back to home pill */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-950/22 to-transparent" />
         {/* Bottom fade */}
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/36 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/26 to-transparent" />
       </div>
 
       {/* ── Layer 3: Content ── */}
