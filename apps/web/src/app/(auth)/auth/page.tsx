@@ -1,13 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Building2, User2, ArrowRight, LockKeyhole } from "lucide-react";
+import { Building2, User2, ArrowRight } from "lucide-react";
 import { useLocale } from "next-intl";
 import { normalizeLocale } from "@/lib/i18n/config";
+import { DubaiAuthCollageBackground } from "@/components/auth/DubaiAuthCollageBackground";
+
+// ---------------------------------------------------------------------------
+// Types & helpers
+// ---------------------------------------------------------------------------
 
 type AuthMode = "login" | "signup";
 type AuthRoleUi = "customer" | "vendor";
@@ -20,17 +24,16 @@ function readRole(raw: string | null): AuthRoleUi {
   return raw === "vendor" ? "vendor" : "customer";
 }
 
+// ---------------------------------------------------------------------------
+// Copy
+// ---------------------------------------------------------------------------
+
 const COPY = {
   en: {
     titleLogin: "Welcome back",
     titleSignup: "Create your account",
     subtitleLogin: "Select your role to continue securely.",
     subtitleSignup: "Select an account type to begin.",
-    eyebrow: "Account access",
-    footnoteLoginPrefix: "New here?",
-    footnoteLoginAction: "Create an account",
-    footnoteSignupPrefix: "Already have an account?",
-    footnoteSignupAction: "Sign in",
     tabLogin: "Log in",
     tabSignup: "Sign up",
     customer: "Customer",
@@ -40,22 +43,21 @@ const COPY = {
     continueLogin: "Continue to sign in",
     continueSignup: "Continue to account setup",
     backHome: "Back to home",
+    footnoteLoginPrefix: "New here?",
+    footnoteLoginAction: "Create an account",
+    footnoteSignupPrefix: "Already have an account?",
+    footnoteSignupAction: "Sign in",
+    selectRole: "Select account type",
     termsPrefix: "By continuing, you agree to our",
-    terms: "Terms & Conditions",
+    terms: "Terms",
     and: "and",
     privacy: "Privacy Policy",
-    selectRole: "Select account type",
   },
   ar: {
     titleLogin: "مرحباً بعودتك",
     titleSignup: "أنشئ حسابك",
     subtitleLogin: "اختر دورك للمتابعة بشكل آمن.",
     subtitleSignup: "اختر نوع الحساب لبدء التسجيل.",
-    eyebrow: "وصول الحساب",
-    footnoteLoginPrefix: "جديد هنا؟",
-    footnoteLoginAction: "أنشئ حساباً",
-    footnoteSignupPrefix: "لديك حساب بالفعل؟",
-    footnoteSignupAction: "تسجيل الدخول",
     tabLogin: "تسجيل الدخول",
     tabSignup: "إنشاء حساب",
     customer: "عميل",
@@ -65,16 +67,20 @@ const COPY = {
     continueLogin: "المتابعة إلى تسجيل الدخول",
     continueSignup: "المتابعة إلى إعداد الحساب",
     backHome: "العودة للرئيسية",
+    footnoteLoginPrefix: "جديد هنا؟",
+    footnoteLoginAction: "أنشئ حساباً",
+    footnoteSignupPrefix: "لديك حساب بالفعل؟",
+    footnoteSignupAction: "تسجيل الدخول",
+    selectRole: "اختر نوع الحساب",
     termsPrefix: "بالمتابعة، فإنك توافق على",
     terms: "الشروط والأحكام",
     and: "و",
     privacy: "سياسة الخصوصية",
-    selectRole: "اختر نوع الحساب",
   },
 } as const;
 
 // ---------------------------------------------------------------------------
-// Role selection card
+// Role card
 // ---------------------------------------------------------------------------
 
 interface RoleCardProps {
@@ -82,12 +88,12 @@ interface RoleCardProps {
   title: string;
   desc: string;
   icon: React.ReactNode;
-  iconActiveBg: string;
-  iconIdleBg: string;
+  iconActiveCls: string;
+  iconIdleCls: string;
   onClick: () => void;
 }
 
-function RoleCard({ active, title, desc, icon, iconActiveBg, iconIdleBg, onClick }: RoleCardProps) {
+function RoleCard({ active, title, desc, icon, iconActiveCls, iconIdleCls, onClick }: RoleCardProps) {
   return (
     <button
       type="button"
@@ -96,39 +102,36 @@ function RoleCard({ active, title, desc, icon, iconActiveBg, iconIdleBg, onClick
       onClick={onClick}
       className={[
         "group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-200",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
         "min-h-[44px]",
         active
-          ? "bg-indigo-50/70 shadow-[0_0_0_2px_#4F46E5,0_4px_20px_rgba(79,70,229,0.14)] ring-0"
-          : "bg-surface/60 ring-1 ring-line/55 hover:bg-surface/90 hover:ring-line/75 hover:shadow-sm",
+          ? "bg-indigo-50/80 shadow-[0_0_0_2px_#4F46E5,0_4px_20px_rgba(79,70,229,0.18)]"
+          : "bg-white/50 ring-1 ring-slate-200/80 hover:bg-white/70 hover:ring-slate-300/90 hover:shadow-sm",
       ].join(" ")}
     >
-      <div className={[
-        "inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200",
-        active ? iconActiveBg : iconIdleBg,
-      ].join(" ")}>
+      <div
+        className={[
+          "inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200",
+          active ? iconActiveCls : iconIdleCls,
+        ].join(" ")}
+      >
         {icon}
       </div>
-
       <div className="mt-3">
-        <div className={[
-          "text-sm font-semibold",
-          active ? "text-indigo-900" : "text-primary",
-        ].join(" ")}>
+        <div className={["text-sm font-semibold", active ? "text-indigo-900" : "text-slate-800"].join(" ")}>
           {title}
         </div>
-        <div className="mt-1 text-xs leading-relaxed text-secondary/80">{desc}</div>
+        <div className="mt-1 text-xs leading-relaxed text-slate-500">{desc}</div>
       </div>
-
       {active ? (
-        <div className="absolute right-3.5 top-3.5 h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_0_2.5px_rgba(79,70,229,0.20)]" />
+        <div className="absolute right-3.5 top-3.5 h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_0_2.5px_rgba(79,70,229,0.22)]" />
       ) : null}
     </button>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Suspense-wrapped inner content
+// Inner content (needs useSearchParams — must be in Suspense)
 // ---------------------------------------------------------------------------
 
 function AuthGatewayContent() {
@@ -144,9 +147,6 @@ function AuthGatewayContent() {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [role, setRole] = useState<AuthRoleUi>(initialRole);
 
-  const title = mode === "login" ? copy.titleLogin : copy.titleSignup;
-  const subtitle = mode === "login" ? copy.subtitleLogin : copy.subtitleSignup;
-
   function go() {
     const qs = new URLSearchParams({ role });
     const nextRaw = sp.get("next");
@@ -155,237 +155,205 @@ function AuthGatewayContent() {
   }
 
   return (
-    <main className="relative min-h-dvh w-full overflow-hidden">
-      {/* ================================================================
-          Luxury background layer
-          ================================================================ */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
-        {/* Warm gradient base */}
-        <div className="absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_0%,rgba(199,210,254,0.28)_0%,rgba(255,250,240,0.00)_65%),linear-gradient(165deg,#faf8f3_0%,#eef0f8_48%,#f8f4ef_100%)]" />
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="w-full max-w-[480px]"
+    >
+      {/* ── Elevated auth card ── */}
+      <div className="overflow-hidden rounded-3xl border border-white/60 bg-white/[0.94] shadow-[0_40px_120px_rgba(5,10,28,0.38),0_0_0_1px_rgba(255,255,255,0.22)] backdrop-blur-2xl">
+        {/* Card body */}
+        <div className="p-6 sm:p-8">
 
-        {/* Subtle dot grid */}
-        <div className="absolute inset-0 opacity-[0.028] [background-image:radial-gradient(rgba(79,70,229,0.7)_1px,transparent_1px)] [background-size:22px_22px]" />
+          {/* Header */}
+          <header className="mb-5">
+            <h1 className="text-[27px] font-semibold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[1.85rem]">
+              {mode === "login" ? copy.titleLogin : copy.titleSignup}
+            </h1>
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-500">
+              {mode === "login" ? copy.subtitleLogin : copy.subtitleSignup}
+            </p>
+          </header>
 
-        {/* Dubai Marina — top left (desktop) */}
-        <div
-          className="absolute left-[2%] top-[8%] hidden w-[27%] overflow-hidden rounded-[28px] shadow-[0_24px_64px_rgba(15,23,42,0.20)] ring-1 ring-white/50 lg:block"
-          style={{ aspectRatio: "4/3" }}
-        >
-          <Image
-            src="/areas/dubai-marina.webp"
-            alt=""
-            fill
-            priority
-            className="object-cover opacity-[0.88]"
-            sizes="27vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-slate-800/28" />
-        </div>
+          <div className="space-y-4">
+            {/* Mode tabs */}
+            <div className="flex w-full border-b border-slate-200">
+              {(["login", "signup"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={[
+                    "relative flex h-10 flex-1 items-center justify-center px-4 text-sm font-semibold transition-colors duration-150",
+                    mode === m
+                      ? "text-indigo-600 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:rounded-full after:bg-indigo-600"
+                      : "text-slate-400 hover:text-slate-700",
+                  ].join(" ")}
+                >
+                  {m === "login" ? copy.tabLogin : copy.tabSignup}
+                </button>
+              ))}
+            </div>
 
-        {/* Downtown Dubai — bottom left (desktop) */}
-        <div
-          className="absolute bottom-[7%] left-[7%] hidden w-[18%] overflow-hidden rounded-[24px] shadow-[0_18px_48px_rgba(15,23,42,0.16)] ring-1 ring-white/40 lg:block"
-          style={{ aspectRatio: "2/3" }}
-        >
-          <Image
-            src="/areas/downtown-dubai.webp"
-            alt=""
-            fill
-            className="object-cover opacity-[0.80]"
-            sizes="18vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-white/15" />
-        </div>
+            {/* Role radiogroup */}
+            <div
+              role="radiogroup"
+              aria-label={copy.selectRole}
+              className="grid gap-3 sm:grid-cols-2"
+            >
+              <RoleCard
+                active={role === "customer"}
+                title={copy.customer}
+                desc={copy.customerDesc}
+                icon={<User2 className="h-5 w-5" />}
+                iconActiveCls="bg-indigo-100 text-indigo-700"
+                iconIdleCls="bg-slate-100 text-slate-500 group-hover:bg-indigo-50/80 group-hover:text-indigo-600"
+                onClick={() => setRole("customer")}
+              />
+              <RoleCard
+                active={role === "vendor"}
+                title={copy.vendor}
+                desc={copy.vendorDesc}
+                icon={<Building2 className="h-5 w-5" />}
+                iconActiveCls="bg-amber-100 text-amber-700"
+                iconIdleCls="bg-slate-100 text-slate-500 group-hover:bg-amber-50/80 group-hover:text-amber-600"
+                onClick={() => setRole("vendor")}
+              />
+            </div>
 
-        {/* Business Bay — top right (desktop) */}
-        <div
-          className="absolute right-[2%] top-[10%] hidden w-[24%] overflow-hidden rounded-[28px] shadow-[0_22px_58px_rgba(15,23,42,0.18)] ring-1 ring-white/45 lg:block"
-          style={{ aspectRatio: "4/3" }}
-        >
-          <Image
-            src="/areas/business-bay.webp"
-            alt=""
-            fill
-            className="object-cover opacity-[0.85]"
-            sizes="24vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-slate-800/24" />
-        </div>
+            {/* CTA */}
+            <motion.button
+              type="button"
+              onClick={go}
+              whileTap={{ scale: 0.98 }}
+              className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2"
+            >
+              {mode === "login" ? copy.continueLogin : copy.continueSignup}
+              <ArrowRight className={isRtl ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100"} />
+            </motion.button>
 
-        {/* Ambient glow orbs */}
-        <div className="absolute bottom-[18%] right-[5%] h-[35%] w-[18%] rounded-full bg-indigo-200/22 blur-[80px]" />
-        <div className="absolute left-[24%] top-[4%] h-[18%] w-[52%] rounded-full bg-amber-100/28 blur-[72px]" />
-        <div className="absolute bottom-[8%] left-[30%] h-[22%] w-[40%] rounded-full bg-indigo-50/38 blur-[60px]" />
-      </div>
-
-      {/* ================================================================
-          Content layer
-          ================================================================ */}
-      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-4 pb-10 pt-16 sm:px-6">
-        {/* Back to home — top-left corner */}
-        <div className="absolute left-4 top-5 sm:left-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary/65 transition-colors hover:text-indigo-700"
-          >
-            <span aria-hidden="true" className={isRtl ? "rotate-180" : ""}>&#8592;</span>
-            {copy.backHome}
-          </Link>
-        </div>
-
-        {/* The card */}
-        <div className="w-full max-w-[480px]">
-          <div className="site-surface-card rounded-3xl p-6 shadow-[0_32px_96px_rgba(5,10,28,0.22)] backdrop-blur-xl sm:p-8">
-
-            {/* Card header */}
-            <header className="mb-5">
-              <div className="site-chip inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold">
-                <LockKeyhole className="h-3 w-3 text-indigo-500" />
-                {copy.eyebrow}
-              </div>
-              <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em] text-primary sm:text-[1.9rem]">
-                {title}
-              </h1>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-secondary/85">
-                {subtitle}
-              </p>
-            </header>
-
-            <div className="space-y-5">
-              {/* Mode tabs */}
-              <div className="flex w-full border-b border-line/60">
-                {(["login", "signup"] as const).map((m) => (
+            {/* Footnote */}
+            <div className="text-center text-xs text-slate-500">
+              {mode === "login" ? (
+                <>
+                  {copy.footnoteLoginPrefix}{" "}
                   <button
-                    key={m}
                     type="button"
-                    onClick={() => setMode(m)}
-                    className={[
-                      "relative flex h-10 flex-1 items-center justify-center px-4 text-sm font-semibold transition",
-                      mode === m
-                        ? "text-indigo-600 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:rounded-full after:bg-indigo-600"
-                        : "text-secondary hover:text-primary",
-                    ].join(" ")}
+                    onClick={() => setMode("signup")}
+                    className="font-semibold text-indigo-700 hover:underline"
                   >
-                    {m === "login" ? copy.tabLogin : copy.tabSignup}
+                    {copy.footnoteLoginAction}
                   </button>
-                ))}
-              </div>
-
-              {/* Role cards — radio group */}
-              <div
-                role="radiogroup"
-                aria-label={copy.selectRole}
-                className="grid gap-3 sm:grid-cols-2"
-              >
-                <RoleCard
-                  active={role === "customer"}
-                  title={copy.customer}
-                  desc={copy.customerDesc}
-                  icon={<User2 className="h-5 w-5" />}
-                  iconActiveBg="bg-indigo-100 text-indigo-700"
-                  iconIdleBg="bg-slate-100/80 text-slate-500 group-hover:bg-indigo-50/70 group-hover:text-indigo-600"
-                  onClick={() => setRole("customer")}
-                />
-                <RoleCard
-                  active={role === "vendor"}
-                  title={copy.vendor}
-                  desc={copy.vendorDesc}
-                  icon={<Building2 className="h-5 w-5" />}
-                  iconActiveBg="bg-amber-100/90 text-amber-700"
-                  iconIdleBg="bg-slate-100/80 text-slate-500 group-hover:bg-amber-50/70 group-hover:text-amber-600"
-                  onClick={() => setRole("vendor")}
-                />
-              </div>
-
-              {/* CTA */}
-              <motion.button
-                type="button"
-                onClick={go}
-                whileTap={{ scale: 0.98 }}
-                className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2"
-              >
-                {mode === "login" ? copy.continueLogin : copy.continueSignup}
-                <ArrowRight className={isRtl ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100"} />
-              </motion.button>
-
-              {/* Footnote — mode switcher */}
-              <div className="text-center text-xs text-secondary">
-                {mode === "login" ? (
-                  <>
-                    {copy.footnoteLoginPrefix}{" "}
-                    <button
-                      type="button"
-                      onClick={() => setMode("signup")}
-                      className="font-semibold text-indigo-700 hover:underline"
-                    >
-                      {copy.footnoteLoginAction}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {copy.footnoteSignupPrefix}{" "}
-                    <button
-                      type="button"
-                      onClick={() => setMode("login")}
-                      className="font-semibold text-indigo-700 hover:underline"
-                    >
-                      {copy.footnoteSignupAction}
-                    </button>
-                  </>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  {copy.footnoteSignupPrefix}{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("login")}
+                    className="font-semibold text-indigo-700 hover:underline"
+                  >
+                    {copy.footnoteSignupAction}
+                  </button>
+                </>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Terms */}
-          <p className="mt-4 text-center text-[11px] leading-relaxed text-secondary/70">
+        {/* Card footer — terms */}
+        <div className="border-t border-slate-100 px-6 py-3 sm:px-8">
+          <p className="text-center text-[11px] leading-relaxed text-slate-400">
             {copy.termsPrefix}{" "}
-            <Link href="/terms" className="font-semibold text-primary hover:text-indigo-800">
+            <Link href="/terms" className="font-semibold text-slate-600 hover:text-indigo-700">
               {copy.terms}
             </Link>{" "}
             {copy.and}{" "}
-            <Link href="/privacy" className="font-semibold text-primary hover:text-indigo-800">
+            <Link href="/privacy" className="font-semibold text-slate-600 hover:text-indigo-700">
               {copy.privacy}
             </Link>
             .
           </p>
         </div>
       </div>
-    </main>
+    </motion.div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Skeleton shown while useSearchParams resolves
+// Loading skeleton
 // ---------------------------------------------------------------------------
 
 function GatewayLoading() {
   return (
-    <main className="flex min-h-dvh w-full items-center justify-center bg-[#faf8f3] px-4">
-      <div className="w-full max-w-[480px]">
-        <div className="site-surface-card animate-pulse rounded-3xl p-8 shadow-[0_32px_96px_rgba(5,10,28,0.18)]">
-          <div className="h-5 w-24 rounded-full bg-line/60" />
-          <div className="mt-4 h-8 w-44 rounded-xl bg-line/40" />
-          <div className="mt-2 h-4 w-64 rounded-lg bg-line/30" />
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="h-28 rounded-2xl bg-line/25" />
-            <div className="h-28 rounded-2xl bg-line/25" />
+    <div className="w-full max-w-[480px]">
+      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/50 bg-white/90 shadow-[0_40px_100px_rgba(5,10,28,0.32)] backdrop-blur-2xl">
+        <div className="p-6 sm:p-8">
+          <div className="h-7 w-40 rounded-xl bg-slate-200/80" />
+          <div className="mt-2 h-4 w-56 rounded-lg bg-slate-100" />
+          <div className="mt-5 h-[2px] w-full rounded bg-slate-100" />
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="h-28 rounded-2xl bg-slate-100" />
+            <div className="h-28 rounded-2xl bg-slate-100" />
           </div>
-          <div className="mt-4 h-11 rounded-2xl bg-line/35" />
+          <div className="mt-4 h-11 rounded-2xl bg-slate-200" />
+        </div>
+        <div className="border-t border-slate-100 px-8 py-3">
+          <div className="mx-auto h-3 w-52 rounded bg-slate-100" />
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Page export
+// Page
 // ---------------------------------------------------------------------------
 
 export default function AuthGatewayPage() {
   return (
-    <Suspense fallback={<GatewayLoading />}>
-      <AuthGatewayContent />
-    </Suspense>
+    <main className="relative min-h-dvh w-full overflow-hidden">
+
+      {/* ── Layer 1: Dubai collage background ── */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+        <DubaiAuthCollageBackground />
+      </div>
+
+      {/* ── Layer 2: Readability overlays ── */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1]">
+        {/* Flat dim */}
+        <div className="absolute inset-0 bg-slate-950/[0.32]" />
+        {/* Radial vignette — darkens edges, brightens center */}
+        <div className="absolute inset-0 bg-[radial-gradient(62%_68%_at_50%_50%,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.52)_100%)]" />
+        {/* Top header area — subtle darkening for legibility */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-950/30 to-transparent" />
+        {/* Bottom fade */}
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/36 to-transparent" />
+      </div>
+
+      {/* ── Layer 3: Content ── */}
+      <div className="relative z-[2] flex min-h-dvh flex-col">
+
+        {/* Back to home — top-left chrome */}
+        <div className="flex-none px-5 pt-5 sm:px-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 text-[12.5px] font-semibold text-white/85 backdrop-blur-sm ring-1 ring-white/18 transition hover:bg-white/20 hover:text-white"
+          >
+            <span aria-hidden="true" className="text-[11px]">&#8592;</span>
+            Back to home
+          </Link>
+        </div>
+
+        {/* Card — centered in remaining space */}
+        <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
+          <Suspense fallback={<GatewayLoading />}>
+            <AuthGatewayContent />
+          </Suspense>
+        </div>
+
+      </div>
+    </main>
   );
 }
