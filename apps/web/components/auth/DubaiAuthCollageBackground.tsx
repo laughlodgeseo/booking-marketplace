@@ -14,13 +14,20 @@ interface Tile {
 }
 
 // ---------------------------------------------------------------------------
-// Desktop 4×4 tile map — 9 tiles filling all 16 cells
+// Desktop 4×4 tile map — 9 tiles covering all 16 cells
 //
-// Layout:
-// [Marina 2×2] [Downtown 1×2] [Palm 1×1]
-// [Marina 2×2] [Downtown 1×2] [JBR  1×1]
-// [BizBay 1×2] [Lounge  2×1 ] [Creek 1×1]
-// [BizBay 1×2] [Suite   2×1 ] [DIFC  1×1]
+// ┌────────────────┬──────────┬──────────┐
+// │                │          │   Palm   │
+// │  Dubai Marina  │ Downtown │ Jumeirah │
+// │   (2 col × 2)  │  (1×2)   ├──────────┤
+// │                │          │   JBR    │
+// ├────────┬───────────────────┬──────────┤
+// │        │                   │  Dubai   │
+// │  Biz   │  Interior Lounge  │  Creek   │
+// │  Bay   │     (2 col × 1)   ├──────────┤
+// │ (1×2)  ├───────────────────┤   DIFC   │
+// │        │   Interior Suite  │          │
+// └────────┴───────────────────┴──────────┘
 // ---------------------------------------------------------------------------
 const DESKTOP_TILES: Tile[] = [
   {
@@ -81,34 +88,38 @@ const DESKTOP_TILES: Tile[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Shared tile renderer
+// Tile renderer — each tile is a crisp printed destination card
 // ---------------------------------------------------------------------------
 
 function CollageTile({ tile, sizesHint }: { tile: Tile; sizesHint: string }) {
   return (
     <div
-      className="relative overflow-hidden rounded-[20px] ring-1 ring-white/50 shadow-[0_18px_45px_rgba(120,90,45,0.16)]"
+      className="relative overflow-hidden rounded-[20px] ring-1 ring-white/60 shadow-[0_18px_45px_rgba(120,90,45,0.14)]"
       style={{
         gridColumn: `${tile.colStart} / span ${tile.colSpan}`,
         gridRow: `${tile.rowStart} / span ${tile.rowSpan}`,
       }}
     >
+      {/* Image — sharp, warm, no blur */}
       <Image
         src={tile.src}
         alt=""
         fill
         priority={tile.priority}
-        className="object-cover brightness-[1.04] saturate-[1.06]"
+        className="object-cover brightness-[1.03] saturate-[1.05] contrast-[1.03]"
         style={{ objectPosition: tile.objectPos ?? "center" }}
         sizes={sizesHint}
       />
-      {/* Very light base gradient — only provides depth for chip readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/14 via-transparent to-transparent" />
 
-      {/* Warm light location chip */}
+      {/* Minimal bottom gradient — only exists for chip label readability */}
       {tile.label ? (
-        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-white/[0.68] px-2.5 py-[5px] shadow-sm backdrop-blur-md ring-1 ring-white/70">
-          <span className="h-1.5 w-1.5 flex-none rounded-full bg-amber-500/80" />
+        <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/22 to-transparent" />
+      ) : null}
+
+      {/* Location chip — crisp, no heavy blur */}
+      {tile.label ? (
+        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full border border-white/80 bg-white/78 px-2.5 py-[5px] shadow-sm">
+          <span className="h-1.5 w-1.5 flex-none rounded-full bg-[#b87333]" />
           <span className="text-[10px] font-semibold leading-none tracking-wide text-slate-800">
             {tile.label}
           </span>
@@ -127,53 +138,54 @@ export function DubaiAuthCollageBackground() {
     <>
       {/* ════════════════════════════════════════════════════════
           MOBILE (< md / 768 px)
-          Hero full-bleed + warm ivory gradient + 2 accent tiles
+          Hero full-bleed — crisp, warm, no fog
           ════════════════════════════════════════════════════════ */}
       <div className="absolute inset-0 block md:hidden">
-        {/* Dubai Marina full-screen base — slightly brightened */}
+        {/* Dubai Marina crisp hero */}
         <Image
           src="/areas/dubai-marina.webp"
           alt=""
           fill
           priority
-          className="object-cover object-center brightness-[1.04]"
+          className="object-cover object-center brightness-[1.03] saturate-[1.05] contrast-[1.03]"
           sizes="100vw"
         />
 
-        {/* Warm ivory overlay — light and welcoming, not dark */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#fff8ed]/[0.72] via-[#fff8ed]/[0.20] to-[#fff8ed]/[0.58]" />
+        {/* Warm gradient: only at top (header) and bottom (accent tiles) — center stays clear */}
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#fff8ed]/[0.55] to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#fff8ed]/[0.60] to-transparent" />
 
-        {/* Two accent tiles — bottom strip, below the centered card */}
+        {/* Two accent tiles at bottom */}
         <div className="absolute bottom-4 left-3 right-3 flex gap-2.5">
-          {/* Downtown Dubai accent */}
-          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/55 shadow-[0_8px_24px_rgba(120,90,45,0.18)]">
+          {/* Downtown Dubai */}
+          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/60 shadow-[0_8px_24px_rgba(120,90,45,0.16)]">
             <Image
               src="/areas/downtown-dubai.webp"
               alt=""
               fill
-              className="object-cover brightness-[1.04]"
+              className="object-cover brightness-[1.03] saturate-[1.04]"
               sizes="45vw"
             />
-            <div className="absolute inset-0 bg-[#fff8ed]/[0.20]" />
+            <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/18 to-transparent" />
             <div className="absolute bottom-1.5 left-2 flex items-center gap-1">
-              <span className="h-1 w-1 rounded-full bg-amber-500/85" />
-              <span className="text-[9px] font-semibold text-slate-800 drop-shadow-sm">Downtown Dubai</span>
+              <span className="h-1 w-1 rounded-full bg-[#b87333]" />
+              <span className="text-[9px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">Downtown Dubai</span>
             </div>
           </div>
 
-          {/* Palm Jumeirah accent */}
-          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/55 shadow-[0_8px_24px_rgba(120,90,45,0.18)]">
+          {/* Palm Jumeirah */}
+          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/60 shadow-[0_8px_24px_rgba(120,90,45,0.16)]">
             <Image
               src="/areas/palm-jumeirah.webp"
               alt=""
               fill
-              className="object-cover object-top brightness-[1.04]"
+              className="object-cover object-top brightness-[1.03] saturate-[1.04]"
               sizes="45vw"
             />
-            <div className="absolute inset-0 bg-[#fff8ed]/[0.20]" />
+            <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/18 to-transparent" />
             <div className="absolute bottom-1.5 left-2 flex items-center gap-1">
-              <span className="h-1 w-1 rounded-full bg-amber-500/85" />
-              <span className="text-[9px] font-semibold text-slate-800 drop-shadow-sm">Palm Jumeirah</span>
+              <span className="h-1 w-1 rounded-full bg-[#b87333]" />
+              <span className="text-[9px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">Palm Jumeirah</span>
             </div>
           </div>
         </div>
@@ -181,7 +193,7 @@ export function DubaiAuthCollageBackground() {
 
       {/* ════════════════════════════════════════════════════════
           DESKTOP (≥ md / 768 px)
-          Full 4×4 collage with warm sand/ivory gallery matting
+          Full 4×4 collage — warm gallery matting, crisp tiles
           ════════════════════════════════════════════════════════ */}
       <div className="absolute inset-0 hidden md:block">
         <div
@@ -192,7 +204,7 @@ export function DubaiAuthCollageBackground() {
             gridTemplateRows: "repeat(4, 1fr)",
             gap: "14px",
             padding: "14px",
-            // Warm luxury gallery mat — sand/ivory/lavender, not dark navy
+            // Warm luxury gallery mat — sand/lavender/ivory, crisp and premium
             background: "linear-gradient(145deg, #f7efe3 0%, #ece8ff 52%, #fff8ed 100%)",
           }}
         >

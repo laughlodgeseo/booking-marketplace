@@ -161,8 +161,8 @@ function AuthGatewayContent() {
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       className="w-full max-w-[480px]"
     >
-      {/* ── Elevated auth card ── */}
-      <div className="overflow-hidden rounded-3xl border border-white/80 bg-[#fffdf9]/[0.96] shadow-[0_40px_120px_rgba(75,50,10,0.24),0_0_0_1.5px_rgba(255,255,255,0.55)] backdrop-blur-2xl">
+      {/* ── Elevated auth card — near-opaque so no backdrop-blur needed ── */}
+      <div className="overflow-hidden rounded-3xl border border-white/80 bg-[#fffdf9]/[0.97] shadow-[0_34px_90px_rgba(75,50,10,0.22),0_0_0_1.5px_rgba(255,255,255,0.55)] backdrop-blur-[4px]">
         {/* Card body */}
         <div className="p-6 sm:p-8">
 
@@ -288,7 +288,7 @@ function AuthGatewayContent() {
 function GatewayLoading() {
   return (
     <div className="w-full max-w-[480px]">
-      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/70 bg-[#fffdf9]/[0.96] shadow-[0_40px_100px_rgba(75,50,10,0.20)] backdrop-blur-2xl">
+      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/70 bg-[#fffdf9]/[0.97] shadow-[0_34px_90px_rgba(75,50,10,0.18)]">
         <div className="p-6 sm:p-8">
           <div className="h-7 w-40 rounded-xl bg-slate-200/80" />
           <div className="mt-2 h-4 w-56 rounded-lg bg-slate-100" />
@@ -320,16 +320,14 @@ export default function AuthGatewayPage() {
         <DubaiAuthCollageBackground />
       </div>
 
-      {/* ── Layer 2: Warm haze overlays — light not dark ── */}
+      {/* ── Layer 2: Minimal depth — no global wash over the images ── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1]">
-        {/* Warm ivory global haze — softens images without darkening */}
-        <div className="absolute inset-0 bg-[#fff8ed]/[0.16]" />
-        {/* Radial warm glow — brightens card center, warm fade to edges */}
-        <div className="absolute inset-0 bg-[radial-gradient(65%_70%_at_50%_50%,rgba(255,248,237,0.40)_0%,rgba(255,248,237,0.08)_100%)]" />
-        {/* Top ivory fade — keeps back-home pill area legible */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#fff8ed]/[0.60] to-transparent" />
-        {/* Bottom ivory fade */}
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#fff8ed]/[0.48] to-transparent" />
+        {/* Localized warm glow behind card center only — does not touch tile edges */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_52%,rgba(255,253,249,0.36)_0%,rgba(255,253,249,0.10)_40%,transparent_66%)]" />
+        {/* Very subtle top edge softener — keeps pill area clean */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#fff8ed]/[0.20] to-transparent" />
+        {/* Very subtle bottom edge softener */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#fff8ed]/[0.16] to-transparent" />
       </div>
 
       {/* ── Layer 3: Content ── */}
@@ -339,7 +337,7 @@ export default function AuthGatewayPage() {
         <div className="flex-none px-5 pt-5 sm:px-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 rounded-full bg-white/55 px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 backdrop-blur-md ring-1 ring-white/60 transition hover:bg-white/75 hover:text-slate-900"
+            className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 ring-1 ring-white/80 transition hover:bg-white/88 hover:text-slate-900"
           >
             <span aria-hidden="true" className="text-[11px]">&#8592;</span>
             Back to home
