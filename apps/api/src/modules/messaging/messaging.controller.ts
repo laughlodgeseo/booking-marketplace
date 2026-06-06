@@ -13,6 +13,7 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 import { MessagingService } from './messaging.service';
 import {
   AdminCreateThreadDto,
@@ -146,7 +147,7 @@ export class VendorMessagesController {
 
 @Controller('portal/user/messages')
 @UseGuards(JwtAccessGuard, RolesGuard)
-@Roles(UserRole.CUSTOMER)
+@Roles(...CUSTOMER_CAPABLE_ROLES)
 @Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserMessagesController {
   constructor(private readonly messaging: MessagingService) {}

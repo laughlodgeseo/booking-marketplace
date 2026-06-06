@@ -194,8 +194,10 @@ export async function getPropertyPreviewById(
   });
 
   if (!res.ok) {
-    const details = res.details !== undefined ? `\n\nDETAILS:\n${JSON.stringify(res.details, null, 2)}` : "";
-    throw new Error(`${res.message}${details}`);
+    if (process.env.NODE_ENV !== "production" && res.details !== undefined) {
+      console.error("[properties api]", res.status, res.message, res.details);
+    }
+    throw new Error(res.message);
   }
 
   return normalizePropertyPreview(res.data);

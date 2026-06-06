@@ -14,7 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 import { CustomerService } from './customer.service';
 import { imageFileFilter } from '../../common/upload/image-file.filter';
 import { avatarUploadStorage } from './customer-avatar.storage';
@@ -23,7 +23,7 @@ type JwtUser = { id: string; email: string; role: string };
 
 @Controller('customer/profile')
 @UseGuards(JwtAccessGuard, RolesGuard)
-@Roles(UserRole.CUSTOMER)
+@Roles(...CUSTOMER_CAPABLE_ROLES)
 export class CustomerController {
   constructor(private readonly customer: CustomerService) {}
 

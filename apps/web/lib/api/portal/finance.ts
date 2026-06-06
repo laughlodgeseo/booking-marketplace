@@ -3,11 +3,10 @@ import type { HttpResult } from "@/lib/http";
 
 function unwrap<T>(res: HttpResult<T>): T {
   if (!res.ok) {
-    const details =
-      res.details !== undefined
-        ? `\n\nDETAILS:\n${JSON.stringify(res.details, null, 2)}`
-        : "";
-    throw new Error(`${res.message}${details}`);
+    if (process.env.NODE_ENV !== "production" && res.details !== undefined) {
+      console.error("[finance api]", res.status, res.message, res.details);
+    }
+    throw new Error(res.message);
   }
   return res.data;
 }

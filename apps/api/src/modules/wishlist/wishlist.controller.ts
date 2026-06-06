@@ -12,14 +12,14 @@ import {
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 import { WishlistService } from './wishlist.service';
 
 type JwtUser = { id: string; email: string; role: string };
 
 @Controller('wishlist')
 @UseGuards(JwtAccessGuard, RolesGuard)
-@Roles(UserRole.CUSTOMER)
+@Roles(...CUSTOMER_CAPABLE_ROLES)
 export class WishlistController {
   constructor(private readonly wishlist: WishlistService) {}
 

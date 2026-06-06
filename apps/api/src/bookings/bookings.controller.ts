@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { UserRole } from '@prisma/client';
 
 import { CreateBookingDto } from './booking.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
@@ -19,6 +18,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../auth/types/auth-user.type';
+import { CUSTOMER_CAPABLE_ROLES } from '../common/rbac.constants';
 
 @Controller('bookings')
 @UseGuards(JwtAccessGuard, RolesGuard)
@@ -27,7 +27,7 @@ export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
-  @Roles(UserRole.CUSTOMER)
+  @Roles(...CUSTOMER_CAPABLE_ROLES)
   async createBooking(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateBookingDto,

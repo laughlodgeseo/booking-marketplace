@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { refreshAccessToken } from "@/lib/auth/authApi";
 import {
   getHostOnboardingState,
   startHostOnboarding,
@@ -782,6 +783,10 @@ export default function VendorOnboardingPage() {
     setStarting(true);
     try {
       await startHostOnboarding(user?.fullName ?? undefined);
+      // DB role is now VENDOR. Force issue a new access token whose payload
+      // carries role: VENDOR — the existing CUSTOMER token would cause 403 on
+      // all /vendor/* endpoints even though AuthContext shows VENDOR.
+      await refreshAccessToken();
       await refresh();
       router.push("/vendor/properties/new");
     } catch (err) {

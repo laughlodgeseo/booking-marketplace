@@ -20,6 +20,7 @@ import type { AuthUser } from '../../auth/types/auth-user.type';
 import type { AuthRequest } from '../../auth/types/auth-request.type';
 
 import { Throttle } from '@nestjs/throttler';
+import { CUSTOMER_CAPABLE_ROLES } from '../../common/rbac.constants';
 import { PaymentsService } from './payments.service';
 import { AuthorizePaymentDto } from './dto/authorize-payment.dto';
 import { CapturePaymentDto } from './dto/capture-payment.dto';
@@ -35,7 +36,7 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Post('authorize')
-  @Roles(UserRole.CUSTOMER)
+  @Roles(...CUSTOMER_CAPABLE_ROLES)
   authorize(
     @CurrentUser() user: AuthUser,
     @Body() dto: AuthorizePaymentDto,
@@ -52,7 +53,7 @@ export class PaymentsController {
   }
 
   @Post('create-intent')
-  @Roles(UserRole.CUSTOMER)
+  @Roles(...CUSTOMER_CAPABLE_ROLES)
   async createIntent(
     @Body() body: { bookingId?: string | null },
     @Req() req: AuthRequest,
