@@ -87,7 +87,7 @@ const DESKTOP_TILES: Tile[] = [
 function CollageTile({ tile, sizesHint }: { tile: Tile; sizesHint: string }) {
   return (
     <div
-      className="relative overflow-hidden rounded-[20px] ring-1 ring-white/10 shadow-[0_10px_32px_rgba(2,6,23,0.28)]"
+      className="relative overflow-hidden rounded-[20px] ring-1 ring-white/50 shadow-[0_18px_45px_rgba(120,90,45,0.16)]"
       style={{
         gridColumn: `${tile.colStart} / span ${tile.colSpan}`,
         gridRow: `${tile.rowStart} / span ${tile.rowSpan}`,
@@ -98,18 +98,18 @@ function CollageTile({ tile, sizesHint }: { tile: Tile; sizesHint: string }) {
         alt=""
         fill
         priority={tile.priority}
-        className="object-cover"
+        className="object-cover brightness-[1.04] saturate-[1.06]"
         style={{ objectPosition: tile.objectPos ?? "center" }}
         sizes={sizesHint}
       />
-      {/* Light depth gradient — preserves image detail at top, gentle fade at bottom */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+      {/* Very light base gradient — only provides depth for chip readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/14 via-transparent to-transparent" />
 
-      {/* Premium location chip */}
+      {/* Warm light location chip */}
       {tile.label ? (
-        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-slate-950/50 px-2.5 py-[5px] backdrop-blur-md ring-1 ring-white/12">
-          <span className="h-1.5 w-1.5 flex-none rounded-full bg-amber-300/80" />
-          <span className="text-[10px] font-semibold leading-none tracking-wide text-white/88">
+        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-white/[0.68] px-2.5 py-[5px] shadow-sm backdrop-blur-md ring-1 ring-white/70">
+          <span className="h-1.5 w-1.5 flex-none rounded-full bg-amber-500/80" />
+          <span className="text-[10px] font-semibold leading-none tracking-wide text-slate-800">
             {tile.label}
           </span>
         </div>
@@ -127,53 +127,53 @@ export function DubaiAuthCollageBackground() {
     <>
       {/* ════════════════════════════════════════════════════════
           MOBILE (< md / 768 px)
-          Hero full-bleed + two accent tiles at the bottom
+          Hero full-bleed + warm ivory gradient + 2 accent tiles
           ════════════════════════════════════════════════════════ */}
       <div className="absolute inset-0 block md:hidden">
-        {/* Dubai Marina full-screen base */}
+        {/* Dubai Marina full-screen base — slightly brightened */}
         <Image
           src="/areas/dubai-marina.webp"
           alt=""
           fill
           priority
-          className="object-cover object-center"
+          className="object-cover object-center brightness-[1.04]"
           sizes="100vw"
         />
 
-        {/* Multi-stop overlay: darker at extremes, lighter in middle for card */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/18 to-slate-950/60" />
+        {/* Warm ivory overlay — light and welcoming, not dark */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#fff8ed]/[0.72] via-[#fff8ed]/[0.20] to-[#fff8ed]/[0.58]" />
 
-        {/* Two accent tiles — bottom strip, clearly below the centered card */}
+        {/* Two accent tiles — bottom strip, below the centered card */}
         <div className="absolute bottom-4 left-3 right-3 flex gap-2.5">
           {/* Downtown Dubai accent */}
-          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/18 shadow-[0_8px_28px_rgba(2,6,23,0.38)]">
+          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/55 shadow-[0_8px_24px_rgba(120,90,45,0.18)]">
             <Image
               src="/areas/downtown-dubai.webp"
               alt=""
               fill
-              className="object-cover opacity-80"
+              className="object-cover brightness-[1.04]"
               sizes="45vw"
             />
-            <div className="absolute inset-0 bg-slate-950/18" />
+            <div className="absolute inset-0 bg-[#fff8ed]/[0.20]" />
             <div className="absolute bottom-1.5 left-2 flex items-center gap-1">
-              <span className="h-1 w-1 rounded-full bg-amber-300/80" />
-              <span className="text-[9px] font-semibold text-white/78">Downtown Dubai</span>
+              <span className="h-1 w-1 rounded-full bg-amber-500/85" />
+              <span className="text-[9px] font-semibold text-slate-800 drop-shadow-sm">Downtown Dubai</span>
             </div>
           </div>
 
           {/* Palm Jumeirah accent */}
-          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/18 shadow-[0_8px_28px_rgba(2,6,23,0.38)]">
+          <div className="relative h-[68px] flex-1 overflow-hidden rounded-2xl ring-1 ring-white/55 shadow-[0_8px_24px_rgba(120,90,45,0.18)]">
             <Image
               src="/areas/palm-jumeirah.webp"
               alt=""
               fill
-              className="object-cover object-top opacity-80"
+              className="object-cover object-top brightness-[1.04]"
               sizes="45vw"
             />
-            <div className="absolute inset-0 bg-slate-950/18" />
+            <div className="absolute inset-0 bg-[#fff8ed]/[0.20]" />
             <div className="absolute bottom-1.5 left-2 flex items-center gap-1">
-              <span className="h-1 w-1 rounded-full bg-amber-300/80" />
-              <span className="text-[9px] font-semibold text-white/78">Palm Jumeirah</span>
+              <span className="h-1 w-1 rounded-full bg-amber-500/85" />
+              <span className="text-[9px] font-semibold text-slate-800 drop-shadow-sm">Palm Jumeirah</span>
             </div>
           </div>
         </div>
@@ -181,7 +181,7 @@ export function DubaiAuthCollageBackground() {
 
       {/* ════════════════════════════════════════════════════════
           DESKTOP (≥ md / 768 px)
-          Full 4×4 collage grid with gutters + rounded tiles
+          Full 4×4 collage with warm sand/ivory gallery matting
           ════════════════════════════════════════════════════════ */}
       <div className="absolute inset-0 hidden md:block">
         <div
@@ -192,8 +192,8 @@ export function DubaiAuthCollageBackground() {
             gridTemplateRows: "repeat(4, 1fr)",
             gap: "14px",
             padding: "14px",
-            // Dark navy fills the gutters and outer frame between tiles
-            backgroundColor: "rgba(6, 10, 26, 0.97)",
+            // Warm luxury gallery mat — sand/ivory/lavender, not dark navy
+            background: "linear-gradient(145deg, #f7efe3 0%, #ece8ff 52%, #fff8ed 100%)",
           }}
         >
           {DESKTOP_TILES.map((tile) => (

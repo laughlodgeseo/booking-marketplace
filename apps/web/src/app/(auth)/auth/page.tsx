@@ -162,7 +162,7 @@ function AuthGatewayContent() {
       className="w-full max-w-[480px]"
     >
       {/* ── Elevated auth card ── */}
-      <div className="overflow-hidden rounded-3xl border border-white/70 bg-[#fffdf9]/[0.95] shadow-[0_40px_120px_rgba(5,10,28,0.38),0_0_0_1px_rgba(255,255,255,0.25)] backdrop-blur-2xl">
+      <div className="overflow-hidden rounded-3xl border border-white/80 bg-[#fffdf9]/[0.96] shadow-[0_40px_120px_rgba(75,50,10,0.24),0_0_0_1.5px_rgba(255,255,255,0.55)] backdrop-blur-2xl">
         {/* Card body */}
         <div className="p-6 sm:p-8">
 
@@ -288,7 +288,7 @@ function AuthGatewayContent() {
 function GatewayLoading() {
   return (
     <div className="w-full max-w-[480px]">
-      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/50 bg-white/90 shadow-[0_40px_100px_rgba(5,10,28,0.32)] backdrop-blur-2xl">
+      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/70 bg-[#fffdf9]/[0.96] shadow-[0_40px_100px_rgba(75,50,10,0.20)] backdrop-blur-2xl">
         <div className="p-6 sm:p-8">
           <div className="h-7 w-40 rounded-xl bg-slate-200/80" />
           <div className="mt-2 h-4 w-56 rounded-lg bg-slate-100" />
@@ -320,16 +320,16 @@ export default function AuthGatewayPage() {
         <DubaiAuthCollageBackground />
       </div>
 
-      {/* ── Layer 2: Readability overlays ── */}
+      {/* ── Layer 2: Warm haze overlays — light not dark ── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1]">
-        {/* Light global dim — images remain vivid */}
-        <div className="absolute inset-0 bg-slate-950/[0.18]" />
-        {/* Radial vignette — gentle brightening at center, darkening at edges */}
-        <div className="absolute inset-0 bg-[radial-gradient(65%_70%_at_50%_50%,rgba(15,23,42,0.06)_0%,rgba(15,23,42,0.44)_100%)]" />
-        {/* Top header fade — legibility for Back to home pill */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-950/22 to-transparent" />
-        {/* Bottom fade */}
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/26 to-transparent" />
+        {/* Warm ivory global haze — softens images without darkening */}
+        <div className="absolute inset-0 bg-[#fff8ed]/[0.16]" />
+        {/* Radial warm glow — brightens card center, warm fade to edges */}
+        <div className="absolute inset-0 bg-[radial-gradient(65%_70%_at_50%_50%,rgba(255,248,237,0.40)_0%,rgba(255,248,237,0.08)_100%)]" />
+        {/* Top ivory fade — keeps back-home pill area legible */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#fff8ed]/[0.60] to-transparent" />
+        {/* Bottom ivory fade */}
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#fff8ed]/[0.48] to-transparent" />
       </div>
 
       {/* ── Layer 3: Content ── */}
@@ -339,7 +339,7 @@ export default function AuthGatewayPage() {
         <div className="flex-none px-5 pt-5 sm:px-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 text-[12.5px] font-semibold text-white/85 backdrop-blur-sm ring-1 ring-white/18 transition hover:bg-white/20 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-full bg-white/55 px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 backdrop-blur-md ring-1 ring-white/60 transition hover:bg-white/75 hover:text-slate-900"
           >
             <span aria-hidden="true" className="text-[11px]">&#8592;</span>
             Back to home
