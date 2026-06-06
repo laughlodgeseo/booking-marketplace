@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { safeNextPath } from "../components/auth/authFlow";
+import {
+  safeNextPath,
+  canUserUsePortal,
+  resolvePostLoginPath,
+  defaultPathForPortalIntent,
+} from "../components/auth/authFlow";
 
 // ---------------------------------------------------------------------------
 // safeNextPath — redirect sanitizer unit tests
@@ -128,5 +133,97 @@ describe("safeNextPath", () => {
     // When called with the vendor fallback (as the vendor login page does),
     // a rejected login-path next value resolves to "/vendor", not "/".
     expect(safeNextPath("/vendor/login?next=%2Fvendor", "/vendor")).toBe("/vendor");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// defaultPathForPortalIntent
+// ---------------------------------------------------------------------------
+
+describe("defaultPathForPortalIntent", () => {
+  it("customer intent defaults to /account", () => {
+    expect(defaultPathForPortalIntent("customer")).toBe("/account");
+  });
+
+  it("vendor intent defaults to /vendor", () => {
+    expect(defaultPathForPortalIntent("vendor")).toBe("/vendor");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// canUserUsePortal — capability rules
+// ---------------------------------------------------------------------------
+
+describe("canUserUsePortal", () => {
+  // Customer portal: CUSTOMER and VENDOR are both capable
+  it("CUSTOMER can use customer portal", () => {
+    expect(canUserUsePortal("CUSTOMER", "customer")).toBe(true);
+  });
+
+  it("VENDOR can use customer portal (dual-portal capability)", () => {
+    expect(canUserUsePortal("VENDOR", "customer")).toBe(true);
+  });
+
+  // Vendor portal: only VENDOR
+  it("VENDOR can use vendor portal", () => {
+    expect(canUserUsePortal("VENDOR", "vendor")).toBe(true);
+  });
+
+  it("CUSTOMER cannot use vendor portal", () => {
+    expect(canUserUsePortal("CUSTOMER", "vendor")).toBe(false);
+  });
+
+  // ADMIN is not in either capability set
+  it("ADMIN cannot use customer portal via this helper", () => {
+    expect(canUserUsePortal("ADMIN", "customer")).toBe(false);
+  });
+
+  it("ADMIN cannot use vendor portal via this helper", () => {
+    expect(canUserUsePortal("ADMIN", "vendor")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolvePostLoginPath — post-login destination selection
+// ---------------------------------------------------------------------------
+
+describe("resolvePostLoginPath", () => {
+  // No ?next (or root fallback) → use portal default
+  it("customer intent with no next returns /account", () => {
+    expect(resolvePostLoginPath("customer", "/")).toBe("/account");
+  });
+
+  it("customer intent with empty string returns /account", () => {
+    expect(resolvePostLoginPath("customer", "")).toBe("/account");
+  });
+
+  it("vendor intent with no next returns /vendor", () => {
+    expect(resolvePostLoginPath("vendor", "/")).toBe("/vendor");
+  });
+
+  // Compatible next paths pass through
+  it("customer intent preserves compatible /account next", () => {
+    expect(resolvePostLoginPath("customer", "/account/bookings")).toBe("/account/bookings");
+  });
+
+  it("vendor intent preserves compatible /vendor next", () => {
+    expect(resolvePostLoginPath("vendor", "/vendor/properties")).toBe("/vendor/properties");
+  });
+
+  // Cross-portal next paths are rejected (fall back to portal default)
+  it("customer intent rejects vendor next and returns /account", () => {
+    expect(resolvePostLoginPath("customer", "/vendor/properties")).toBe("/account");
+  });
+
+  it("vendor intent rejects account next and returns /vendor", () => {
+    expect(resolvePostLoginPath("vendor", "/account/bookings")).toBe("/vendor");
+  });
+
+  it("customer intent rejects admin next and returns /account", () => {
+    expect(resolvePostLoginPath("customer", "/admin")).toBe("/account");
+  });
+
+  it("vendor intent rejects admin next and returns /vendor", () => {
+    expect(resolvePostLoginPath("vendor", "/admin")).toBe("/vendor");
   });
 });

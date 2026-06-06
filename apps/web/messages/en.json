@@ -23,7 +23,9 @@
     "signUp": "Sign up",
     "role": "Role",
     "emailNotVerified": "Email not verified",
-    "toggleMenu": "Toggle menu"
+    "toggleMenu": "Toggle menu",
+    "myAccount": "My account",
+    "vendorDashboard": "Vendor dashboard"
   },
   "portal": {
     "operations": "Operations",

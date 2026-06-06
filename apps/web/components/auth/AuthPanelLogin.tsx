@@ -9,7 +9,9 @@ import { useMemo, useState } from "react";
 import { login } from "@/lib/auth/authApi";
 import { useAuth } from "@/lib/auth/auth-context";
 import { setAccessToken } from "@/lib/auth/tokenStore";
+import { setLastPortalIntent } from "@/lib/auth/portalIntent";
 import type { AuthUiRole } from "@/components/auth/authFlow";
+import { canUserUsePortal, resolvePostLoginPath } from "@/components/auth/authFlow";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { googleLogin } from "@/lib/api/oauth";
@@ -39,6 +41,10 @@ const COPY = {
     forgotPassword: "Forgot password?",
     createAccount: "Create account",
     loginFailed: "Login failed",
+    notAVendorYet: "Your account is not set up for hosting yet.",
+    startHostingDesc: "Start your first listing to activate vendor tools.",
+    startHosting: "Start hosting",
+    continueAsCustomer: "Go to customer portal",
   },
   ar: {
     roleVendor: "مزوّد",
@@ -56,6 +62,10 @@ const COPY = {
     forgotPassword: "نسيت كلمة المرور؟",
     createAccount: "إنشاء حساب",
     loginFailed: "فشل تسجيل الدخول",
+    notAVendorYet: "لم يتم إعداد حسابك للاستضافة بعد.",
+    startHostingDesc: "ابدأ قائمتك الأولى لتفعيل أدوات البائع.",
+    startHosting: "ابدأ الاستضافة",
+    continueAsCustomer: "انتقل إلى بوابة العميل",
   },
 } as const;
 
@@ -70,6 +80,7 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showStartHosting, setShowStartHosting] = useState(false);
 
   const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
   const roleIcon = role === "vendor" ? <Building2 className="h-4 w-4" /> : <User2 className="h-4 w-4" />;
@@ -92,13 +103,27 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
 
   const backendRole = role === "vendor" ? "VENDOR" : "CUSTOMER";
 
+  // Core post-login redirect logic. Called after the user is authenticated.
+  // Checks if the actual account role has capability for the selected portal intent,
+  // then redirects or shows the start-hosting prompt.
+  function handlePostLogin(userRole: "CUSTOMER" | "VENDOR" | "ADMIN") {
+    if (!canUserUsePortal(userRole, role)) {
+      // Authenticated but no vendor capability — show friendly onboarding prompt.
+      setShowStartHosting(true);
+      return;
+    }
+    setLastPortalIntent(role);
+    const destination = resolvePostLoginPath(role, nextPath);
+    router.push(destination);
+  }
+
   async function handleGoogleLogin(credential: string) {
     setError(null);
     const res = await googleLogin(credential, backendRole);
     if (res.ok) {
       setAccessToken(res.data.accessToken);
       await refresh();
-      router.push(nextPath);
+      handlePostLogin(res.data.user.role);
     } else {
       setError(res.message ?? "Google login failed");
     }
@@ -110,14 +135,54 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
     setLoading(true);
 
     try {
-      await login({ email, password });
+      const data = await login({ email, password });
       await refresh();
-      router.push(nextPath);
+      handlePostLogin(data.user.role);
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.loginFailed);
     } finally {
       setLoading(false);
     }
+  }
+
+  // Shown after a CUSTOMER successfully authenticates but chose the vendor portal.
+  if (showStartHosting) {
+    return (
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="site-chip inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold">
+            <span className="text-indigo-600"><Building2 className="h-4 w-4" /></span>
+            {copy.roleSignIn(copy.roleVendor)}
+          </div>
+          <Link href={qsGateway} className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+            {copy.switchRole}
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
+          <p className="text-sm font-semibold text-amber-900">{copy.notAVendorYet}</p>
+          <p className="mt-1 text-sm text-amber-800">{copy.startHostingDesc}</p>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/vendor/onboarding")}
+              className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold text-white transition-colors duration-150 lg:h-auto lg:py-3.5"
+            >
+              {copy.startHosting}
+              <ArrowRight className={arrowClass} />
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/account")}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-amber-100 px-5 text-sm font-semibold text-amber-900 transition-colors duration-150 hover:bg-amber-200 lg:h-auto lg:py-3.5"
+            >
+              {copy.continueAsCustomer}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

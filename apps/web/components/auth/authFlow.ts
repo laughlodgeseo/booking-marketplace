@@ -1,4 +1,7 @@
+import type { UserRole } from "@/lib/auth/auth.types";
+
 export type AuthUiRole = "customer" | "vendor";
+export type PortalIntent = AuthUiRole;
 
 export type AuthFlowPanel = "login" | "signup" | "forgot";
 
@@ -32,6 +35,34 @@ export function safeNextPath(raw: string | null, fallback = "/"): string {
 
 export function readRole(raw: string | null): AuthUiRole {
   return raw === "vendor" ? "vendor" : "customer";
+}
+
+export function defaultPathForPortalIntent(intent: PortalIntent): string {
+  return intent === "vendor" ? "/vendor" : "/account";
+}
+
+// A VENDOR retains customer-portal capability; a CUSTOMER cannot access vendor portal.
+export function canUserUsePortal(userRole: UserRole, intent: PortalIntent): boolean {
+  if (intent === "customer") return userRole === "CUSTOMER" || userRole === "VENDOR";
+  if (intent === "vendor") return userRole === "VENDOR";
+  return false;
+}
+
+// Prevents cross-portal confusion when validating ?next= after login.
+function isNextCompatibleWithPortal(next: string, intent: PortalIntent): boolean {
+  if (intent === "customer") return !next.startsWith("/vendor") && !next.startsWith("/admin");
+  if (intent === "vendor") return !next.startsWith("/account") && !next.startsWith("/admin");
+  return true;
+}
+
+// Given the portal intent and the raw next path (already sanitised by safeNextPath),
+// return the correct post-login destination.  Does NOT perform capability checks —
+// call canUserUsePortal first and redirect to onboarding if the check fails.
+export function resolvePostLoginPath(intent: PortalIntent, requestedNext: string): string {
+  const defaultPath = defaultPathForPortalIntent(intent);
+  if (!requestedNext || requestedNext === "/") return defaultPath;
+  if (!isNextCompatibleWithPortal(requestedNext, intent)) return defaultPath;
+  return requestedNext;
 }
 
 export function panelFromPath(pathname: string | null): AuthFlowPanel | null {

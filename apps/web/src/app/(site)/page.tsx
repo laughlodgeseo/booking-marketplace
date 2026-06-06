@@ -420,12 +420,12 @@ type HomeCopy = (typeof HOME_COPY)[AppLocale];
 
 function FeaturedSpotlightFallback() {
   return (
-    <section className="relative w-full py-16 sm:py-20">
+    <section className="home-featured-section relative w-full py-12 sm:py-14">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="premium-card premium-card-tinted rounded-[32px] p-6">
-          <div className="h-5 w-56 animate-pulse rounded-lg bg-[rgb(var(--color-bg-rgb)/0.82)]" />
-          <div className="mt-3 h-4 w-full animate-pulse rounded-lg bg-[rgb(var(--color-bg-rgb)/0.78)]" />
-          <div className="mt-2 h-4 w-4/5 animate-pulse rounded-lg bg-[rgb(var(--color-bg-rgb)/0.78)]" />
+        <div className="home-premium-card rounded-[28px] p-6">
+          <div className="h-5 w-56 animate-pulse rounded-lg bg-[#e5d9c8]" />
+          <div className="mt-3 h-4 w-full animate-pulse rounded-lg bg-[#eadfce]" />
+          <div className="mt-2 h-4 w-4/5 animate-pulse rounded-lg bg-[#eadfce]" />
         </div>
       </div>
     </section>
@@ -453,21 +453,21 @@ async function HomeFeaturedSection(props: {
   }
 
   return (
-    <section className="relative w-full py-16 sm:py-20">
+    <section className="home-featured-section relative w-full py-12 sm:py-14">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="premium-card premium-card-tinted rounded-[32px] p-6">
-          <p className="text-sm font-extrabold text-primary">{props.copy.errorTitle}</p>
-          <p className="mt-2 text-sm text-secondary/75">
-            {props.copy.errorBody} <span className="text-secondary/60">({featured.message})</span>
+        <div className="home-premium-card rounded-[28px] p-6">
+          <p className="text-sm font-extrabold text-[var(--home-primary-deep)]">{props.copy.errorTitle}</p>
+          <p className="mt-2 text-sm text-[var(--home-muted)]">
+            {props.copy.errorBody} <span className="opacity-75">({featured.message})</span>
           </p>
 
           <div className="mt-4">
             <Link
               href="/properties"
-              className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-5 py-3 text-sm font-extrabold text-primary shadow-sm transition hover:bg-accent-soft/55"
+              className="home-nav-button inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold transition"
             >
               {props.copy.browse}
-              <span aria-hidden className="text-secondary/60">→</span>
+              <span aria-hidden className="text-[var(--home-accent)]">→</span>
             </Link>
           </div>
         </div>
@@ -490,15 +490,15 @@ export default async function HomePage() {
   }));
 
   return (
-    <main className="relative overflow-x-hidden bg-transparent">
+    <main className="home-premium-shell relative overflow-x-hidden">
       <section className="relative">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[980px] bg-[radial-gradient(110%_80%_at_10%_0%,rgba(99,102,241,0.16),transparent_58%),radial-gradient(100%_70%_at_92%_14%,rgba(56,189,248,0.10),transparent_58%),linear-gradient(180deg,rgba(244,238,227,0.96)_0%,rgba(244,238,227,0.78)_100%)]"
+          className="home-top-atmosphere pointer-events-none absolute inset-x-0 top-0 h-[980px]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-[430px] h-[580px] bg-[linear-gradient(180deg,rgba(244,238,227,0)_0%,rgba(244,238,227,0.78)_26%,rgba(244,238,227,0.92)_100%)]"
+          className="home-top-to-trust-fade pointer-events-none absolute inset-x-0 top-[430px] h-[580px]"
         />
 
         <div className="relative z-10">
@@ -523,7 +523,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="bg-transparent">
+      <div className="relative -mt-2 bg-transparent">
         <Suspense fallback={<FeaturedSpotlightFallback />}>
           <HomeFeaturedSection copy={copy.featured} locale={locale} currency={currency} />
         </Suspense>

@@ -504,19 +504,21 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
   }
 
   return (
-    <section className="relative h-auto w-full py-10 lg:py-12">
+    <section className="home-featured-section relative h-auto w-full overflow-hidden py-10 sm:py-12 lg:py-14">
+      <div aria-hidden className="home-section-fade-top pointer-events-none absolute inset-x-0 top-0 h-20" />
+      <div aria-hidden className="home-section-fade-bottom pointer-events-none absolute inset-x-0 bottom-0 h-20" />
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-14">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
           <div className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-secondary/60">Featured</p>
-            <h2 className="mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.01em] text-primary sm:text-3xl">
+            <p className="home-featured-eyebrow text-xs font-extrabold uppercase">Featured</p>
+            <h2 className="home-featured-title mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.01em] sm:text-3xl">
               {props.title}
             </h2>
-            <p className="mt-2 text-sm text-secondary/75 sm:text-base">{props.subtitle}</p>
+            <p className="home-featured-copy mt-2 max-w-2xl text-sm sm:text-base">{props.subtitle}</p>
           </div>
         </div>
 
-        <div className="mt-8 lg:hidden">
+        <div className="mt-7 lg:hidden">
           <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
             {mobileItems.map((item, idx) => {
               const title = getDisplayTitle(item.title);
@@ -532,7 +534,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
               return (
                 <article
                   key={`${item.slug}-${idx}`}
-                  className="w-[84%] shrink-0 snap-center overflow-hidden rounded-2xl border border-black/6 bg-white shadow-[0_14px_30px_rgba(11,15,25,0.12)] sm:w-[60%]"
+                  className="home-stay-card w-[84%] shrink-0 snap-center overflow-hidden rounded-2xl sm:w-[60%]"
                 >
                   <button
                     type="button"
@@ -556,39 +558,39 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
 
                     <div className="flex min-h-[206px] flex-col gap-3 p-4">
                       <div>
-                        <Clamp as="h3" lines={2} className="text-base font-semibold leading-snug tracking-[-0.01em] text-primary">
+                        <Clamp as="h3" lines={2} className="text-base font-semibold leading-snug tracking-[-0.01em] text-[var(--home-primary-deep)]">
                           {title}
                         </Clamp>
-                        <p className="mt-1 flex items-center gap-1.5 text-sm text-secondary">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-secondary/80" />
+                        <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--home-muted)]">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--home-accent)]" />
                           <Clamp as="span" lines={1} className="min-w-0">
                             {location}
                           </Clamp>
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary/88">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--home-muted)]">
                         <span className="inline-flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5 text-secondary/75" />
+                          <Users className="h-3.5 w-3.5 text-[var(--home-primary)]" />
                           {guests} guests
                         </span>
                         {beds ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <BedDouble className="h-3.5 w-3.5 text-secondary/75" />
+                            <BedDouble className="h-3.5 w-3.5 text-[var(--home-primary)]" />
                             {beds} beds
                           </span>
                         ) : null}
                         {baths ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <Bath className="h-3.5 w-3.5 text-secondary/75" />
+                            <Bath className="h-3.5 w-3.5 text-[var(--home-primary)]" />
                             {baths} baths
                           </span>
                         ) : null}
                       </div>
 
-                      <div className="mt-auto flex items-center justify-between gap-3 border-t border-neutral-200/80 pt-3">
-                        <span className="text-sm font-semibold text-primary">{price ? `From ${price}` : "From AED --"}</span>
-                        <span className="inline-flex h-11 items-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white">
+                      <div className="mt-auto flex items-center justify-between gap-3 border-t border-[rgb(var(--home-border-rgb)/0.62)] pt-3">
+                        <span className="text-sm font-semibold text-[var(--home-primary-deep)]">{price ? `From ${price}` : "From AED --"}</span>
+                        <span className="home-primary-button inline-flex h-11 items-center rounded-xl px-4 text-sm font-semibold">
                           View
                         </span>
                       </div>
@@ -602,7 +604,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
           <div className="mt-6 flex items-center justify-center">
             <Link
               href="/properties"
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
+              className="home-primary-button inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition"
             >
               View all stays
               <span aria-hidden className="text-white/85">→</span>
@@ -611,7 +613,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
         </div>
 
         <div className="hidden lg:block">
-          <div className="mt-10 w-full pb-4 md:mt-12">
+          <div className="mt-9 w-full pb-2 md:mt-10">
           <div className="mx-auto w-full max-w-[1260px]">
             <div
               ref={scrollerRef}
@@ -696,7 +698,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                 }}
               >
                 <div
-                  className="group relative w-full overflow-hidden rounded-[2rem] border border-black/5 bg-white/16"
+                  className="home-property-stage-card group relative w-full overflow-hidden rounded-[2rem]"
                   style={{
                     boxShadow: slot.profile.shadow,
                     transform: `scale(${slot.profile.scale})`,
@@ -706,7 +708,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                     willChange: "transform, filter, opacity",
                   }}
                 >
-                  <div className="pointer-events-none absolute inset-x-7 top-0 z-20 h-[2px] rounded-full bg-gradient-to-r from-brand/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="pointer-events-none absolute inset-x-7 top-0 z-20 h-[2px] rounded-full bg-gradient-to-r from-[#b87333]/80 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <div className="relative w-full aspect-[4/5]">
                     {cover ? (
                       <Image
@@ -758,19 +760,19 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
         </div>
         </div>
 
-        <div className="mb-6 mt-7 hidden items-center justify-center lg:flex">
+        <div className="mb-4 mt-6 hidden items-center justify-center lg:flex">
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
             <button
               type="button"
               onClick={() => moveByOne(-1)}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-surface px-0 shadow-sm transition hover:bg-accent-soft/60 hover:text-brand"
+              className="home-nav-button grid h-11 w-11 cursor-pointer place-items-center rounded-full px-0 transition"
               aria-label="Previous"
             >
-              <ChevronLeft className="h-5 w-5 text-primary transition hover:text-brand" />
+              <ChevronLeft className="h-5 w-5 transition" />
             </button>
             <Link
               href="/properties"
-              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
+              className="home-primary-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition"
             >
               View all stays
               <span aria-hidden className="text-white/85">→</span>
@@ -778,10 +780,10 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
             <button
               type="button"
               onClick={() => moveByOne(1)}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-surface px-0 shadow-sm transition hover:bg-accent-soft/60 hover:text-brand"
+              className="home-nav-button grid h-11 w-11 cursor-pointer place-items-center rounded-full px-0 transition"
               aria-label="Next"
             >
-              <ChevronRight className="h-5 w-5 text-primary transition hover:text-brand" />
+              <ChevronRight className="h-5 w-5 transition" />
             </button>
           </div>
         </div>

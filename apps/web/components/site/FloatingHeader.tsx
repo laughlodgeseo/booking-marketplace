@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X, ArrowRight, LogOut, UserRound } from "lucide-react";
+import { Building2, Menu, X, ArrowRight, LogOut, User2, UserRound } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { UserRole } from "@/lib/auth/auth.types";
@@ -39,15 +39,8 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 function dashboardPathForRole(role: UserRole): string {
-  switch (role) {
-    case "ADMIN":
-      return "/admin";
-    case "VENDOR":
-      return "/vendor";
-    case "CUSTOMER":
-    default:
-      return "/account";
-  }
+  if (role === "ADMIN") return "/admin";
+  return "/account";
 }
 
 export default function FloatingHeader() {
@@ -134,14 +127,14 @@ export default function FloatingHeader() {
 
   const showAuthSkeleton = status === "loading";
   const headerSurfaceClass = isAtTop
-    ? "bg-white border-b border-neutral-200 shadow-sm"
-    : "bg-white border-b border-neutral-200 shadow-md";
+    ? "border-b border-[#ded2c2]/70 bg-[#fffdf9]/95 shadow-[0_1px_0_rgba(184,115,51,0.08)] backdrop-blur-md"
+    : "border-b border-[#ded2c2]/80 bg-[#fffdf9]/96 shadow-[0_12px_34px_rgba(30,27,75,0.10)] backdrop-blur-md";
   const headerVisibilityClass = isVisible ? "translate-y-0" : "-translate-y-full";
 
   const secondaryActionClass =
-    "inline-flex h-11 items-center justify-center rounded-full bg-warm-alt/75 px-4 text-sm font-semibold text-primary transition hover:bg-brand-soft-2";
+    "inline-flex h-11 items-center justify-center rounded-full bg-[#f6efe5]/80 px-4 text-sm font-semibold text-primary transition hover:bg-brand-soft-2";
   const softActionClass =
-    "inline-flex h-11 items-center justify-center rounded-full bg-warm-alt px-4 text-sm font-semibold text-primary shadow-sm transition hover:bg-brand-soft-2";
+    "inline-flex h-11 items-center justify-center rounded-full bg-[#f6efe5] px-4 text-sm font-semibold text-primary shadow-sm transition hover:bg-brand-soft-2";
   const primaryActionClass =
     "inline-flex h-11 items-center justify-center rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:bg-indigo-800";
 
@@ -196,10 +189,23 @@ export default function FloatingHeader() {
                   <div className="h-11 w-[180px] animate-pulse rounded-full bg-warm-alt/80" />
                 ) : user ? (
                   <>
-                    <Link href={dashboardHref} className={primaryActionClass} title={t("dashboard")}>
-                      <UserRound className="me-2 h-4 w-4" />
-                      {t("dashboard")}
-                    </Link>
+                    {user.role === "VENDOR" ? (
+                      <>
+                        <Link href="/account" className={softActionClass} title={t("myAccount")}>
+                          <User2 className="me-2 h-4 w-4" />
+                          {t("myAccount")}
+                        </Link>
+                        <Link href="/vendor" className={primaryActionClass} title={t("vendorDashboard")}>
+                          <Building2 className="me-2 h-4 w-4" />
+                          {t("vendorDashboard")}
+                        </Link>
+                      </>
+                    ) : (
+                      <Link href={dashboardHref} className={primaryActionClass} title={t("dashboard")}>
+                        <UserRound className="me-2 h-4 w-4" />
+                        {t("dashboard")}
+                      </Link>
+                    )}
 
                     <button
                       type="button"
@@ -298,13 +304,34 @@ export default function FloatingHeader() {
                     </div>
 
                     <div className="grid gap-2">
-                      <Link
-                        href={dashboardHref}
-                        onClick={() => setMobileOpen(false)}
-                        className={`${primaryActionClass} w-full`}
-                      >
-                        {t("dashboard")}
-                      </Link>
+                      {user.role === "VENDOR" ? (
+                        <>
+                          <Link
+                            href="/account"
+                            onClick={() => setMobileOpen(false)}
+                            className={`${softActionClass} w-full`}
+                          >
+                            <User2 className="me-2 h-4 w-4" />
+                            {t("myAccount")}
+                          </Link>
+                          <Link
+                            href="/vendor"
+                            onClick={() => setMobileOpen(false)}
+                            className={`${primaryActionClass} w-full`}
+                          >
+                            <Building2 className="me-2 h-4 w-4" />
+                            {t("vendorDashboard")}
+                          </Link>
+                        </>
+                      ) : (
+                        <Link
+                          href={dashboardHref}
+                          onClick={() => setMobileOpen(false)}
+                          className={`${primaryActionClass} w-full`}
+                        >
+                          {t("dashboard")}
+                        </Link>
+                      )}
                       <button
                         type="button"
                         onClick={handleLogout}

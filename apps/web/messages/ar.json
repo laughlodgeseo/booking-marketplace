@@ -23,7 +23,9 @@
     "signUp": "إنشاء حساب",
     "role": "الدور",
     "emailNotVerified": "البريد الإلكتروني غير موثّق",
-    "toggleMenu": "فتح أو إغلاق القائمة"
+    "toggleMenu": "فتح أو إغلاق القائمة",
+    "myAccount": "حسابي",
+    "vendorDashboard": "لوحة تحكم البائع"
   },
   "portal": {
     "operations": "العمليات",

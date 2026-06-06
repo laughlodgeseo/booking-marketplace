@@ -1,10 +1,11 @@
 import { apiFetch, type HttpResult } from "@/lib/http";
+import type { UserRole } from "@/lib/auth/auth.types";
 
 type OAuthResult = {
   user: {
     id: string;
     email: string;
-    role: string;
+    role: UserRole;
     isEmailVerified: boolean;
     fullName: string | null;
   };
