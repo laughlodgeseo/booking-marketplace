@@ -6,6 +6,7 @@ import {
   defaultPathForPortalIntent,
   safeAdminNextPath,
   canUserAccessAdminPortal,
+  readRole,
 } from "../components/auth/authFlow";
 import { isCustomerCapableRole } from "../lib/auth/auth.types";
 
@@ -328,6 +329,54 @@ describe("canUserAccessAdminPortal", () => {
 
   it("VENDOR cannot access admin portal", () => {
     expect(canUserAccessAdminPortal("VENDOR")).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// readRole — public gateway role parser (Phase 32)
+// ---------------------------------------------------------------------------
+
+describe("readRole", () => {
+  it("null defaults to customer", () => {
+    expect(readRole(null)).toBe("customer");
+  });
+
+  it("'vendor' returns vendor", () => {
+    expect(readRole("vendor")).toBe("vendor");
+  });
+
+  it("'customer' returns customer", () => {
+    expect(readRole("customer")).toBe("customer");
+  });
+
+  it("'admin' coerces to customer (admin not a public gateway role)", () => {
+    expect(readRole("admin")).toBe("customer");
+  });
+
+  it("empty string defaults to customer", () => {
+    expect(readRole("")).toBe("customer");
+  });
+
+  it("garbage value defaults to customer", () => {
+    expect(readRole("SUPERUSER")).toBe("customer");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// safeNextPath — auth gateway URL variants blocked as next targets (Phase 32)
+// ---------------------------------------------------------------------------
+
+describe("auth gateway safety as next target", () => {
+  it("rejects /auth?mode=login as next target", () => {
+    expect(safeNextPath("/auth?mode=login")).toBe("/");
+  });
+
+  it("rejects /auth?mode=signup as next target", () => {
+    expect(safeNextPath("/auth?mode=signup")).toBe("/");
+  });
+
+  it("rejects /auth?mode=login with vendor fallback", () => {
+    expect(safeNextPath("/auth?mode=login", "/vendor")).toBe("/vendor");
   });
 });
 

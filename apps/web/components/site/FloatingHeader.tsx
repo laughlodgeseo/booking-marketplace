@@ -220,10 +220,10 @@ export default function FloatingHeader() {
                   </>
                 ) : (
                   <>
-                    <Link href="/login" className={secondaryActionClass}>
+                    <Link href="/auth?mode=login" className={secondaryActionClass}>
                       {t("login")}
                     </Link>
-                    <Link href="/signup" className={primaryActionClass}>
+                    <Link href="/auth?mode=signup" className={primaryActionClass}>
                       {t("signUp")}
                     </Link>
                   </>
@@ -346,14 +346,14 @@ export default function FloatingHeader() {
                 ) : (
                   <div className="grid gap-2">
                     <Link
-                      href="/login"
+                      href="/auth?mode=login"
                       onClick={() => setMobileOpen(false)}
                       className={`${secondaryActionClass} w-full bg-white`}
                     >
                       {t("login")}
                     </Link>
                     <Link
-                      href="/signup"
+                      href="/auth?mode=signup"
                       onClick={() => setMobileOpen(false)}
                       className={`${primaryActionClass} w-full`}
                     >
