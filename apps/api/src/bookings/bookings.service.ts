@@ -111,6 +111,18 @@ export class BookingsService {
     const idempotencyKey = args.idempotencyKey?.trim() || null;
     const now = new Date();
 
+    // SECURITY: Verified email required before converting a hold into a booking.
+    // Checked here before the DB transaction to give a clear early error.
+    const bookingUser = await this.prisma.user.findUnique({
+      where: { id: args.userId },
+      select: { isEmailVerified: true },
+    });
+    if (!bookingUser?.isEmailVerified) {
+      throw new ForbiddenException(
+        'Email verification required before creating a booking.',
+      );
+    }
+
     // 🔁 Fast-path idempotency
     if (idempotencyKey) {
       const existing = await this.prisma.booking.findFirst({

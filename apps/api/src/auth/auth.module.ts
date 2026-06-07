@@ -4,7 +4,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
-import { RbacTestController } from './rbac-test.controller';
 
 // ✅ NEW: OTP email verification
 import { EmailVerificationController } from './email-verification/email-verification.controller';
@@ -19,7 +18,6 @@ import { NotificationsModule } from '../modules/notifications/notifications.modu
   imports: [JwtModule.register({}), PrismaModule, NotificationsModule],
   controllers: [
     AuthController,
-    RbacTestController,
     EmailVerificationController,
     OAuthController,
   ],

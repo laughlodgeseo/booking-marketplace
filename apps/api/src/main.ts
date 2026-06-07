@@ -1,5 +1,10 @@
+// Sentry must be initialized before any other imports so that instrumentation
+// hooks into require/import calls early enough to capture all errors.
+import './instrument';
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -62,7 +67,38 @@ async function bootstrap() {
 
   // Cookies + security headers
   app.use(cookieParser());
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          baseUri: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'self'"],
+          scriptSrc: ["'self'", 'https://js.stripe.com'],
+          frameSrc: [
+            "'self'",
+            'https://js.stripe.com',
+            'https://hooks.stripe.com',
+          ],
+          connectSrc: [
+            "'self'",
+            'https://api.stripe.com',
+            'https://*.stripe.com',
+            'https://*.cloudinary.com',
+          ],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'blob:',
+            'https://*.cloudinary.com',
+            'https://res.cloudinary.com',
+          ],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+      },
+    }),
+  );
 
   app.use((req: AppRequest, res: Response, next: NextFunction) => {
     // Always generate a server-side UUID. Never trust the incoming header
@@ -196,6 +232,11 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  // Global exception filter — captures unexpected server errors to Sentry.
+  // Must be registered after useGlobalPipes so validation errors are already
+  // normalized and don't reach the filter as unexpected exceptions.
+  app.useGlobalFilters(new SentryExceptionFilter());
 
   /**
    * Swagger — disabled in production by default.

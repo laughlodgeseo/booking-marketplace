@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import createBundleAnalyzer from "@next/bundle-analyzer";
 import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const DEFAULT_API_ORIGIN = "http://localhost:3001";
 
@@ -64,4 +65,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withNextIntl(nextConfig));
+const composedConfig = withBundleAnalyzer(withNextIntl(nextConfig));
+
+export default withSentryConfig(composedConfig, {
+  // Only upload source maps when SENTRY_AUTH_TOKEN is set (CI/CD only)
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  disableLogger: true,
+  telemetry: false,
+  sourcemaps: {
+    // Do not upload source maps unless auth token is present
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+});

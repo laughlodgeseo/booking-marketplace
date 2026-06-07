@@ -84,6 +84,9 @@ describe('BookingsService critical paths', () => {
     const { service } = buildService({
       prisma: {
         booking: { findFirst: bookingFindFirst },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+        },
         $transaction: tx,
       } as unknown as PrismaService,
     });
@@ -114,6 +117,9 @@ describe('BookingsService critical paths', () => {
 
     const prismaMock = {
       booking: { findFirst: jest.fn().mockResolvedValue(null) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+      },
       $transaction: jest.fn(),
     } as unknown as PrismaService;
 
@@ -204,6 +210,9 @@ describe('BookingsService critical paths', () => {
 
     const prismaMock = {
       booking: { findFirst: jest.fn().mockResolvedValue(null) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+      },
       property: {
         findUnique: jest.fn().mockResolvedValue({
           basePrice: 60000,
