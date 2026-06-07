@@ -44,19 +44,26 @@ export class BookingsController {
     });
   }
 
-  // ✅ Cancellation (policy-based). Roles enforced inside service:
-  // - CUSTOMER can cancel own booking
-  // - VENDOR can cancel bookings for own property (strict reasons only)
-  // - ADMIN can cancel any booking
+  // Customer-portal cancellation endpoint.
+  // VENDOR-capable users (role === VENDOR) booking as guests are treated as
+  // CUSTOMER here, since this endpoint represents the customer perspective.
+  // Vendor-perspective cancellation (own property bookings) must go through
+  // the vendor portal endpoint with an explicit VENDOR actor.
   @Post(':id/cancel')
   async cancelBooking(
     @Param('id') bookingId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CancelBookingDto,
   ) {
+    const actorRole = (
+      CUSTOMER_CAPABLE_ROLES as readonly string[]
+    ).includes(user.role)
+      ? 'CUSTOMER'
+      : (user.role as 'ADMIN' | 'SYSTEM');
+
     return this.bookingsService.cancelBooking({
       bookingId,
-      actorUser: { id: user.id, role: user.role },
+      actorUser: { id: user.id, role: actorRole },
       dto: dto ?? {},
     });
   }

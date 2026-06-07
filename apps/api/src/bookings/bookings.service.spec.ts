@@ -554,3 +554,196 @@ describe('BookingsService critical paths', () => {
     );
   });
 });
+
+// ── Vendor-as-customer cancellation (service layer) ───────────────────────────
+
+describe('BookingsService — vendor-as-customer cancellation', () => {
+  function buildService(deps?: {
+    prisma?: PrismaService;
+    cancellationPolicy?: CancellationPolicyService;
+    notifications?: NotificationsService;
+  }) {
+    const prisma =
+      deps?.prisma ??
+      ({
+        booking: { findFirst: jest.fn() },
+        $transaction: jest.fn(),
+      } as unknown as PrismaService);
+    const cancellationPolicy =
+      deps?.cancellationPolicy ??
+      ({ decide: jest.fn() } as unknown as CancellationPolicyService);
+    const notifications =
+      deps?.notifications ??
+      ({ emit: jest.fn().mockResolvedValue(undefined) } as unknown as NotificationsService);
+    const pricing = {
+      calculateTotal: jest.fn().mockResolvedValue({ nightlyBreakdown: [], subtotal: 0 }),
+    } as unknown as PricingService;
+    const dubaiTax = {
+      calculate: jest.fn().mockReturnValue({
+        baseTotal: 0, cleaningFee: 0, serviceCharge: 0, municipalityFee: 0,
+        tourismFee: 0, subtotalBeforeVat: 0, vat: 0, tourismDirham: 0, total: 0,
+      }),
+    } as unknown as DubaiTaxService;
+
+    return {
+      service: new BookingsService(prisma, cancellationPolicy, notifications, pricing, dubaiTax),
+      prisma,
+    };
+  }
+
+  const CUSTOMER_ID = 'vendor_acting_as_customer';
+  const BOOKING_ID = 'booking_vendor_cust_1';
+
+  function makeBooking(customerId: string, vendorId: string) {
+    return {
+      id: BOOKING_ID,
+      status: BookingStatus.PENDING_PAYMENT,
+      customerId,
+      propertyId: 'prop_v_1',
+      checkIn: new Date('2026-07-01T00:00:00.000Z'),
+      checkOut: new Date('2026-07-04T00:00:00.000Z'),
+      totalAmount: 5000,
+      totalAmountAed: 5000,
+      displayTotalAmount: 5000,
+      displayCurrency: 'AED',
+      currency: 'AED',
+      fxRate: 1,
+      fxAsOfDate: null,
+      fxProvider: null,
+      cancellationReason: null,
+      property: { vendorId },
+      payment: null,
+      cancellation: null,
+    };
+  }
+
+  const MOCK_POLICY = {
+    id: 'policy_mock_1',
+    version: 'V1',
+    isActive: true,
+    freeCancellationHours: 48,
+    partialRefundPercent: 50,
+    partialRefundHours: 24,
+    propertyId: null,
+  };
+
+  function buildPrismaMock(
+    booking: ReturnType<typeof makeBooking>,
+    opts: { withPolicy?: boolean } = {},
+  ) {
+    const policyResult = opts.withPolicy ? MOCK_POLICY : null;
+    return {
+      booking: { findFirst: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn().mockImplementation(
+        async (fn: (tx: {
+          booking: { findUnique: jest.Mock; update: jest.Mock };
+          cancellationPolicyConfig: { findFirst: jest.Mock };
+          bookingCancellation: { create: jest.Mock };
+          refund: { create: jest.Mock };
+          opsTask: { updateMany: jest.Mock };
+          bookingBlockedDate: { deleteMany: jest.Mock };
+        }) => Promise<unknown>) =>
+          fn({
+            booking: {
+              findUnique: jest.fn().mockResolvedValue(booking),
+              update: jest.fn().mockResolvedValue({ ...booking, status: BookingStatus.CANCELLED }),
+            },
+            cancellationPolicyConfig: { findFirst: jest.fn().mockResolvedValue(policyResult) },
+            bookingCancellation: {
+              create: jest.fn().mockResolvedValue({ id: 'cancel_1', refundId: null }),
+            },
+            refund: { create: jest.fn() },
+            opsTask: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+            bookingBlockedDate: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+          }),
+      ),
+    } as unknown as PrismaService;
+  }
+
+  it('CUSTOMER can cancel own customer booking', async () => {
+    const booking = makeBooking('customer_plain', 'some_vendor');
+    const { service } = buildService({ prisma: buildPrismaMock(booking) });
+
+    const result = await service.cancelBooking({
+      bookingId: BOOKING_ID,
+      actorUser: { id: 'customer_plain', role: 'CUSTOMER' },
+      dto: { reason: CancellationReason.GUEST_REQUEST },
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('VENDOR acting as CUSTOMER can cancel their own customer booking', async () => {
+    // The booking was made by a VENDOR user (who also has a customer account).
+    // The service receives role='CUSTOMER' because the controller uses customer perspective.
+    const booking = makeBooking(CUSTOMER_ID, 'different_vendor');
+    const { service } = buildService({ prisma: buildPrismaMock(booking) });
+
+    // Service must receive CUSTOMER perspective (controller is responsible for
+    // downgrading VENDOR→CUSTOMER for the customer portal endpoint).
+    const result = await service.cancelBooking({
+      bookingId: BOOKING_ID,
+      actorUser: { id: CUSTOMER_ID, role: 'CUSTOMER' },
+      dto: { reason: CancellationReason.GUEST_REQUEST },
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('VENDOR acting as VENDOR is forbidden from cancelling a booking for a property they do not own', async () => {
+    const booking = makeBooking('other_customer', 'vendor_b');
+    const { service } = buildService({ prisma: buildPrismaMock(booking) });
+
+    // This simulates the VENDOR portal path (controller passes role='VENDOR').
+    // The vendor does not own this property.
+    await expect(
+      service.cancelBooking({
+        bookingId: BOOKING_ID,
+        actorUser: { id: 'vendor_a', role: 'VENDOR' },
+        dto: { reason: CancellationReason.OWNER_REQUEST },
+      }),
+    ).rejects.toThrow('You can only cancel bookings for your own property.');
+  });
+
+  it('VENDOR acting as VENDOR can cancel a booking for their own property', async () => {
+    const booking = makeBooking('a_customer', 'vendor_owner');
+    const cancellationPolicy = {
+      decide: jest.fn().mockReturnValue({
+        tier: 'FREE',
+        mode: 'SOFT',
+        policyVersion: 'V1',
+        releasesInventory: true,
+        penaltyAmount: 0,
+        refundableAmount: 0,
+        hoursToCheckIn: 200,
+      }),
+    } as unknown as CancellationPolicyService;
+
+    // Vendor portal path — vendor owns the property, policy is configured.
+    const { service } = buildService({
+      prisma: buildPrismaMock(booking, { withPolicy: true }),
+      cancellationPolicy,
+    });
+
+    const result = await service.cancelBooking({
+      bookingId: BOOKING_ID,
+      actorUser: { id: 'vendor_owner', role: 'VENDOR' },
+      dto: { reason: CancellationReason.OWNER_REQUEST },
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('CUSTOMER is forbidden from cancelling another customer\'s booking', async () => {
+    const booking = makeBooking('customer_X', 'some_vendor');
+    const { service } = buildService({ prisma: buildPrismaMock(booking) });
+
+    await expect(
+      service.cancelBooking({
+        bookingId: BOOKING_ID,
+        actorUser: { id: 'customer_Y', role: 'CUSTOMER' },
+        dto: { reason: CancellationReason.GUEST_REQUEST },
+      }),
+    ).rejects.toThrow('You can only cancel your own booking.');
+  });
+});

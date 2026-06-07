@@ -350,6 +350,64 @@ export async function reserveHold(propertyId: string, input: QuoteInput): Promis
   };
 }
 
+// ── Replace Hold (atomic edit) ────────────────────────────────────────────────
+
+type ReplaceHoldApiResponse = {
+  ok: true;
+  replacedHoldId: string;
+  hold: {
+    id: string;
+    propertyId: string;
+    checkIn: string;
+    checkOut: string;
+    expiresAt: string;
+    status: string;
+    adults: number;
+    children: number;
+  };
+};
+
+export type ReplaceHoldResult = {
+  ok: true;
+  propertyId: string;
+  holdId: string;
+  holdExpiresAt: string;
+  replacedHoldId: string;
+};
+
+/**
+ * Atomically replaces an existing active hold with new dates/guests.
+ * Use this instead of `reserveHold` when the user is editing a hold that
+ * is already in the checkout flow — avoids the "own hold conflict" error.
+ */
+export async function replaceHold(
+  propertyId: string,
+  holdId: string,
+  input: QuoteInput,
+): Promise<ReplaceHoldResult> {
+  const res = await apiFetch<ReplaceHoldApiResponse>(
+    `/properties/${encodeURIComponent(propertyId)}/availability/holds/${encodeURIComponent(holdId)}`,
+    {
+      method: "PATCH",
+      body: input,
+      auth: "auto",
+    },
+  );
+
+  if (!res.ok) throw new Error(res.message);
+
+  const d = res.data;
+  return {
+    ok: true,
+    propertyId: d.hold.propertyId ?? propertyId,
+    holdId: d.hold.id,
+    holdExpiresAt: d.hold.expiresAt,
+    replacedHoldId: d.replacedHoldId,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export type CreateBookingInput = {
   propertyId: string;
   holdId: string;

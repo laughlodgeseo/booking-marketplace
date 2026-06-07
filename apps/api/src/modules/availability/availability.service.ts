@@ -26,7 +26,7 @@ import {
 import { AvailabilityRangeResult } from './types/availability.types';
 import { UpdateAvailabilitySettingsDto } from './dto/settings.dto';
 import { UpsertCalendarDaysDto, BlockRangeDto } from './dto/calendar.dto';
-import { CreateHoldDto } from './dto/holds.dto';
+import { CreateHoldDto, UpdateHoldDto } from './dto/holds.dto';
 import {
   DEFAULT_DISPLAY_CURRENCY,
   normalizeDisplayCurrency,
@@ -578,6 +578,294 @@ export class AvailabilityService {
         expiresAt: hold.expiresAt.toISOString(),
         fxRate: Number(hold.fxRate),
         fxAsOfDate: hold.fxAsOfDate ? utcDateToIsoDay(hold.fxAsOfDate) : null,
+      };
+    });
+  }
+
+  // -----------------------------
+  // Replace Hold (atomic edit)
+  // -----------------------------
+
+  /**
+   * Atomically replaces an existing ACTIVE hold with new dates/guests.
+   *
+   * Within a single advisory-locked transaction the old hold is CANCELLED,
+   * availability is re-checked for the new dates (no conflict from the
+   * now-cancelled hold), and a brand-new hold is created.  This is the
+   * correct edit path — calling createHold while the old hold is still
+   * ACTIVE would (correctly) trigger an overlap conflict.
+   */
+  async replaceHold(
+    userId: string,
+    propertyId: string,
+    holdId: string,
+    dto: UpdateHoldDto,
+  ) {
+    const checkIn = normalizeCheckIn(dto.checkIn);
+    const checkOut = normalizeCheckOut(dto.checkOut);
+    assertValidRange(checkIn, checkOut);
+
+    const ttl = dto.ttlMinutes ?? 15;
+    if (ttl < 5 || ttl > 60)
+      throw new BadRequestException('ttlMinutes must be between 5 and 60.');
+
+    const guestCounts = this.resolveGuestCounts(dto);
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + ttl * 60 * 1000);
+
+    // Pre-compute pricing outside the transaction (read-only; we ignore canBook
+    // because the overlap reason may be the user's own hold we are replacing).
+    let pricingSnapshot: HoldPricingSnapshot | undefined;
+    try {
+      const pricingQuote = await this.quote(propertyId, {
+        checkIn: dto.checkIn,
+        checkOut: dto.checkOut,
+        guests: dto.guests ?? null,
+        adults: dto.adults ?? null,
+        children: dto.children ?? null,
+        currency: dto.currency,
+      });
+
+      const bd = pricingQuote.breakdown as unknown as Record<string, number>;
+      const fxRate =
+        typeof pricingQuote.fxRate === 'number' ? pricingQuote.fxRate : 1;
+      const fxAsOfDate =
+        typeof pricingQuote.fxAsOf === 'string' ? pricingQuote.fxAsOf : null;
+      const fxProvider =
+        typeof pricingQuote.fxProvider === 'string'
+          ? pricingQuote.fxProvider
+          : null;
+
+      const quotedBreakdown: Record<string, number> = {
+        baseTotal: bd.baseAmountAed ?? 0,
+        cleaningFee: bd.cleaningFeeAed ?? 0,
+        serviceCharge: bd.serviceChargeAed ?? 0,
+        municipalityFee: bd.municipalityFeeAed ?? 0,
+        tourismFee: bd.tourismFeeAed ?? 0,
+        vat: bd.vatAed ?? 0,
+        tourismDirham: bd.tourismDirhamAed ?? 0,
+        total:
+          typeof bd.totalAed === 'number'
+            ? bd.totalAed
+            : Math.round((bd.total as number) / fxRate),
+      };
+
+      pricingSnapshot = {
+        quotedTotalAed: quotedBreakdown.total,
+        quotedTotalDisplay: bd.total as number,
+        displayCurrency: this.resolveDisplayCurrency(dto.currency),
+        fxRate,
+        fxAsOfDate,
+        fxProvider,
+        quotedBreakdown,
+      };
+    } catch {
+      // pricing is best-effort; fall through — the transaction will still
+      // validate dates and create the hold without a snapshot if needed.
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Advisory lock — same property-scoped lock used by createHold.
+      await tx.$queryRaw<{ ok: number }[]>`
+        WITH lock AS (
+          SELECT pg_advisory_xact_lock((hashtext(${propertyId})::bigint))
+        )
+        SELECT 1 as ok
+      `;
+
+      // 1. Load the old hold.
+      const oldHold = await tx.propertyHold.findUnique({
+        where: { id: holdId },
+        select: {
+          id: true,
+          propertyId: true,
+          createdById: true,
+          status: true,
+          expiresAt: true,
+          bookingId: true,
+          booking: { select: { id: true, status: true } },
+        },
+      });
+
+      if (!oldHold) throw new NotFoundException('Hold not found.');
+      if (oldHold.propertyId !== propertyId)
+        throw new ForbiddenException('Hold does not belong to this property.');
+      if (oldHold.createdById !== userId)
+        throw new ForbiddenException('You do not own this hold.');
+
+      // 2. Guard editable states.
+      if (oldHold.status === HoldStatus.EXPIRED) {
+        throw new BadRequestException(
+          'Hold has expired. Please start a new reservation.',
+        );
+      }
+      if (oldHold.status === HoldStatus.CANCELLED) {
+        throw new BadRequestException(
+          'Hold has already been cancelled.',
+        );
+      }
+      if (oldHold.status === HoldStatus.CONVERTED) {
+        const bStatus = oldHold.booking?.status;
+        if (
+          bStatus === BookingStatus.CONFIRMED ||
+          bStatus === BookingStatus.COMPLETED
+        ) {
+          throw new BadRequestException(
+            'Your reservation is already paid and cannot be edited from checkout.',
+          );
+        }
+        // PENDING_PAYMENT booking exists — payment may be in progress.
+        throw new BadRequestException(
+          'Your reservation is in payment processing. To change your dates or guests, please cancel the booking first.',
+        );
+      }
+
+      // Catch an expired hold that still has ACTIVE status in the DB.
+      if (oldHold.expiresAt <= now) {
+        await tx.propertyHold.update({
+          where: { id: holdId },
+          data: { status: HoldStatus.EXPIRED },
+        });
+        throw new BadRequestException(
+          'Hold has expired. Please start a new reservation.',
+        );
+      }
+
+      if (oldHold.status !== HoldStatus.ACTIVE) {
+        throw new BadRequestException('Hold is not in an editable state.');
+      }
+
+      // 3. Verify property is still active.
+      const property = await tx.property.findUnique({
+        where: { id: propertyId },
+        select: { status: true, maxGuests: true },
+      });
+      if (!property) throw new NotFoundException('Property not found.');
+      if (property.status !== PropertyStatus.PUBLISHED) {
+        throw new ForbiddenException('Property is not available for booking.');
+      }
+      if (guestCounts.total > property.maxGuests) {
+        throw new BadRequestException(
+          `Max guests exceeded (max ${property.maxGuests}).`,
+        );
+      }
+
+      // 4. CANCEL the old hold — it is no longer visible to overlap queries.
+      await tx.propertyHold.update({
+        where: { id: holdId },
+        data: { status: HoldStatus.CANCELLED },
+      });
+
+      // 5. Availability checks for the new dates.
+      const nights = enumerateNights(checkIn, checkOut);
+      if (nights.length <= 0)
+        throw new BadRequestException('Invalid date range.');
+
+      const blocked = await tx.propertyCalendarDay.findFirst({
+        where: {
+          propertyId,
+          status: CalendarDayStatus.BLOCKED,
+          date: { in: nights },
+        },
+        select: { date: true },
+      });
+      if (blocked) {
+        throw new BadRequestException(
+          `Dates unavailable (blocked on ${utcDateToIsoDay(blocked.date)}).`,
+        );
+      }
+
+      const blockedByBooking = await tx.bookingBlockedDate.findFirst({
+        where: { propertyId, date: { in: nights } },
+        select: { date: true },
+      });
+      if (blockedByBooking) {
+        throw new BadRequestException(
+          `Dates unavailable (already booked on ${utcDateToIsoDay(blockedByBooking.date)}).`,
+        );
+      }
+
+      const overlapBooking = await tx.booking.findFirst({
+        where: {
+          propertyId,
+          status: {
+            in: [BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED],
+          },
+          AND: buildOverlapFilter('checkIn', 'checkOut', checkIn, checkOut),
+        },
+        select: { id: true },
+      });
+      if (overlapBooking) {
+        throw new BadRequestException('Dates unavailable (already booked).');
+      }
+
+      const overlapHold = await tx.propertyHold.findFirst({
+        where: {
+          propertyId,
+          status: HoldStatus.ACTIVE,
+          expiresAt: { gt: now },
+          AND: buildOverlapFilter('checkIn', 'checkOut', checkIn, checkOut),
+        },
+        select: { id: true },
+      });
+      if (overlapHold) {
+        throw new BadRequestException(
+          'Dates temporarily unavailable (another checkout in progress).',
+        );
+      }
+
+      // 6. Create the replacement hold.
+      const newHold = await tx.propertyHold.create({
+        data: {
+          propertyId,
+          checkIn,
+          checkOut,
+          expiresAt,
+          adults: guestCounts.adults,
+          children: guestCounts.children,
+          createdById: userId,
+          quotedTotalAed: pricingSnapshot?.quotedTotalAed ?? null,
+          quotedTotalDisplay: pricingSnapshot?.quotedTotalDisplay ?? null,
+          displayCurrency: pricingSnapshot?.displayCurrency ?? 'AED',
+          fxRate: pricingSnapshot?.fxRate ?? 1,
+          fxAsOfDate: pricingSnapshot?.fxAsOfDate
+            ? isoDayToUtcDate(pricingSnapshot.fxAsOfDate)
+            : null,
+          fxProvider: pricingSnapshot?.fxProvider ?? null,
+          quotedBreakdown: pricingSnapshot?.quotedBreakdown ?? undefined,
+        },
+        select: {
+          id: true,
+          propertyId: true,
+          checkIn: true,
+          checkOut: true,
+          expiresAt: true,
+          adults: true,
+          children: true,
+          status: true,
+          quotedTotalAed: true,
+          quotedTotalDisplay: true,
+          displayCurrency: true,
+          fxRate: true,
+          fxAsOfDate: true,
+          fxProvider: true,
+          quotedBreakdown: true,
+        },
+      });
+
+      return {
+        ok: true,
+        replacedHoldId: holdId,
+        hold: {
+          ...newHold,
+          checkIn: utcDateToIsoDay(newHold.checkIn),
+          checkOut: utcDateToIsoDay(newHold.checkOut),
+          expiresAt: newHold.expiresAt.toISOString(),
+          fxRate: Number(newHold.fxRate),
+          fxAsOfDate: newHold.fxAsOfDate
+            ? utcDateToIsoDay(newHold.fxAsOfDate)
+            : null,
+        },
       };
     });
   }

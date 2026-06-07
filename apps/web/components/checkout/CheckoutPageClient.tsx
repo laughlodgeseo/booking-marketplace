@@ -14,7 +14,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { reserveHold } from "@/lib/booking/bookingFlow";
+import { replaceHold, reserveHold } from "@/lib/booking/bookingFlow";
 import { CreateBookingCardBatchA } from "@/components/checkout/CreateBookingCardBatchA";
 import { CheckoutPropertySummary } from "@/components/checkout/CheckoutPropertySummary";
 import { CheckoutEditModal } from "@/components/checkout/CheckoutEditModal";
@@ -133,32 +133,47 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
       setCheckOut(data.checkOut);
       setGuests(data.guests);
 
-      // If we already have a hold (step 2), create a new one with the new dates
       if (step === 2 && authStatus === "authenticated") {
         setReserveBusy(true);
         setReserveError(null);
         try {
-          const result = await reserveHold(props.propertyId, {
-            checkIn: data.checkIn,
-            checkOut: data.checkOut,
-            guests: data.guests,
-          });
-          setActiveHoldId(result.holdId);
+          let newHoldId: string;
+
+          if (activeHoldId) {
+            // Replace the existing hold atomically — avoids "own hold conflict"
+            // that would occur if we called reserveHold while the old hold is active.
+            const result = await replaceHold(props.propertyId, activeHoldId, {
+              checkIn: data.checkIn,
+              checkOut: data.checkOut,
+              guests: data.guests,
+            });
+            newHoldId = result.holdId;
+          } else {
+            // No hold yet — create one normally.
+            const result = await reserveHold(props.propertyId, {
+              checkIn: data.checkIn,
+              checkOut: data.checkOut,
+              guests: data.guests,
+            });
+            newHoldId = result.holdId;
+          }
+
+          setActiveHoldId(newHoldId);
           const qp = new URLSearchParams();
           qp.set("propertyId", props.propertyId);
-          qp.set("holdId", result.holdId);
+          qp.set("holdId", newHoldId);
           qp.set("checkIn", data.checkIn);
           qp.set("checkOut", data.checkOut);
           qp.set("guests", String(data.guests));
           if (props.slug) qp.set("slug", props.slug);
           router.replace(`/checkout?${qp.toString()}`);
         } catch (e) {
-          setReserveError(e instanceof Error ? e.message : "Failed to update dates.");
+          setReserveError(e instanceof Error ? e.message : "Failed to update reservation.");
         } finally {
           setReserveBusy(false);
         }
       } else {
-        // Not yet in payment step — just clear any stale holdId
+        // Not yet in payment step — clear any stale holdId and update URL.
         setActiveHoldId("");
         const qp = new URLSearchParams();
         qp.set("propertyId", props.propertyId);
@@ -169,7 +184,7 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
         router.replace(`/checkout?${qp.toString()}`);
       }
     },
-    [step, authStatus, props.propertyId, props.slug, router],
+    [step, authStatus, activeHoldId, props.propertyId, props.slug, router],
   );
 
   // ── Early exit: required params missing ──────────────────────────────────────
@@ -272,32 +287,46 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
     }
 
     if (reserveError) {
-      const isConflict =
-        /progress|in use|active hold|another|conflict/i.test(reserveError);
-      const isUnavailable =
-        /unavailable|not available|already booked|occupied/i.test(reserveError);
+      const isLocked =
+        /already paid|payment processing|in payment/i.test(reserveError);
+      const isBooked =
+        /already booked/i.test(reserveError);
+      const isTemporary =
+        /temporarily unavailable/i.test(reserveError);
+      const isExpired =
+        /expired/i.test(reserveError);
+
+      const errorTitle = isLocked
+        ? "Reservation locked"
+        : isBooked
+          ? "Dates unavailable"
+          : isTemporary
+            ? "Dates temporarily held"
+            : isExpired
+              ? "Session expired"
+              : "Unable to secure dates";
+
+      const errorBody = isLocked
+        ? "Your reservation is already in payment processing. To change your dates or guests, please cancel the booking if eligible or contact support."
+        : isBooked
+          ? "These dates are no longer available. Please choose different dates or start a new reservation."
+          : isTemporary
+            ? "These dates are temporarily held by another user. Wait a moment and try again, or choose different dates."
+            : isExpired
+              ? "Your hold has expired. Please start a new reservation."
+              : reserveError;
+
+      const canRetry = !isBooked && !isLocked;
 
       return (
         <div className="space-y-4">
           <div className="rounded-2xl bg-danger/8 px-5 py-4 ring-1 ring-danger/20">
-            <div className="text-sm font-semibold text-danger">
-              {isConflict
-                ? "Reservation session conflict"
-                : isUnavailable
-                  ? "Dates unavailable"
-                  : "Unable to secure dates"}
-            </div>
-            <p className="mt-1 text-xs text-danger/80">
-              {isConflict
-                ? "You may have an active reservation in progress. Wait a moment, then try again — or return to the property and start fresh."
-                : isUnavailable
-                  ? "These dates are no longer available. Please return to the property and select different dates."
-                  : reserveError}
-            </p>
+            <div className="text-sm font-semibold text-danger">{errorTitle}</div>
+            <p className="mt-1 text-xs text-danger/80">{errorBody}</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {!isUnavailable && (
+            {canRetry && (
               <button
                 onClick={() => { setReserveError(null); void createHold(); }}
                 className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:bg-brand-hover"
