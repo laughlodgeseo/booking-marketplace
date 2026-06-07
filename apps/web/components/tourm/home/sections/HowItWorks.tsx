@@ -368,9 +368,9 @@ export default function HowItWorks({
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <div className={`${indigoPlateClass} h-11 w-11`}>
-                            <span className="text-lg font-extrabold text-indigo-600">{s.step}</span>
+                            <span className="font-[family-name:var(--font-display)] text-lg font-extrabold text-indigo-600">{s.step}</span>
                           </div>
-                          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-secondary/70">
+                          <p className="font-[family-name:var(--font-display)] text-xs font-extrabold uppercase tracking-[0.2em] text-secondary/70">
                             {copy.stepPrefix} {s.step}
                           </p>
                         </div>
@@ -381,10 +381,10 @@ export default function HowItWorks({
                       </div>
 
                       <div className="mt-5 flex-1">
-                        <p className="text-lg font-extrabold leading-tight text-primary [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical] overflow-hidden">
+                        <p className="font-[family-name:var(--font-display)] text-lg font-extrabold leading-tight text-primary [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical] overflow-hidden">
                           {s.title}
                         </p>
-                        <p className="mt-2 text-sm leading-relaxed text-secondary/80 [display:-webkit-box] [-webkit-line-clamp:6] [-webkit-box-orient:vertical] overflow-hidden">
+                        <p className="font-[family-name:var(--font-display)] mt-2 text-sm leading-relaxed text-secondary/80 [display:-webkit-box] [-webkit-line-clamp:6] [-webkit-box-orient:vertical] overflow-hidden">
                           {s.desc}
                         </p>
                       </div>

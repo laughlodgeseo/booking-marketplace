@@ -104,12 +104,12 @@ export default function ServicesPreview({
                   <div className="h-3 w-3 rounded-full bg-indigo-500/35 opacity-0 transition group-hover:opacity-100" />
                 </div>
 
-                <p className="mt-5 text-lg font-extrabold text-primary">{s.title}</p>
-                <p className="mt-2 text-sm leading-relaxed text-secondary/80">{s.desc}</p>
+                <p className="font-[family-name:var(--font-display)] mt-5 text-lg font-extrabold text-primary">{s.title}</p>
+                <p className="font-[family-name:var(--font-display)] mt-2 text-sm leading-relaxed text-secondary/80">{s.desc}</p>
 
                 {s.note ? (
                   <div className="mt-auto pt-5">
-                    <div className="border-t border-indigo-200/55 pt-3 text-xs font-semibold text-primary/82">
+                    <div className="font-[family-name:var(--font-display)] border-t border-indigo-200/55 pt-3 text-xs font-semibold text-primary/82">
                       {s.note}
                     </div>
                   </div>
