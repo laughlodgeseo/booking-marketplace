@@ -484,10 +484,11 @@ export class AdminPortalService {
   }): Promise<PortalCalendarResponse> {
     this.assertAdmin(params.role);
 
+    // Always fetch all properties so the dropdown list is stable across selections.
+    // propertyId is used only to scope events, never to filter the property list.
     const propertyRows = await this.prisma.property.findMany({
-      where: params.propertyId ? { id: params.propertyId } : undefined,
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-      take: params.propertyId ? undefined : 200,
+      take: 200,
       select: {
         id: true,
         title: true,
@@ -496,7 +497,10 @@ export class AdminPortalService {
       },
     });
 
-    if (params.propertyId && propertyRows.length === 0) {
+    if (
+      params.propertyId &&
+      !propertyRows.some((p) => p.id === params.propertyId)
+    ) {
       throw new ForbiddenException('Property not found.');
     }
 

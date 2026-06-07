@@ -17,7 +17,8 @@ import {
 } from "date-fns";
 import { CalendarCheck2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import type { PortalCalendarEvent, PortalCalendarResponse } from "@/lib/api/portal/calendar";
+import type { PortalCalendarEvent, PortalCalendarProperty, PortalCalendarResponse } from "@/lib/api/portal/calendar";
+import { mergePropertyOptions } from "@/lib/calendar/propertyOptions";
 import { SharedAvailabilityCalendar, type SharedAvailabilityStatus } from "@/components/calendar/SharedAvailabilityCalendar";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
@@ -117,6 +118,7 @@ export function PortalAvailabilityCalendar(props: {
 
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [propertyOptions, setPropertyOptions] = useState<PortalCalendarProperty[]>([]);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const [rangeFrom, setRangeFrom] = useState<string>("");
@@ -151,6 +153,8 @@ export function PortalAvailabilityCalendar(props: {
 
         if (!alive) return;
         setState({ kind: "ready", data });
+        // Merge never clears: if incoming is empty keep previous options visible.
+        setPropertyOptions((current) => mergePropertyOptions(current, data.properties));
 
         if (!selectedPropertyId && data.selectedPropertyId) {
           setSelectedPropertyId(data.selectedPropertyId);
@@ -223,12 +227,12 @@ export function PortalAvailabilityCalendar(props: {
     <label className="flex min-w-0 items-center gap-2">
       <span className="shrink-0 text-[11px] font-semibold text-muted">{tPortal("calendar.propertyLabel")}</span>
       <select
-        value={selectedPropertyId ?? data?.selectedPropertyId ?? ""}
+        value={selectedPropertyId ?? ""}
         onChange={(event) => setSelectedPropertyId(event.target.value || null)}
         className="min-w-0 flex-1 truncate rounded-lg border border-neutral-200/70 bg-neutral-50 px-2.5 py-1.5 text-sm font-semibold text-primary outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:opacity-50"
-        disabled={!data || data.properties.length === 0}
+        disabled={propertyOptions.length === 0}
       >
-        {(data?.properties ?? []).map((property) => (
+        {propertyOptions.map((property) => (
           <option key={property.id} value={property.id}>
             {property.title}
             {property.city ? ` (${property.city})` : ""}
@@ -241,10 +245,23 @@ export function PortalAvailabilityCalendar(props: {
   return (
     <div className="space-y-5">
       {state.kind === "loading" ? (
-        <div className="grid gap-3">
-          <SkeletonBlock className="h-14" />
-          <SkeletonBlock className="h-[420px]" />
-        </div>
+        propertyOptions.length > 0 ? (
+          // Keep the selector interactive while the calendar body reloads.
+          <div className="overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 border-b border-neutral-100 px-4 py-2.5 sm:px-5">
+              <div className="min-w-0 flex-1">{propertySelector}</div>
+            </div>
+            <div className="p-3 sm:p-4">
+              <SkeletonBlock className="h-[430px]" />
+            </div>
+          </div>
+        ) : (
+          // Initial load — no options yet, show full skeleton.
+          <div className="grid gap-3">
+            <SkeletonBlock className="h-14" />
+            <SkeletonBlock className="h-[420px]" />
+          </div>
+        )
       ) : state.kind === "error" ? (
         <div className="rounded-3xl bg-[rgb(var(--color-danger-rgb)/0.12)] p-6 text-sm text-[rgb(var(--color-danger-rgb)/1)] ring-1 ring-danger/20">
           {state.message}
@@ -402,8 +419,8 @@ export function PortalAvailabilityCalendar(props: {
               {rangeLabel(range, locale, tPortal("calendar.noDateSelected"))}
             </div>
             <div className="mt-1">
-              {(data?.properties ?? []).find(
-                (property) => property.id === (selectedPropertyId ?? data?.selectedPropertyId ?? ""),
+              {propertyOptions.find(
+                (property) => property.id === (selectedPropertyId ?? ""),
               )?.title ?? tPortal("calendar.selectedProperty")}
             </div>
           </div>
