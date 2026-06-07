@@ -22,7 +22,7 @@ const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const HERO_CONTENT = {
   en: {
-    eyebrow: "Dubai premium stays with hotel-style operations",
+    eyebrow: "Dubai stays, professionally managed",
     headlineTop: "Where every Dubai stay",
     headlineEmphasis: "feels professionally hosted.",
     subcopy:
@@ -113,13 +113,12 @@ export default function HeroSplit(props: HeroSplitProps) {
         <div className="relative lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-8">
           <div className="relative z-20 max-w-[35rem] lg:col-span-5 lg:pt-4">
             <div className="space-y-4 md:space-y-6">
-              <motion.div
+              <motion.p
                 {...reveal(0, reduceMotion)}
-                className="inline-flex items-center gap-2 rounded-full border border-[#d8ddf5] bg-white/84 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#222a49] shadow-[0_10px_24px_rgba(67,56,202,0.12)]"
+                className="text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[#4a3d30]"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#4f46e5]" />
                 {copy.eyebrow}
-              </motion.div>
+              </motion.p>
 
               <motion.h1
                 {...reveal(0.08, reduceMotion)}
@@ -194,7 +193,7 @@ export default function HeroSplit(props: HeroSplitProps) {
             {...reveal(0.34, reduceMotion)}
             className="relative z-10 hidden -translate-y-2 lg:col-span-7 lg:mt-0 lg:block lg:pl-4 lg:pt-6"
           >
-            <div className="relative mx-auto h-[514px] max-w-[642px]">
+            <div className="relative mx-auto h-[463px] max-w-[578px]">
               <div className="pointer-events-none absolute inset-[22%_14%_17%_17%] -z-10 rounded-[56px] bg-[radial-gradient(70%_82%_at_60%_46%,rgba(208,168,122,0.12),rgba(95,105,242,0.12)_56%,transparent_84%)] blur-[120px]" />
 
               <motion.div
@@ -235,7 +234,7 @@ export default function HeroSplit(props: HeroSplitProps) {
               <motion.div
                 {...tileReveal(0.5, reduceMotion)}
                 whileHover={reduceMotion ? undefined : { y: -5, scale: 1.01 }}
-                className="group absolute -left-8 -top-7 w-[32%] sm:-left-10 sm:-top-8 sm:w-[29%] md:-left-[68px] md:-top-[36px] md:w-[27%] md:scale-[0.96]"
+                className="group absolute -left-7 -top-6 w-[32%] sm:-left-9 sm:-top-7 sm:w-[29%] md:-left-[61px] md:-top-[32px] md:w-[27%] md:scale-[0.96]"
               >
                 <motion.div
                   animate={reduceMotion ? { y: 0 } : { y: [0, -3, 0] }}
