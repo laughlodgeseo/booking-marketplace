@@ -211,14 +211,14 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
 
     if (vw < 1440) {
       return {
-        cardW: 412,
-        slotStep: 226,
+        cardW: 370,
+        slotStep: 202,
       };
     }
 
     return {
-      cardW: 438,
-      slotStep: 242,
+      cardW: 394,
+      slotStep: 216,
     };
   }, [vw]);
 
@@ -614,7 +614,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
 
         <div className="hidden lg:block">
           <div className="mt-9 w-full pb-2 md:mt-10">
-          <div className="mx-auto w-[90vw] max-w-[1200px] overflow-hidden sm:w-[85vw] lg:w-[80vw]">
+          <div className="mx-auto w-full max-w-[1180px]">
             <div
               ref={scrollerRef}
               className={[
@@ -715,7 +715,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
                         src={cover}
                         alt={title}
                         fill
-                        sizes="(max-width: 639px) 194px, (max-width: 1023px) 286px, (max-width: 1439px) 412px, 438px"
+                        sizes="(max-width: 639px) 194px, (max-width: 1023px) 286px, (max-width: 1439px) 370px, 394px"
                         className="object-cover"
                       />
                     ) : (
