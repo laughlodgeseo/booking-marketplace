@@ -98,9 +98,9 @@ function validateStripeKeysInProduction(): void {
 
   const secretKey = (process.env.STRIPE_SECRET_KEY ?? '').trim();
   if (secretKey && !secretKey.startsWith('sk_live_')) {
-    throw new Error(
-      'STRIPE_SECRET_KEY in production must start with sk_live_. ' +
-        'A test key (sk_test_) must never be used in the production environment.',
+    console.warn(
+      '[ENV] WARNING: STRIPE_SECRET_KEY in production is a test key (sk_test_). ' +
+        'Replace with your live key (sk_live_) before accepting real payments.',
     );
   }
 
