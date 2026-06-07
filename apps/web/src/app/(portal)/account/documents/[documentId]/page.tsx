@@ -23,7 +23,7 @@ type ViewState =
 type PreviewState =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "error"; message: string }
+  | { kind: "error"; message: string; url?: string }
   | { kind: "ready"; url: string; mimeType: string };
 
 function fmtDate(value: string | null): string {
@@ -249,11 +249,44 @@ export default function AccountDocumentDetailPage() {
                 </div>
               ) : preview.kind === "loading" ? (
                 <div className="mt-3 space-y-2">
-                  <SkeletonBlock className="h-10" />
+                  <div className="rounded-2xl border border-line/70 bg-warm-base p-5 text-center text-sm text-secondary">
+                    Preparing secure document preview…
+                  </div>
                   <SkeletonBlock className="h-72" />
                 </div>
               ) : preview.kind === "error" ? (
-                <div className="mt-3 rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">{preview.message}</div>
+                <div className="mt-3 rounded-2xl border border-danger/30 bg-danger/10 p-5">
+                  <div className="font-semibold text-danger">Document preview unavailable</div>
+                  <div className="mt-1 text-sm text-danger/80">
+                    We could not prepare a secure preview for this file. Try opening or downloading it.
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void runView()}
+                      className="rounded-xl border border-danger/30 bg-surface px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10"
+                    >
+                      Retry preview
+                    </button>
+                    {preview.url ? (
+                      <a
+                        href={preview.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
+                      >
+                        Open in new tab
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void runDownload()}
+                      className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
+                    >
+                      Download file
+                    </button>
+                  </div>
+                </div>
               ) : preview.mimeType.startsWith("image/") ? (
                 <div className="mt-3 overflow-hidden rounded-2xl border border-line/70 bg-warm-base">
                   {/* eslint-disable-next-line @next/next/no-img-element */}

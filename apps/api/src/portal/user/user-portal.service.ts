@@ -1067,58 +1067,71 @@ export class UserPortalService {
       isPrivate: true,
     });
 
-    const doc = await this.prisma.customerDocument.upsert({
-      where: {
-        userId_type: {
+    // Guard: do not create a DB row if the upload result is incomplete.
+    if (!uploaded.key || uploaded.size === 0) {
+      throw new BadRequestException('File upload failed — storage did not return a valid asset.');
+    }
+
+    const doc = await this.prisma.customerDocument
+      .upsert({
+        where: {
+          userId_type: {
+            userId: params.userId,
+            type: params.type,
+          },
+        },
+        update: {
+          status: CustomerDocumentStatus.PENDING,
+          cloudinaryUrl: uploaded.url,
+          cloudinaryPublicId: uploaded.key,
+          cloudinaryResourceType: uploaded.resourceType ?? null,
+          cloudinaryDeliveryType: uploaded.deliveryType ?? null,
+          sizeBytes: uploaded.size,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          notes: params.notes?.trim() || null,
+          reviewNotes: null,
+          reviewedAt: null,
+          reviewedByAdminId: null,
+          verifiedAt: null,
+        },
+        create: {
           userId: params.userId,
           type: params.type,
+          status: CustomerDocumentStatus.PENDING,
+          cloudinaryUrl: uploaded.url,
+          cloudinaryPublicId: uploaded.key,
+          cloudinaryResourceType: uploaded.resourceType ?? null,
+          cloudinaryDeliveryType: uploaded.deliveryType ?? null,
+          sizeBytes: uploaded.size,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          notes: params.notes?.trim() || null,
         },
-      },
-      update: {
-        status: CustomerDocumentStatus.PENDING,
-        cloudinaryUrl: uploaded.url,
-        cloudinaryPublicId: uploaded.key,
-        cloudinaryResourceType: uploaded.resourceType ?? null,
-        cloudinaryDeliveryType: uploaded.deliveryType ?? null,
-        sizeBytes: uploaded.size,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        notes: params.notes?.trim() || null,
-        reviewNotes: null,
-        reviewedAt: null,
-        reviewedByAdminId: null,
-        verifiedAt: null,
-      },
-      create: {
-        userId: params.userId,
-        type: params.type,
-        status: CustomerDocumentStatus.PENDING,
-        cloudinaryUrl: uploaded.url,
-        cloudinaryPublicId: uploaded.key,
-        cloudinaryResourceType: uploaded.resourceType ?? null,
-        cloudinaryDeliveryType: uploaded.deliveryType ?? null,
-        sizeBytes: uploaded.size,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        notes: params.notes?.trim() || null,
-      },
-      select: {
-        id: true,
-        userId: true,
-        type: true,
-        status: true,
-        cloudinaryPublicId: true,
-        sizeBytes: true,
-        originalName: true,
-        mimeType: true,
-        notes: true,
-        reviewNotes: true,
-        reviewedAt: true,
-        verifiedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+        select: {
+          id: true,
+          userId: true,
+          type: true,
+          status: true,
+          cloudinaryPublicId: true,
+          sizeBytes: true,
+          originalName: true,
+          mimeType: true,
+          notes: true,
+          reviewNotes: true,
+          reviewedAt: true,
+          verifiedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+      .catch(async (dbErr: unknown) => {
+        // DB write failed after a successful Cloudinary upload — attempt cleanup.
+        if (uploaded.provider === 'cloudinary') {
+          await this.storage.delete(uploaded.key, file.mimetype).catch(() => undefined);
+        }
+        throw dbErr;
+      });
 
     return {
       ...doc,
@@ -1136,13 +1149,8 @@ export class UserPortalService {
     role: UserRole;
     documentId: string;
   }): Promise<
-    | { kind: 'redirect'; signedUrl: string }
-    | {
-        kind: 'disk';
-        absolutePath: string;
-        mimeType: string;
-        downloadName: string;
-      }
+    | { kind: 'cloudinary'; signedUrl: string; mimeType: string; downloadName: string }
+    | { kind: 'disk'; absolutePath: string; mimeType: string; downloadName: string }
   > {
     if (!CUSTOMER_CAPABLE_ROLES.includes(params.role)) {
       throw new ForbiddenException('Not allowed to access this document.');
@@ -1176,7 +1184,12 @@ export class UserPortalService {
           deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
         },
       );
-      return { kind: 'redirect', signedUrl };
+      return {
+        kind: 'cloudinary',
+        signedUrl,
+        mimeType: doc.mimeType ?? 'application/octet-stream',
+        downloadName: doc.originalName ?? doc.cloudinaryPublicId ?? 'document',
+      };
     }
 
     if (!doc.fileKey) throw new NotFoundException('Document file not found.');

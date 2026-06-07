@@ -258,9 +258,20 @@ export class UserPortalController {
       documentId,
     });
 
-    if (result.kind === 'redirect') {
-      res.redirect(302, result.signedUrl);
-      return;
+    if (result.kind === 'cloudinary') {
+      // Fetch from Cloudinary server-side to avoid CORS failures when the
+      // browser follows a cross-origin redirect with credentials: 'include'.
+      const upstream = await fetch(result.signedUrl);
+      if (!upstream.ok) {
+        throw new Error(`Cloudinary fetch failed: ${upstream.status}`);
+      }
+      const buffer = Buffer.from(await upstream.arrayBuffer());
+      res.setHeader('Content-Type', result.mimeType);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${encodeURIComponent(result.downloadName)}"`,
+      );
+      return new StreamableFile(buffer);
     }
 
     res.setHeader('Content-Type', result.mimeType);
@@ -283,9 +294,18 @@ export class UserPortalController {
       documentId,
     });
 
-    if (result.kind === 'redirect') {
-      res.redirect(302, result.signedUrl);
-      return;
+    if (result.kind === 'cloudinary') {
+      const upstream = await fetch(result.signedUrl);
+      if (!upstream.ok) {
+        throw new Error(`Cloudinary fetch failed: ${upstream.status}`);
+      }
+      const buffer = Buffer.from(await upstream.arrayBuffer());
+      res.setHeader('Content-Type', result.mimeType);
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${encodeURIComponent(result.downloadName)}"`,
+      );
+      return new StreamableFile(buffer);
     }
 
     res.setHeader('Content-Type', result.mimeType);

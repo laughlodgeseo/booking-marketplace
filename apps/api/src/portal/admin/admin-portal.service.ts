@@ -1921,13 +1921,8 @@ export class AdminPortalService {
     role: UserRole;
     documentId: string;
   }): Promise<
-    | { kind: 'redirect'; signedUrl: string }
-    | {
-        kind: 'disk';
-        absolutePath: string;
-        mimeType: string;
-        downloadName: string;
-      }
+    | { kind: 'cloudinary'; signedUrl: string; mimeType: string; downloadName: string }
+    | { kind: 'disk'; absolutePath: string; mimeType: string; downloadName: string }
   > {
     this.assertAdmin(params.role);
 
@@ -1955,7 +1950,12 @@ export class AdminPortalService {
           deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
         },
       );
-      return { kind: 'redirect', signedUrl };
+      return {
+        kind: 'cloudinary',
+        signedUrl,
+        mimeType: doc.mimeType ?? 'application/octet-stream',
+        downloadName: doc.originalName ?? doc.cloudinaryPublicId ?? 'document',
+      };
     }
 
     if (!doc.fileKey) throw new NotFoundException('Document file not found.');

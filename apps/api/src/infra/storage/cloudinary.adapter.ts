@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { v2 as cloudinarySdk } from 'cloudinary';
 import type {
   IStorageAdapter,
   UploadedFile,
@@ -117,20 +118,32 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
   }
 
   getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
-    const expiresAt =
-      Math.floor(Date.now() / 1000) + (options?.expiresInSeconds ?? 3600);
-    const signature = this.sign({
-      public_id: key,
-      timestamp: expiresAt.toString(),
+    // Use the Cloudinary SDK to generate the correct signed URL.
+    // The manual SHA256-hex approach previously used produced 64-char signatures
+    // which Cloudinary rejects (expects 8-char base64url SHA1 tokens).
+    cloudinarySdk.config({
+      cloud_name: this.cloudName,
+      api_key: this.apiKey,
+      api_secret: this.apiSecret,
     });
 
-    const resourceType = options?.resourceType ?? 'image';
-    const deliveryType = options?.deliveryType ?? 'authenticated';
+    const resourceType = (options?.resourceType ?? 'image') as
+      | 'image'
+      | 'raw'
+      | 'video';
+    const deliveryType = (options?.deliveryType ?? 'authenticated') as
+      | 'authenticated'
+      | 'private'
+      | 'upload';
 
-    return Promise.resolve(
-      `https://res.cloudinary.com/${this.cloudName}/${resourceType}/${deliveryType}/` +
-        `s--${signature}--/v${expiresAt}/${key}`,
-    );
+    const url = cloudinarySdk.url(key, {
+      resource_type: resourceType,
+      type: deliveryType,
+      sign_url: true,
+      secure: true,
+    });
+
+    return Promise.resolve(url);
   }
 
   isAvailable(): Promise<boolean> {
