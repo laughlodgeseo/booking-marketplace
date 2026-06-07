@@ -436,6 +436,20 @@ export class AvailabilityService {
     const createdById = this.extractUserId(userId);
     const expiresAt = new Date(Date.now() + ttl * 60 * 1000);
 
+    // SECURITY: Verified email required before creating a hold. Without this,
+    // unverified accounts can repeatedly block calendar availability.
+    if (createdById) {
+      const holdUser = await this.prisma.user.findUnique({
+        where: { id: createdById },
+        select: { isEmailVerified: true },
+      });
+      if (!holdUser?.isEmailVerified) {
+        throw new ForbiddenException(
+          'Email verification required before creating a booking hold.',
+        );
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // SECURITY: Advisory lock uses Prisma tagged template — propertyId is parameterized.
       // Raw SQL required because Prisma ORM has no pg_advisory_xact_lock equivalent.

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { CreateBookingCardBatchA } from "@/components/checkout/CreateBookingCardBatchA";
-import { PendingPaymentCard } from "@/components/checkout/PendingPaymentCard";
 import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
 
 type PageProps = {
@@ -93,8 +92,23 @@ export default async function CheckoutPage(props: PageProps) {
         )}
 
         {isDirectBooking ? (
-          <div className="mt-6">
-            <PendingPaymentCard bookingId={propertyId} status="PENDING_PAYMENT" />
+          <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
+            <div className="text-center">
+              <p className="text-sm font-semibold text-primary">
+                {isAr ? "لا يمكن الوصول إلى هذه الصفحة مباشرةً" : "Invalid checkout link"}
+              </p>
+              <p className="mt-2 text-sm text-secondary">
+                {isAr
+                  ? "يرجى اختيار تواريخ الإقامة من صفحة العقار أولاً."
+                  : "Please select your dates on the property page first, then proceed to checkout."}
+              </p>
+              <Link
+                href={backToPropertyHref}
+                className="mt-4 inline-flex items-center justify-center rounded-full bg-accent px-5 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+              >
+                {isAr ? "العودة إلى العقار" : "Go to property"}
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">

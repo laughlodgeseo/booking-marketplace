@@ -3079,6 +3079,18 @@ export class AdminPortalService {
     });
   }
 
+  // Payment confirmation must remain webhook-only; no admin override may move
+  // a booking into CONFIRMED or simulate a Stripe payment success.
+  private static readonly ADMIN_ALLOWED_TRANSITIONS: Partial<
+    Record<BookingStatus, BookingStatus[]>
+  > = {
+    [BookingStatus.PENDING_PAYMENT]: [BookingStatus.CANCELLED, BookingStatus.FAILED],
+    [BookingStatus.CONFIRMED]: [BookingStatus.CANCELLED, BookingStatus.COMPLETED],
+    [BookingStatus.FAILED]: [BookingStatus.CANCELLED],
+    [BookingStatus.CANCELLED]: [],
+    [BookingStatus.COMPLETED]: [],
+  };
+
   async overrideBookingStatus(params: {
     userId: string;
     actorEmail?: string | null;
@@ -3094,6 +3106,15 @@ export class AdminPortalService {
         select: { id: true, status: true },
       });
       if (!booking) throw new NotFoundException('Booking not found.');
+
+      const allowed =
+        AdminPortalService.ADMIN_ALLOWED_TRANSITIONS[booking.status] ?? [];
+      if (!allowed.includes(params.newStatus)) {
+        throw new BadRequestException(
+          `Cannot transition booking from ${booking.status} to ${params.newStatus}.`,
+        );
+      }
+
       await tx.booking.update({
         where: { id: params.bookingId },
         data: { status: params.newStatus },

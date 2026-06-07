@@ -15,6 +15,7 @@
     "@googlemaps/js-api-loader": "^2.0.2",
     "@lottiefiles/dotlottie-react": "^0.18.1",
     "@react-google-maps/api": "^2.20.8",
+    "@sentry/nextjs": "^10.56.0",
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.10.0",
     "clsx": "^2.1.1",

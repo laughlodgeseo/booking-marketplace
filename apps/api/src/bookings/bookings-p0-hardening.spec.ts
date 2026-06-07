@@ -27,6 +27,9 @@ import { DubaiTaxService } from '../common/pricing/dubai-tax.service';
 function buildBookingsService(overrides?: { prisma?: Partial<PrismaService> }) {
   const prisma = {
     booking: { findFirst: jest.fn().mockResolvedValue(null) },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+    },
     $transaction: jest.fn(),
     ...overrides?.prisma,
   } as unknown as PrismaService;
@@ -130,6 +133,9 @@ describe('FIX-002 — Property status guard at booking creation', () => {
     async (propertyStatus) => {
       const prisma = {
         booking: { findFirst: jest.fn().mockResolvedValue(null) },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+        },
         $transaction: buildTransactionMockWithPropertyStatus(propertyStatus),
       } as unknown as PrismaService;
 
@@ -157,6 +163,9 @@ describe('FIX-002 — Property status guard at booking creation', () => {
 
     const prisma = {
       booking: { findFirst: jest.fn().mockResolvedValue(null) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ isEmailVerified: true }),
+      },
       // computeQuote calls this.prisma.property.findUnique (not the tx version)
       property: {
         findUnique: jest.fn().mockResolvedValue({
