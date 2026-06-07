@@ -24,9 +24,9 @@ const FaqSection = dynamic(() => import("@/components/tourm/home/sections/FaqSec
 const HOME_COPY = {
   en: {
     featured: {
-      title: "Featured stays with live availability",
+      title: "Curated villas and apartments, ready when you are",
       subtitle:
-        "Every featured stay is synced in real time, so prices and availability stay accurate from search to checkout.",
+        "Explore handpicked Dubai holiday homes with live rates, real-time availability, and a smoother path from search to secure booking.",
       errorTitle: "Featured stays could not load right now.",
       errorBody: "You can still browse all listings.",
       browse: "Browse stays",
@@ -75,11 +75,11 @@ const HOME_COPY = {
       ],
     },
     assurance: {
-      eyebrow: "Booking Assurance",
-      title: "Reliable inventory control for every reservation",
+      eyebrow: "SECURE DUBAI HOLIDAY HOME BOOKING",
+      title: "Book Dubai stays with real-time availability you can trust",
       body:
-        "Our system checks live availability, places secure reservation holds, and applies policy rules so quotes and confirmations stay accurate.",
-      cta: "Explore available stays",
+        "Laugh & Lodge checks live calendars before checkout, holds your selected dates securely, and keeps prices, policies, and confirmations aligned — so every holiday home reservation feels clear, reliable, and stress-free.",
+      cta: "Explore available Dubai stays",
     },
     how: {
       title: "How booking works from search to check-out",
@@ -561,15 +561,14 @@ export default async function HomePage() {
       </div>
 
       <section className="relative my-4 overflow-hidden rounded-3xl mx-4 py-14 sm:mx-6 sm:my-6 sm:py-20 lg:mx-8 lg:py-24">
-        {/* Clean indigo-tinted background */}
-        <div aria-hidden className="absolute inset-0 rounded-3xl bg-indigo-50" />
-        {/* Subtle lottie illustration */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20">
+        {/* Warm wash keeps the illustration visible without competing with the content. */}
+        <div aria-hidden className="absolute inset-0 rounded-3xl bg-[linear-gradient(135deg,rgba(252,247,239,0.74),rgba(255,251,244,0.40)_48%,rgba(238,226,210,0.30))]" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.34] sm:opacity-[0.42]">
           <SofaLottieDeferred className="scale-[1.04]" />
         </div>
 
         <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <div className="rounded-[28px] border border-indigo-100 bg-white px-6 py-7 shadow-[0_12px_32px_rgba(79,70,229,0.12)] sm:px-8 sm:py-9">
+          <div className="rounded-[28px] border border-[#eadfce] bg-white/95 px-6 py-7 shadow-[0_14px_34px_rgba(86,62,37,0.13)] sm:px-8 sm:py-9">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b87333]">{copy.assurance.eyebrow}</p>

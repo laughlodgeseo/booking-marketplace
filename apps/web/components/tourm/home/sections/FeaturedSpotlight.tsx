@@ -510,7 +510,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-14">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
           <div className="max-w-3xl">
-            <p className="home-featured-eyebrow text-xs font-extrabold uppercase">Featured</p>
+            <p className="home-featured-eyebrow text-xs font-extrabold uppercase">Featured Dubai stays</p>
             <h2 className="home-featured-title mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.01em] sm:text-3xl">
               {props.title}
             </h2>
@@ -614,7 +614,7 @@ export default function FeaturedSpotlight(props: FeaturedSpotlightProps) {
 
         <div className="hidden lg:block">
           <div className="mt-9 w-full pb-2 md:mt-10">
-          <div className="mx-auto w-full max-w-[1260px]">
+          <div className="mx-auto w-[90vw] max-w-[1200px] overflow-hidden sm:w-[85vw] lg:w-[80vw]">
             <div
               ref={scrollerRef}
               className={[
