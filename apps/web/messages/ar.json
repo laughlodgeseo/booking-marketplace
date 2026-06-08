@@ -531,6 +531,7 @@
     "perNight": "{price} / ليلة",
     "priceOnRequest": "السعر عند الطلب",
     "view": "عرض",
+    "openAria": "فتح {title}",
     "photoAria": "صورة {index} لـ {title}",
     "showImageAria": "عرض الصورة {index}"
   },

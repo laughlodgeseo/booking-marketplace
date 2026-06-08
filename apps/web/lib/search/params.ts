@@ -14,10 +14,18 @@ export const DATE_QUERY_KEYS = [
 
 export type DateQueryKey = (typeof DATE_QUERY_KEYS)[number];
 
+export const PROPERTY_DETAIL_LINK_TARGET = "_blank";
+export const PROPERTY_DETAIL_LINK_REL = "noopener noreferrer";
+
 export type PropertyDetailSearchContext = {
+  q?: string;
+  city?: string;
+  area?: string;
   checkIn?: string;
   checkOut?: string;
   guests?: number;
+  bedrooms?: number;
+  bathrooms?: number;
 };
 
 function todayIsoDay(): string {
@@ -78,11 +86,22 @@ export function parsePropertyDetailSearchContext(
   source: RawSearchParams | URLSearchParams | PropertyDetailSearchContext,
   options: { today?: string } = {},
 ): PropertyDetailSearchContext {
+  const q = pickParam(source, "q")?.trim();
+  const city = pickParam(source, "city")?.trim();
+  const area = pickParam(source, "area")?.trim();
   const checkIn = pickParam(source, "checkIn")?.trim();
   const checkOut = pickParam(source, "checkOut")?.trim();
   const guestsRaw = pickParam(source, "guests")?.trim();
+  const bedroomsRaw = pickParam(source, "bedrooms")?.trim();
+  const bathroomsRaw = pickParam(source, "bathrooms")?.trim();
   const guestsNumber = guestsRaw ? Number(guestsRaw) : Number.NaN;
+  const bedroomsNumber = bedroomsRaw ? Number(bedroomsRaw) : Number.NaN;
+  const bathroomsNumber = bathroomsRaw ? Number(bathroomsRaw) : Number.NaN;
   const context: PropertyDetailSearchContext = {};
+
+  if (q) context.q = q;
+  if (city) context.city = city;
+  if (area) context.area = area;
 
   if (isValidFutureIsoRange(checkIn, checkOut, options)) {
     context.checkIn = checkIn;
@@ -92,28 +111,47 @@ export function parsePropertyDetailSearchContext(
   if (Number.isFinite(guestsNumber)) {
     context.guests = clampBookingGuests(guestsNumber);
   }
+  if (Number.isFinite(bedroomsNumber) && bedroomsNumber > 0) {
+    context.bedrooms = Math.trunc(bedroomsNumber);
+  }
+  if (Number.isFinite(bathroomsNumber) && bathroomsNumber > 0) {
+    context.bathrooms = Math.trunc(bathroomsNumber);
+  }
 
   return context;
 }
 
 export function buildPropertyDetailHref(args: {
   slug: string;
+  q?: string | null;
+  city?: string | null;
+  area?: string | null;
   checkIn?: string | null;
   checkOut?: string | null;
   guests?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
   hash?: string;
   today?: string;
 }): string {
   const context = parsePropertyDetailSearchContext(
     {
+      q: args.q ?? undefined,
+      city: args.city ?? undefined,
+      area: args.area ?? undefined,
       checkIn: args.checkIn ?? undefined,
       checkOut: args.checkOut ?? undefined,
       guests: args.guests ?? undefined,
+      bedrooms: args.bedrooms ?? undefined,
+      bathrooms: args.bathrooms ?? undefined,
     },
     { today: args.today },
   );
   const params = new URLSearchParams();
 
+  if (context.q) params.set("q", context.q);
+  if (context.city) params.set("city", context.city);
+  if (context.area) params.set("area", context.area);
   if (context.checkIn && context.checkOut) {
     params.set("checkIn", context.checkIn);
     params.set("checkOut", context.checkOut);
@@ -121,6 +159,8 @@ export function buildPropertyDetailHref(args: {
   if (context.guests) {
     params.set("guests", String(context.guests));
   }
+  if (context.bedrooms) params.set("bedrooms", String(context.bedrooms));
+  if (context.bathrooms) params.set("bathrooms", String(context.bathrooms));
 
   const query = params.toString();
   const hash = args.hash ? `#${args.hash.replace(/^#/, "")}` : "";

@@ -119,12 +119,26 @@ export default function PropertiesSearchShell(props: Props) {
     (slug: string, hash?: string) =>
       buildPropertyDetailHref({
         slug,
+        q: props.query.q,
+        city: props.query.city,
+        area: props.query.area,
         checkIn: props.query.checkIn,
         checkOut: props.query.checkOut,
         guests: props.query.guests,
+        bedrooms: props.query.bedrooms,
+        bathrooms: props.query.bathrooms,
         hash,
       }),
-    [props.query.checkIn, props.query.checkOut, props.query.guests],
+    [
+      props.query.area,
+      props.query.bathrooms,
+      props.query.bedrooms,
+      props.query.checkIn,
+      props.query.checkOut,
+      props.query.city,
+      props.query.guests,
+      props.query.q,
+    ],
   );
 
   const onChangeFilters = useCallback(
@@ -196,10 +210,6 @@ export default function PropertiesSearchShell(props: Props) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, []);
-
-  const onMarkerOpen = useCallback((slug: string) => {
-    router.push(getPropertyHref(slug));
-  }, [getPropertyHref, router]);
 
   const totalPages = props.meta ? Math.max(1, Math.ceil(props.meta.total / props.meta.limit)) : 1;
   const page = props.meta?.page ?? props.query.page;
@@ -440,7 +450,7 @@ export default function PropertiesSearchShell(props: Props) {
                       hoveredSlug={hoveredSlug}
                       activeSlug={activeSlug}
                       onMarkerClick={onMarkerClick}
-                      onMarkerOpen={onMarkerOpen}
+                      getMarkerHref={getPropertyHref}
                       onViewportChanged={fetchViewport}
                       viewportDebounceMs={520}
                       className="h-[58vh] min-h-[360px] w-full sm:h-[64vh] lg:h-full lg:min-h-0"

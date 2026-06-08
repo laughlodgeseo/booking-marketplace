@@ -531,6 +531,7 @@
     "perNight": "{price} / night",
     "priceOnRequest": "Price on request",
     "view": "View",
+    "openAria": "Open {title}",
     "photoAria": "{title} photo {index}",
     "showImageAria": "Show image {index}"
   },

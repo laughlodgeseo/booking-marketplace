@@ -865,6 +865,20 @@ export async function downloadVendorPropertyDocument(
   return unwrap(res);
 }
 
+export async function downloadAllVendorPropertyMedia(propertyId: string): Promise<Blob> {
+  const res = await apiFetch<Blob>(
+    `/vendor/properties/${encodeURIComponent(propertyId)}/media/download-all`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      responseType: "blob",
+      headers: { Accept: "application/zip" },
+    }
+  );
+  return unwrap(res);
+}
+
 export async function viewVendorPropertyDocument(
   propertyId: string,
   documentId: string

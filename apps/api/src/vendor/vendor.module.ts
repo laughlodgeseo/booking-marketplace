@@ -7,9 +7,10 @@ import { VendorProfileService } from './vendor-profile.service';
 import { VendorPropertiesService } from './vendor-properties.service';
 import { VendorOnboardingService } from './vendor-onboarding.service';
 import { PaymentsModule } from '../modules/payments/payments.module';
+import { MediaModule } from '../modules/media/media.module';
 
 @Module({
-  imports: [PrismaModule, PaymentsModule],
+  imports: [PrismaModule, PaymentsModule, MediaModule],
   controllers: [
     VendorProfileController,
     VendorPropertiesController,

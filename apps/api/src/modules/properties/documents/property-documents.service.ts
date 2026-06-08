@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -39,10 +40,6 @@ type DocumentStreamResult = {
   mimeType: string;
 };
 
-type ExternalDocumentResult = {
-  type: 'external';
-  url: string;
-};
 
 function sanitizeFilename(input: string) {
   const cleaned = input.replace(/[^\w.\- ()[\]]+/g, '_').trim();
@@ -51,6 +48,8 @@ function sanitizeFilename(input: string) {
 
 @Injectable()
 export class PropertyDocumentsService {
+  private readonly logger = new Logger(PropertyDocumentsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private isAdminRole(role: DocumentActorRole): boolean {
@@ -72,9 +71,37 @@ export class PropertyDocumentsService {
     return url;
   }
 
-  private generateDownloadUrl(url: string): string | null {
-    if (!url) return null;
-    return url.replace('/upload/', '/upload/fl_attachment/');
+  private async fetchCloudinaryAsStream(
+    url: string,
+    doc: DocumentRecord,
+    mode: DocumentOpenMode,
+  ): Promise<DocumentStreamResult | null> {
+    const fileName = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
+    const mimeType = doc.mimeType ?? 'application/octet-stream';
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        this.logger.warn(
+          `Cloudinary fetch failed for ${url}: ${res.status} ${res.statusText}`,
+        );
+        return null;
+      }
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      void mode;
+      return {
+        type: 'stream',
+        stream: Readable.from(buffer),
+        fileName,
+        mimeType,
+      };
+    } catch (err) {
+      this.logger.warn(
+        `Cloudinary proxy fetch error for ${url}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
   }
 
   private assertAllowedCloudinaryUrl(url: string): string {
@@ -279,7 +306,7 @@ export class PropertyDocumentsService {
     propertyId: string;
     documentId: string;
     mode?: DocumentOpenMode;
-  }): Promise<DocumentStreamResult | ExternalDocumentResult | null> {
+  }): Promise<DocumentStreamResult | null> {
     const { role, userId, propertyId, documentId, mode = 'view' } = params;
     await this.assertActorAccess({ role, userId, propertyId });
 
@@ -292,13 +319,7 @@ export class PropertyDocumentsService {
       );
       if (!documentUrl) return null;
 
-      return {
-        type: 'external',
-        url:
-          mode === 'download'
-            ? (this.generateDownloadUrl(documentUrl) ?? documentUrl)
-            : documentUrl,
-      };
+      return this.fetchCloudinaryAsStream(documentUrl, doc, mode);
     }
 
     const local = await this.resolveLocalDocumentFile({ doc, pointer });
@@ -370,18 +391,6 @@ export class PropertyDocumentsService {
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
     const filename = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
     const remoteUrl = doc.url?.trim();
-
-    if (remoteUrl && this.isCloudinaryUrl(remoteUrl)) {
-      const allowedUrl = this.assertAllowedCloudinaryUrl(remoteUrl);
-      const safeUrl = this.normalizeCloudinaryUrl(allowedUrl);
-      return {
-        id: doc.id,
-        filename,
-        mimeType: doc.mimeType ?? 'application/octet-stream',
-        viewUrl: safeUrl,
-        downloadUrl: this.generateDownloadUrl(safeUrl) ?? safeUrl,
-      };
-    }
 
     return {
       id: doc.id,

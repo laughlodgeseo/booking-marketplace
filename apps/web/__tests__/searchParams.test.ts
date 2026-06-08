@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   DATE_QUERY_KEYS,
@@ -7,11 +9,19 @@ import {
   hasCompleteDateRange,
   buildPropertiesSearchParams,
   buildPropertyDetailHref,
+  PROPERTY_DETAIL_LINK_REL,
+  PROPERTY_DETAIL_LINK_TARGET,
   isStrictIsoDay,
   isValidFutureIsoRange,
   parsePropertiesQuery,
   parsePropertyDetailSearchContext,
 } from "../lib/search/params";
+import {
+  DESKTOP_BOOKING_CARD_CLASS,
+  DESKTOP_BOOKING_CTA_CLASS,
+  DESKTOP_BOOKING_SCROLL_BODY_CLASS,
+  DESKTOP_BOOKING_STICKY_CLASS,
+} from "../lib/booking/stickyBookingCard";
 
 // ---------------------------------------------------------------------------
 // removeDateParams
@@ -250,13 +260,18 @@ describe("property detail search context", () => {
 
   it("parses valid detail search params for booking card initialization", () => {
     const context = parsePropertyDetailSearchContext(
-      new URLSearchParams("checkIn=2026-07-10&checkOut=2026-07-15&guests=4"),
+      new URLSearchParams("q=marina&city=Dubai&area=Dubai+Marina&checkIn=2026-07-10&checkOut=2026-07-15&guests=4&bedrooms=2&bathrooms=1"),
       { today },
     );
     expect(context).toEqual({
+      q: "marina",
+      city: "Dubai",
+      area: "Dubai Marina",
       checkIn: "2026-07-10",
       checkOut: "2026-07-15",
       guests: 4,
+      bedrooms: 2,
+      bathrooms: 1,
     });
   });
 
@@ -272,12 +287,17 @@ describe("property detail search context", () => {
     expect(
       buildPropertyDetailHref({
         slug: "some-property-slug",
+        q: "marina",
+        city: "Dubai",
+        area: "Dubai Marina",
         checkIn: "2026-07-10",
         checkOut: "2026-07-15",
         guests: 2,
+        bedrooms: 2,
+        bathrooms: 1,
         today,
       }),
-    ).toBe("/properties/some-property-slug?checkIn=2026-07-10&checkOut=2026-07-15&guests=2");
+    ).toBe("/properties/some-property-slug?q=marina&city=Dubai&area=Dubai+Marina&checkIn=2026-07-10&checkOut=2026-07-15&guests=2&bedrooms=2&bathrooms=1");
   });
 
   it("places hash fragments after preserved query params", () => {
@@ -302,5 +322,57 @@ describe("property detail search context", () => {
         today,
       }),
     ).toBe("/properties/test");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// public property result link behavior
+// ---------------------------------------------------------------------------
+
+describe("property result link behavior", () => {
+  it("opens property detail links in a new tab with safe rel attributes", () => {
+    expect(PROPERTY_DETAIL_LINK_TARGET).toBe("_blank");
+    expect(PROPERTY_DETAIL_LINK_REL).toBe("noopener noreferrer");
+  });
+
+  it("wires property result card anchors to the shared new-tab attributes", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "components/tourm/property/TourmPropertyCard.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("target={PROPERTY_DETAIL_LINK_TARGET}");
+    expect(source).toContain("rel={PROPERTY_DETAIL_LINK_REL}");
+    expect(source).not.toContain("router.push(propertyHref)");
+  });
+
+  it("preserves booking params in new-tab property hrefs", () => {
+    const href = buildPropertyDetailHref({
+      slug: "al-barsha-property-slug",
+      checkIn: "2026-06-17",
+      checkOut: "2026-06-24",
+      guests: 4,
+      today: "2026-06-08",
+    });
+
+    expect(href).toBe("/properties/al-barsha-property-slug?checkIn=2026-06-17&checkOut=2026-06-24&guests=4");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// desktop booking card sticky positioning
+// ---------------------------------------------------------------------------
+
+describe("desktop booking card sticky layout", () => {
+  it("uses a higher sticky offset on desktop", () => {
+    expect(DESKTOP_BOOKING_STICKY_CLASS).toContain("lg:sticky");
+    expect(DESKTOP_BOOKING_STICKY_CLASS).toContain("lg:top-20");
+  });
+
+  it("prevents CTA clipping with a constrained shell and scrollable body", () => {
+    expect(DESKTOP_BOOKING_CARD_CLASS).toContain("max-h-[calc(100vh-6rem)]");
+    expect(DESKTOP_BOOKING_CARD_CLASS).toContain("overflow-hidden");
+    expect(DESKTOP_BOOKING_SCROLL_BODY_CLASS).toContain("overflow-y-auto");
+    expect(DESKTOP_BOOKING_CTA_CLASS).toContain("shrink-0");
   });
 });

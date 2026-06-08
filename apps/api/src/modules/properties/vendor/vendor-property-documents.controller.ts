@@ -30,18 +30,14 @@ export class VendorPropertyDocumentsController {
       mode: 'download',
     });
     if (!file) {
-      res.status(204).end();
-      return;
-    }
-
-    if (file.type === 'external') {
-      res.redirect(file.url);
+      res.status(404).json({ message: 'Document file not found.' });
       return;
     }
 
     const { stream, fileName, mimeType } = file;
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
 
     stream.on('error', () => {
       if (!res.headersSent) res.status(500);
@@ -66,18 +62,14 @@ export class VendorPropertyDocumentsController {
       mode: 'view',
     });
     if (!file) {
-      res.status(204).end();
-      return;
-    }
-
-    if (file.type === 'external') {
-      res.redirect(file.url);
+      res.status(404).json({ message: 'Document file not found.' });
       return;
     }
 
     const { stream, fileName, mimeType } = file;
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
 
     stream.on('error', () => {
       if (!res.headersSent) res.status(500);

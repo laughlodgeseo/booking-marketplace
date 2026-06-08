@@ -11,6 +11,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -40,6 +41,8 @@ import {
   PropertyDeletionRequestStatus,
   PropertyUnpublishRequestStatus,
 } from '@prisma/client';
+import { PropertyMediaZipService } from '../../modules/media/property-media-zip.service';
+import type { Response } from 'express';
 
 type JwtUser = {
   id: string;
@@ -52,7 +55,10 @@ type JwtUser = {
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class AdminPropertiesController {
-  constructor(private readonly service: AdminPropertiesService) {}
+  constructor(
+    private readonly service: AdminPropertiesService,
+    private readonly mediaZip: PropertyMediaZipService,
+  ) {}
 
   private assertAdmin(user: JwtUser) {
     if (!user || user.role !== 'ADMIN') {
@@ -180,6 +186,21 @@ export class AdminPropertiesController {
   ) {
     this.assertAdmin(req.user);
     return this.service.reorderMediaByAdmin(req.user.id, id, dto);
+  }
+
+  @Get(':id/media/download-all')
+  async downloadAllMedia(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res() res: Response,
+  ) {
+    this.assertAdmin(req.user);
+    const prop = await this.service.getPropertyTitle(id);
+    await this.mediaZip.streamPropertyImagesZip({
+      propertyId: id,
+      propertySlug: prop?.title ?? id,
+      res,
+    });
   }
 
   @Delete(':propertyId/media/:mediaId')

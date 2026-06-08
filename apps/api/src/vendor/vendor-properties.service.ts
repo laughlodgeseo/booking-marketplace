@@ -101,6 +101,13 @@ export class VendorPropertiesService {
     );
   }
 
+  async getPropertyTitle(propertyId: string): Promise<{ title: string } | null> {
+    return this.prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { title: true },
+    });
+  }
+
   private async assertOwnership(vendorUserId: string, propertyId: string) {
     const prop = await this.prisma.property.findUnique({
       where: { id: propertyId },

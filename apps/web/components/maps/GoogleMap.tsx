@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ENV } from "@/lib/env";
 import type { MapPoint } from "@/lib/types/search";
 import { propertyTypeLabel } from "@/lib/types/property-type";
+import { PROPERTY_DETAIL_LINK_REL, PROPERTY_DETAIL_LINK_TARGET } from "@/lib/search/params";
 
 type LatLng = { lat: number; lng: number };
 type ViewportBounds = { north: number; south: number; east: number; west: number };
@@ -83,8 +84,15 @@ function buildCard(args: {
   imageAlt: string;
   meta: string | null;
   expanded: boolean;
-}): HTMLDivElement {
-  const card = document.createElement("div");
+  href?: string | null;
+}): HTMLElement {
+  const card = args.href ? document.createElement("a") : document.createElement("div");
+  if (args.href && card instanceof HTMLAnchorElement) {
+    card.href = args.href;
+    card.target = PROPERTY_DETAIL_LINK_TARGET;
+    card.rel = PROPERTY_DETAIL_LINK_REL;
+    card.setAttribute("aria-label", `Open ${args.title}`);
+  }
   const w = args.expanded ? "280px" : "156px";
   card.style.cssText = `
     display:flex;align-items:center;gap:8px;
@@ -94,6 +102,7 @@ function buildCard(args: {
     background:#fff;
     box-shadow:${args.expanded ? "0 12px 32px rgba(79,70,229,0.28)" : "0 6px 20px rgba(15,23,42,0.22)"};
     cursor:pointer;user-select:none;
+    text-decoration:none;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   `.replace(/\s+/g, " ").trim();
 
@@ -160,9 +169,9 @@ function buildCard(args: {
 function createCardMarker(args: {
   map: google.maps.Map;
   position: google.maps.LatLng;
-  card: HTMLDivElement;
+  card: HTMLElement;
   zIndex: number;
-  onClick: () => void;
+  onClick?: () => void;
 }): MarkerHandle {
   const { map, position, card, zIndex, onClick } = args;
 
@@ -171,7 +180,11 @@ function createCardMarker(args: {
   wrapper.style.cssText = `position:absolute;z-index:${zIndex};transform:translate(-50%,-100%);margin-top:-6px;pointer-events:auto;`;
   wrapper.appendChild(card);
 
-  card.addEventListener("click", (e) => { e.stopPropagation(); onClick(); });
+  const handleClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    onClick?.();
+  };
+  card.addEventListener("click", handleClick);
 
   // We need google.maps.OverlayView — available after script load
   const OverlayView = google.maps.OverlayView;
@@ -199,7 +212,7 @@ function createCardMarker(args: {
 
   return {
     remove: () => {
-      card.removeEventListener("click", onClick);
+      card.removeEventListener("click", handleClick);
       overlay.setMap(null);
     },
   };
@@ -213,6 +226,7 @@ export default function GoogleMap(props: {
   className?: string;
   onMarkerClick?: (slug: string) => void;
   onMarkerOpen?: (slug: string) => void;
+  getMarkerHref?: (slug: string) => string;
   hoveredSlug?: string | null;
   activeSlug?: string | null;
   onViewportChanged?: (bounds: ViewportBounds) => void | Promise<void>;
@@ -221,6 +235,7 @@ export default function GoogleMap(props: {
   const {
     center, zoom, points, className,
     onMarkerClick, onMarkerOpen,
+    getMarkerHref,
     hoveredSlug, activeSlug,
     onViewportChanged, viewportDebounceMs,
   } = props;
@@ -293,6 +308,7 @@ export default function GoogleMap(props: {
     for (const p of points) {
       const slug = p.slug ?? null;
       if (!slug) continue;
+      const markerHref = getMarkerHref?.(slug) ?? null;
 
       const isExpanded = slug === hoveredSlug || slug === activeSlug || slug === hoverSlug;
       const priceText = typeof p.priceFrom === "number"
@@ -312,6 +328,7 @@ export default function GoogleMap(props: {
         imageAlt: p.coverImage?.alt ?? title,
         meta: metaParts.length > 0 ? metaParts.join(" · ") : null,
         expanded: isExpanded,
+        href: markerHref,
       });
 
       // Hover expand
@@ -329,12 +346,12 @@ export default function GoogleMap(props: {
         position,
         card,
         zIndex: isExpanded ? 999 : 1,
-        onClick: navigate,
+        onClick: markerHref ? undefined : navigate,
       });
 
       h.markers.push(handle);
     }
-  }, [activeSlug, hoveredSlug, hoverSlug, onMarkerClick, onMarkerOpen, points, ready]);
+  }, [activeSlug, getMarkerHref, hoveredSlug, hoverSlug, onMarkerClick, onMarkerOpen, points, ready]);
 
   // ── Viewport emitter ────────────────────────────────────────────────────────
   useEffect(() => {

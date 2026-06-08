@@ -1381,6 +1381,20 @@ export async function deleteAdminPropertyMedia(
   return unwrap(res);
 }
 
+export async function downloadAllAdminPropertyMedia(propertyId: string): Promise<Blob> {
+  const res = await apiFetch<Blob>(
+    `/admin/properties/${encodeURIComponent(propertyId)}/media/download-all`,
+    {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      responseType: "blob",
+      headers: { Accept: "application/zip" },
+    }
+  );
+  return unwrap(res);
+}
+
 export async function downloadAdminPropertyDocument(
   propertyId: string,
   documentId: string

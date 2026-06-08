@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Req,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -36,6 +37,8 @@ import { validateCloudinaryUrl } from '../common/upload/property-media-storage';
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PaymentProvider } from '@prisma/client';
 import { documentStorage } from '../infra/cloudinary/document.storage';
+import { PropertyMediaZipService } from '../modules/media/property-media-zip.service';
+import type { Response } from 'express';
 
 type JwtUser = {
   id: string;
@@ -47,7 +50,10 @@ type JwtUser = {
 @UseGuards(JwtAccessGuard, RolesGuard)
 @Roles(UserRole.VENDOR)
 export class VendorPropertiesController {
-  constructor(private readonly service: VendorPropertiesService) {}
+  constructor(
+    private readonly service: VendorPropertiesService,
+    private readonly mediaZip: PropertyMediaZipService,
+  ) {}
 
   private assertVendor(user: JwtUser) {
     if (!user || user.role !== 'VENDOR') {
@@ -350,6 +356,22 @@ export class VendorPropertiesController {
   ) {
     this.assertVendor(req.user);
     return this.service.setCoverImage(req.user.id, propertyId, mediaId);
+  }
+
+  @Get(':id/media/download-all')
+  async downloadAllMedia(
+    @Req() req: { user: JwtUser },
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res() res: Response,
+  ) {
+    this.assertVendor(req.user);
+    await this.mediaZip.assertVendorOwnsProperty(req.user.id, id);
+    const prop = await this.service.getPropertyTitle(id);
+    await this.mediaZip.streamPropertyImagesZip({
+      propertyId: id,
+      propertySlug: prop?.title ?? id,
+      res,
+    });
   }
 
   @Delete(':propertyId/media/:mediaId')

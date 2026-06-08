@@ -11,9 +11,10 @@ import { NotificationsModule } from '../modules/notifications/notifications.modu
 import { PricingModule } from '../modules/pricing/pricing.module';
 import { PaymentsModule } from '../modules/payments/payments.module';
 import { FeesModule } from '../modules/fees/fees.module';
+import { MediaModule } from '../modules/media/media.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, PricingModule, PaymentsModule, FeesModule],
+  imports: [PrismaModule, NotificationsModule, PricingModule, PaymentsModule, FeesModule, MediaModule],
   controllers: [
     AdminPropertiesController,
     AdminVendorsController,

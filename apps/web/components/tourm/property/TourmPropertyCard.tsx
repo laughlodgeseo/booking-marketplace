@@ -2,12 +2,12 @@
 
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { SearchResponse } from "@/lib/types/search";
 import { WishlistHeart } from "@/components/property/WishlistHeart";
 import { propertyTypeLabel } from "@/lib/types/property-type";
+import { PROPERTY_DETAIL_LINK_REL, PROPERTY_DETAIL_LINK_TARGET } from "@/lib/search/params";
 
 type Item = SearchResponse["items"][number];
 type CardOrientation = "vertical" | "horizontal";
@@ -55,7 +55,6 @@ export default function TourmPropertyCard({
 }) {
   const t = useTranslations("propertyCard");
   const isHorizontal = orientation === "horizontal";
-  const router = useRouter();
   const rawTitle = (item.title ?? t("defaultTitle")).trim();
   const propertyType = propertyTypeLabel(item.propertyType);
   const titleParts = rawTitle
@@ -253,17 +252,19 @@ export default function TourmPropertyCard({
         "premium-card premium-card-tinted premium-card-hover group relative flex h-full cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(30,27,75,0.10)] hover:ring-1 hover:ring-indigo-200/70 before:!bg-[linear-gradient(180deg,rgb(99_102_241_/_0.12),transparent_68%)]",
         isHorizontal ? "flex-col md:h-[22rem] md:flex-row" : "flex-col",
       ].join(" ")}
-      onClick={(event) => {
-        const target = event.target as HTMLElement;
-        if (target.closest("a,button,input,textarea,select,label,summary,details")) return;
-        router.push(propertyHref);
-      }}
     >
+      <Link
+        href={propertyHref}
+        target={PROPERTY_DETAIL_LINK_TARGET}
+        rel={PROPERTY_DETAIL_LINK_REL}
+        className="absolute inset-0 z-0"
+        aria-label={t("openAria", { title })}
+      />
       <div
         className={
           isHorizontal
-            ? "relative h-[17rem] w-full overflow-hidden md:h-full md:w-[54%] lg:w-[56%] xl:w-[58%]"
-            : "relative w-full overflow-hidden aspect-[16/10]"
+            ? "relative z-10 h-[17rem] w-full overflow-hidden md:h-full md:w-[54%] lg:w-[56%] xl:w-[58%]"
+            : "relative z-10 w-full overflow-hidden aspect-[16/10]"
         }
       >
         {slideCount > 0 ? (
@@ -285,6 +286,8 @@ export default function TourmPropertyCard({
               <Link
                 key={slide.key}
                 href={propertyHref}
+                target={PROPERTY_DETAIL_LINK_TARGET}
+                rel={PROPERTY_DETAIL_LINK_REL}
                 className="relative h-full w-full shrink-0 snap-start"
                 onClick={(e) => {
                   if (!suppressClickRef.current) return;
@@ -304,7 +307,13 @@ export default function TourmPropertyCard({
             ))}
           </div>
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-warm-alt to-warm-base" />
+          <Link
+            href={propertyHref}
+            target={PROPERTY_DETAIL_LINK_TARGET}
+            rel={PROPERTY_DETAIL_LINK_REL}
+            className="block h-full w-full bg-gradient-to-br from-warm-alt to-warm-base"
+            aria-label={t("photoAria", { title, index: 1 })}
+          />
         )}
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/28 via-ink/5 to-transparent transition-colors duration-300 group-hover:from-ink/14 group-hover:via-transparent" />
@@ -334,13 +343,18 @@ export default function TourmPropertyCard({
         ) : null}
       </div>
 
-      <div className={isHorizontal ? "flex flex-1 flex-col gap-2 p-3.5 md:p-5 lg:p-5" : "flex flex-1 flex-col gap-2 p-3 md:p-4"}>
+      <div className={isHorizontal ? "pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3.5 md:p-5 lg:p-5" : "pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3 md:p-4"}>
         <div className="flex-1 flex flex-col gap-1.5">
           <div className="inline-flex items-center self-start rounded-full bg-indigo-100/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-700">
             {propertyType}
           </div>
           <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight text-primary">
-            <Link href={propertyHref} className="transition hover:text-secondary">
+            <Link
+              href={propertyHref}
+              target={PROPERTY_DETAIL_LINK_TARGET}
+              rel={PROPERTY_DETAIL_LINK_REL}
+              className="pointer-events-auto transition hover:text-secondary"
+            >
               {title}
             </Link>
           </h3>
@@ -366,7 +380,9 @@ export default function TourmPropertyCard({
 
               <Link
                 href={propertyBookingHref}
-                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+                target={PROPERTY_DETAIL_LINK_TARGET}
+                rel={PROPERTY_DETAIL_LINK_REL}
+                className="pointer-events-auto inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
                 {t("view")}
               </Link>
@@ -390,7 +406,9 @@ export default function TourmPropertyCard({
 
               <Link
                 href={propertyBookingHref}
-                className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+                target={PROPERTY_DETAIL_LINK_TARGET}
+                rel={PROPERTY_DETAIL_LINK_REL}
+                className="pointer-events-auto inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
                 {t("view")}
               </Link>

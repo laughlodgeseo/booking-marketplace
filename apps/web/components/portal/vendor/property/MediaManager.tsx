@@ -5,6 +5,7 @@ import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import type { VendorPropertyDetail, VendorPropertyMedia } from "@/lib/api/portal/vendor";
 import {
   deleteVendorPropertyMedia,
+  downloadAllVendorPropertyMedia,
   registerVendorPropertyMedia,
   reorderVendorPropertyMedia,
   setVendorPropertyCoverImage,
@@ -88,6 +89,7 @@ export function MediaManager({ property, onChanged }: Props) {
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [uploadBatch, setUploadBatch] = useState<{ current: number; total: number } | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [downloadAllBusy, setDownloadAllBusy] = useState(false);
 
   const [otherCategory, setOtherCategory] = useState<MediaCategory>("OTHER");
 
@@ -262,13 +264,21 @@ export function MediaManager({ property, onChanged }: Props) {
     }
   }
 
-  function downloadMedia(url: string, filename: string) {
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+  async function downloadMedia(url: string, filename: string) {
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   }
 
   function UploadBlock(props: {
@@ -455,7 +465,36 @@ export function MediaManager({ property, onChanged }: Props) {
 
       {/* Gallery grid */}
       <div className="rounded-2xl border border-line/80 bg-surface p-5 shadow-sm">
-        <div className="text-sm font-semibold text-primary">All photos</div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-primary">All photos</div>
+          {media.length > 0 && (
+            <button
+              type="button"
+              disabled={downloadAllBusy}
+              onClick={() => void (async () => {
+                setDownloadAllBusy(true);
+                try {
+                  const blob = await downloadAllVendorPropertyMedia(property.id);
+                  const objectUrl = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = objectUrl;
+                  a.download = `property-${property.id}-images.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Download failed");
+                } finally {
+                  setDownloadAllBusy(false);
+                }
+              })()}
+              className="shrink-0 rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
+            >
+              Download all
+            </button>
+          )}
+        </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {media.map((m, idx) => {
@@ -536,7 +575,7 @@ export function MediaManager({ property, onChanged }: Props) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => downloadMedia(m.url, `property-${property.id}-${m.id}.jpg`)}
+                      onClick={() => void downloadMedia(m.url, `property-${property.id}-${m.id}.jpg`)}
                       className="w-full rounded-xl border border-line/80 bg-surface px-3 py-2 text-sm font-semibold text-primary hover:bg-warm-alt"
                     >
                       Download
@@ -581,6 +620,9 @@ export function MediaManager({ property, onChanged }: Props) {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         onClick={() => setLightboxUrl(null)}
+        onKeyDown={(e) => { if (e.key === "Escape") setLightboxUrl(null); }}
+        role="dialog"
+        aria-modal
       >
         <div
           className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-2xl shadow-2xl"
@@ -599,6 +641,13 @@ export function MediaManager({ property, onChanged }: Props) {
             aria-label="Close"
           >
             ✕
+          </button>
+          <button
+            type="button"
+            onClick={() => void downloadMedia(lightboxUrl, `image-${Date.now()}.jpg`)}
+            className="absolute bottom-3 right-3 rounded-xl bg-black/60 px-4 py-2 text-sm font-semibold text-white hover:bg-black/80"
+          >
+            Download
           </button>
         </div>
       </div>

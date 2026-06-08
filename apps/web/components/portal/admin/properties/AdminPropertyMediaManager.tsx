@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 
 import {
   deleteAdminPropertyMedia,
+  downloadAllAdminPropertyMedia,
   registerAdminPropertyMedia,
   reorderAdminPropertyMedia,
   updateAdminPropertyMediaCategory,
@@ -256,17 +257,31 @@ export function AdminPropertyMediaManager(props: {
   }
 
   function viewMedia(url: string) {
-    window.open(url, "_blank", "noopener,noreferrer");
+    setLightboxUrl(url);
   }
 
-  function downloadMedia(url: string, filename: string) {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+  async function downloadMedia(url: string, filename: string) {
+    setDownloadBusy(true);
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloadBusy(false);
+    }
   }
+
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [downloadBusy, setDownloadBusy] = useState(false);
 
   const [dragId, setDragId] = useState<string | null>(null);
 
@@ -359,6 +374,7 @@ export function AdminPropertyMediaManager(props: {
   }
 
   return (
+    <>
     <div className="relative space-y-4">
       {/* Upload overlay */}
       {busy && (
@@ -391,12 +407,41 @@ export function AdminPropertyMediaManager(props: {
       )}
 
       <div className="rounded-3xl border border-line/50 bg-surface p-5 shadow-sm">
-        <div>
-          <div className="text-sm font-semibold text-primary">Images</div>
-          <div className="mt-1 text-sm text-secondary">
-            Upload blocks with required categories:
-            <span className="font-semibold"> LIVING_ROOM, BEDROOM, BATHROOM, KITCHEN</span>.
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-primary">Images</div>
+            <div className="mt-1 text-sm text-secondary">
+              Upload blocks with required categories:
+              <span className="font-semibold"> LIVING_ROOM, BEDROOM, BATHROOM, KITCHEN</span>.
+            </div>
           </div>
+          {sorted.length > 0 && (
+            <button
+              type="button"
+              disabled={downloadBusy}
+              onClick={() => void (async () => {
+                setDownloadBusy(true);
+                try {
+                  const blob = await downloadAllAdminPropertyMedia(props.propertyId);
+                  const objectUrl = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = objectUrl;
+                  a.download = `property-${props.propertyId}-images.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Download failed");
+                } finally {
+                  setDownloadBusy(false);
+                }
+              })()}
+              className="shrink-0 rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary shadow-sm hover:bg-warm-alt disabled:opacity-50"
+            >
+              Download all
+            </button>
+          )}
         </div>
 
         {error ? (
@@ -562,10 +607,9 @@ export function AdminPropertyMediaManager(props: {
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      downloadMedia(m.url, `property-${props.propertyId}-${m.id}.jpg`)
-                    }
-                    className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-line/80 bg-surface text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt"
+                    disabled={downloadBusy}
+                    onClick={() => void downloadMedia(m.url, `property-${props.propertyId}-${m.id}.jpg`)}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-line/80 bg-surface text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt disabled:opacity-50"
                   >
                     Download
                   </button>
@@ -589,5 +633,45 @@ export function AdminPropertyMediaManager(props: {
         </div>
       )}
     </div>
+
+    {/* Lightbox */}
+    {lightboxUrl && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        onClick={() => setLightboxUrl(null)}
+        onKeyDown={(e) => { if (e.key === "Escape") setLightboxUrl(null); }}
+        role="dialog"
+        aria-modal
+      >
+        <div
+          className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-2xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt="Full size view"
+            className="max-h-[85vh] max-w-[85vw] object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+          <button
+            type="button"
+            disabled={downloadBusy}
+            onClick={() => void downloadMedia(lightboxUrl, `image-${Date.now()}.jpg`)}
+            className="absolute bottom-3 right-3 rounded-xl bg-black/60 px-4 py-2 text-sm font-semibold text-white hover:bg-black/80 disabled:opacity-50"
+          >
+            Download
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

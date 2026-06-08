@@ -25,6 +25,12 @@ import { isValidIsoRange } from "@/lib/date-range";
 import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+  DESKTOP_BOOKING_CARD_CLASS,
+  DESKTOP_BOOKING_CTA_CLASS,
+  DESKTOP_BOOKING_SCROLL_BODY_CLASS,
+  DESKTOP_BOOKING_STICKY_CLASS,
+} from "@/lib/booking/stickyBookingCard";
 
 type CalendarDayStatus = "AVAILABLE" | "BOOKED" | "HOLD" | "BLOCKED";
 
@@ -614,14 +620,9 @@ export default function QuotePanelBatchA(props: {
   return (
     <>
       {/* ── DESKTOP ── */}
-      <div
-        className={[
-          "hidden lg:block lg:sticky",
-          desktopCalendarOpen ? "lg:top-6" : "lg:top-[88px]",
-          "transition-[top] duration-300 ease-in-out",
-        ].join(" ")}
-      >
-        <div className="premium-card premium-card-tinted rounded-3xl border border-white/60 p-6 shadow-[0_24px_64px_rgba(11,15,25,0.18)] ring-1 ring-white/40">
+      <div className={DESKTOP_BOOKING_STICKY_CLASS}>
+        <div className={DESKTOP_BOOKING_CARD_CLASS}>
+          <div className={DESKTOP_BOOKING_SCROLL_BODY_CLASS}>
           {/* Price + currency switcher */}
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -737,30 +738,33 @@ export default function QuotePanelBatchA(props: {
               {quoteError}
             </div>
           ) : null}
+          </div>
 
-          {quoteUnavailableReason ? (
-            <div className="mt-3 rounded-xl bg-warning/8 px-4 py-3 text-xs text-warning ring-1 ring-warning/20">
-              {quoteUnavailableReason}
-            </div>
-          ) : null}
+          <div className={DESKTOP_BOOKING_CTA_CLASS}>
+            {quoteUnavailableReason ? (
+              <div className="mb-3 rounded-xl bg-warning/8 px-4 py-3 text-xs text-warning ring-1 ring-warning/20">
+                {quoteUnavailableReason}
+              </div>
+            ) : null}
 
-          {reserveError ? (
-            <div className="mt-3 rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
-              {reserveError}
-            </div>
-          ) : null}
+            {reserveError ? (
+              <div className="mb-3 rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+                {reserveError}
+              </div>
+            ) : null}
 
-          <button
-            type="button"
-            onClick={() => void onReserve()}
-            disabled={!canReserve}
-            className="site-cta-primary mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-accent-text shadow-[0_4px_16px_rgba(79,70,229,0.28)] transition hover:shadow-[0_6px_24px_rgba(79,70,229,0.36)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
-          >
-            {reserveBusy || authStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {reserveCtaLabel}
-          </button>
+            <button
+              type="button"
+              onClick={() => void onReserve()}
+              disabled={!canReserve}
+              className="site-cta-primary inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-accent-text shadow-[0_4px_16px_rgba(79,70,229,0.28)] transition hover:shadow-[0_6px_24px_rgba(79,70,229,0.36)] disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+            >
+              {reserveBusy || authStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {reserveCtaLabel}
+            </button>
 
-          <p className="mt-3 text-center text-xs text-secondary/70">{copy.holdNote}</p>
+            <p className="mt-3 text-center text-xs text-secondary/70">{copy.holdNote}</p>
+          </div>
         </div>
       </div>
 

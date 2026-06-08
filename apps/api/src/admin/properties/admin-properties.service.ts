@@ -62,6 +62,13 @@ export class AdminPropertiesService {
     private readonly propertyFees: PropertyFeeService,
   ) {}
 
+  async getPropertyTitle(propertyId: string): Promise<{ title: string } | null> {
+    return this.prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { title: true },
+    });
+  }
+
   // -------------------------
   // Shared slug helpers (copy of vendor behavior)
   // -------------------------
