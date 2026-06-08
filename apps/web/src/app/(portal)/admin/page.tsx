@@ -39,6 +39,15 @@ function toPoints(labels?: string[], points?: number[]): BarPoint[] {
   return labels.map((label, index) => ({ label, value: points[index] ?? 0 }));
 }
 
+function moneyMinor(value: number | null | undefined): string {
+  const amount = (value ?? 0) / 100;
+  return new Intl.NumberFormat("en-AE", { style: "currency", currency: "AED", maximumFractionDigits: 0 }).format(amount);
+}
+
+function minorPoints(points: BarPoint[]): BarPoint[] {
+  return points.map((p) => ({ ...p, value: p.value / 100 }));
+}
+
 function pickSeries(
   analytics: AdminAnalyticsData,
   chartKey: string,
@@ -188,11 +197,13 @@ export default function AdminDashboardPage() {
     const analytics = state.analytics;
 
     const bookingsPoints = pickSeries(analytics, "bookingsPerPeriod", "bookingsTotal");
-    const revenuePoints = pickSeries(analytics, "revenuePerPeriod", "revenueCaptured");
+    const revenuePoints = minorPoints(pickSeries(analytics, "revenuePerPeriod", "revenueCaptured"));
     const capturePoints = pickSeries(analytics, "paymentVsRefunds", "paymentCaptures");
     const refundPoints = pickSeries(analytics, "paymentVsRefunds", "refundsSucceeded");
     const confirmedPoints = pickSeries(analytics, "bookingsPerPeriod", "bookingsConfirmed");
     const cancelledPoints = pickSeries(analytics, "bookingsPerPeriod", "bookingsCancelled");
+    const commissionPoints = minorPoints(pickSeries(analytics, "revenuePerPeriod", "platformCommission"));
+    const payoutLiabilityPoints = minorPoints(pickSeries(analytics, "payoutLiability", "vendorPayable"));
 
     const hasPriorityActions =
       (kpis.propertiesUnderReview ?? 0) > 0 ||
@@ -321,9 +332,27 @@ export default function AdminDashboardPage() {
           />
           <StatCard
             label={tPortal("adminDashboard.kpi.revenueCaptured")}
-            value={kpis.revenueCaptured ?? 0}
-            helper={tPortal("adminDashboard.kpiHelpers.capturedPayments")}
+            value={moneyMinor(kpis.revenueCaptured ?? 0)}
+            helper="Gross captured"
             icon={<Wallet className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Platform commission"
+            value={moneyMinor(kpis.platformCommission ?? 0)}
+            helper="18% retained"
+            icon={<Wallet className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Vendor payable"
+            value={moneyMinor(kpis.vendorPayable ?? 0)}
+            helper="82% net liability"
+            icon={<Wallet className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Pending payouts"
+            value={moneyMinor(kpis.pendingPayouts ?? 0)}
+            helper="Unpaid vendor net"
+            icon={<AlertTriangle className="h-4 w-4" />}
           />
           <StatCard
             label={tPortal("adminDashboard.kpi.users")}
@@ -367,6 +396,16 @@ export default function AdminDashboardPage() {
             title={tPortal("adminDashboard.charts.paymentCapturesTrend.title")}
             subtitle={tPortal("adminDashboard.charts.paymentCapturesTrend.subtitle")}
             points={capturePoints}
+          />
+          <SimpleBarChart
+            title="Platform commission trend"
+            subtitle="18% commission retained over time"
+            points={commissionPoints}
+          />
+          <SimpleBarChart
+            title="Vendor payout liability"
+            subtitle="Net payable to vendors over time"
+            points={payoutLiabilityPoints}
           />
           <SimpleBarChart
             title={tPortal("adminDashboard.charts.refundsTrend.title")}

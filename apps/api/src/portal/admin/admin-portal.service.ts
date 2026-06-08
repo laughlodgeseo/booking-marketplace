@@ -57,6 +57,11 @@ type AdminOverview = {
     bookingsCancelled: number;
 
     revenueCaptured: number;
+    platformCommission: number;
+    vendorPayable: number;
+    paidPayouts: number;
+    pendingPayouts: number;
+    disputedPayouts: number;
     refundsPending: number;
 
     opsTasksOpen: number;
@@ -148,6 +153,12 @@ export class AdminPortalService {
       bookingsConfirmed,
       bookingsCancelled,
       paymentsCapturedAgg,
+      vendorPayoutGrossAgg,
+      vendorPayoutCommissionAgg,
+      vendorPayoutNetAgg,
+      vendorPayoutPaidAgg,
+      vendorPayoutPendingAgg,
+      vendorPayoutDisputed,
       refundsPending,
       opsTasksOpen,
     ] = await Promise.all([
@@ -170,6 +181,33 @@ export class AdminPortalService {
         where: { status: PaymentStatus.CAPTURED },
         _sum: { amount: true },
       }),
+      this.prisma.vendorPayout.aggregate({
+        _sum: { grossBookingAmountMinor: true },
+      }),
+      this.prisma.vendorPayout.aggregate({
+        _sum: { platformCommissionMinor: true },
+      }),
+      this.prisma.vendorPayout.aggregate({
+        _sum: { vendorNetAmountMinor: true },
+      }),
+      this.prisma.vendorPayout.aggregate({
+        where: {
+          status: {
+            in: [
+              'PAID_AWAITING_VENDOR_CONFIRMATION',
+              'CONFIRMED_RECEIVED',
+            ],
+          },
+        },
+        _sum: { vendorNetAmountMinor: true },
+      }),
+      this.prisma.vendorPayout.aggregate({
+        where: {
+          status: { in: ['PENDING_DETAILS', 'READY_FOR_PAYOUT', 'PROCESSING'] },
+        },
+        _sum: { vendorNetAmountMinor: true },
+      }),
+      this.prisma.vendorPayout.count({ where: { status: 'DISPUTED' } }),
       this.prisma.refund.count({ where: { status: RefundStatus.PENDING } }),
       this.prisma.opsTask.count({
         where: {
@@ -184,7 +222,9 @@ export class AdminPortalService {
       }),
     ]);
 
-    const revenueCaptured = Number(paymentsCapturedAgg._sum.amount ?? 0);
+    const revenueCaptured =
+      Number(vendorPayoutGrossAgg._sum.grossBookingAmountMinor ?? 0) ||
+      Number(paymentsCapturedAgg._sum.amount ?? 0);
 
     return {
       kpis: {
@@ -196,6 +236,19 @@ export class AdminPortalService {
         bookingsConfirmed,
         bookingsCancelled,
         revenueCaptured,
+        platformCommission: Number(
+          vendorPayoutCommissionAgg._sum.platformCommissionMinor ?? 0,
+        ),
+        vendorPayable: Number(
+          vendorPayoutNetAgg._sum.vendorNetAmountMinor ?? 0,
+        ),
+        paidPayouts: Number(
+          vendorPayoutPaidAgg._sum.vendorNetAmountMinor ?? 0,
+        ),
+        pendingPayouts: Number(
+          vendorPayoutPendingAgg._sum.vendorNetAmountMinor ?? 0,
+        ),
+        disputedPayouts: vendorPayoutDisputed,
         refundsPending,
         opsTasksOpen,
       },
@@ -228,6 +281,7 @@ export class AdminPortalService {
       cancellations,
       paymentCaptures,
       refundsSucceeded,
+      payoutFinancials,
       bookingStatusRows,
       opsStatusRows,
       paymentStatusRows,
@@ -292,6 +346,24 @@ export class AdminPortalService {
         GROUP BY 1
         ORDER BY 1 ASC
       `,
+      this.prisma.$queryRaw<
+        Array<{
+          bucket: Date;
+          gross: number;
+          commission: number;
+          vendor_net: number;
+        }>
+      >`
+        SELECT date_trunc(${bucketExpr}, vp."createdAt") AS bucket,
+               COALESCE(SUM(vp."grossBookingAmountMinor"), 0)::int AS gross,
+               COALESCE(SUM(vp."platformCommissionMinor"), 0)::int AS commission,
+               COALESCE(SUM(vp."vendorNetAmountMinor"), 0)::int AS vendor_net
+        FROM "VendorPayout" vp
+        WHERE vp."createdAt" >= ${params.from}
+          AND vp."createdAt" < ${params.to}
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
       this.prisma.booking.groupBy({
         by: ['status'],
         _count: { _all: true },
@@ -322,6 +394,8 @@ export class AdminPortalService {
     for (const r of paymentCaptures)
       labelsMap.set(formatLabel(r.bucket, params.bucket), r.bucket);
     for (const r of refundsSucceeded)
+      labelsMap.set(formatLabel(r.bucket, params.bucket), r.bucket);
+    for (const r of payoutFinancials)
       labelsMap.set(formatLabel(r.bucket, params.bucket), r.bucket);
 
     const labels = Array.from(labelsMap.entries())
@@ -362,6 +436,18 @@ export class AdminPortalService {
       refundsSucceeded.map((r) => [
         formatLabel(r.bucket, params.bucket),
         Number(r.count),
+      ]),
+    );
+    const commissionMap = new Map(
+      payoutFinancials.map((r) => [
+        formatLabel(r.bucket, params.bucket),
+        Number(r.commission),
+      ]),
+    );
+    const vendorNetMap = new Map(
+      payoutFinancials.map((r) => [
+        formatLabel(r.bucket, params.bucket),
+        Number(r.vendor_net),
       ]),
     );
 
@@ -408,6 +494,14 @@ export class AdminPortalService {
           (sum, l) => sum + (refundMap.get(l) ?? 0),
           0,
         ),
+        platformCommission: labels.reduce(
+          (sum, l) => sum + (commissionMap.get(l) ?? 0),
+          0,
+        ),
+        vendorPayable: labels.reduce(
+          (sum, l) => sum + (vendorNetMap.get(l) ?? 0),
+          0,
+        ),
       },
       series: [
         {
@@ -434,6 +528,14 @@ export class AdminPortalService {
           key: 'refundsSucceeded',
           points: labels.map((l) => refundMap.get(l) ?? 0),
         },
+        {
+          key: 'platformCommission',
+          points: labels.map((l) => commissionMap.get(l) ?? 0),
+        },
+        {
+          key: 'vendorPayable',
+          points: labels.map((l) => vendorNetMap.get(l) ?? 0),
+        },
       ],
       charts: {
         bookingsPerPeriod: {
@@ -451,6 +553,23 @@ export class AdminPortalService {
             {
               key: 'revenueCaptured',
               points: labels.map((l) => revMap.get(l) ?? 0),
+            },
+            {
+              key: 'platformCommission',
+              points: labels.map((l) => commissionMap.get(l) ?? 0),
+            },
+            {
+              key: 'vendorPayable',
+              points: labels.map((l) => vendorNetMap.get(l) ?? 0),
+            },
+          ],
+        },
+        payoutLiability: {
+          labels,
+          series: [
+            {
+              key: 'vendorPayable',
+              points: labels.map((l) => vendorNetMap.get(l) ?? 0),
             },
           ],
         },

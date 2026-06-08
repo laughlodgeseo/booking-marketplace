@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BookingsModule } from '../../bookings/bookings.module';
 import { FeesModule } from '../fees/fees.module';
+import { FinanceModule } from '../finance/finance.module';
 
 import { PaymentsController } from './payments.controller';
 import { PaymentsWebhooksController } from './payments.webhooks.controller';
@@ -21,6 +22,7 @@ import { QUEUE_NAMES } from '../../infra/queues/queues.constants';
     NotificationsModule,
     BookingsModule,
     FeesModule,
+    FinanceModule,
     // Optional: registers the producer so the webhook controller can inject the queue.
     // The BullModule.forRoot connection is set up in QueueModule.
     BullModule.registerQueue({ name: QUEUE_NAMES.STRIPE_WEBHOOK }),

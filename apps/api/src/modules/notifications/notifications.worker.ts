@@ -558,7 +558,9 @@ export class NotificationsWorker implements OnModuleInit {
       case 'PROPERTY_APPROVED_ACTIVATION_REQUIRED':
         return 'Property approved: activation payment required';
       case 'NEW_BOOKING_RECEIVED':
-        return 'New booking received for your property';
+        return 'Your property has been booked';
+      case 'VENDOR_PAYOUT_PAID':
+        return 'Your payout has been marked as paid';
       case 'MAINTENANCE_REQUEST_CREATED':
         return 'New maintenance request';
       default: {
@@ -712,6 +714,8 @@ export class NotificationsWorker implements OnModuleInit {
         return 'property-approved-activation-required';
       case 'NEW_BOOKING_RECEIVED':
         return 'new-booking-received';
+      case 'VENDOR_PAYOUT_PAID':
+        return 'vendor-payout-paid';
       default:
         return 'booking-confirmed';
     }

@@ -13,6 +13,101 @@ function unwrap<T>(res: HttpResult<T>): T {
 
 export type VendorStatementStatus = "DRAFT" | "FINALIZED" | "PAID" | "VOID";
 export type PayoutStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+export type VendorPayoutStatus =
+  | "PENDING_DETAILS"
+  | "READY_FOR_PAYOUT"
+  | "PROCESSING"
+  | "PAID_AWAITING_VENDOR_CONFIRMATION"
+  | "CONFIRMED_RECEIVED"
+  | "DISPUTED"
+  | "CANCELLED";
+export type VendorPayoutMethodType =
+  | "UAE_BANK_TRANSFER"
+  | "INTERNATIONAL_BANK_TRANSFER"
+  | "OTHER_MANUAL"
+  | "STRIPE_CONNECT";
+export type PayoutMethodStatus = "PENDING_REVIEW" | "VERIFIED" | "REJECTED" | "DISABLED";
+
+export type VendorPayoutMethodRow = {
+  id: string;
+  vendorId: string;
+  vendor?: { email: string; fullName: string | null };
+  type: VendorPayoutMethodType;
+  status: PayoutMethodStatus;
+  accountHolderName: string | null;
+  bankName: string | null;
+  ibanMasked: string | null;
+  iban?: string | null;
+  accountNumberLast4: string | null;
+  accountNumber?: string | null;
+  swiftCode: string | null;
+  bankCountry: string | null;
+  bankCity: string | null;
+  currency: string;
+  transferInstructions?: string | null;
+  manualMethodLabel: string | null;
+  manualIdentifier: string | null;
+  manualInstructions?: string | null;
+  contactDetail?: string | null;
+  isDefault: boolean;
+  verifiedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendorPayoutRow = {
+  id: string;
+  vendorId: string;
+  propertyId: string | null;
+  propertyTitle: string | null;
+  bookingId: string | null;
+  checkIn: string | null;
+  checkOut: string | null;
+  payoutMethodId: string | null;
+  payoutMethod: VendorPayoutMethodRow | null;
+  grossBookingAmountMinor: number;
+  platformCommissionRateBps: number;
+  platformCommissionMinor: number;
+  vendorNetAmountMinor: number;
+  currency: string;
+  formatted?: { gross: string; commission: string; vendorNet: string };
+  status: VendorPayoutStatus;
+  dueAt: string | null;
+  paidAt: string | null;
+  confirmedAt: string | null;
+  adminNotes: string | null;
+  vendorConfirmationNote: string | null;
+  proofDocumentId: string | null;
+  proofAvailable: boolean;
+  proofViewUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendorPayoutListResponse = {
+  summary: Record<string, number>;
+  items: VendorPayoutRow[];
+};
+
+export type VendorPayoutMethodInput = {
+  type: VendorPayoutMethodType;
+  accountHolderName?: string;
+  bankName?: string;
+  iban?: string;
+  accountNumber?: string;
+  swiftCode?: string;
+  bankCountry?: string;
+  bankCity?: string;
+  currency?: string;
+  transferInstructions?: string;
+  manualMethodLabel?: string;
+  manualIdentifier?: string;
+  manualInstructions?: string;
+  contactDetail?: string;
+  isDefault?: boolean;
+};
 
 export type VendorStatementListItem = {
   id: string;
@@ -119,6 +214,91 @@ export async function vendorGetStatementDetail(statementId: string): Promise<Ven
       cache: "no-store",
     }
   );
+  return unwrap(res);
+}
+
+export async function vendorListPayoutMethods(): Promise<{ items: VendorPayoutMethodRow[] }> {
+  const res = await apiFetch<{ items: VendorPayoutMethodRow[] }>("/portal/vendor/payout-methods", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function vendorCreatePayoutMethod(input: VendorPayoutMethodInput): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>("/portal/vendor/payout-methods", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: input,
+  });
+  return unwrap(res);
+}
+
+export async function vendorUpdatePayoutMethod(id: string, input: VendorPayoutMethodInput): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>(`/portal/vendor/payout-methods/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    credentials: "include",
+    cache: "no-store",
+    body: input,
+  });
+  return unwrap(res);
+}
+
+export async function vendorDisablePayoutMethod(id: string): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>(`/portal/vendor/payout-methods/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function vendorSetDefaultPayoutMethod(id: string): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>(`/portal/vendor/payout-methods/${encodeURIComponent(id)}/set-default`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function vendorListPayouts(): Promise<VendorPayoutListResponse> {
+  const res = await apiFetch<VendorPayoutListResponse>("/portal/vendor/payouts", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function vendorGetPayout(id: string): Promise<VendorPayoutRow> {
+  const res = await apiFetch<VendorPayoutRow>(`/portal/vendor/payouts/${encodeURIComponent(id)}`, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function vendorConfirmPayoutReceived(id: string, note?: string): Promise<{ ok: true }> {
+  const res = await apiFetch<{ ok: true }>(`/portal/vendor/payouts/${encodeURIComponent(id)}/confirm-received`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { note: note ?? undefined },
+  });
+  return unwrap(res);
+}
+
+export async function vendorDisputePayout(id: string, note: string): Promise<{ ok: true }> {
+  const res = await apiFetch<{ ok: true }>(`/portal/vendor/payouts/${encodeURIComponent(id)}/dispute`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { note },
+  });
   return unwrap(res);
 }
 
@@ -310,6 +490,121 @@ export async function adminCancelPayout(payoutId: string, reason?: string | null
     credentials: "include",
     cache: "no-store",
     body: { reason: reason ?? undefined },
+  });
+  return unwrap(res);
+}
+
+export async function adminListVendorPayouts(params?: {
+  status?: string;
+  vendorId?: string;
+}): Promise<VendorPayoutListResponse> {
+  const query: QueryRecord = {};
+  if (params?.status) query.status = params.status;
+  if (params?.vendorId) query.vendorId = params.vendorId;
+  const res = await apiFetch<VendorPayoutListResponse>("/portal/admin/vendor-payouts", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+    query,
+  });
+  return unwrap(res);
+}
+
+export async function adminGetVendorPayout(id: string): Promise<VendorPayoutRow> {
+  const res = await apiFetch<VendorPayoutRow>(`/portal/admin/vendor-payouts/${encodeURIComponent(id)}`, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function adminMarkVendorPayoutProcessing(id: string, note?: string): Promise<{ ok: true }> {
+  const res = await apiFetch<{ ok: true }>(`/portal/admin/vendor-payouts/${encodeURIComponent(id)}/mark-processing`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { note: note ?? undefined },
+  });
+  return unwrap(res);
+}
+
+export async function adminUploadVendorPayoutProof(id: string, file: File, note?: string): Promise<{ ok: true; proofDocumentId: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  if (note) form.append("note", note);
+  const res = await apiFetch<{ ok: true; proofDocumentId: string }>(
+    `/portal/admin/vendor-payouts/${encodeURIComponent(id)}/upload-proof`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      body: form,
+    }
+  );
+  return unwrap(res);
+}
+
+export async function adminMarkVendorPayoutPaid(id: string, note?: string): Promise<{ ok: true }> {
+  const res = await apiFetch<{ ok: true }>(`/portal/admin/vendor-payouts/${encodeURIComponent(id)}/mark-paid`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { note: note ?? undefined },
+  });
+  return unwrap(res);
+}
+
+export async function adminCancelVendorPayout(id: string, note?: string): Promise<{ ok: true }> {
+  const res = await apiFetch<{ ok: true }>(`/portal/admin/vendor-payouts/${encodeURIComponent(id)}/cancel`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { note: note ?? undefined },
+  });
+  return unwrap(res);
+}
+
+export async function adminListPayoutMethods(params?: {
+  status?: string;
+  vendorId?: string;
+}): Promise<{ items: VendorPayoutMethodRow[] }> {
+  const query: QueryRecord = {};
+  if (params?.status) query.status = params.status;
+  if (params?.vendorId) query.vendorId = params.vendorId;
+  const res = await apiFetch<{ items: VendorPayoutMethodRow[] }>("/portal/admin/vendor-payout-methods", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+    query,
+  });
+  return unwrap(res);
+}
+
+export async function adminGetPayoutMethod(id: string): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>(`/portal/admin/vendor-payout-methods/${encodeURIComponent(id)}`, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function adminVerifyPayoutMethod(id: string): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>(`/portal/admin/vendor-payout-methods/${encodeURIComponent(id)}/verify`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}
+
+export async function adminRejectPayoutMethod(id: string, reason: string): Promise<VendorPayoutMethodRow> {
+  const res = await apiFetch<VendorPayoutMethodRow>(`/portal/admin/vendor-payout-methods/${encodeURIComponent(id)}/reject`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { reason },
   });
   return unwrap(res);
 }

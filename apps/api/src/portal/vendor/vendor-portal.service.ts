@@ -108,7 +108,7 @@ export class VendorPortalService {
       propertiesUnderReview,
       bookingsUpcoming,
       bookingsTotal,
-      paymentsCapturedAgg,
+      vendorPayoutAgg,
       opsTasksOpen,
       recentBookings,
       openOpsTasks,
@@ -127,12 +127,9 @@ export class VendorPortalService {
         },
       }),
       this.prisma.booking.count({ where: { propertyId: { in: propertyIds } } }),
-      this.prisma.payment.aggregate({
-        where: {
-          booking: { propertyId: { in: propertyIds } },
-          status: PaymentStatus.CAPTURED,
-        },
-        _sum: { amount: true },
+      this.prisma.vendorPayout.aggregate({
+        where: { vendorId: params.userId },
+        _sum: { vendorNetAmountMinor: true },
       }),
       this.prisma.opsTask.count({
         where: {
@@ -187,7 +184,9 @@ export class VendorPortalService {
       }),
     ]);
 
-    const revenueCaptured = Number(paymentsCapturedAgg._sum.amount ?? 0);
+    const revenueCaptured = Number(
+      vendorPayoutAgg._sum.vendorNetAmountMinor ?? 0,
+    );
 
     return {
       kpis: {
@@ -439,14 +438,12 @@ export class VendorPortalService {
       opsStatusRows,
     ] = await Promise.all([
       this.prisma.$queryRaw<Array<{ bucket: Date; amount: number }>>`
-        SELECT date_trunc(${bucketExpr}, p."createdAt") AS bucket,
-               COALESCE(SUM(p.amount), 0)::int AS amount
-        FROM "Payment" p
-        JOIN "Booking" b ON b.id = p."bookingId"
-        WHERE p.status = 'CAPTURED'
-          AND b."propertyId" = ANY(${propertyIds})
-          AND p."createdAt" >= ${params.from}
-          AND p."createdAt" < ${params.to}
+        SELECT date_trunc(${bucketExpr}, vp."createdAt") AS bucket,
+               COALESCE(SUM(vp."vendorNetAmountMinor"), 0)::int AS amount
+        FROM "VendorPayout" vp
+        WHERE vp."vendorId" = ${params.userId}
+          AND vp."createdAt" >= ${params.from}
+          AND vp."createdAt" < ${params.to}
         GROUP BY 1
         ORDER BY 1 ASC
       `,

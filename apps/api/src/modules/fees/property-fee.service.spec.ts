@@ -20,11 +20,11 @@ function makePrisma() {
 }
 
 describe('formatAed', () => {
-  it('formats minor units to AED string', () => {
+  it('formats minor units to AED string with thousand separators', () => {
     expect(formatAed(5000)).toBe('AED 50.00');
-    expect(formatAed(210000)).toBe('AED 2100.00');
-    expect(formatAed(300000)).toBe('AED 3000.00');
-    expect(formatAed(515000)).toBe('AED 5150.00');
+    expect(formatAed(210000)).toBe('AED 2,100.00');
+    expect(formatAed(300000)).toBe('AED 3,000.00');
+    expect(formatAed(515000)).toBe('AED 5,150.00');
     expect(formatAed(0)).toBe('AED 0.00');
   });
 });
@@ -165,7 +165,7 @@ describe('PropertyFeeService', () => {
       expect(result.items[0].feeStatus).toBe('partially_paid');
       expect(result.items[0].fees).toHaveLength(2);
       expect(result.items[0].fees[0].amountFormatted).toBe('AED 50.00');
-      expect(result.items[0].fees[1].amountFormatted).toBe('AED 2100.00');
+      expect(result.items[0].fees[1].amountFormatted).toBe('AED 2,100.00');
     });
 
     it('reports feeStatus=paid when all fees are PAID', async () => {

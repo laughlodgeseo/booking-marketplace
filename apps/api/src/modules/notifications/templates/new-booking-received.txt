@@ -1,0 +1,16 @@
+Your property has been booked
+
+Property: {{property.title}}
+Booking reference: {{booking.id}}
+Check-in: {{booking.checkIn}}
+Check-out: {{booking.checkOut}}
+
+Your payout amount: {{payout.amountFormatted}}
+Expected payout timing: {{payout.expectedTiming}}
+
+{{payout.methodMessage}}
+
+View payouts: {{payout.payoutsUrl}}
+Payout settings: {{payout.settingsUrl}}
+
+{{brand.name}}

@@ -177,6 +177,30 @@ enum PayoutStatus {
   CANCELLED
 }
 
+enum VendorPayoutMethodType {
+  UAE_BANK_TRANSFER
+  INTERNATIONAL_BANK_TRANSFER
+  OTHER_MANUAL
+  STRIPE_CONNECT
+}
+
+enum PayoutMethodStatus {
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  DISABLED
+}
+
+enum VendorPayoutStatus {
+  PENDING_DETAILS
+  READY_FOR_PAYOUT
+  PROCESSING
+  PAID_AWAITING_VENDOR_CONFIRMATION
+  CONFIRMED_RECEIVED
+  DISPUTED
+  CANCELLED
+}
+
 enum LedgerEntryType {
   BOOKING_CAPTURED
   MANAGEMENT_FEE
@@ -223,6 +247,7 @@ enum NotificationType {
   REFUND_PROCESSED
   DOCUMENT_UPLOAD_REQUEST
   NEW_BOOKING_RECEIVED
+  VENDOR_PAYOUT_PAID
   BOOKING_CANCELLED_BY_GUEST
   OPS_TASKS_CREATED
   MAINTENANCE_REQUEST_CREATED
@@ -474,6 +499,9 @@ model User {
 
   vendorStatements VendorStatement[]
   payouts          Payout[]
+  vendorPayoutMethods VendorPayoutMethod[] @relation("VendorPayoutMethodVendor")
+  vendorPayouts        VendorPayout[]       @relation("VendorPayoutVendor")
+  uploadedPayoutProofs PayoutProofDocument[] @relation("PayoutProofUploadedByAdmin")
   ledgerEntries    LedgerEntry[]
 
   bookingIdempotencies BookingIdempotency[]
@@ -748,6 +776,7 @@ model Property {
   amenities PropertyAmenity[]
   translations PropertyTranslation[]
   bookings  Booking[]
+  vendorPayouts VendorPayout[]
   blockedDates BookingBlockedDate[]
 
   availabilitySettings PropertyAvailabilitySettings?
@@ -1261,6 +1290,7 @@ model Booking {
   securityDeposit SecurityDeposit?
 
   ledgerEntries LedgerEntry[] @relation("LedgerEntryBooking")
+  vendorPayout VendorPayout?
 
   refunds     Refund[]
   documents   BookingDocument[]
@@ -1699,6 +1729,110 @@ model Payout {
   @@index([vendorId])
   @@index([status])
   @@index([provider])
+}
+
+model VendorPayoutMethod {
+  id       String @id @default(uuid())
+  vendorId String
+  vendor   User   @relation("VendorPayoutMethodVendor", fields: [vendorId], references: [id], onDelete: Cascade)
+
+  type   VendorPayoutMethodType
+  status PayoutMethodStatus @default(PENDING_REVIEW)
+
+  accountHolderName  String?
+  bankName           String?
+  iban               String?
+  accountNumberLast4 String?
+  accountNumberEnc   String?
+  swiftCode          String?
+  bankCountry        String?
+  bankCity           String?
+  currency           String @default("AED")
+  transferInstructions String?
+
+  manualMethodLabel  String?
+  manualIdentifier   String?
+  manualInstructions String?
+  contactDetail      String?
+
+  isDefault       Boolean   @default(false)
+  verifiedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  payouts VendorPayout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([type])
+  @@index([vendorId, isDefault])
+}
+
+model VendorPayout {
+  id       String @id @default(uuid())
+  vendorId String
+  vendor   User   @relation("VendorPayoutVendor", fields: [vendorId], references: [id], onDelete: Cascade)
+
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  bookingId String?  @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  payoutMethodId String?
+  payoutMethod   VendorPayoutMethod? @relation(fields: [payoutMethodId], references: [id], onDelete: SetNull)
+
+  grossBookingAmountMinor   Int
+  platformCommissionRateBps Int @default(1800)
+  platformCommissionMinor   Int
+  vendorNetAmountMinor      Int
+  currency                  String @default("AED")
+
+  status      VendorPayoutStatus @default(PENDING_DETAILS)
+  dueAt       DateTime?
+  paidAt      DateTime?
+  confirmedAt DateTime?
+
+  adminNotes             String?
+  vendorConfirmationNote String?
+
+  proofDocumentId String? @unique
+  proofDocument   PayoutProofDocument? @relation("PayoutProofForPayout")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([createdAt])
+}
+
+model PayoutProofDocument {
+  id       String       @id @default(uuid())
+  payoutId String       @unique
+  payout   VendorPayout @relation("PayoutProofForPayout", fields: [payoutId], references: [id], onDelete: Cascade)
+
+  uploadedByAdminId String
+  uploadedByAdmin   User   @relation("PayoutProofUploadedByAdmin", fields: [uploadedByAdminId], references: [id], onDelete: Restrict)
+
+  originalName String?
+  mimeType     String
+  sizeBytes    Int
+
+  cloudinaryPublicId     String
+  cloudinaryResourceType String?
+  cloudinaryDeliveryType String?
+  storageProvider        String @default("cloudinary")
+
+  createdAt DateTime @default(now())
+
+  @@index([uploadedByAdminId])
+  @@index([createdAt])
 }
 
 model LedgerEntry {

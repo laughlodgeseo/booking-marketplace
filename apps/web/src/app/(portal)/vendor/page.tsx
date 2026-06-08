@@ -45,6 +45,15 @@ function toPoints(labels?: string[], points?: number[]): BarPoint[] {
   return labels.map((label, index) => ({ label, value: points[index] ?? 0 }));
 }
 
+function moneyMinor(value: number | null | undefined): string {
+  const amount = (value ?? 0) / 100;
+  return new Intl.NumberFormat("en-AE", { style: "currency", currency: "AED", maximumFractionDigits: 0 }).format(amount);
+}
+
+function minorPoints(points: BarPoint[]): BarPoint[] {
+  return points.map((p) => ({ ...p, value: p.value / 100 }));
+}
+
 function pickSeries(
   analytics: VendorAnalyticsData,
   chartKey: string,
@@ -361,7 +370,7 @@ export default function VendorDashboardPage() {
     const kpis = state.overview.kpis ?? {};
     const analytics = state.analytics;
 
-    const revenuePoints = pickSeries(analytics, "revenuePerPeriod", "revenueCaptured");
+    const revenuePoints = minorPoints(pickSeries(analytics, "revenuePerPeriod", "revenueCaptured"));
     const bookingsPoints = pickSeries(analytics, "bookingsPerPeriod", "bookingsTotal");
     const upcomingPoints = pickSeries(analytics, "opsAndUpcoming", "upcomingStays");
     const opsPoints = pickSeries(analytics, "opsAndUpcoming", "opsTasks");
@@ -384,9 +393,9 @@ export default function VendorDashboardPage() {
             icon={<ClipboardCheck className="h-4 w-4" />}
           />
           <StatCard
-            label={tPortal("vendorDashboard.kpi.revenueCaptured")}
-            value={kpis.revenueCaptured ?? 0}
-            helper={tPortal("vendorDashboard.kpiHelpers.capturedPayments")}
+            label="Net payout earnings"
+            value={moneyMinor(kpis.revenueCaptured ?? 0)}
+            helper="Vendor net payable"
             icon={<Wallet className="h-4 w-4" />}
           />
           <StatCard

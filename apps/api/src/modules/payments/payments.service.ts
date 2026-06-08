@@ -40,6 +40,11 @@ import { EventBusService } from '../../events/event-bus.service';
 import { DomainEventType } from '../../events/domain-events';
 import { ActivationPaymentService } from './activation-payment.service';
 import { PropertyFeePaymentService } from '../fees/property-fee-payment.service';
+import { VendorPayoutLifecycleService } from '../finance/services/vendor-payout-lifecycle.service';
+import {
+  calculateVendorPayout,
+  formatMoneyMinor,
+} from '../../common/finance/vendor-payout-money';
 import type Stripe from 'stripe';
 
 type Actor = { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
@@ -75,6 +80,7 @@ export class PaymentsService {
     private readonly stripeProvider: StripePaymentsProvider,
     private readonly activationPayments: ActivationPaymentService,
     private readonly propertyFeePayments: PropertyFeePaymentService,
+    private readonly vendorPayouts: VendorPayoutLifecycleService,
     private readonly notifications: NotificationsService,
     private readonly bookings: BookingsService,
     private readonly eventBus: EventBusService,
@@ -739,6 +745,10 @@ export class PaymentsService {
                 booking.id,
               );
               await this.ensureLedgerForCapturedBooking(tx, booking.id);
+              await this.vendorPayouts.ensurePayoutForCapturedBooking(
+                tx,
+                booking.id,
+              );
             }
 
             return {
@@ -775,6 +785,10 @@ export class PaymentsService {
             ops = await ensureOpsTasks(tx, booking.id);
             await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
             await this.ensureLedgerForCapturedBooking(tx, booking.id);
+            await this.vendorPayouts.ensurePayoutForCapturedBooking(
+              tx,
+              booking.id,
+            );
           }
 
           return {
@@ -826,6 +840,10 @@ export class PaymentsService {
           updatedBooking.id,
         );
         await this.ensureLedgerForCapturedBooking(tx, updatedBooking.id);
+        await this.vendorPayouts.ensurePayoutForCapturedBooking(
+          tx,
+          updatedBooking.id,
+        );
 
         return {
           ok: true,
@@ -1229,6 +1247,10 @@ export class PaymentsService {
           );
           await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
           await this.ensureLedgerForCapturedBooking(tx, booking.id);
+          await this.vendorPayouts.ensurePayoutForCapturedBooking(
+            tx,
+            booking.id,
+          );
 
           await tx.stripeWebhookEvent.create({
             data: {
@@ -1531,6 +1553,10 @@ export class PaymentsService {
           );
           await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
           await this.ensureLedgerForCapturedBooking(tx, booking.id);
+          await this.vendorPayouts.ensurePayoutForCapturedBooking(
+            tx,
+            booking.id,
+          );
 
           return {
             booking: reconciledBooking,
@@ -1606,6 +1632,7 @@ export class PaymentsService {
 
         await this.ensureSecurityDepositForConfirmedBooking(tx, booking.id);
         await this.ensureLedgerForCapturedBooking(tx, booking.id);
+        await this.vendorPayouts.ensurePayoutForCapturedBooking(tx, booking.id);
 
         return {
           booking: updatedBooking,
@@ -2405,6 +2432,29 @@ export class PaymentsService {
       }
 
       if (vendorId) {
+        const [vendorPayout, property] = await Promise.all([
+          this.prisma.vendorPayout.findUnique({
+            where: { bookingId: booking.id },
+            select: {
+              vendorNetAmountMinor: true,
+              currency: true,
+              status: true,
+              payoutMethodId: true,
+            },
+          }),
+          this.prisma.property.findUnique({
+            where: { id: booking.propertyId },
+            select: { title: true },
+          }),
+        ]);
+
+        const payoutAmount =
+          vendorPayout?.vendorNetAmountMinor ??
+          this.vendorPayouts.calculateVendorPayout(booking.totalAmount)
+            .vendorNetAmountMinor;
+        const payoutCurrency = vendorPayout?.currency ?? booking.currency;
+        const hasPayoutDetails = Boolean(vendorPayout?.payoutMethodId);
+
         await this.notifications.emit({
           type: NotificationType.NEW_BOOKING_RECEIVED,
           entityType: 'BOOKING',
@@ -2419,6 +2469,20 @@ export class PaymentsService {
               totalAmount: booking.totalAmount,
               currency: booking.currency,
               status: booking.status,
+            },
+            property: {
+              title: property?.title ?? booking.propertyId,
+            },
+            payout: {
+              amount: payoutAmount,
+              amountFormatted: formatMoneyMinor(payoutAmount, payoutCurrency),
+              currency: payoutCurrency,
+              expectedTiming: 'within 2 business days',
+              methodMessage: hasPayoutDetails
+                ? "We'll process your payout to your saved payout method."
+                : 'Please add your payout details so we can process your payout.',
+              settingsUrl: '/vendor/payout-settings',
+              payoutsUrl: '/vendor/payouts',
             },
           },
         });
@@ -2626,17 +2690,7 @@ export class PaymentsService {
         payment: {
           select: { id: true, status: true, amount: true, currency: true },
         },
-        property: {
-          select: {
-            vendorId: true,
-            serviceConfig: {
-              select: {
-                vendorAgreement: { select: { agreedManagementFeeBps: true } },
-                servicePlan: { select: { managementFeeBps: true } },
-              },
-            },
-          },
-        },
+        property: { select: { vendorId: true } },
       },
     });
 
@@ -2652,12 +2706,9 @@ export class PaymentsService {
 
     const gross = payment.amount;
 
-    const bps =
-      booking.property.serviceConfig?.vendorAgreement?.agreedManagementFeeBps ??
-      booking.property.serviceConfig?.servicePlan?.managementFeeBps ??
-      0;
-
-    const managementFee = this.computeFeeFromBps(gross, bps);
+    const payoutBreakdown = calculateVendorPayout(gross);
+    const bps = payoutBreakdown.platformCommissionRateBps;
+    const managementFee = payoutBreakdown.platformCommissionMinor;
 
     const grossIdemKey = `booking_captured_${payment.id}`;
     const feeIdemKey = `management_fee_${payment.id}`;

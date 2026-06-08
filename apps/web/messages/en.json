@@ -74,11 +74,16 @@
       "refunds": "Refunds",
       "guestDocuments": "Guest Documents",
       "payouts": "Payouts",
+      "payoutSettings": "Payout Settings",
+      "vendorPayouts": "Vendor Payouts",
+      "payoutMethods": "Payout Methods",
       "documents": "Documents",
       "wishlist": "Wishlist",
       "profile": "Profile",
       "pricing": "Pricing",
-      "reviews": "Reviews"
+      "reviews": "Reviews",
+      "propertyFees": "Property Fees",
+      "vendorPropertyFees": "Property Fee Tracking"
     },
     "loading": {
       "messages": "Loading messages...",

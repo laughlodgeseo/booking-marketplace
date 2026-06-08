@@ -1250,8 +1250,7 @@ export async function initiatePropertyFeePayment(
     {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ feeIds }),
+      body: { feeIds },
     },
   );
   return unwrap(res);

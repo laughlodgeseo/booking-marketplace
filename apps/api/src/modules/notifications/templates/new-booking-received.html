@@ -61,7 +61,7 @@
                   </tr>
                 </table>
                 <div style="font-size: 22px; font-weight: 700; margin-top: 6px">
-                  New Booking Received
+                  Your property has been booked
                 </div>
                 <div style="font-size: 13px; opacity: 0.85; margin-top: 6px">
                   A guest has booked your property.
@@ -72,7 +72,7 @@
             <tr>
               <td style="padding: 22px 24px; color: #111827">
                 <div style="font-size: 14px; color: #374151; line-height: 1.6">
-                  You have received a new booking. Please review the details below.
+                  You have received a new paid booking. Your payout amount below is the vendor net payable amount, not the guest's gross payment.
                 </div>
 
                 <table
@@ -120,8 +120,8 @@
                           margin: 6px 0;
                         "
                       >
-                        <span style="color: #6b7280; font-size: 13px">Property ID</span>
-                        <span style="font-weight: 600">{{booking.propertyId}}</span>
+                        <span style="color: #6b7280; font-size: 13px">Property</span>
+                        <span style="font-weight: 600">{{property.title}}</span>
                       </div>
                       <div
                         style="
@@ -158,11 +158,29 @@
                           margin: 6px 0;
                         "
                       >
-                        <span style="color: #6b7280; font-size: 13px">Total</span>
+                        <span style="color: #6b7280; font-size: 13px">Your payout amount</span>
                         <span style="font-weight: 800; font-size: 16px">
-                          {{booking.totalAmount}} {{booking.currency}}
+                          {{payout.amountFormatted}}
                         </span>
                       </div>
+                      <div style="font-size: 13px; color: #6b7280; margin-top: 10px">
+                        Expected payout timing: {{payout.expectedTiming}}.
+                      </div>
+                      <div style="font-size: 13px; color: #374151; margin-top: 6px">
+                        {{payout.methodMessage}}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top: 18px">
+                  <tr>
+                    <td style="background: #111827; border-radius: 8px">
+                      <a href="{{payout.payoutsUrl}}" style="display: inline-block; padding: 11px 16px; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 13px">View payouts</a>
+                    </td>
+                    <td style="width: 10px"></td>
+                    <td style="background: #f3f4f6; border-radius: 8px">
+                      <a href="{{payout.settingsUrl}}" style="display: inline-block; padding: 11px 16px; color: #111827; text-decoration: none; font-weight: 700; font-size: 13px">Payout settings</a>
                     </td>
                   </tr>
                 </table>

@@ -21,6 +21,7 @@ import { StripePaymentsProvider } from './providers/stripe.provider';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BookingsService } from '../../bookings/bookings.service';
 import { ActivationPaymentService } from './activation-payment.service';
+import { VendorPayoutLifecycleService } from '../finance/services/vendor-payout-lifecycle.service';
 
 function buildPaymentsService(overrides?: {
   prisma?: Partial<PrismaService>;
@@ -104,12 +105,25 @@ function buildPaymentsService(overrides?: {
     handleStripePaymentIntentCanceled: jest.fn().mockResolvedValue({ ok: true, reused: false }),
   } as unknown as import('../fees/property-fee-payment.service').PropertyFeePaymentService;
 
+  const vendorPayouts = {
+    ensurePayoutForCapturedBooking: jest
+      .fn()
+      .mockResolvedValue({ payoutId: 'vp_1', status: 'READY_FOR_PAYOUT' }),
+    calculateVendorPayout: jest.fn().mockReturnValue({
+      grossAmountMinor: 1000,
+      platformCommissionRateBps: 1800,
+      platformCommissionMinor: 180,
+      vendorNetAmountMinor: 820,
+    }),
+  } as unknown as VendorPayoutLifecycleService;
+
   const service = new PaymentsService(
     prisma,
     manual,
     stripe,
     activationPayments,
     propertyFeePayments,
+    vendorPayouts,
     notifications,
     bookings,
     eventBus,
@@ -589,6 +603,17 @@ describe('PaymentsService', () => {
           handleStripePaymentIntentCanceled: jest.fn().mockResolvedValue({ ok: true, reused: false }),
         } as unknown as import('../fees/property-fee-payment.service').PropertyFeePaymentService,
         {
+          ensurePayoutForCapturedBooking: jest
+            .fn()
+            .mockResolvedValue({ payoutId: 'vp_1', status: 'READY_FOR_PAYOUT' }),
+          calculateVendorPayout: jest.fn().mockReturnValue({
+            grossAmountMinor: 1000,
+            platformCommissionRateBps: 1800,
+            platformCommissionMinor: 180,
+            vendorNetAmountMinor: 820,
+          }),
+        } as unknown as VendorPayoutLifecycleService,
+        {
           emit: jest.fn().mockResolvedValue(undefined),
         } as unknown as NotificationsService,
         {} as BookingsService,
@@ -760,6 +785,17 @@ describe('PaymentsService', () => {
           handleStripePaymentIntentFailed: jest.fn().mockResolvedValue({ ok: true, reused: false }),
           handleStripePaymentIntentCanceled: jest.fn().mockResolvedValue({ ok: true, reused: false }),
         } as unknown as import('../fees/property-fee-payment.service').PropertyFeePaymentService,
+        {
+          ensurePayoutForCapturedBooking: jest
+            .fn()
+            .mockResolvedValue({ payoutId: 'vp_1', status: 'READY_FOR_PAYOUT' }),
+          calculateVendorPayout: jest.fn().mockReturnValue({
+            grossAmountMinor: 1000,
+            platformCommissionRateBps: 1800,
+            platformCommissionMinor: 180,
+            vendorNetAmountMinor: 820,
+          }),
+        } as unknown as VendorPayoutLifecycleService,
         {
           emit: jest.fn().mockResolvedValue(undefined),
         } as unknown as NotificationsService,

@@ -74,11 +74,16 @@
       "refunds": "الاستردادات",
       "guestDocuments": "مستندات الضيوف",
       "payouts": "التحويلات",
+      "payoutSettings": "إعدادات التحويل",
+      "vendorPayouts": "تحويلات الموردين",
+      "payoutMethods": "طرق التحويل",
       "documents": "المستندات",
       "wishlist": "المفضلة",
       "profile": "الملف الشخصي",
       "pricing": "التسعير",
-      "reviews": "التقييمات"
+      "reviews": "التقييمات",
+      "propertyFees": "رسوم العقار",
+      "vendorPropertyFees": "تتبع رسوم العقار"
     },
     "loading": {
       "messages": "جارٍ تحميل الرسائل...",

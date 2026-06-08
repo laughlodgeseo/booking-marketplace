@@ -63,6 +63,8 @@ export function getRoleNav(role?: PortalRole, translateFn?: TranslateFn): Portal
       { href: "/vendor/ops-tasks", label: translate(translateFn, "nav.opsTasks", "Ops Tasks"), icon: <Wrench className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/maintenance", label: translate(translateFn, "nav.maintenance", "Maintenance"), icon: <Wrench className="h-4 w-4" />, group: gOperations },
       { href: "/vendor/work-orders", label: translate(translateFn, "nav.workOrders", "Work Orders"), icon: <Wrench className="h-4 w-4" />, group: gOperations },
+      { href: "/vendor/payouts", label: translate(translateFn, "nav.payouts", "Payouts"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
+      { href: "/vendor/payout-settings", label: translate(translateFn, "nav.payoutSettings", "Payout Settings"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
       { href: "/vendor/statements", label: translate(translateFn, "nav.statements", "Statements"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
       { href: "/vendor/property-fees", label: translate(translateFn, "nav.propertyFees", "Property Fees"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
     ];
@@ -90,6 +92,8 @@ export function getRoleNav(role?: PortalRole, translateFn?: TranslateFn): Portal
       { href: "/admin/customer-documents", label: translate(translateFn, "nav.guestDocuments", "Guest Documents"), icon: <ShieldCheck className="h-4 w-4" />, group: gOperations },
       { href: "/admin/statements", label: translate(translateFn, "nav.statements", "Statements"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
       { href: "/admin/payouts", label: translate(translateFn, "nav.payouts", "Payouts"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
+      { href: "/admin/vendor-payouts", label: translate(translateFn, "nav.vendorPayouts", "Vendor Payouts"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
+      { href: "/admin/vendor-payout-methods", label: translate(translateFn, "nav.payoutMethods", "Payout Methods"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
       { href: "/admin/vendor-property-fees", label: translate(translateFn, "nav.vendorPropertyFees", "Property Fee Tracking"), icon: <CreditCard className="h-4 w-4" />, group: gFinance },
     ];
   }

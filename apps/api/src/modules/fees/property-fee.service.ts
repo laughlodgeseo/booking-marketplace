@@ -11,8 +11,13 @@ const INSURANCE_FEE_MINOR = 210000;     // 2,100.00 AED
 const FURNISHING_FEE_MINOR = 300000;    // 3,000.00 AED
 const CURRENCY = 'AED';
 
+const _aedFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export function formatAed(minorUnits: number): string {
-  return `AED ${(minorUnits / 100).toFixed(2)}`;
+  return `AED ${_aedFormatter.format(minorUnits / 100)}`;
 }
 
 @Injectable()

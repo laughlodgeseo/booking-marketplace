@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AlertCircle, Building2, CheckCircle2, CreditCard, Loader2, LockKeyhole, X } from "lucide-react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
@@ -14,6 +14,15 @@ import {
   type FeePaymentInitResponse,
 } from "@/lib/api/portal/vendor";
 
+// ─── Currency helpers ─────────────────────────────────────────────────────────
+const _feeFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+function fmtAed(minorUnits: number): string {
+  return `AED ${_feeFormatter.format(minorUnits / 100)}`;
+}
+
 // ─── Stripe helpers ───────────────────────────────────────────────────────────
 const stripePromiseCache = new Map<string, ReturnType<typeof loadStripe>>();
 function getStripePromise(publishableKey: string) {
@@ -21,6 +30,45 @@ function getStripePromise(publishableKey: string) {
     stripePromiseCache.set(publishableKey, loadStripe(publishableKey));
   }
   return stripePromiseCache.get(publishableKey)!;
+}
+
+// ─── Error helpers ────────────────────────────────────────────────────────────
+function friendlyInitError(raw: unknown): string {
+  const msg = raw instanceof Error ? raw.message : typeof raw === "string" ? raw : "";
+
+  if (!msg || msg.includes("fetch") || msg.includes("network") || msg.toLowerCase().includes("failed to fetch")) {
+    return "We could not reach the payment service. Please check your connection and try again.";
+  }
+
+  const lower = msg.toLowerCase();
+
+  if (lower.includes("already succeeded") || lower.includes("already paid")) {
+    return "This fee has already been paid. Please refresh the page to see the updated status.";
+  }
+
+  if (lower.includes("no longer payable") || lower.includes("invalid or do not belong") || lower.includes("not payable")) {
+    return "This fee is no longer payable. Please refresh the page.";
+  }
+
+  if (lower.includes("at least one fee") || lower.includes("fee id")) {
+    return "We could not start this payment. Please try again.";
+  }
+
+  if (lower.includes("stripe") || lower.includes("client secret") || lower.includes("publishable key")) {
+    return "Payments are temporarily unavailable. Please contact support.";
+  }
+
+  // Raw JSON / parser errors must never reach the user
+  if (msg.startsWith("{") || msg.startsWith("[") || msg.includes("unexpected token") || msg.includes("is not valid json")) {
+    return "We could not start this payment. Please try again.";
+  }
+
+  // Short, readable backend messages can pass through (e.g. "Payment already succeeded.")
+  if (msg.length <= 120 && !msg.includes("{") && !msg.includes("[")) {
+    return msg;
+  }
+
+  return "We could not start this payment. Please try again.";
 }
 
 // ─── Small display components ─────────────────────────────────────────────────
@@ -96,7 +144,7 @@ function FeeCheckoutForm({
         confirmParams: { ...(returnUrl ? { return_url: returnUrl } : {}) },
       });
       if (result.error) {
-        setState({ kind: "error", message: result.error.message ?? "Payment failed." });
+        setState({ kind: "error", message: result.error.message ?? "Payment failed. Please try again." });
         return;
       }
       setState({ kind: "submitted" });
@@ -125,7 +173,7 @@ function FeeCheckoutForm({
 
       {state.kind === "error" && (
         <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-          <span className="font-semibold">Error:</span> {state.message}
+          {state.message}
         </div>
       )}
       {state.kind === "submitted" && (
@@ -163,11 +211,13 @@ function FeePaymentModal({
   label,
   onClose,
   onPaid,
+  onRetry,
 }: {
   state: ModalState;
   label: string;
   onClose: () => void;
   onPaid: () => void;
+  onRetry?: () => void;
 }) {
   if (state.kind === "closed") return null;
 
@@ -195,13 +245,24 @@ function FeePaymentModal({
 
         {state.kind === "initiating" && (
           <div className="flex items-center justify-center py-10 gap-2 text-sm text-secondary">
-            <Loader2 className="h-5 w-5 animate-spin" /> Preparing payment…
+            <Loader2 className="h-5 w-5 animate-spin" /> Preparing secure payment…
           </div>
         )}
 
         {state.kind === "error" && (
-          <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-            {state.message}
+          <div className="space-y-3">
+            <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
+              <AlertCircle className="inline-block h-4 w-4 mr-1.5 align-text-bottom" />
+              {state.message}
+            </div>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="flex h-10 w-full items-center justify-center rounded-2xl border border-brand/40 bg-brand/10 text-sm font-semibold text-brand hover:bg-brand/20 transition"
+              >
+                Try again
+              </button>
+            )}
           </div>
         )}
 
@@ -223,8 +284,8 @@ function FeePaymentModal({
         )}
 
         {state.kind === "ready" && !publishableKey && (
-          <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-            Stripe publishable key is not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.
+          <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
+            Payments are temporarily unavailable. Please contact support.
           </div>
         )}
       </div>
@@ -242,6 +303,7 @@ export default function VendorPropertyFeesPage() {
   const [view, setView] = useState<ViewState>({ kind: "loading" });
   const [modal, setModal] = useState<ModalState>({ kind: "closed" });
   const [modalLabel, setModalLabel] = useState("");
+  const retryRef = useRef<(() => void) | null>(null);
 
   function loadFees() {
     setView({ kind: "loading" });
@@ -261,14 +323,23 @@ export default function VendorPropertyFeesPage() {
   ) {
     const feeIds = fees.filter((f) => f.status === "UNPAID").map((f) => f.id);
     if (feeIds.length === 0) return;
-    setModalLabel(label);
-    setModal({ kind: "initiating" });
-    try {
-      const intent = await initiatePropertyFeePayment(propertyId, feeIds);
-      setModal({ kind: "ready", intent });
-    } catch (e: unknown) {
-      setModal({ kind: "error", message: e instanceof Error ? e.message : "Failed to initiate payment." });
-    }
+
+    const attempt = async () => {
+      setModalLabel(label);
+      setModal({ kind: "initiating" });
+      try {
+        const intent = await initiatePropertyFeePayment(propertyId, feeIds);
+        setModal({ kind: "ready", intent });
+      } catch (e: unknown) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[FeePayment] initiation failed", e);
+        }
+        setModal({ kind: "error", message: friendlyInitError(e) });
+      }
+    };
+
+    retryRef.current = attempt;
+    await attempt();
   }
 
   return (
@@ -330,6 +401,7 @@ export default function VendorPropertyFeesPage() {
               <div className="space-y-5">
                 {view.data.items.map((entry) => {
                   const unpaidFees = entry.fees.filter((f) => f.status === "UNPAID");
+                  const isInitiating = modal.kind === "initiating";
                   return (
                     <div key={entry.propertyId} className="rounded-3xl border border-line/50 bg-surface shadow-sm overflow-hidden">
                       {/* Property header */}
@@ -349,6 +421,7 @@ export default function VendorPropertyFeesPage() {
                           <PropertyFeeStatus status={entry.feeStatus} />
                           {unpaidFees.length > 0 && (
                             <button
+                              disabled={isInitiating}
                               onClick={() =>
                                 openPaymentModal(
                                   entry.propertyId,
@@ -356,7 +429,7 @@ export default function VendorPropertyFeesPage() {
                                   `Pay all outstanding — ${entry.propertyTitle}`,
                                 )
                               }
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-xs font-semibold text-accent-text hover:bg-brand-hover transition"
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-xs font-semibold text-accent-text hover:bg-brand-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <CreditCard className="h-3.5 w-3.5" />
                               Pay all outstanding
@@ -384,6 +457,7 @@ export default function VendorPropertyFeesPage() {
                               <td className="px-6 py-3 text-right">
                                 {fee.status === "UNPAID" ? (
                                   <button
+                                    disabled={isInitiating}
                                     onClick={() =>
                                       openPaymentModal(
                                         entry.propertyId,
@@ -391,7 +465,7 @@ export default function VendorPropertyFeesPage() {
                                         `Pay ${fee.type === "ACTIVATION" ? "Activation Fee" : fee.type === "INSURANCE" ? "Insurance Fee" : "Furnishing Fee"} — ${entry.propertyTitle}`,
                                       )
                                     }
-                                    className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/20 transition"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     Pay fee
                                   </button>
@@ -408,7 +482,7 @@ export default function VendorPropertyFeesPage() {
                           <tr className="bg-warm-base">
                             <td className="px-6 py-3 text-sm font-bold text-primary">Total</td>
                             <td className="px-6 py-3 text-right text-sm font-bold text-primary">
-                              AED {(entry.totalDueMinor / 100).toFixed(2)}
+                              {fmtAed(entry.totalDueMinor)}
                             </td>
                             <td colSpan={2} />
                           </tr>
@@ -428,6 +502,7 @@ export default function VendorPropertyFeesPage() {
         label={modalLabel}
         onClose={() => setModal({ kind: "closed" })}
         onPaid={loadFees}
+        onRetry={() => retryRef.current?.()}
       />
     </>
   );
