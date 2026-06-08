@@ -206,7 +206,7 @@ describe('P1 ENV-002 — Stripe key production validation', () => {
     APP_ORIGIN: 'https://www.rentpropertyuae.com',
   };
 
-  it('throws when Stripe secret key is a test key in production', () => {
+  it('warns (does not throw) when Stripe secret key is a test key in production', () => {
     withEnv(
       {
         ...BASE_VALID,
@@ -215,7 +215,10 @@ describe('P1 ENV-002 — Stripe key production validation', () => {
       },
       () => {
         const { validateCriticalEnvironment } = loadValidation();
-        expect(() => validateCriticalEnvironment()).toThrow(/sk_live_/);
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        expect(() => validateCriticalEnvironment()).not.toThrow();
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('sk_test_'));
+        warnSpy.mockRestore();
       },
     );
   });

@@ -10,11 +10,13 @@ import type {
 } from "@/lib/api/portal/admin";
 import {
   deleteAdminPropertyDocument,
+  downloadAdminPropertyDocument,
   getAdminAmenitiesCatalog,
   publishAdminProperty,
   unpublishAdminProperty,
   updateAdminProperty,
   updateAdminPropertyAmenities,
+  viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { AdminPropertyMediaManager } from "@/components/portal/admin/properties/AdminPropertyMediaManager";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
@@ -409,41 +411,57 @@ export function AdminPropertyEditor(props: {
     }
   }
 
-  async function downloadDocument(document: PropertyDocument) {
-    const sourceUrl = document.documentUrl ?? document.url ?? document.downloadUrl;
-    if (!sourceUrl) {
-      setError("Document URL is missing.");
-      return;
+  function legacyDocumentMessage(err: unknown): string | null {
+    const msg = err instanceof Error ? err.message : String(err ?? "");
+    if (
+      msg.toLowerCase().includes("not found") ||
+      msg.includes("404") ||
+      msg.toLowerCase().includes("file not found")
+    ) {
+      return "This document is no longer available because it was uploaded before secure cloud storage was enabled. Please request a re-upload.";
     }
+    return null;
+  }
 
+  async function downloadDocument(document: PropertyDocument) {
     setBusy("Downloading document...");
     setError(null);
     try {
-      openInNewTab(toDownloadUrl(sourceUrl));
+      const blob = await downloadAdminPropertyDocument(property.id, document.id);
+      const url = URL.createObjectURL(blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = url;
+      anchor.download = document.originalName ?? `document-${document.id}`;
+      window.document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (downloadError) {
-      setError(
-        downloadError instanceof Error ? downloadError.message : "Failed to download document."
-      );
+      setError(legacyDocumentMessage(downloadError) ?? (downloadError instanceof Error ? downloadError.message : "Failed to download document."));
     } finally {
       setBusy(null);
     }
   }
 
   async function viewDocument(document: PropertyDocument) {
-    const sourceUrl = document.documentUrl ?? document.url ?? document.viewUrl ?? document.downloadUrl;
-    if (!sourceUrl) {
-      setError("Document URL is missing.");
-      return;
-    }
-
     setBusy("Opening document...");
     setError(null);
+    const newTab = window.open("", "_blank");
+    if (!newTab) {
+      alert("Please allow popups to view documents.");
+      setBusy(null);
+      return;
+    }
+    newTab.opener = null;
     try {
-      const previewUrl = normalizeDocumentUrl(sourceUrl);
-      openInNewTab(previewUrl);
-      setPreview({ url: previewUrl, mime: document.mimeType || "application/octet-stream" });
+      const blob = await viewAdminPropertyDocument(property.id, document.id);
+      const url = URL.createObjectURL(blob);
+      newTab.location.href = url;
+      setPreview({ url, mime: document.mimeType || "application/octet-stream" });
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (viewError) {
-      setError(viewError instanceof Error ? viewError.message : "Failed to open preview.");
+      newTab.close();
+      setError(legacyDocumentMessage(viewError) ?? (viewError instanceof Error ? viewError.message : "Failed to open preview."));
     } finally {
       setBusy(null);
     }

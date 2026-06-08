@@ -186,6 +186,18 @@ export function DocumentManager({ property, onChanged }: Props) {
     }
   }
 
+  function legacyDocumentMessage(err: unknown): string | null {
+    const msg = err instanceof Error ? err.message : String(err ?? "");
+    if (
+      msg.toLowerCase().includes("not found") ||
+      msg.includes("404") ||
+      msg.toLowerCase().includes("file not found")
+    ) {
+      return "This document is no longer available because it was uploaded before secure cloud storage was enabled. Please request a re-upload.";
+    }
+    return null;
+  }
+
   async function download(document: VendorPropertyDocument) {
     setError(null);
     setBusy("Downloading...");
@@ -194,7 +206,7 @@ export function DocumentManager({ property, onChanged }: Props) {
       const blob = await downloadVendorPropertyDocument(property.id, document.id);
       triggerDownload(blob, safeFilename(document));
     } catch (downloadError) {
-      setError(downloadError instanceof Error ? downloadError.message : "Download failed");
+      setError(legacyDocumentMessage(downloadError) ?? (downloadError instanceof Error ? downloadError.message : "Download failed"));
     } finally {
       setBusy(null);
     }
@@ -218,7 +230,7 @@ export function DocumentManager({ property, onChanged }: Props) {
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (viewError) {
       newTab.close();
-      setError(viewError instanceof Error ? viewError.message : "Preview failed");
+      setError(legacyDocumentMessage(viewError) ?? (viewError instanceof Error ? viewError.message : "Preview failed"));
     } finally {
       setBusy(null);
     }
