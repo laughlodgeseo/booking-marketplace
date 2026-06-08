@@ -43,6 +43,13 @@ export interface SignedUrlOptions {
   deliveryType?: string;
 }
 
+export interface DeleteOptions {
+  /** Original or detected MIME type, used as a fallback to infer provider resource type. */
+  mimeType?: string;
+  /** Provider resource type override. For Cloudinary: image, raw, or video. */
+  resourceType?: string;
+}
+
 export interface IStorageAdapter {
   /**
    * Upload a file buffer to storage.
@@ -55,7 +62,7 @@ export interface IStorageAdapter {
    * Pass mimeType so cloud adapters can route to the correct resource endpoint
    * (e.g. Cloudinary uses /image/destroy vs /raw/destroy).
    */
-  delete(key: string, mimeType?: string): Promise<void>;
+  delete(key: string, options?: string | DeleteOptions): Promise<void>;
 
   /**
    * Generate a signed (time-limited) URL for private file access.

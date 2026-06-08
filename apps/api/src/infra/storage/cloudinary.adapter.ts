@@ -6,7 +6,17 @@ import type {
   UploadedFile,
   UploadOptions,
   SignedUrlOptions,
+  DeleteOptions,
 } from './storage.interface';
+
+type CloudinaryUploadResult = {
+  public_id: string;
+  secure_url: string;
+  bytes: number;
+  format?: string;
+  resource_type: string;
+  type: string;
+};
 
 /**
  * Cloudinary storage adapter.
@@ -35,52 +45,45 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
   async upload(buffer: Buffer, options?: UploadOptions): Promise<UploadedFile> {
     const folder = options?.folder ?? 'booking-marketplace/misc';
     const isPrivate = options?.isPrivate ?? false;
-
-    const timestamp = Math.floor(Date.now() / 1000).toString();
     const resourceType = this.resourceTypeFromMime(options?.mimeType ?? '');
+    this.configureSdk();
 
-    const paramsToSign: Record<string, string> = {
-      folder,
-      timestamp,
-      ...(isPrivate ? { type: 'authenticated' } : {}),
-    };
-
-    const signature = this.sign(paramsToSign);
-
-    const form = new FormData();
-    form.append(
-      'file',
-      new Blob([buffer as unknown as ArrayBuffer], { type: options?.mimeType }),
+    const result = await new Promise<CloudinaryUploadResult>(
+      (resolve, reject) => {
+      const upload = cloudinarySdk.uploader.upload_stream(
+        {
+          folder,
+          resource_type: resourceType,
+          type: isPrivate ? 'authenticated' : 'upload',
+          use_filename: false,
+          unique_filename: true,
+        },
+        (error, uploadResult) => {
+          if (error || !uploadResult) {
+            reject(
+              new Error(
+                `Cloudinary upload failed: ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+              ),
+            );
+            return;
+          }
+          resolve(uploadResult as CloudinaryUploadResult);
+        },
+      );
+      upload.end(buffer);
+      },
     );
-    form.append('folder', folder);
-    form.append('timestamp', timestamp);
-    form.append('api_key', this.apiKey);
-    form.append('signature', signature);
-    if (isPrivate) form.append('type', 'authenticated');
-
-    const url = `https://api.cloudinary.com/v1_1/${this.cloudName}/${resourceType}/upload`;
-    const response = await fetch(url, { method: 'POST', body: form });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Cloudinary upload failed: ${response.status} ${text}`);
-    }
-
-    const result = (await response.json()) as {
-      public_id: string;
-      secure_url: string;
-      bytes: number;
-      format: string;
-      resource_type: string;
-      type: string;
-    };
 
     this.logger.debug(`cloudinary_upload key=${result.public_id} resource_type=${result.resource_type} type=${result.type}`);
 
     return {
       key: result.public_id,
       url: isPrivate ? null : result.secure_url,
-      mimeType: options?.mimeType ?? `image/${result.format}`,
+      mimeType:
+        options?.mimeType ??
+        (result.format ? `image/${result.format}` : 'application/octet-stream'),
       size: result.bytes,
       provider: 'cloudinary',
       resourceType: result.resource_type,
@@ -88,8 +91,12 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
     };
   }
 
-  async delete(key: string, mimeType?: string): Promise<void> {
-    const resourceType = this.resourceTypeFromMime(mimeType ?? '');
+  async delete(key: string, options?: string | DeleteOptions): Promise<void> {
+    const mimeType = typeof options === 'string' ? options : options?.mimeType;
+    const resourceType = this.normalizeResourceType(
+      typeof options === 'string' ? undefined : options?.resourceType,
+      mimeType,
+    );
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = this.sign({ public_id: key, timestamp });
 
@@ -121,16 +128,13 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
     // Use the Cloudinary SDK to generate the correct signed URL.
     // The manual SHA256-hex approach previously used produced 64-char signatures
     // which Cloudinary rejects (expects 8-char base64url SHA1 tokens).
-    cloudinarySdk.config({
-      cloud_name: this.cloudName,
-      api_key: this.apiKey,
-      api_secret: this.apiSecret,
-    });
+    this.configureSdk();
 
-    const resourceType = (options?.resourceType ?? 'image') as
-      | 'image'
-      | 'raw'
-      | 'video';
+    const resourceType = this.normalizeResourceType(
+      options?.resourceType,
+      undefined,
+      'image',
+    );
     const deliveryType = (options?.deliveryType ?? 'authenticated') as
       | 'authenticated'
       | 'private'
@@ -159,6 +163,30 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
       .createHash('sha256')
       .update(sorted + this.apiSecret)
       .digest('hex');
+  }
+
+  private configureSdk(): void {
+    cloudinarySdk.config({
+      cloud_name: this.cloudName,
+      api_key: this.apiKey,
+      api_secret: this.apiSecret,
+    });
+  }
+
+  private normalizeResourceType(
+    resourceType?: string,
+    mimeType?: string,
+    fallback: 'image' | 'raw' | 'video' = 'raw',
+  ): 'image' | 'raw' | 'video' {
+    if (
+      resourceType === 'image' ||
+      resourceType === 'raw' ||
+      resourceType === 'video'
+    ) {
+      return resourceType;
+    }
+    if (mimeType) return this.resourceTypeFromMime(mimeType);
+    return fallback;
   }
 
   private resourceTypeFromMime(mime: string): 'image' | 'raw' | 'video' {

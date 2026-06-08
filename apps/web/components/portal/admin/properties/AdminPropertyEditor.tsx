@@ -10,15 +10,16 @@ import type {
 } from "@/lib/api/portal/admin";
 import {
   deleteAdminPropertyDocument,
-  downloadAdminPropertyDocument,
+  fetchAdminPropertyDocumentBlob,
   getAdminAmenitiesCatalog,
   publishAdminProperty,
+  triggerPortalDocumentDownload,
   unpublishAdminProperty,
   updateAdminProperty,
   updateAdminPropertyAmenities,
-  viewAdminPropertyDocument,
 } from "@/lib/api/portal/admin";
 import { AdminPropertyMediaManager } from "@/components/portal/admin/properties/AdminPropertyMediaManager";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SelectableTile } from "@/components/portal/ui/SelectableTile";
 import {
@@ -131,28 +132,6 @@ function fmtDate(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function normalizeDocumentUrl(documentUrl: string): string {
-  if (!documentUrl) return documentUrl;
-  return documentUrl;
-}
-
-function toDownloadUrl(documentUrl: string): string {
-  const fixedUrl = normalizeDocumentUrl(documentUrl);
-  return fixedUrl.includes("/upload/")
-    ? fixedUrl.replace("/upload/", "/upload/fl_attachment/")
-    : fixedUrl;
-}
-
-function openInNewTab(url: string) {
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.target = "_blank";
-  anchor.rel = "noopener noreferrer";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-}
-
 export function AdminPropertyEditor(props: {
   initial: AdminPropertyDetail;
   onRefresh: () => Promise<AdminPropertyDetail>;
@@ -166,7 +145,25 @@ export function AdminPropertyEditor(props: {
   const [amenitiesCatalog, setAmenitiesCatalog] = useState<AmenitiesGroup[]>([]);
   const [amenitiesLoading, setAmenitiesLoading] = useState(false);
 
-  const [preview, setPreview] = useState<{ url: string; mime: string } | null>(null);
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    document: PropertyDocument | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    document: null,
+  });
 
   const [basics, setBasics] = useState({
     propertyType: normalizePropertyType(property.propertyType),
@@ -231,11 +228,11 @@ export function AdminPropertyEditor(props: {
 
   useEffect(() => {
     return () => {
-      if (preview?.url?.startsWith("blob:")) {
-        URL.revokeObjectURL(preview.url);
+      if (viewer.blobUrl) {
+        URL.revokeObjectURL(viewer.blobUrl);
       }
     };
-  }, [preview]);
+  }, [viewer.blobUrl]);
 
   const documents = useMemo<PropertyDocument[]>(() => {
     return Array.isArray(property.documents) ? property.documents : [];
@@ -427,15 +424,8 @@ export function AdminPropertyEditor(props: {
     setBusy("Downloading document...");
     setError(null);
     try {
-      const blob = await downloadAdminPropertyDocument(property.id, document.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = window.document.createElement("a");
-      anchor.href = url;
-      anchor.download = document.originalName ?? `document-${document.id}`;
-      window.document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const result = await fetchAdminPropertyDocumentBlob(property.id, document.id, "download");
+      triggerPortalDocumentDownload(result);
     } catch (downloadError) {
       setError(legacyDocumentMessage(downloadError) ?? (downloadError instanceof Error ? downloadError.message : "Failed to download document."));
     } finally {
@@ -446,25 +436,44 @@ export function AdminPropertyEditor(props: {
   async function viewDocument(document: PropertyDocument) {
     setBusy("Opening document...");
     setError(null);
-    const newTab = window.open("", "_blank");
-    if (!newTab) {
-      alert("Please allow popups to view documents.");
-      setBusy(null);
-      return;
-    }
-    newTab.opener = null;
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: document.originalName || document.type,
+      filename: document.originalName,
+      contentType: document.mimeType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      document,
+    });
     try {
-      const blob = await viewAdminPropertyDocument(property.id, document.id);
-      const url = URL.createObjectURL(blob);
-      newTab.location.href = url;
-      setPreview({ url, mime: document.mimeType || "application/octet-stream" });
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      const result = await fetchAdminPropertyDocumentBlob(property.id, document.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
     } catch (viewError) {
-      newTab.close();
-      setError(legacyDocumentMessage(viewError) ?? (viewError instanceof Error ? viewError.message : "Failed to open preview."));
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error:
+          legacyDocumentMessage(viewError) ??
+          (viewError instanceof Error ? viewError.message : "Failed to open preview."),
+      }));
     } finally {
       setBusy(null);
     }
+  }
+
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({ ...current, open: false, blobUrl: null, loading: false }));
   }
 
   async function deleteDocument(document: PropertyDocument) {
@@ -495,6 +504,17 @@ export function AdminPropertyEditor(props: {
 
   return (
     <div className="space-y-6">
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={viewer.document ? () => void downloadDocument(viewer.document as PropertyDocument) : undefined}
+      />
       {busy ? (
         <div className="rounded-2xl border border-line bg-warm-alt p-3 text-sm text-secondary">{busy}</div>
       ) : null}
@@ -897,22 +917,6 @@ export function AdminPropertyEditor(props: {
               ))}
             </div>
           )}
-
-          <div className="mt-4 rounded-2xl border border-line/70 bg-warm-base p-4">
-            <div className="text-sm font-semibold text-primary">Document preview</div>
-            {!preview ? (
-              <div className="mt-2 text-sm text-secondary">Click View to preview a document.</div>
-            ) : preview.mime.startsWith("image/") ? (
-              <div className="mt-3 overflow-hidden rounded-xl border border-line/70 bg-surface">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview.url} alt="Document preview" className="max-h-[520px] w-full object-contain" />
-              </div>
-            ) : (
-              <div className="mt-3 overflow-hidden rounded-xl border border-line/70 bg-surface">
-                <iframe src={preview.url} title="Document preview" className="h-[520px] w-full" />
-              </div>
-            )}
-          </div>
         </section>
       ) : null}
 

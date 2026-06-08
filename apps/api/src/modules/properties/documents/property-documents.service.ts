@@ -1,7 +1,6 @@
 import {
   ForbiddenException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,7 +17,7 @@ import {
   PROPERTY_DOCUMENTS_LEGACY_DIR,
   PUBLIC_UPLOADS_DIR,
 } from '../../../common/upload/storage-paths';
-import cloudinary from '../../../infra/cloudinary/cloudinary.service';
+import { StorageService } from '../../../infra/storage/storage.service';
 
 type DocumentRecord = {
   id: string;
@@ -28,6 +27,9 @@ type DocumentRecord = {
   mimeType: string | null;
   url: string | null;
   storageKey: string | null;
+  cloudinaryResourceType: string | null;
+  cloudinaryDeliveryType: string | null;
+  storageProvider: string;
 };
 
 type DocumentActorRole = UserRole | 'SUPER_ADMIN';
@@ -50,7 +52,10 @@ function sanitizeFilename(input: string) {
 export class PropertyDocumentsService {
   private readonly logger = new Logger(PropertyDocumentsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   private isAdminRole(role: DocumentActorRole): boolean {
     return role === UserRole.ADMIN || role === 'SUPER_ADMIN';
@@ -136,11 +141,35 @@ export class PropertyDocumentsService {
 
     const pointer = doc.storageKey ?? doc.url;
     if (!pointer) {
-      throw new InternalServerErrorException(
-        'Document storage pointer missing on record.',
-      );
+      throw new NotFoundException('Document file not found.');
     }
     return pointer;
+  }
+
+  private isCloudinaryRecord(doc: DocumentRecord): boolean {
+    return (
+      doc.storageProvider === 'cloudinary' ||
+      Boolean(doc.cloudinaryResourceType) ||
+      Boolean(doc.cloudinaryDeliveryType) ||
+      (Boolean(doc.storageKey) && this.isCloudinaryUrl(doc.url ?? ''))
+    );
+  }
+
+  private resourceTypeFromMime(mimeType: string | null): 'image' | 'raw' {
+    return mimeType?.startsWith('image/') ? 'image' : 'raw';
+  }
+
+  private async fetchStoredCloudinaryAsStream(
+    doc: DocumentRecord,
+  ): Promise<DocumentStreamResult | null> {
+    if (!doc.storageKey) return null;
+    const signedUrl = await this.storage.getSignedUrl(doc.storageKey, {
+      expiresInSeconds: 300,
+      resourceType:
+        doc.cloudinaryResourceType ?? this.resourceTypeFromMime(doc.mimeType),
+      deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
+    });
+    return this.fetchCloudinaryAsStream(signedUrl, doc, 'view');
   }
 
   private toAbsoluteLocalPath(pointer: string): string {
@@ -217,6 +246,9 @@ export class PropertyDocumentsService {
         mimeType: true,
         url: true,
         storageKey: true,
+        cloudinaryResourceType: true,
+        cloudinaryDeliveryType: true,
+        storageProvider: true,
       },
     });
 
@@ -270,36 +302,6 @@ export class PropertyDocumentsService {
     };
   }
 
-  private async deleteCloudinaryAsset(publicId: string): Promise<void> {
-    type CloudinaryDestroyResult = { result?: string };
-
-    const id = publicId.trim();
-    if (!id) return;
-
-    const resourceTypes: Array<'image' | 'raw' | 'video'> = [
-      'raw',
-      'image',
-      'video',
-    ];
-
-    for (const resourceType of resourceTypes) {
-      try {
-        const destroyResult = (await cloudinary.uploader.destroy(id, {
-          resource_type: resourceType,
-          invalidate: true,
-        })) as CloudinaryDestroyResult;
-        if (
-          destroyResult.result === 'ok' ||
-          destroyResult.result === 'not found'
-        ) {
-          return;
-        }
-      } catch {
-        // continue and try other resource types
-      }
-    }
-  }
-
   async openDocumentStream(params: {
     role: DocumentActorRole;
     userId: string;
@@ -311,6 +313,11 @@ export class PropertyDocumentsService {
     await this.assertActorAccess({ role, userId, propertyId });
 
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
+
+    if (this.isCloudinaryRecord(doc)) {
+      return this.fetchStoredCloudinaryAsStream(doc);
+    }
+
     const pointer = this.getStoredPointer(doc);
 
     if (this.isCloudinaryUrl(pointer)) {
@@ -344,6 +351,19 @@ export class PropertyDocumentsService {
 
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
 
+    if (this.isCloudinaryRecord(doc)) {
+      await this.prisma.propertyDocument.delete({
+        where: { id: doc.id },
+      });
+      if (doc.storageKey) {
+        await this.storage.delete(doc.storageKey, {
+          mimeType: doc.mimeType ?? undefined,
+          resourceType: doc.cloudinaryResourceType ?? undefined,
+        });
+      }
+      return { ok: true, id: doc.id };
+    }
+
     const pointer = this.getStoredPointer(doc);
     const isRemote = this.isHttpPointer(pointer);
     const absPath = isRemote ? null : this.toAbsoluteLocalPath(pointer);
@@ -354,7 +374,10 @@ export class PropertyDocumentsService {
 
     if (isRemote) {
       if (doc.storageKey) {
-        await this.deleteCloudinaryAsset(doc.storageKey);
+        await this.storage.delete(doc.storageKey, {
+          mimeType: doc.mimeType ?? undefined,
+          resourceType: doc.cloudinaryResourceType ?? undefined,
+        });
       }
     } else if (absPath) {
       // Best-effort filesystem cleanup.

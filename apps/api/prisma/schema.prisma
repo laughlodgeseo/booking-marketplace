@@ -937,6 +937,10 @@ model PropertyDocument {
   storageKey   String?
   originalName String?
   mimeType     String?
+  sizeBytes    Int?
+  cloudinaryResourceType String?
+  cloudinaryDeliveryType String?
+  storageProvider        String @default("cloudinary")
 
   // Per-document review status (independent of legacy property.documentStatus)
   status          PropertyDocumentStatus @default(UPLOADED)

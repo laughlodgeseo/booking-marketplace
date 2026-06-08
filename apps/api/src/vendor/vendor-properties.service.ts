@@ -24,6 +24,7 @@ import {
   PROPERTY_IMAGES_DIR,
 } from '../common/upload/storage-paths';
 import { resolvePropertyImageUrl } from '../common/upload/property-media-storage';
+import { StorageService } from '../infra/storage/storage.service';
 import {
   CreatePropertyDto,
   UpdatePropertyDto,
@@ -35,7 +36,6 @@ import {
 import { UpdatePropertyLocationDto } from './dto/update-property-location.dto';
 import { PROPERTY_DOCUMENT_REQUIREMENTS } from '../modules/properties/property-document-requirements';
 import { ActivationPaymentService } from '../modules/payments/activation-payment.service';
-import cloudinary from '../infra/cloudinary/cloudinary.service';
 import {
   appendReviewHistoryEntry,
   computePropertyChanges,
@@ -49,6 +49,7 @@ export class VendorPropertiesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly activationPayments: ActivationPaymentService,
+    private readonly storage: StorageService,
   ) {}
 
   /* ---------------------------------------------
@@ -131,26 +132,19 @@ export class VendorPropertiesService {
     return typeof url === 'string' && url.trim().includes('res.cloudinary.com');
   }
 
-  private async destroyCloudinaryDocument(
+  private async deleteCloudinaryDocument(
     publicId: string | null | undefined,
+    options?: { mimeType?: string | null; resourceType?: string | null },
   ): Promise<void> {
     const id = typeof publicId === 'string' ? publicId.trim() : '';
     if (!id) return;
 
-    const resourceTypes: Array<'raw' | 'image' | 'video'> = [
-      'raw',
-      'image',
-      'video',
-    ];
-
-    for (const resourceType of resourceTypes) {
-      try {
-        await cloudinary.uploader.destroy(id, { resource_type: resourceType });
-        return;
-      } catch {
-        // Best-effort cleanup only.
-      }
-    }
+    await this.storage
+      .delete(id, {
+        mimeType: options?.mimeType ?? undefined,
+        resourceType: options?.resourceType ?? undefined,
+      })
+      .catch(() => undefined);
   }
 
   private cleanupLegacyDocumentFile(
@@ -1510,85 +1504,123 @@ export class VendorPropertiesService {
         ? ((prop as { documentPublicId?: string | null }).documentPublicId ??
           null)
         : null;
-
-    const uploadedUrl =
-      typeof (file as { path?: unknown }).path === 'string'
-        ? (file as { path: string }).path
-        : null;
-    const publicId =
-      typeof (file as { filename?: unknown }).filename === 'string'
-        ? (file as { filename: string }).filename
-        : null;
-    const fileWithResourceType = file as unknown as {
-      resource_type?: unknown;
-    };
-    const resourceType =
-      typeof fileWithResourceType.resource_type === 'string'
-        ? fileWithResourceType.resource_type
+    const existingDocumentResourceType =
+      typeof (prop as { documentResourceType?: unknown }).documentResourceType ===
+      'string'
+        ? ((prop as { documentResourceType?: string | null })
+            .documentResourceType ?? null)
         : null;
 
-    if (!uploadedUrl || !publicId) {
+    const buffer = file.buffer;
+    if (!buffer || buffer.length === 0) {
       throw new BadRequestException(
-        'Document upload failed: Cloudinary URL/public_id missing.',
+        'Document upload failed: empty file buffer.',
       );
     }
 
-    const doc = await this.prisma.propertyDocument.create({
-      data: {
-        propertyId,
-        type: dto.type,
-        uploadedByUserId: vendorUserId,
-        storageKey: publicId,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        url: uploadedUrl,
-      },
+    const uploaded = await this.storage.upload(buffer, {
+      folder: `laugh-lodge/property-documents/${propertyId}`,
+      mimeType: file.mimetype,
+      originalName: file.originalname,
+      isPrivate: true,
     });
 
-    await this.prisma.property.update({
-      where: { id: propertyId },
-      data: {
-        documentUrl: uploadedUrl,
-        documentPublicId: publicId,
-        documentResourceType: resourceType,
-        documentStatus: 'pending',
-        documentRejectionReason: null,
-      },
-    });
-
-    if (
-      typeof existingDocumentPublicId === 'string' &&
-      existingDocumentPublicId.trim().length > 0 &&
-      existingDocumentPublicId !== publicId
-    ) {
-      await this.destroyCloudinaryDocument(existingDocumentPublicId);
+    if (!uploaded.key || uploaded.size === 0) {
+      throw new BadRequestException(
+        'Document upload failed: storage did not return a valid asset.',
+      );
     }
 
     const replacedDocs = await this.prisma.propertyDocument.findMany({
       where: {
         propertyId,
         type: dto.type,
-        id: { not: doc.id },
       },
       select: {
         id: true,
         storageKey: true,
         url: true,
+        mimeType: true,
+        cloudinaryResourceType: true,
+        storageProvider: true,
       },
     });
 
-    if (replacedDocs.length > 0) {
-      await this.prisma.propertyDocument.deleteMany({
-        where: { id: { in: replacedDocs.map((item) => item.id) } },
-      });
+    let doc: Awaited<
+      ReturnType<PrismaService['propertyDocument']['create']>
+    >;
 
-      for (const replaced of replacedDocs) {
-        if (this.isCloudinaryDocumentUrl(replaced.url)) {
-          await this.destroyCloudinaryDocument(replaced.storageKey);
-          continue;
+    try {
+      doc = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.propertyDocument.create({
+          data: {
+            propertyId,
+            type: dto.type,
+            uploadedByUserId: vendorUserId,
+            storageKey: uploaded.key,
+            originalName: file.originalname,
+            mimeType: file.mimetype,
+            url: uploaded.url,
+            sizeBytes: uploaded.size,
+            cloudinaryResourceType: uploaded.resourceType ?? null,
+            cloudinaryDeliveryType: uploaded.deliveryType ?? null,
+            storageProvider: uploaded.provider,
+          },
+        });
+
+        await tx.property.update({
+          where: { id: propertyId },
+          data: {
+            documentUrl: uploaded.url,
+            documentPublicId: uploaded.key,
+            documentResourceType: uploaded.resourceType ?? null,
+            documentStatus: 'pending',
+            documentRejectionReason: null,
+          },
+        });
+
+        if (replacedDocs.length > 0) {
+          await tx.propertyDocument.deleteMany({
+            where: { id: { in: replacedDocs.map((item) => item.id) } },
+          });
         }
-        this.cleanupLegacyDocumentFile(replaced.storageKey);
+
+        return created;
+      });
+    } catch (dbErr) {
+      if (uploaded.provider === 'cloudinary') {
+        await this.storage
+          .delete(uploaded.key, {
+            mimeType: file.mimetype,
+            resourceType: uploaded.resourceType,
+          })
+          .catch(() => undefined);
       }
+      throw dbErr;
+    }
+
+    if (
+      typeof existingDocumentPublicId === 'string' &&
+      existingDocumentPublicId.trim().length > 0 &&
+      existingDocumentPublicId !== uploaded.key
+    ) {
+      await this.deleteCloudinaryDocument(existingDocumentPublicId, {
+        resourceType: existingDocumentResourceType,
+      });
+    }
+
+    for (const replaced of replacedDocs) {
+      if (
+        replaced.storageProvider === 'cloudinary' ||
+        this.isCloudinaryDocumentUrl(replaced.url)
+      ) {
+        await this.deleteCloudinaryDocument(replaced.storageKey, {
+          mimeType: replaced.mimeType,
+          resourceType: replaced.cloudinaryResourceType,
+        });
+        continue;
+      }
+      this.cleanupLegacyDocumentFile(replaced.storageKey);
     }
 
     await this.applyVendorEditState(propertyId, prop.status);

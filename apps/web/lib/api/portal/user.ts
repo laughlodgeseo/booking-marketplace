@@ -1,4 +1,9 @@
 import { apiFetch } from "@/lib/http";
+import {
+  fetchCustomerDocumentBlob,
+  triggerPortalDocumentDownload,
+  type PortalDocumentBlob,
+} from "@/lib/api/portal/documentBlobs";
 import type { HttpResult } from "@/lib/http";
 import type { PortalCalendarResponse } from "@/lib/api/portal/calendar";
 
@@ -442,50 +447,15 @@ export async function uploadUserCustomerDocument(input: {
 }
 
 export async function downloadUserCustomerDocument(documentId: string): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/portal/user/documents/${encodeURIComponent(documentId)}/download`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/octet-stream",
-      },
-    }
-  );
-  return unwrap(res);
+  return (await fetchCustomerDocumentBlob(documentId, "download")).blob;
 }
 
 export async function viewUserCustomerDocument(documentId: string): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/portal/user/documents/${encodeURIComponent(documentId)}/view`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/pdf,image/*,*/*",
-      },
-    }
-  );
-  return unwrap(res);
+  return (await fetchCustomerDocumentBlob(documentId, "view")).blob;
 }
 
-export async function getUserCustomerDocumentSignedViewUrl(
-  documentId: string
-): Promise<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }> {
-  const res = await apiFetch<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }>(
-    `/portal/user/documents/${encodeURIComponent(documentId)}/signed-view-url`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-    }
-  );
-  return unwrap(res);
-}
+export { fetchCustomerDocumentBlob, triggerPortalDocumentDownload };
+export type { PortalDocumentBlob };
 
 export async function deleteUserCustomerDocument(
   documentId: string

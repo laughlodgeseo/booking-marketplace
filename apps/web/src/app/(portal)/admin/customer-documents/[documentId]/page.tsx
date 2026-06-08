@@ -10,10 +10,10 @@ import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { portalActionSuccess, portalActionDanger } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminCustomerDocument,
-  downloadAdminCustomerDocument,
+  fetchAdminCustomerDocumentBlob,
   getAdminCustomerDocument,
-  getAdminCustomerDocumentSignedViewUrl,
   rejectAdminCustomerDocument,
+  triggerPortalDocumentDownload,
   type AdminCustomerDocument,
 } from "@/lib/api/portal/admin";
 
@@ -43,17 +43,6 @@ function labelDocType(type: AdminCustomerDocument["type"]): string {
 function previewAllowed(mimeType: string | null | undefined): boolean {
   if (!mimeType) return false;
   return mimeType.startsWith("image/") || mimeType === "application/pdf";
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }
 
 export default function AdminCustomerDocumentDetailPage() {
@@ -88,11 +77,20 @@ export default function AdminCustomerDocumentDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    return () => {
+      if (preview.kind === "ready" && preview.url.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.url);
+      }
+    };
+  }, [preview]);
+
   async function runView() {
     setPreview({ kind: "loading" });
     try {
-      const { url, mimeType } = await getAdminCustomerDocumentSignedViewUrl(documentId);
-      setPreview({ kind: "ready", url, mimeType: mimeType ?? "application/octet-stream" });
+      const result = await fetchAdminCustomerDocumentBlob(documentId, "view");
+      const url = URL.createObjectURL(result.blob);
+      setPreview({ kind: "ready", url, mimeType: result.contentType ?? "application/octet-stream" });
     } catch (error) {
       setPreview({ kind: "error", message: error instanceof Error ? error.message : "Failed to load preview" });
     }
@@ -129,8 +127,8 @@ export default function AdminCustomerDocumentDetailPage() {
   async function download(item: AdminCustomerDocument) {
     setBusy("Downloading…");
     try {
-      const blob = await downloadAdminCustomerDocument(item.id);
-      triggerBlobDownload(blob, item.originalName || `${item.type.toLowerCase()}-${item.id}.pdf`);
+      const result = await fetchAdminCustomerDocumentBlob(item.id, "download");
+      triggerPortalDocumentDownload(result);
       showToast("success", "Download started.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "Failed to download document.");

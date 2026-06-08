@@ -10,14 +10,15 @@ import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { portalActionDanger, portalRowPrimary, portalRowSecondary, portalRowSuccess } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminCustomerDocument,
-  downloadAdminCustomerDocument,
+  fetchAdminCustomerDocumentBlob,
   getAdminCustomerDocuments,
   rejectAdminCustomerDocument,
-  viewAdminCustomerDocument,
+  triggerPortalDocumentDownload,
   type AdminCustomerDocument,
   type AdminCustomerDocumentStatus,
   type AdminCustomerDocumentType,
 } from "@/lib/api/portal/admin";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 
 type ViewState =
   | { kind: "loading" }
@@ -41,6 +42,25 @@ export default function AdminCustomerDocumentsPage() {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [state, setState] = useState<ViewState>({ kind: "loading" });
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    document: AdminCustomerDocument | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    document: null,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -59,6 +79,12 @@ export default function AdminCustomerDocumentsPage() {
     return () => { alive = false; };
   }, [status, type]);
 
+  useEffect(() => {
+    return () => {
+      if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    };
+  }, [viewer.blobUrl]);
+
   const items = useMemo(() => {
     if (state.kind !== "ready") return [];
     const normalized = query.trim().toLowerCase();
@@ -73,15 +99,8 @@ export default function AdminCustomerDocumentsPage() {
   async function download(item: AdminCustomerDocument) {
     setBusy(`Downloading ${item.id}...`);
     try {
-      const blob = await downloadAdminCustomerDocument(item.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = item.originalName || `${item.type.toLowerCase()}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+      const result = await fetchAdminCustomerDocumentBlob(item.id, "download");
+      triggerPortalDocumentDownload(result);
     } finally {
       setBusy(null);
     }
@@ -89,16 +108,41 @@ export default function AdminCustomerDocumentsPage() {
 
   async function view(item: AdminCustomerDocument) {
     setBusy(`Opening ${item.id}...`);
-    const newTab = window.open("", "_blank");
-    if (!newTab) { alert("Please allow popups to view documents."); setBusy(null); return; }
-    newTab.opener = null;
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: prettyStatus(item.type),
+      filename: item.originalName,
+      contentType: item.mimeType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      document: item,
+    });
     try {
-      const blob = await viewAdminCustomerDocument(item.id);
-      const url = URL.createObjectURL(blob);
-      newTab.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch { newTab.close(); }
+      const result = await fetchAdminCustomerDocumentBlob(item.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to preview document.",
+      }));
+    }
     finally { setBusy(null); }
+  }
+
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({ ...current, open: false, blobUrl: null, loading: false }));
   }
 
   async function approve(item: AdminCustomerDocument) {
@@ -125,6 +169,17 @@ export default function AdminCustomerDocumentsPage() {
 
   return (
     <PortalShell role="admin" title="Guest Documents" subtitle="Review customer compliance documents for confirmed stays">
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={viewer.document ? () => void download(viewer.document as AdminCustomerDocument) : undefined}
+      />
       <div className="space-y-4">
         {busy ? <div className="text-xs font-semibold text-secondary">{busy}</div> : null}
 

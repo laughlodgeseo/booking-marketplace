@@ -22,8 +22,11 @@ import {
   updateAdminPropertyActivationFee,
 } from "@/lib/api/admin/reviewQueue";
 import {
+  fetchAdminPropertyDocumentBlob,
   getAdminPortalPropertyDetail,
+  triggerPortalDocumentDownload,
 } from "@/lib/api/portal/admin";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 type ViewState =
@@ -81,28 +84,6 @@ function humanizeField(path: string): string {
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2");
 }
 
-function normalizeDocumentUrl(documentUrl: string): string {
-  if (!documentUrl) return documentUrl;
-  return documentUrl;
-}
-
-function toDownloadUrl(documentUrl: string): string {
-  const fixedUrl = normalizeDocumentUrl(documentUrl);
-  return fixedUrl.includes("/upload/")
-    ? fixedUrl.replace("/upload/", "/upload/fl_attachment/")
-    : fixedUrl;
-}
-
-function openInNewTab(url: string) {
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.target = "_blank";
-  anchor.rel = "noopener noreferrer";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-}
-
 export default function AdminReviewQueueDetailPage() {
   const params = useParams<{ propertyId: string }>();
   const propertyId = typeof params?.propertyId === "string" ? params.propertyId : "";
@@ -122,6 +103,25 @@ export default function AdminReviewQueueDetailPage() {
   const [activationFeeMajor, setActivationFeeMajor] = useState("50.00");
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    documentId: string | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    documentId: null,
+  });
 
   const load = useCallback(async () => {
     if (!propertyId) {
@@ -155,6 +155,12 @@ export default function AdminReviewQueueDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    return () => {
+      if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    };
+  }, [viewer.blobUrl]);
 
   const media = useMemo(() => {
     if (state.kind !== "ready") return [] as Array<Record<string, unknown>>;
@@ -292,13 +298,14 @@ export default function AdminReviewQueueDetailPage() {
     }
   }
 
-  async function downloadDocument(documentUrl: string | null) {
-    if (!propertyId || !documentUrl) return;
+  async function downloadDocument(documentId: string | null) {
+    if (!propertyId || !documentId) return;
     setError(null);
     setActionMessage(null);
     setBusy("Downloading document...");
     try {
-      openInNewTab(toDownloadUrl(documentUrl));
+      const result = await fetchAdminPropertyDocumentBlob(propertyId, documentId, "download");
+      triggerPortalDocumentDownload(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to download document.");
     } finally {
@@ -306,18 +313,52 @@ export default function AdminReviewQueueDetailPage() {
     }
   }
 
-  async function viewDocument(documentUrl: string | null) {
-    if (!propertyId || !documentUrl) return;
+  async function viewDocument(doc: {
+    id: string;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+  }) {
+    if (!propertyId || !doc.id) return;
     setError(null);
     setActionMessage(null);
     setBusy("Opening document...");
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: doc.title,
+      filename: doc.filename,
+      contentType: doc.contentType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      documentId: doc.id,
+    });
     try {
-      openInNewTab(normalizeDocumentUrl(documentUrl));
+      const result = await fetchAdminPropertyDocumentBlob(propertyId, doc.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to view document.");
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error: e instanceof Error ? e.message : "Failed to view document.",
+      }));
     } finally {
       setBusy(null);
     }
+  }
+
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({ ...current, open: false, blobUrl: null, loading: false }));
   }
 
   const currentStatus = state.kind === "ready" ? getString(state.data, "status") ?? "UNKNOWN" : "UNKNOWN";
@@ -338,6 +379,17 @@ export default function AdminReviewQueueDetailPage() {
         </Link>
       }
     >
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={viewer.documentId ? () => void downloadDocument(viewer.documentId) : undefined}
+      />
       <div className="space-y-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-muted">
           <Link href="/admin" className="hover:text-primary">Portal Home</Link>
@@ -534,35 +586,30 @@ export default function AdminReviewQueueDetailPage() {
                 <div className="mt-3 space-y-2">
                   {documents.map((doc, index) => {
                     const id = getString(doc, "id") ?? `doc-${index}`;
-                    const viewUrl =
-                      getString(doc, "documentUrl") ??
-                      getString(doc, "url") ??
-                      getString(doc, "viewUrl");
-                    const downloadUrl =
-                      getString(doc, "documentUrl") ??
-                      getString(doc, "url") ??
-                      getString(doc, "downloadUrl");
-                    const canOpen = Boolean(viewUrl || downloadUrl);
+                    const title = getString(doc, "type") ?? "OTHER";
+                    const filename = getString(doc, "originalName") ?? id;
+                    const contentType = getString(doc, "mimeType");
+                    const canOpen = Boolean(id);
                     return (
                       <div key={id} className="rounded-2xl border border-line/70 bg-warm-base p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-primary">{getString(doc, "type") ?? "OTHER"}</div>
-                            <div className="truncate text-xs text-secondary">{getString(doc, "originalName") ?? id}</div>
+                            <div className="truncate text-sm font-semibold text-primary">{title}</div>
+                            <div className="truncate text-xs text-secondary">{filename}</div>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => void viewDocument(viewUrl)}
-                              disabled={!canOpen || !viewUrl}
+                              onClick={() => void viewDocument({ id, title, filename, contentType })}
+                              disabled={!canOpen}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-all duration-200 ease-in-out hover:bg-warm-alt active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               View
                             </button>
                             <button
                               type="button"
-                              onClick={() => void downloadDocument(downloadUrl)}
-                              disabled={!canOpen || !downloadUrl}
+                              onClick={() => void downloadDocument(id)}
+                              disabled={!canOpen}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-all duration-200 ease-in-out hover:bg-warm-alt active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               Download

@@ -9,9 +9,9 @@ import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   deleteUserCustomerDocument,
-  downloadUserCustomerDocument,
+  fetchCustomerDocumentBlob,
   getUserCustomerDocuments,
-  getUserCustomerDocumentSignedViewUrl,
+  triggerPortalDocumentDownload,
   type UserCustomerDocument,
 } from "@/lib/api/portal/user";
 
@@ -85,6 +85,14 @@ export default function AccountDocumentDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    return () => {
+      if (preview.kind === "ready" && preview.url.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.url);
+      }
+    };
+  }, [preview]);
+
   const canPreview = useMemo(() => {
     if (state.kind !== "ready") return false;
     return previewAllowed(state.doc.mimeType);
@@ -95,15 +103,8 @@ export default function AccountDocumentDetailPage() {
 
     setBusy("Downloading...");
     try {
-      const blob = await downloadUserCustomerDocument(state.doc.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = state.doc.originalName || `${state.doc.type.toLowerCase()}-${state.doc.id}`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+      const result = await fetchCustomerDocumentBlob(state.doc.id, "download");
+      triggerPortalDocumentDownload(result);
       showToast("success", "Download started.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "Download failed.");
@@ -118,8 +119,9 @@ export default function AccountDocumentDetailPage() {
 
     setPreview({ kind: "loading" });
     try {
-      const { url, mimeType } = await getUserCustomerDocumentSignedViewUrl(state.doc.id);
-      setPreview({ kind: "ready", url, mimeType: mimeType ?? state.doc.mimeType ?? "application/octet-stream" });
+      const result = await fetchCustomerDocumentBlob(state.doc.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setPreview({ kind: "ready", url, mimeType: result.contentType ?? state.doc.mimeType ?? "application/octet-stream" });
     } catch (error) {
       setPreview({ kind: "error", message: error instanceof Error ? error.message : "Failed to load preview" });
     }

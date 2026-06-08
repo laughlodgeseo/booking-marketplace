@@ -7,6 +7,7 @@ import type {
   UploadedFile,
   UploadOptions,
   SignedUrlOptions,
+  DeleteOptions,
 } from './storage.interface';
 
 /**
@@ -51,7 +52,7 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  delete(key: string, _mimeType?: string): Promise<void> {
+  delete(key: string, _options?: string | DeleteOptions): Promise<void> {
     const filePath = path.join(process.cwd(), key);
     try {
       fs.unlinkSync(filePath);

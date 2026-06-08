@@ -112,9 +112,6 @@ importers:
       multer:
         specifier: '>=2.1.1'
         version: 2.1.1
-      multer-storage-cloudinary:
-        specifier: ^4.0.0
-        version: 4.0.0(cloudinary@2.9.0)
       passport:
         specifier: ^0.7.0
         version: 0.7.0
@@ -4817,11 +4814,6 @@ packages:
 
   msgpackr@1.11.5:
     resolution: {integrity: sha512-UjkUHN0yqp9RWKy0Lplhh+wlpdt9oQBYgULZOiFhV3VclSF1JnSQWZ5r9gORQlNYaUKQoR8itv7g7z1xDDuACA==}
-
-  multer-storage-cloudinary@4.0.0:
-    resolution: {integrity: sha512-25lm9R6o5dWrHLqLvygNX+kBOxprzpmZdnVKH4+r68WcfCt8XV6xfQaMuAg+kUE5Xmr8mJNA4gE0AcBj9FJyWA==}
-    peerDependencies:
-      cloudinary: ^1.21.0
 
   multer@2.1.1:
     resolution: {integrity: sha512-mo+QTzKlx8R7E5ylSXxWzGoXoZbOsRMpyitcht8By2KHvMbf3tjwosZ/Mu/XYU6UuJ3VZnODIrak5ZrPiPyB6A==}
@@ -11083,10 +11075,6 @@ snapshots:
   msgpackr@1.11.5:
     optionalDependencies:
       msgpackr-extract: 3.0.3
-
-  multer-storage-cloudinary@4.0.0(cloudinary@2.9.0):
-    dependencies:
-      cloudinary: 2.9.0
 
   multer@2.1.1:
     dependencies:

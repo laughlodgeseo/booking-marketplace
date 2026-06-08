@@ -12,10 +12,13 @@ import {
   approveAdminPropertyDocument,
   deleteAdminPropertyDocument,
   deleteAdminPropertyMedia,
+  fetchAdminPropertyDocumentBlob,
   getAdminCalendar,
   getAdminPortalPropertyDetail,
   rejectAdminPropertyDocument,
+  triggerPortalDocumentDownload,
 } from "@/lib/api/portal/admin";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 import { resolveMediaUrl } from "@/lib/media/resolveMediaUrl";
 
 type AdminPropertyDetail = {
@@ -71,28 +74,6 @@ function fmtDate(value: string | null | undefined): string {
   return date.toLocaleString();
 }
 
-function normalizeDocumentUrl(documentUrl: string): string {
-  if (!documentUrl) return documentUrl;
-  return documentUrl;
-}
-
-function toDownloadUrl(documentUrl: string): string {
-  const fixedUrl = normalizeDocumentUrl(documentUrl);
-  return fixedUrl.includes("/upload/")
-    ? fixedUrl.replace("/upload/", "/upload/fl_attachment/")
-    : fixedUrl;
-}
-
-function openInNewTab(url: string) {
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.target = "_blank";
-  anchor.rel = "noopener noreferrer";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-}
-
 function mediaFilename(item: AdminPropertyDetail["media"][number], index: number): string {
   const ext = item.url.split("?")[0]?.split(".").pop()?.trim();
   const suffix = ext && ext.length <= 8 ? `.${ext}` : ".jpg";
@@ -120,6 +101,25 @@ export default function AdminPropertyDetailPage() {
   const [state, setState] = useState<ViewState>({ kind: "loading" });
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    documentId: string | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    documentId: null,
+  });
 
   const load = useCallback(async () => {
     if (!propertyId) {
@@ -142,6 +142,12 @@ export default function AdminPropertyDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    return () => {
+      if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    };
+  }, [viewer.blobUrl]);
 
   const media = useMemo(() => {
     if (state.kind !== "ready") return [];
@@ -182,15 +188,16 @@ export default function AdminPropertyDetailPage() {
     }
   }
 
-  async function downloadDocument(documentUrl: string | null | undefined) {
-    if (!documentUrl) {
+  async function downloadDocument(documentId: string | null | undefined) {
+    if (!documentId) {
       setMessage("Document not available.");
       return;
     }
     setBusy("Downloading document...");
     setMessage(null);
     try {
-      openInNewTab(toDownloadUrl(documentUrl));
+      const result = await fetchAdminPropertyDocumentBlob(propertyId, documentId, "download");
+      triggerPortalDocumentDownload(result);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to download document.");
     } finally {
@@ -198,20 +205,49 @@ export default function AdminPropertyDetailPage() {
     }
   }
 
-  async function viewDocument(documentUrl: string | null | undefined) {
-    if (!documentUrl) {
+  async function viewDocument(doc: AdminPropertyDetail["documents"][number]) {
+    if (!doc.id) {
       setMessage("Document not available.");
       return;
     }
     setBusy("Opening document...");
     setMessage(null);
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: doc.originalName || doc.type,
+      filename: doc.originalName,
+      contentType: doc.mimeType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      documentId: doc.id,
+    });
     try {
-      openInNewTab(normalizeDocumentUrl(documentUrl));
+      const result = await fetchAdminPropertyDocumentBlob(propertyId, doc.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to open document.");
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to open document.",
+      }));
     } finally {
       setBusy(null);
     }
+  }
+
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({ ...current, open: false, blobUrl: null, loading: false }));
   }
 
   async function approveDocumentStatus() {
@@ -309,6 +345,17 @@ export default function AdminPropertyDetailPage() {
         </div>
       }
     >
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={viewer.documentId ? () => void downloadDocument(viewer.documentId) : undefined}
+      />
       <div className="space-y-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-muted">
           <Link href="/admin" className="hover:text-primary">Portal Home</Link>
@@ -478,8 +525,6 @@ export default function AdminPropertyDetailPage() {
               ) : (
                 <div className="mt-3 space-y-3">
                   {state.data.documents.map((doc) => {
-                    const viewUrl = doc.documentUrl ?? doc.viewUrl ?? null;
-                    const downloadUrl = doc.documentUrl ?? doc.downloadUrl ?? null;
                     return (
                       <article key={doc.id} className="rounded-2xl border border-line/70 bg-warm-base p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -492,16 +537,16 @@ export default function AdminPropertyDetailPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => void viewDocument(viewUrl)}
-                              disabled={!viewUrl}
+                              onClick={() => void viewDocument(doc)}
+                              disabled={!doc.id}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
                             >
                               View
                             </button>
                             <button
                               type="button"
-                              onClick={() => void downloadDocument(downloadUrl)}
-                              disabled={!downloadUrl}
+                              onClick={() => void downloadDocument(doc.id)}
+                              disabled={!doc.id}
                               className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
                             >
                               Download

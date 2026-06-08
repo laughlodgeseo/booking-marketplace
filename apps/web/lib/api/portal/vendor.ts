@@ -1,5 +1,10 @@
 // lib/api/portal/vendor.ts
 import { apiFetch } from "@/lib/http";
+import {
+  fetchVendorPropertyDocumentBlob,
+  triggerPortalDocumentDownload,
+  type PortalDocumentBlob,
+} from "@/lib/api/portal/documentBlobs";
 import type { HttpResult } from "@/lib/http";
 import type { MediaCategory } from "@/lib/types/property";
 import type { PortalCalendarResponse } from "@/lib/api/portal/calendar";
@@ -847,23 +852,11 @@ export async function downloadVendorPropertyDocument(
   propertyId: string,
   documentId: string
 ): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/vendor/properties/${encodeURIComponent(propertyId)}/documents/${encodeURIComponent(
-      documentId
-    )}/download`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/octet-stream",
-      },
-    }
-  );
-
-  return unwrap(res);
+  return (await fetchVendorPropertyDocumentBlob(propertyId, documentId, "download")).blob;
 }
+
+export { fetchVendorPropertyDocumentBlob, triggerPortalDocumentDownload };
+export type { PortalDocumentBlob };
 
 export async function downloadAllVendorPropertyMedia(propertyId: string): Promise<Blob> {
   const res = await apiFetch<Blob>(
@@ -883,22 +876,7 @@ export async function viewVendorPropertyDocument(
   propertyId: string,
   documentId: string
 ): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/vendor/properties/${encodeURIComponent(propertyId)}/documents/${encodeURIComponent(
-      documentId
-    )}/view`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/pdf,image/*,*/*",
-      },
-    }
-  );
-
-  return unwrap(res);
+  return (await fetchVendorPropertyDocumentBlob(propertyId, documentId, "view")).blob;
 }
 
 export async function deleteVendorPropertyDocument(

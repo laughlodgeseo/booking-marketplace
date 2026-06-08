@@ -28,11 +28,14 @@ import {
 } from "@/components/portal/ui/portal-actions";
 import {
   deleteUserCustomerDocument,
+  fetchCustomerDocumentBlob,
   getUserCustomerDocuments,
+  triggerPortalDocumentDownload,
   uploadUserCustomerDocument,
   type CustomerDocumentType,
   type UserCustomerDocument,
 } from "@/lib/api/portal/user";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -268,6 +271,25 @@ export default function AccountDocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    document: UserCustomerDocument | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    document: null,
+  });
 
   const showToast = useCallback((kind: "success" | "error", text: string) => {
     setToast({ kind, text });
@@ -285,6 +307,12 @@ export default function AccountDocumentsPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    return () => {
+      if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    };
+  }, [viewer.blobUrl]);
 
   function handleFileSelect(file: File | null | undefined) {
     setFileError(null);
@@ -340,8 +368,68 @@ export default function AccountDocumentsPage() {
     }
   }
 
+  async function handleDownload(doc: UserCustomerDocument) {
+    setBusy(doc.id);
+    try {
+      const result = await fetchCustomerDocumentBlob(doc.id, "download");
+      triggerPortalDocumentDownload(result);
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to download document.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleView(doc: UserCustomerDocument) {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: prettyDocType(doc.type),
+      filename: doc.originalName,
+      contentType: doc.mimeType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      document: doc,
+    });
+    try {
+      const result = await fetchCustomerDocumentBlob(doc.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to preview document.",
+      }));
+    }
+  }
+
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({ ...current, open: false, blobUrl: null, loading: false }));
+  }
+
   return (
     <PortalShell role="customer" title="My Documents" subtitle="Upload and manage guest verification documents">
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={viewer.document ? () => void handleDownload(viewer.document as UserCustomerDocument) : undefined}
+      />
       {/* Toast notification */}
       {toast ? (
         <div
@@ -683,21 +771,21 @@ export default function AccountDocumentsPage() {
                                   ) : null}
 
                                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                                    <Link
-                                      href={`/account/documents/${encodeURIComponent(doc.id)}`}
-                                      onClick={(e) => e.stopPropagation()}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); void handleView(doc); }}
                                       className={portalRowPrimary}
                                     >
                                       <FileText className="h-3 w-3" /> View
-                                    </Link>
-                                    <a
-                                      href={`/api${doc.downloadUrl}`}
-                                      download
-                                      onClick={(e) => e.stopPropagation()}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={busy === doc.id}
+                                      onClick={(e) => { e.stopPropagation(); void handleDownload(doc); }}
                                       className={portalRowSecondary}
                                     >
                                       <Download className="h-3 w-3" /> Download
-                                    </a>
+                                    </button>
                                     <button
                                       type="button"
                                       disabled={busy === doc.id}

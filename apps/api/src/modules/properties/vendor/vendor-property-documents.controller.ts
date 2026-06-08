@@ -38,6 +38,7 @@ export class VendorPropertyDocumentsController {
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     stream.on('error', () => {
       if (!res.headersSent) res.status(500);
@@ -70,6 +71,7 @@ export class VendorPropertyDocumentsController {
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     stream.on('error', () => {
       if (!res.headersSent) res.status(500);

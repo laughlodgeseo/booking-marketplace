@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -263,7 +264,7 @@ export class UserPortalController {
       // browser follows a cross-origin redirect with credentials: 'include'.
       const upstream = await fetch(result.signedUrl);
       if (!upstream.ok) {
-        throw new Error(`Cloudinary fetch failed: ${upstream.status}`);
+        throw new NotFoundException('Document file not found.');
       }
       const buffer = Buffer.from(await upstream.arrayBuffer());
       res.setHeader('Content-Type', result.mimeType);
@@ -271,6 +272,8 @@ export class UserPortalController {
         'Content-Disposition',
         `attachment; filename="${encodeURIComponent(result.downloadName)}"`,
       );
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       return new StreamableFile(buffer);
     }
 
@@ -279,6 +282,8 @@ export class UserPortalController {
       'Content-Disposition',
       `attachment; filename="${encodeURIComponent(result.downloadName)}"`,
     );
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     return new StreamableFile(createReadStream(result.absolutePath));
   }
 
@@ -297,7 +302,7 @@ export class UserPortalController {
     if (result.kind === 'cloudinary') {
       const upstream = await fetch(result.signedUrl);
       if (!upstream.ok) {
-        throw new Error(`Cloudinary fetch failed: ${upstream.status}`);
+        throw new NotFoundException('Document file not found.');
       }
       const buffer = Buffer.from(await upstream.arrayBuffer());
       res.setHeader('Content-Type', result.mimeType);
@@ -305,6 +310,8 @@ export class UserPortalController {
         'Content-Disposition',
         `inline; filename="${encodeURIComponent(result.downloadName)}"`,
       );
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       return new StreamableFile(buffer);
     }
 
@@ -313,19 +320,9 @@ export class UserPortalController {
       'Content-Disposition',
       `inline; filename="${encodeURIComponent(result.downloadName)}"`,
     );
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     return new StreamableFile(createReadStream(result.absolutePath));
-  }
-
-  @Get('documents/:documentId/signed-view-url')
-  async getCustomerDocumentSignedViewUrl(
-    @CurrentUser() user: User,
-    @Param('documentId', new ParseUUIDPipe()) documentId: string,
-  ) {
-    return this.service.getCustomerDocumentSignedViewUrl({
-      userId: user.id,
-      role: user.role,
-      documentId,
-    });
   }
 
   @Delete('documents/:documentId')

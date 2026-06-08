@@ -6,6 +6,7 @@ import type {
   UploadedFile,
   UploadOptions,
   SignedUrlOptions,
+  DeleteOptions,
 } from './storage.interface';
 
 /**
@@ -43,9 +44,9 @@ export class StorageService {
    * Pass mimeType so the cloud adapter can route to the correct resource endpoint.
    * The key encodes the provider in its prefix (local path vs Cloudinary public_id).
    */
-  async delete(key: string, mimeType?: string): Promise<void> {
+  async delete(key: string, options?: string | DeleteOptions): Promise<void> {
     const adapter = this.inferAdapterFromKey(key);
-    return adapter.delete(key, mimeType);
+    return adapter.delete(key, options);
   }
 
   /**

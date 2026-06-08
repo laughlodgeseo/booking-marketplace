@@ -9,12 +9,13 @@ import type {
 } from "@/lib/api/portal/vendor";
 import {
   deleteVendorPropertyDocument,
-  downloadVendorPropertyDocument,
+  fetchVendorPropertyDocumentBlob,
   getPropertyDocumentRequirements,
+  triggerPortalDocumentDownload,
   uploadVendorPropertyDocument,
-  viewVendorPropertyDocument,
 } from "@/lib/api/portal/vendor";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 
 type Props = {
   property: VendorPropertyDetail;
@@ -47,33 +48,6 @@ function fileMatchesAccept(file: File, acceptRules: string[]): boolean {
   });
 }
 
-function safeFilename(document: VendorPropertyDocument): string {
-  const base = (document.originalName ?? "").trim();
-  if (base.length > 0) return base;
-
-  const ext =
-    document.mimeType?.includes("pdf")
-      ? ".pdf"
-      : document.mimeType?.includes("png")
-      ? ".png"
-      : document.mimeType?.includes("jpeg") || document.mimeType?.includes("jpg")
-      ? ".jpg"
-      : "";
-
-  return `${document.type.toLowerCase()}_${document.id}${ext}`;
-}
-
-function triggerDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function latestByType(documents: VendorPropertyDocument[]): Map<PropertyDocumentType, VendorPropertyDocument> {
   const map = new Map<PropertyDocumentType, VendorPropertyDocument>();
 
@@ -103,6 +77,25 @@ export function DocumentManager({ property, onChanged }: Props) {
   );
   const [requirementsLoading, setRequirementsLoading] = useState(true);
   const [uploadingDocName, setUploadingDocName] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    document: VendorPropertyDocument | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    document: null,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -129,6 +122,12 @@ export function DocumentManager({ property, onChanged }: Props) {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    };
+  }, [viewer.blobUrl]);
 
   useEffect(() => {
     if (selectedType) return;
@@ -203,8 +202,8 @@ export function DocumentManager({ property, onChanged }: Props) {
     setBusy("Downloading...");
 
     try {
-      const blob = await downloadVendorPropertyDocument(property.id, document.id);
-      triggerDownload(blob, safeFilename(document));
+      const result = await fetchVendorPropertyDocumentBlob(property.id, document.id, "download");
+      triggerPortalDocumentDownload(result);
     } catch (downloadError) {
       setError(legacyDocumentMessage(downloadError) ?? (downloadError instanceof Error ? downloadError.message : "Download failed"));
     } finally {
@@ -214,26 +213,47 @@ export function DocumentManager({ property, onChanged }: Props) {
 
   async function view(document: VendorPropertyDocument) {
     setError(null);
-    setBusy("Opening preview...");
-    const newTab = window.open("", "_blank");
-    if (!newTab) {
-      alert("Please allow popups to view documents.");
-      setBusy(null);
-      return;
-    }
-
-    newTab.opener = null;
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: prettyDocType(document.type, requirements),
+      filename: document.originalName,
+      contentType: document.mimeType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      document,
+    });
     try {
-      const blob = await viewVendorPropertyDocument(property.id, document.id);
-      const url = URL.createObjectURL(blob);
-      newTab.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      const result = await fetchVendorPropertyDocumentBlob(property.id, document.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
     } catch (viewError) {
-      newTab.close();
-      setError(legacyDocumentMessage(viewError) ?? (viewError instanceof Error ? viewError.message : "Preview failed"));
-    } finally {
-      setBusy(null);
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error:
+          legacyDocumentMessage(viewError) ??
+          (viewError instanceof Error ? viewError.message : "Preview failed"),
+      }));
     }
+  }
+
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({
+      ...current,
+      open: false,
+      blobUrl: null,
+      loading: false,
+    }));
   }
 
   async function remove(document: VendorPropertyDocument) {
@@ -255,6 +275,19 @@ export function DocumentManager({ property, onChanged }: Props) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-surface p-5 shadow-sm">
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={
+          viewer.document ? () => void download(viewer.document as VendorPropertyDocument) : undefined
+        }
+      />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className="text-base font-semibold text-primary">Documents</h3>

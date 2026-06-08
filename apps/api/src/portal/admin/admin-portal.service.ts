@@ -104,6 +104,10 @@ export class AdminPortalService {
       .replace(/\b\w/g, (token) => token.toUpperCase());
   }
 
+  private documentResourceTypeFromMime(mimeType: string | null): 'image' | 'raw' {
+    return mimeType?.startsWith('image/') ? 'image' : 'raw';
+  }
+
   private toIsoDay(value: Date): string {
     return value.toISOString().slice(0, 10);
   }
@@ -2226,7 +2230,9 @@ export class AdminPortalService {
         doc.cloudinaryPublicId,
         {
           expiresInSeconds: 300,
-          resourceType: doc.cloudinaryResourceType ?? 'image',
+          resourceType:
+            doc.cloudinaryResourceType ??
+            this.documentResourceTypeFromMime(doc.mimeType),
           deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
         },
       );
@@ -2253,40 +2259,6 @@ export class AdminPortalService {
       mimeType: doc.mimeType ?? 'application/octet-stream',
       downloadName: doc.originalName ?? doc.fileKey,
     };
-  }
-
-  async getCustomerDocumentSignedViewUrl(params: {
-    userId: string;
-    role: UserRole;
-    documentId: string;
-  }): Promise<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }> {
-    this.assertAdmin(params.role);
-
-    const doc = await this.prisma.customerDocument.findUnique({
-      where: { id: params.documentId },
-      select: {
-        id: true,
-        cloudinaryPublicId: true,
-        cloudinaryResourceType: true,
-        cloudinaryDeliveryType: true,
-        originalName: true,
-        mimeType: true,
-      },
-    });
-
-    if (!doc) throw new NotFoundException('Customer document not found.');
-    if (!doc.cloudinaryPublicId) {
-      throw new NotFoundException('Document not available for preview.');
-    }
-
-    const expiresInSeconds = 300;
-    const url = await this.storage.getSignedUrl(doc.cloudinaryPublicId, {
-      expiresInSeconds,
-      resourceType: doc.cloudinaryResourceType ?? 'image',
-      deliveryType: doc.cloudinaryDeliveryType ?? 'authenticated',
-    });
-
-    return { url, expiresInSeconds, mimeType: doc.mimeType, fileName: doc.originalName };
   }
 
   async approveCustomerDocument(params: {

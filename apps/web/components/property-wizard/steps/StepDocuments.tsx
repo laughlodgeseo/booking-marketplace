@@ -9,11 +9,12 @@ import type {
 } from "@/lib/api/portal/vendor";
 import {
   deleteVendorPropertyDocument,
-  downloadVendorPropertyDocument,
+  fetchVendorPropertyDocumentBlob,
   getPropertyDocumentRequirements,
+  triggerPortalDocumentDownload,
   uploadVendorPropertyDocument,
-  viewVendorPropertyDocument,
 } from "@/lib/api/portal/vendor";
+import { PortalDocumentViewerModal } from "@/components/portal/documents/PortalDocumentViewerModal";
 
 function toDateLabel(value: string): string {
   const d = new Date(value);
@@ -53,33 +54,31 @@ function fileMatchesAccept(file: File, acceptRules: string[]): boolean {
   });
 }
 
-function filenameForDownload(document: VendorPropertyDocument): string {
-  const fallback = `${document.type.toLowerCase()}-${document.id}`;
-  const clean = (document.originalName ?? "").trim();
-  if (clean.length > 0) return clean;
-  if (document.mimeType?.includes("pdf")) return `${fallback}.pdf`;
-  if (document.mimeType?.includes("png")) return `${fallback}.png`;
-  if (document.mimeType?.includes("jpeg") || document.mimeType?.includes("jpg")) return `${fallback}.jpg`;
-  return fallback;
-}
-
-function triggerBlobDownload(blob: Blob, fileName: string) {
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-}
-
 export function StepDocuments({ property, onPropertyUpdated }: StepProps) {
   const [requirements, setRequirements] = useState<PropertyDocumentRequirement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyType, setBusyType] = useState<string | null>(null);
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    filename: string | null;
+    contentType: string | null;
+    blobUrl: string | null;
+    loading: boolean;
+    error: string | null;
+    document: VendorPropertyDocument | null;
+  }>({
+    open: false,
+    title: "Document preview",
+    filename: null,
+    contentType: null,
+    blobUrl: null,
+    loading: false,
+    error: null,
+    document: null,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -104,6 +103,12 @@ export function StepDocuments({ property, onPropertyUpdated }: StepProps) {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    };
+  }, [viewer.blobUrl]);
 
   if (!property) {
     return (
@@ -183,8 +188,8 @@ export function StepDocuments({ property, onPropertyUpdated }: StepProps) {
     setBusyType(document.type);
     setBusyMessage("Downloading...");
     try {
-      const blob = await downloadVendorPropertyDocument(currentProperty.id, document.id);
-      triggerBlobDownload(blob, filenameForDownload(document));
+      const result = await fetchVendorPropertyDocumentBlob(currentProperty.id, document.id, "download");
+      triggerPortalDocumentDownload(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Download failed.");
     } finally {
@@ -196,32 +201,59 @@ export function StepDocuments({ property, onPropertyUpdated }: StepProps) {
   async function view(document: VendorPropertyDocument) {
     setError(null);
     setBusyType(document.type);
-    setBusyMessage("Opening preview...");
-    const newTab = window.open("", "_blank");
-    if (!newTab) {
-      alert("Please allow popups to view documents.");
-      setBusyType(null);
-      setBusyMessage(null);
-      return;
-    }
-
-    newTab.opener = null;
+    setBusyMessage("Opening document...");
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer({
+      open: true,
+      title: document.type.replaceAll("_", " "),
+      filename: document.originalName,
+      contentType: document.mimeType,
+      blobUrl: null,
+      loading: true,
+      error: null,
+      document,
+    });
     try {
-      const blob = await viewVendorPropertyDocument(currentProperty.id, document.id);
-      const url = URL.createObjectURL(blob);
-      newTab.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      const result = await fetchVendorPropertyDocumentBlob(currentProperty.id, document.id, "view");
+      const url = URL.createObjectURL(result.blob);
+      setViewer((current) => ({
+        ...current,
+        filename: result.filename,
+        contentType: result.contentType,
+        blobUrl: url,
+        loading: false,
+        error: null,
+      }));
     } catch (e) {
-      newTab.close();
-      setError(e instanceof Error ? e.message : "Preview failed.");
+      setViewer((current) => ({
+        ...current,
+        loading: false,
+        error: e instanceof Error ? e.message : "Preview failed.",
+      }));
     } finally {
       setBusyType(null);
       setBusyMessage(null);
     }
   }
 
+  function closeViewer() {
+    if (viewer.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer((current) => ({ ...current, open: false, blobUrl: null, loading: false }));
+  }
+
   return (
     <div className="space-y-6">
+      <PortalDocumentViewerModal
+        open={viewer.open}
+        onClose={closeViewer}
+        title={viewer.title}
+        filename={viewer.filename}
+        contentType={viewer.contentType}
+        blobUrl={viewer.blobUrl}
+        isLoading={viewer.loading}
+        error={viewer.error}
+        onDownload={viewer.document ? () => void download(viewer.document as VendorPropertyDocument) : undefined}
+      />
       <div>
         <h2 className="text-xl font-semibold text-primary">Upload documents</h2>
         <p className="mt-1 text-sm text-secondary">

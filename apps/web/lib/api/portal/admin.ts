@@ -1,4 +1,10 @@
 import { apiFetch } from "@/lib/http";
+import {
+  fetchAdminCustomerDocumentBlob,
+  fetchAdminPropertyDocumentBlob,
+  triggerPortalDocumentDownload,
+  type PortalDocumentBlob,
+} from "@/lib/api/portal/documentBlobs";
 import type { HttpResult } from "@/lib/http";
 import type { PortalCalendarResponse } from "@/lib/api/portal/calendar";
 import type { PropertyType } from "@/lib/types/property-type";
@@ -938,50 +944,19 @@ export async function rejectAdminCustomerDocument(
 }
 
 export async function downloadAdminCustomerDocument(documentId: string): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/portal/admin/customer-documents/${encodeURIComponent(documentId)}/download`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/octet-stream",
-      },
-    }
-  );
-  return unwrap(res);
+  return (await fetchAdminCustomerDocumentBlob(documentId, "download")).blob;
 }
 
 export async function viewAdminCustomerDocument(documentId: string): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/portal/admin/customer-documents/${encodeURIComponent(documentId)}/view`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/pdf,image/*,*/*",
-      },
-    }
-  );
-  return unwrap(res);
+  return (await fetchAdminCustomerDocumentBlob(documentId, "view")).blob;
 }
 
-export async function getAdminCustomerDocumentSignedViewUrl(
-  documentId: string
-): Promise<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }> {
-  const res = await apiFetch<{ url: string; expiresInSeconds: number; mimeType: string | null; fileName: string | null }>(
-    `/portal/admin/customer-documents/${encodeURIComponent(documentId)}/signed-view-url`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-    }
-  );
-  return unwrap(res);
-}
+export {
+  fetchAdminCustomerDocumentBlob,
+  fetchAdminPropertyDocumentBlob,
+  triggerPortalDocumentDownload,
+};
+export type { PortalDocumentBlob };
 
 export async function forceCancelAdminBooking(
   bookingId: string,
@@ -1399,19 +1374,7 @@ export async function downloadAdminPropertyDocument(
   propertyId: string,
   documentId: string
 ): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/admin/properties/${encodeURIComponent(propertyId)}/documents/${encodeURIComponent(documentId)}/download`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/octet-stream",
-      },
-    }
-  );
-  return unwrap(res);
+  return (await fetchAdminPropertyDocumentBlob(propertyId, documentId, "download")).blob;
 }
 
 export type AdminPropertyDocumentAccess = {
@@ -1441,19 +1404,7 @@ export async function viewAdminPropertyDocument(
   propertyId: string,
   documentId: string
 ): Promise<Blob> {
-  const res = await apiFetch<Blob>(
-    `/admin/properties/${encodeURIComponent(propertyId)}/documents/${encodeURIComponent(documentId)}/view`,
-    {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-      responseType: "blob",
-      headers: {
-        Accept: "application/pdf,image/*,*/*",
-      },
-    }
-  );
-  return unwrap(res);
+  return (await fetchAdminPropertyDocumentBlob(propertyId, documentId, "view")).blob;
 }
 
 export async function deleteAdminPropertyDocument(
