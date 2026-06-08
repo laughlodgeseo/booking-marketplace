@@ -901,7 +901,7 @@ model PropertyDocument {
 
   /**
    * ✅ Storage fields (production safety)
-   * - storageKey is the filename on disk (uuid.ext)
+   * - storageKey is the filename on disk or Cloudinary public_id
    * - originalName is for UX
    * - mimeType helps set correct headers
    */
@@ -909,12 +909,18 @@ model PropertyDocument {
   originalName String?
   mimeType     String?
 
+  // Per-document review status (independent of legacy property.documentStatus)
+  status          PropertyDocumentStatus @default(UPLOADED)
+  reviewedAt      DateTime?
+  rejectionReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([propertyId])
   @@index([uploadedByUserId])
   @@index([reviewedByAdminId])
+  @@index([status])
 }
 
 model PropertyReview {
@@ -1817,8 +1823,9 @@ model PropertyFee {
   currency    String          @default("AED")
   status      FeeStatus       @default(UNPAID)
 
-  paidAt    DateTime?
-  paidRef   String?
+  paidAt                 DateTime?
+  paidRef                String?
+  stripePaymentIntentId  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1828,6 +1835,7 @@ model PropertyFee {
   @@index([status])
   @@index([type])
   @@index([propertyId, type], map: "uniq_property_fee_property_type")
+  @@index([stripePaymentIntentId])
 }
 
 model ServicePlan {

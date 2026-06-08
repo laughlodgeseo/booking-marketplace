@@ -107,11 +107,19 @@ function buildPaymentsService() {
     handleStripePaymentIntentCanceled: jest.fn(),
   } as unknown as ActivationPaymentService;
 
+  const propertyFeePayments = {
+    isPropertyFeePaymentIntent: jest.fn().mockReturnValue(false),
+    handleStripePaymentIntentSucceeded: jest.fn().mockResolvedValue({ ok: true, reused: false, ignored: true }),
+    handleStripePaymentIntentFailed: jest.fn().mockResolvedValue({ ok: true, reused: false }),
+    handleStripePaymentIntentCanceled: jest.fn().mockResolvedValue({ ok: true, reused: false }),
+  } as unknown as import('../fees/property-fee-payment.service').PropertyFeePaymentService;
+
   const service = new PaymentsService(
     prisma,
     manual,
     stripe,
     activationPayments,
+    propertyFeePayments,
     notifications,
     bookings,
     eventBus,

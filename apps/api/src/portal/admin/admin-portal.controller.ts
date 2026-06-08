@@ -205,7 +205,7 @@ export class AdminPortalController {
   }
 
   @Post('properties/:propertyId/document/approve')
-  approvePropertyDocument(
+  approvePropertyDocumentLegacy(
     @CurrentUser() user: User,
     @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
   ) {
@@ -218,7 +218,7 @@ export class AdminPortalController {
   }
 
   @Post('properties/:propertyId/document/reject')
-  rejectPropertyDocument(
+  rejectPropertyDocumentLegacy(
     @CurrentUser() user: User,
     @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
     @Body() body: { reason?: string },
@@ -228,6 +228,38 @@ export class AdminPortalController {
       actorEmail: user.email,
       role: user.role,
       propertyId,
+      reason: body.reason ?? '',
+    });
+  }
+
+  @Post('properties/:propertyId/documents/:documentId/approve')
+  approvePropertyDocumentById(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+  ) {
+    return this.service.approvePropertyDocument({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      propertyId,
+      documentId,
+    });
+  }
+
+  @Post('properties/:propertyId/documents/:documentId/reject')
+  rejectPropertyDocumentById(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.service.rejectPropertyDocument({
+      userId: user.id,
+      actorEmail: user.email,
+      role: user.role,
+      propertyId,
+      documentId,
       reason: body.reason ?? '',
     });
   }

@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BookingsModule } from '../../bookings/bookings.module';
+import { FeesModule } from '../fees/fees.module';
 
 import { PaymentsController } from './payments.controller';
 import { PaymentsWebhooksController } from './payments.webhooks.controller';
@@ -19,6 +20,7 @@ import { QUEUE_NAMES } from '../../infra/queues/queues.constants';
     PrismaModule,
     NotificationsModule,
     BookingsModule,
+    FeesModule,
     // Optional: registers the producer so the webhook controller can inject the queue.
     // The BullModule.forRoot connection is set up in QueueModule.
     BullModule.registerQueue({ name: QUEUE_NAMES.STRIPE_WEBHOOK }),

@@ -18,6 +18,8 @@ import {
   OpsTaskStatus,
   PaymentStatus,
   PayoutStatus,
+  Prisma,
+  PropertyDocumentStatus,
   PropertyStatus,
   RefundReason,
   RefundStatus,
@@ -1160,6 +1162,161 @@ export class AdminPortalService {
       });
       return result;
     });
+  }
+
+  async approvePropertyDocument(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    propertyId: string;
+    documentId: string;
+  }) {
+    this.assertAdmin(params.role);
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const doc = await tx.propertyDocument.findFirst({
+          where: { id: params.documentId, propertyId: params.propertyId },
+          select: { id: true, property: { select: { vendorId: true } } },
+        });
+        if (!doc) throw new NotFoundException('Property document not found.');
+
+        const now = new Date();
+        const updated = await tx.propertyDocument.update({
+          where: { id: doc.id },
+          data: {
+            status: PropertyDocumentStatus.ACCEPTED,
+            reviewedAt: now,
+            rejectionReason: null,
+          },
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            reviewedAt: true,
+            rejectionReason: true,
+            updatedAt: true,
+          },
+        });
+
+        await this.audit.record(tx, {
+          actorId: params.userId,
+          actorEmail: params.actorEmail,
+          action: 'PROPERTY_DOCUMENT_APPROVED',
+          targetType: 'PropertyDocument',
+          targetId: doc.id,
+          metadata: { propertyId: params.propertyId },
+        });
+
+        await this.recalculateVendorVerificationStatus(
+          tx,
+          doc.property.vendorId,
+        );
+
+        return {
+          ...updated,
+          reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+          updatedAt: updated.updatedAt.toISOString(),
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async rejectPropertyDocument(params: {
+    userId: string;
+    actorEmail?: string | null;
+    role: UserRole;
+    propertyId: string;
+    documentId: string;
+    reason: string;
+  }) {
+    this.assertAdmin(params.role);
+    const reason = params.reason.trim();
+    if (!reason) {
+      throw new BadRequestException('Rejection reason is required.');
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const doc = await tx.propertyDocument.findFirst({
+          where: { id: params.documentId, propertyId: params.propertyId },
+          select: { id: true, property: { select: { vendorId: true } } },
+        });
+        if (!doc) throw new NotFoundException('Property document not found.');
+
+        const updated = await tx.propertyDocument.update({
+          where: { id: doc.id },
+          data: {
+            status: PropertyDocumentStatus.REJECTED,
+            reviewedAt: new Date(),
+            rejectionReason: reason,
+          },
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            reviewedAt: true,
+            rejectionReason: true,
+            updatedAt: true,
+          },
+        });
+
+        await this.audit.record(tx, {
+          actorId: params.userId,
+          actorEmail: params.actorEmail,
+          action: 'PROPERTY_DOCUMENT_REJECTED',
+          targetType: 'PropertyDocument',
+          targetId: doc.id,
+          metadata: { propertyId: params.propertyId, reason },
+        });
+
+        await this.recalculateVendorVerificationStatus(
+          tx,
+          doc.property.vendorId,
+        );
+
+        return {
+          ...updated,
+          reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+          updatedAt: updated.updatedAt.toISOString(),
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  private async recalculateVendorVerificationStatus(
+    tx: Prisma.TransactionClient,
+    vendorId: string,
+  ): Promise<void> {
+    const documents = await tx.propertyDocument.findMany({
+      where: { property: { vendorId } },
+      select: { status: true },
+    });
+
+    if (documents.length === 0) return;
+
+    const allAccepted = documents.every(
+      (d) => d.status === PropertyDocumentStatus.ACCEPTED,
+    );
+
+    if (allAccepted) {
+      await tx.vendorProfile.updateMany({
+        where: { userId: vendorId },
+        data: { status: VendorStatus.APPROVED },
+      });
+    } else {
+      const hasRejected = documents.some(
+        (d) => d.status === PropertyDocumentStatus.REJECTED,
+      );
+      if (hasRejected) {
+        await tx.vendorProfile.updateMany({
+          where: { userId: vendorId, status: VendorStatus.APPROVED },
+          data: { status: VendorStatus.PENDING },
+        });
+      }
+    }
   }
 
   async listBookings(params: {

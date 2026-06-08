@@ -39,6 +39,7 @@ import { BookingsService } from '../../bookings/bookings.service';
 import { EventBusService } from '../../events/event-bus.service';
 import { DomainEventType } from '../../events/domain-events';
 import { ActivationPaymentService } from './activation-payment.service';
+import { PropertyFeePaymentService } from '../fees/property-fee-payment.service';
 import type Stripe from 'stripe';
 
 type Actor = { id: string; role: 'CUSTOMER' | 'VENDOR' | 'ADMIN' };
@@ -73,6 +74,7 @@ export class PaymentsService {
     private readonly manualProvider: ManualPaymentsProvider,
     private readonly stripeProvider: StripePaymentsProvider,
     private readonly activationPayments: ActivationPaymentService,
+    private readonly propertyFeePayments: PropertyFeePaymentService,
     private readonly notifications: NotificationsService,
     private readonly bookings: BookingsService,
     private readonly eventBus: EventBusService,
@@ -1499,6 +1501,9 @@ export class PaymentsService {
     if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
       return this.activationPayments.handleStripePaymentIntentSucceeded(args);
     }
+    if (this.propertyFeePayments.isPropertyFeePaymentIntent(args.paymentIntent)) {
+      return this.propertyFeePayments.handleStripePaymentIntentSucceeded(args);
+    }
 
     const txResult = await this.prisma.$transaction(
       async (tx) => {
@@ -1639,6 +1644,9 @@ export class PaymentsService {
     if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
       return this.activationPayments.handleStripePaymentIntentFailed(args);
     }
+    if (this.propertyFeePayments.isPropertyFeePaymentIntent(args.paymentIntent)) {
+      return this.propertyFeePayments.handleStripePaymentIntentFailed(args);
+    }
 
     const txResult = await this.prisma.$transaction(async (tx) => {
       const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
@@ -1748,6 +1756,9 @@ export class PaymentsService {
     if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
       return this.activationPayments.handleStripePaymentIntentProcessing(args);
     }
+    if (this.propertyFeePayments.isPropertyFeePaymentIntent(args.paymentIntent)) {
+      return { ok: true, reused: false, ignored: true };
+    }
 
     const txResult = await this.prisma.$transaction(async (tx) => {
       const ctx = await this.resolveStripeContext(tx, args.paymentIntent);
@@ -1825,6 +1836,9 @@ export class PaymentsService {
   }): Promise<{ ok: true; reused: boolean; ignored?: boolean }> {
     if (this.activationPayments.isActivationPaymentIntent(args.paymentIntent)) {
       return this.activationPayments.handleStripePaymentIntentCanceled(args);
+    }
+    if (this.propertyFeePayments.isPropertyFeePaymentIntent(args.paymentIntent)) {
+      return this.propertyFeePayments.handleStripePaymentIntentCanceled(args);
     }
 
     const txResult = await this.prisma.$transaction(async (tx) => {

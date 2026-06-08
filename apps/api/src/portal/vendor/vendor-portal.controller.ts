@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { VendorPortalService } from './vendor-portal.service';
 import { PropertyFeeService } from '../../modules/fees/property-fee.service';
+import { PropertyFeePaymentService } from '../../modules/fees/property-fee-payment.service';
 
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -42,6 +43,7 @@ export class VendorPortalController {
     private readonly service: VendorPortalService,
     private readonly notifications: PortalNotificationsService,
     private readonly propertyFees: PropertyFeeService,
+    private readonly propertyFeePayments: PropertyFeePaymentService,
   ) {}
 
   private parseOptionalBoolean(value?: string): boolean | undefined {
@@ -213,6 +215,19 @@ export class VendorPortalController {
   @Get('property-fees')
   listPropertyFees(@CurrentUser() user: User) {
     return this.propertyFees.getVendorPropertyFees(user.id);
+  }
+
+  @Post('property-fees/:propertyId/pay')
+  initiatePropertyFeePayment(
+    @CurrentUser() user: User,
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Body() body: { feeIds: string[] },
+  ) {
+    return this.propertyFeePayments.initiateFeePayment({
+      vendorId: user.id,
+      propertyId,
+      feeIds: body.feeIds ?? [],
+    });
   }
 
   @Post('block-requests')

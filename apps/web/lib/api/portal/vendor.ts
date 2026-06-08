@@ -1216,3 +1216,29 @@ export async function getVendorPropertyFees(): Promise<VendorPropertyFeesRespons
   });
   return unwrap(res);
 }
+
+export type FeePaymentInitResponse = {
+  clientSecret: string;
+  publishableKey: string | null;
+  paymentIntentId: string;
+  feeIds: string[];
+  totalMinor: number;
+  totalFormatted: string;
+  reused: boolean;
+};
+
+export async function initiatePropertyFeePayment(
+  propertyId: string,
+  feeIds: string[],
+): Promise<FeePaymentInitResponse> {
+  const res = await apiFetch<FeePaymentInitResponse>(
+    `/portal/vendor/property-fees/${propertyId}/pay`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ feeIds }),
+    },
+  );
+  return unwrap(res);
+}
