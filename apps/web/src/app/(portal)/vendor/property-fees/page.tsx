@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   AlertCircle,
   Building2,
@@ -10,7 +10,8 @@ import {
   LockKeyhole,
   X,
 } from "lucide-react";
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
+import { stripeErrorMessage } from "@/lib/stripe/fee-payment-errors";
 import { loadStripe } from "@stripe/stripe-js";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
@@ -39,6 +40,18 @@ function getStripePromise(publishableKey: string) {
   }
   return stripePromiseCache.get(publishableKey)!;
 }
+
+// ─── Stripe CardElement style ────────────────────────────────────────────────
+const CARD_ELEMENT_STYLE = {
+  base: {
+    fontSize: "15px",
+    color: "#0f172a",
+    fontFamily: "inherit",
+    "::placeholder": { color: "#94a3b8" },
+    iconColor: "#64748b",
+  },
+  invalid: { color: "#ef4444", iconColor: "#ef4444" },
+};
 
 // ─── Error helpers ────────────────────────────────────────────────────────────
 function friendlyInitError(raw: unknown): string {
@@ -132,44 +145,51 @@ function FeeCheckoutForm({
   const stripe = useStripe();
   const elements = useElements();
   const [state, setState] = useState<FeeFormState>({ kind: "idle" });
-  const [isReady, setIsReady] = useState(false);
-
-  const returnUrl = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return new URL("/vendor/property-fees?payment=done", window.location.origin).toString();
-  }, []);
+  const [isCardReady, setIsCardReady] = useState(false);
+  const [isCardComplete, setIsCardComplete] = useState(false);
 
   const canSubmit =
     state.kind !== "processing" &&
     state.kind !== "submitted" &&
     Boolean(stripe && elements) &&
-    isReady;
+    isCardReady &&
+    isCardComplete;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!stripe || !elements) return;
+    const card = elements.getElement(CardElement);
+    if (!card) return;
     setState({ kind: "processing" });
     try {
-      const result = await stripe.confirmPayment({
-        elements,
-        redirect: "if_required",
-        confirmParams: {
-          ...(returnUrl ? { return_url: returnUrl } : {}),
-          payment_method_data: {
-            billing_details: {
-              name: "Laugh & Lodge Vendor",
-              address: { country: "AE" },
-            },
+      const result = await stripe.confirmCardPayment(intent.clientSecret, {
+        payment_method: {
+          card,
+          billing_details: {
+            name: "Laugh & Lodge Vendor",
+            address: { country: "AE" },
           },
         },
       });
       if (result.error) {
-        setState({ kind: "error", message: result.error.message ?? "Payment failed. Please try again." });
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[vendor-fee-payment] Stripe confirmation failed", {
+            type: result.error.type,
+            code: result.error.code,
+            decline_code: result.error.decline_code,
+            message: result.error.message,
+            payment_intent: result.error.payment_intent?.id,
+          });
+        }
+        setState({ kind: "error", message: stripeErrorMessage(result.error) });
         return;
       }
       setState({ kind: "submitted" });
       onSubmitted();
-    } catch {
+    } catch (err: unknown) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[vendor-fee-payment] confirmCardPayment threw", err);
+      }
       setState({ kind: "error", message: "Unable to complete payment. Please try again." });
     }
   }
@@ -202,7 +222,7 @@ function FeeCheckoutForm({
           </div>
         </div>
 
-        {/* Stripe card form */}
+        {/* Stripe card element */}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -212,14 +232,18 @@ function FeeCheckoutForm({
               <LockKeyhole className="h-3 w-3" /> Secured by Stripe
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <PaymentElement
-              onReady={() => setIsReady(true)}
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+            <CardElement
+              onReady={() => setIsCardReady(true)}
+              onChange={(e) => {
+                setIsCardComplete(e.complete);
+                if (!e.error && state.kind === "error") {
+                  setState({ kind: "idle" });
+                }
+              }}
               options={{
-                fields: {
-                  billingDetails: "never",
-                },
-                terms: { card: "never" },
+                style: CARD_ELEMENT_STYLE,
+                hidePostalCode: true,
               }}
             />
           </div>
@@ -242,7 +266,7 @@ function FeeCheckoutForm({
         )}
       </div>
 
-      {/* Sticky footer inside the scroll container */}
+      {/* Sticky footer — always visible at bottom of modal */}
       <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-6 py-4 backdrop-blur-sm">
         <div className="flex gap-3">
           <button
@@ -365,7 +389,6 @@ function FeePaymentModal({
           {hasStripe && (
             <Elements
               stripe={getStripePromise(publishableKey)}
-              options={{ clientSecret: state.intent.clientSecret }}
             >
               <FeeCheckoutForm
                 intent={state.intent}
