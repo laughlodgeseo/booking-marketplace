@@ -5,9 +5,10 @@ import { AdminAuditService } from './admin-audit.service';
 import { PrismaService } from '../../modules/prisma/prisma.service';
 import { NotificationsModule } from '../../modules/notifications/notifications.module';
 import { PortalNotificationsService } from '../common/portal-notifications.service';
+import { FeesModule } from '../../modules/fees/fees.module';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, FeesModule],
   controllers: [AdminPortalController],
   providers: [
     AdminPortalService,

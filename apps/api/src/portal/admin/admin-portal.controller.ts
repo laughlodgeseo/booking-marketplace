@@ -13,6 +13,7 @@ import {
 import { BookingStatus } from '@prisma/client';
 import { AdminPortalService } from './admin-portal.service';
 import { AdminAuditService } from './admin-audit.service';
+import { PropertyFeeService } from '../../modules/fees/property-fee.service';
 
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -22,8 +23,10 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import {
   BlockRequestStatus,
   CustomerDocumentStatus,
+  FeeStatus,
   OpsTaskStatus,
   PaymentStatus,
+  PropertyFurnishingStatus,
   PropertyStatus,
   RefundStatus,
   UserRole,
@@ -50,6 +53,7 @@ export class AdminPortalController {
     private readonly service: AdminPortalService,
     private readonly notifications: PortalNotificationsService,
     private readonly adminAudit: AdminAuditService,
+    private readonly propertyFees: PropertyFeeService,
   ) {}
 
   private parseOptionalBoolean(value?: string): boolean | undefined {
@@ -704,6 +708,27 @@ export class AdminPortalController {
       role: user.role,
       payoutId,
       providerRef: body?.providerRef,
+    });
+  }
+
+  @Get('vendor-property-fees')
+  vendorPropertyFees(
+    @Query()
+    query: {
+      vendorId?: string;
+      status?: FeeStatus;
+      furnishingStatus?: PropertyFurnishingStatus;
+      page?: string;
+      pageSize?: string;
+    },
+  ) {
+    const { page, pageSize } = parsePageParams(query);
+    return this.propertyFees.getAdminPropertyFees({
+      vendorId: query.vendorId,
+      status: query.status,
+      furnishingStatus: query.furnishingStatus,
+      page,
+      pageSize,
     });
   }
 

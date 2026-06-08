@@ -342,6 +342,16 @@ export class VendorPropertiesController {
     return this.service.reorderMedia(req.user.id, id, dto);
   }
 
+  @Post(':propertyId/media/:mediaId/cover')
+  async setCoverImage(
+    @Req() req: { user: JwtUser },
+    @Param('propertyId', new ParseUUIDPipe()) propertyId: string,
+    @Param('mediaId', new ParseUUIDPipe()) mediaId: string,
+  ) {
+    this.assertVendor(req.user);
+    return this.service.setCoverImage(req.user.id, propertyId, mediaId);
+  }
+
   @Delete(':propertyId/media/:mediaId')
   async deleteMedia(
     @Req() req: { user: JwtUser },

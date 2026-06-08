@@ -1,8 +1,11 @@
 import type { VendorPropertyDetail } from "@/lib/api/portal/vendor";
 import type { PropertyType } from "@/lib/types/property-type";
 
+export type PropertyFurnishingStatus = "FURNISHED" | "UNFURNISHED";
+
 export type WizardState = {
   propertyType: PropertyType;
+  furnishingStatus: PropertyFurnishingStatus | null;
   title: string;
   description: string;
   city: string;

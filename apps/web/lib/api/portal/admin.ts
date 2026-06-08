@@ -1687,3 +1687,62 @@ export async function deleteAdminGuestReview(
   );
   return unwrap(res);
 }
+
+// ─── Admin Vendor Property Fees ────────────────────────────────────────────
+
+export type AdminPropertyFeeItem = {
+  id: string;
+  type: "ACTIVATION" | "INSURANCE" | "FURNISHING";
+  amountMinor: number;
+  amountFormatted: string;
+  currency: string;
+  status: "UNPAID" | "PAID" | "WAIVED" | "CANCELLED";
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminPropertyFeeEntry = {
+  propertyId: string;
+  propertyTitle: string;
+  propertyCity: string;
+  propertyStatus: string;
+  furnishingStatus: "FURNISHED" | "UNFURNISHED" | null;
+  vendor: { id: string; email: string; fullName: string | null };
+  fees: AdminPropertyFeeItem[];
+  totalDueMinor: number;
+  paidMinor: number;
+  outstandingMinor: number;
+  totalDueFormatted: string;
+  paidFormatted: string;
+  outstandingFormatted: string;
+};
+
+export type AdminPropertyFeesResponse = {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: AdminPropertyFeeEntry[];
+};
+
+export async function getAdminVendorPropertyFees(params?: {
+  vendorId?: string;
+  status?: string;
+  furnishingStatus?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<AdminPropertyFeesResponse> {
+  const qs = new URLSearchParams();
+  if (params?.vendorId) qs.set("vendorId", params.vendorId);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.furnishingStatus) qs.set("furnishingStatus", params.furnishingStatus);
+  if (params?.page) qs.set("page", String(params.page));
+  if (params?.pageSize) qs.set("pageSize", String(params.pageSize));
+  const query = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch<AdminPropertyFeesResponse>(`/portal/admin/vendor-property-fees${query}`, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return unwrap(res);
+}

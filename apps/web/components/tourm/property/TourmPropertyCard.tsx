@@ -45,9 +45,13 @@ function formatMoney(amount: number, currency: string): string {
 export default function TourmPropertyCard({
   item,
   orientation = "vertical",
+  detailHref,
+  bookingHref,
 }: {
   item: Item;
   orientation?: CardOrientation;
+  detailHref?: string;
+  bookingHref?: string;
 }) {
   const t = useTranslations("propertyCard");
   const isHorizontal = orientation === "horizontal";
@@ -81,6 +85,8 @@ export default function TourmPropertyCard({
     itemCurrency !== "AED" && typeof baseNightlyAed === "number"
       ? t("basePrice", { amount: formatMoney(baseNightlyAed, "AED") })
       : null;
+  const propertyHref = detailHref ?? `/properties/${item.slug}`;
+  const propertyBookingHref = bookingHref ?? `${propertyHref}#book`;
 
   const slides = useMemo<Slide[]>(() => {
     const output: Slide[] = [];
@@ -250,7 +256,7 @@ export default function TourmPropertyCard({
       onClick={(event) => {
         const target = event.target as HTMLElement;
         if (target.closest("a,button,input,textarea,select,label,summary,details")) return;
-        router.push(`/properties/${item.slug}`);
+        router.push(propertyHref);
       }}
     >
       <div
@@ -278,7 +284,7 @@ export default function TourmPropertyCard({
             {slides.map((slide, idx) => (
               <Link
                 key={slide.key}
-                href={`/properties/${item.slug}`}
+                href={propertyHref}
                 className="relative h-full w-full shrink-0 snap-start"
                 onClick={(e) => {
                   if (!suppressClickRef.current) return;
@@ -334,7 +340,7 @@ export default function TourmPropertyCard({
             {propertyType}
           </div>
           <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight text-primary">
-            <Link href={`/properties/${item.slug}`} className="transition hover:text-secondary">
+            <Link href={propertyHref} className="transition hover:text-secondary">
               {title}
             </Link>
           </h3>
@@ -359,7 +365,7 @@ export default function TourmPropertyCard({
               </div>
 
               <Link
-                href={`/properties/${item.slug}#book`}
+                href={propertyBookingHref}
                 className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
                 {t("view")}
@@ -383,7 +389,7 @@ export default function TourmPropertyCard({
               </div>
 
               <Link
-                href={`/properties/${item.slug}#book`}
+                href={propertyBookingHref}
                 className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
               >
                 {t("view")}

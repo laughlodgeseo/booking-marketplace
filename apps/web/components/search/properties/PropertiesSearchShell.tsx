@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { SearchResponse, MapPoint } from "@/lib/types/search";
 import type { PropertiesQuery } from "@/lib/search/params";
-import { buildPropertiesSearchParams, stableStringifyQuery, withPage, withResetPage } from "@/lib/search/params";
+import { buildPropertiesSearchParams, buildPropertyDetailHref, stableStringifyQuery, withPage, withResetPage } from "@/lib/search/params";
 import { searchMapViewport } from "@/lib/api/search";
 import TourmPropertyCard from "@/components/tourm/property/TourmPropertyCard";
 import FiltersPanel from "@/components/search/properties/PropertiesFiltersPanel";
@@ -115,6 +115,18 @@ export default function PropertiesSearchShell(props: Props) {
     [router],
   );
 
+  const getPropertyHref = useCallback(
+    (slug: string, hash?: string) =>
+      buildPropertyDetailHref({
+        slug,
+        checkIn: props.query.checkIn,
+        checkOut: props.query.checkOut,
+        guests: props.query.guests,
+        hash,
+      }),
+    [props.query.checkIn, props.query.checkOut, props.query.guests],
+  );
+
   const onChangeFilters = useCallback(
     (partial: Partial<PropertiesQuery>) => {
       const next: PropertiesQuery = withResetPage({
@@ -186,8 +198,8 @@ export default function PropertiesSearchShell(props: Props) {
   }, []);
 
   const onMarkerOpen = useCallback((slug: string) => {
-    router.push(`/properties/${slug}`);
-  }, [router]);
+    router.push(getPropertyHref(slug));
+  }, [getPropertyHref, router]);
 
   const totalPages = props.meta ? Math.max(1, Math.ceil(props.meta.total / props.meta.limit)) : 1;
   const page = props.meta?.page ?? props.query.page;
@@ -279,7 +291,12 @@ export default function PropertiesSearchShell(props: Props) {
             onMouseEnter={() => setHoveredSlug(it.slug)}
             onMouseLeave={() => setHoveredSlug((s) => (s === it.slug ? null : s))}
           >
-            <TourmPropertyCard item={it} orientation={cardOrientation} />
+            <TourmPropertyCard
+              item={it}
+              orientation={cardOrientation}
+              detailHref={getPropertyHref(it.slug)}
+              bookingHref={getPropertyHref(it.slug, "book")}
+            />
           </div>
         ))}
       </div>

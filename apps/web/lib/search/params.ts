@@ -14,6 +14,119 @@ export const DATE_QUERY_KEYS = [
 
 export type DateQueryKey = (typeof DATE_QUERY_KEYS)[number];
 
+export type PropertyDetailSearchContext = {
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+};
+
+function todayIsoDay(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function isStrictIsoDay(value?: string | null): value is string {
+  if (!isIsoDay(value)) return false;
+
+  const [yearRaw, monthRaw, dayRaw] = value.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+  );
+}
+
+export function isValidFutureIsoRange(
+  checkIn?: string | null,
+  checkOut?: string | null,
+  options: { today?: string } = {},
+): checkIn is string {
+  if (!isStrictIsoDay(checkIn) || !isStrictIsoDay(checkOut)) return false;
+  const today = options.today ?? todayIsoDay();
+  return checkIn >= today && checkOut > checkIn;
+}
+
+function clampBookingGuests(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(16, Math.trunc(value)));
+}
+
+function pickParam(
+  source: RawSearchParams | URLSearchParams | PropertyDetailSearchContext,
+  key: keyof PropertyDetailSearchContext,
+): string | undefined {
+  if (source instanceof URLSearchParams) {
+    return source.get(key) ?? undefined;
+  }
+
+  const value = source[key];
+  if (typeof value === "number") return String(value);
+  if (!value) return undefined;
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export function parsePropertyDetailSearchContext(
+  source: RawSearchParams | URLSearchParams | PropertyDetailSearchContext,
+  options: { today?: string } = {},
+): PropertyDetailSearchContext {
+  const checkIn = pickParam(source, "checkIn")?.trim();
+  const checkOut = pickParam(source, "checkOut")?.trim();
+  const guestsRaw = pickParam(source, "guests")?.trim();
+  const guestsNumber = guestsRaw ? Number(guestsRaw) : Number.NaN;
+  const context: PropertyDetailSearchContext = {};
+
+  if (isValidFutureIsoRange(checkIn, checkOut, options)) {
+    context.checkIn = checkIn;
+    context.checkOut = checkOut;
+  }
+
+  if (Number.isFinite(guestsNumber)) {
+    context.guests = clampBookingGuests(guestsNumber);
+  }
+
+  return context;
+}
+
+export function buildPropertyDetailHref(args: {
+  slug: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  guests?: number | null;
+  hash?: string;
+  today?: string;
+}): string {
+  const context = parsePropertyDetailSearchContext(
+    {
+      checkIn: args.checkIn ?? undefined,
+      checkOut: args.checkOut ?? undefined,
+      guests: args.guests ?? undefined,
+    },
+    { today: args.today },
+  );
+  const params = new URLSearchParams();
+
+  if (context.checkIn && context.checkOut) {
+    params.set("checkIn", context.checkIn);
+    params.set("checkOut", context.checkOut);
+  }
+  if (context.guests) {
+    params.set("guests", String(context.guests));
+  }
+
+  const query = params.toString();
+  const hash = args.hash ? `#${args.hash.replace(/^#/, "")}` : "";
+  return `/properties/${args.slug}${query ? `?${query}` : ""}${hash}`;
+}
+
 /** Returns a new URLSearchParams with every known date key removed. */
 export function removeDateParams(params: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(params.toString());

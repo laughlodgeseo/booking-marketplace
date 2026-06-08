@@ -55,6 +55,7 @@ function buildSlug(title: string): string {
 
 const DEFAULT_STATE: WizardState = {
   propertyType: "APARTMENT",
+  furnishingStatus: null,
   title: "", description: "", city: "Dubai", area: "", address: "",
   lat: null, lng: null, bedrooms: 1, bathrooms: 1, maxGuests: 2,
   selectedAmenityIds: [], basePrice: 25000, cleaningFee: 0,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   addDays,
   format,
@@ -32,8 +32,6 @@ type CalendarDay = {
   date: string;
   status: CalendarDayStatus;
 };
-
-const ISO_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const COPY = {
   en: {
@@ -127,12 +125,6 @@ function clampGuests(value: number): number {
   return Math.max(1, Math.min(16, Math.trunc(value)));
 }
 
-function isValidIsoDay(value: string): boolean {
-  if (!ISO_DAY_RE.test(value)) return false;
-  const parsed = parseISO(value);
-  return isValid(parsed);
-}
-
 function toIsoDay(value: Date): string {
   return format(value, "yyyy-MM-dd");
 }
@@ -160,9 +152,12 @@ export default function QuotePanelBatchA(props: {
   currency: string;
   priceFrom: number;
   priceFromAed?: number;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
+  initialGuests?: number;
+  initialAutoReserve?: boolean;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { status: authStatus } = useAuth();
 
   const locale = normalizeLocale(useLocale());
@@ -171,9 +166,13 @@ export default function QuotePanelBatchA(props: {
 
   const { currency: selectedCurrency, formatFromAed, formatBaseAed } = useCurrency();
 
-  const [checkIn, setCheckIn] = useState<string>("");
-  const [checkOut, setCheckOut] = useState<string>("");
-  const [guests, setGuests] = useState<number>(2);
+  const hasInitialRange =
+    props.initialCheckIn &&
+    props.initialCheckOut &&
+    isValidIsoRange(props.initialCheckIn, props.initialCheckOut);
+  const [checkIn, setCheckIn] = useState<string>(() => (hasInitialRange ? props.initialCheckIn ?? "" : ""));
+  const [checkOut, setCheckOut] = useState<string>(() => (hasInitialRange ? props.initialCheckOut ?? "" : ""));
+  const [guests, setGuests] = useState<number>(() => clampGuests(props.initialGuests ?? 2));
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCalendarOpen, setDesktopCalendarOpen] = useState(false);
@@ -191,7 +190,11 @@ export default function QuotePanelBatchA(props: {
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarWindow, setCalendarWindow] = useState<{ from: string; to: string } | null>(null);
-  const [calendarMonth, setCalendarMonth] = useState<Date>(startOfMonth(today));
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
+    if (!hasInitialRange || !props.initialCheckIn) return startOfMonth(today);
+    const month = parseISO(props.initialCheckIn);
+    return isValid(month) ? startOfMonth(month) : startOfMonth(today);
+  });
   const calendarCacheRef = useRef(
     new Map<
       string,
@@ -200,40 +203,8 @@ export default function QuotePanelBatchA(props: {
   );
   const calendarRequestRef = useRef<string | null>(null);
 
-  const initializedRef = useRef(false);
-  const [autoReserveRequested, setAutoReserveRequested] = useState(false);
+  const autoReserveRequested = Boolean(props.initialAutoReserve);
   const autoReserveAttemptedRef = useRef(false);
-
-  useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
-    const checkInQuery = (searchParams.get("checkIn") ?? "").trim();
-    const checkOutQuery = (searchParams.get("checkOut") ?? "").trim();
-    const guestsQuery = Number(searchParams.get("guests") ?? "");
-
-    const normalizedCheckIn = isValidIsoDay(checkInQuery) ? checkInQuery : "";
-    const normalizedCheckOut = isValidIsoDay(checkOutQuery) ? checkOutQuery : "";
-
-    if (normalizedCheckIn && normalizedCheckOut && isValidIsoRange(normalizedCheckIn, normalizedCheckOut)) {
-      setCheckIn(normalizedCheckIn);
-      setCheckOut(normalizedCheckOut);
-      const month = parseISO(normalizedCheckIn);
-      if (isValid(month)) setCalendarMonth(startOfMonth(month));
-    } else if (normalizedCheckIn) {
-      setCheckIn(normalizedCheckIn);
-      setCheckOut("");
-      const month = parseISO(normalizedCheckIn);
-      if (isValid(month)) setCalendarMonth(startOfMonth(month));
-    }
-
-    if (Number.isFinite(guestsQuery)) {
-      setGuests(clampGuests(guestsQuery));
-    }
-
-    const shouldAutoReserve = searchParams.get("autoreserve") === "1";
-    setAutoReserveRequested(shouldAutoReserve);
-  }, [searchParams]);
 
   useEffect(() => {
     let alive = true;

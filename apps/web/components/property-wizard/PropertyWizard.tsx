@@ -31,6 +31,7 @@ import { normalizePropertyType, PROPERTY_TYPE_LABELS } from "@/lib/types/propert
 // -------------------------------------------------------------------
 const DEFAULT_STATE: WizardState = {
   propertyType: "APARTMENT",
+  furnishingStatus: null,
   title: "", description: "", city: "Dubai", area: "", address: "",
   lat: null, lng: null, bedrooms: 1, bathrooms: 1, maxGuests: 2,
   selectedAmenityIds: [], basePrice: 25000, cleaningFee: 0,
@@ -40,6 +41,7 @@ const DEFAULT_STATE: WizardState = {
 function propertyToState(p: VendorPropertyDetail): WizardState {
   return {
     propertyType: normalizePropertyType(p.propertyType),
+    furnishingStatus: (p.furnishingStatus as WizardState["furnishingStatus"]) ?? null,
     title: p.title ?? "",
     description: p.description ?? "",
     city: p.city ?? "Dubai",
@@ -127,7 +129,7 @@ export function PropertyWizard({ initialProperty, onCreated }: Props) {
       const city  = data.city.trim() || "Dubai";
 
       if (stepIndex === 0) {
-        const input = { title, propertyType: data.propertyType, description: data.description.trim() || undefined, city, area: data.area.trim() || null, basePrice: data.basePrice, cleaningFee: data.cleaningFee, currency: data.currency };
+        const input = { title, propertyType: data.propertyType, furnishingStatus: data.furnishingStatus ?? undefined, description: data.description.trim() || undefined, city, area: data.area.trim() || null, basePrice: data.basePrice, cleaningFee: data.cleaningFee, currency: data.currency };
         updated = property ? await updateVendorPropertyDraft(property.id, input) : await createVendorPropertyDraft({ ...input, lat: null, lng: null });
         if (!property) onCreated?.(updated);
       } else if (stepIndex === 1 && property) {

@@ -6,7 +6,11 @@ import {
   hasActiveDates,
   hasCompleteDateRange,
   buildPropertiesSearchParams,
+  buildPropertyDetailHref,
+  isStrictIsoDay,
+  isValidFutureIsoRange,
   parsePropertiesQuery,
+  parsePropertyDetailSearchContext,
 } from "../lib/search/params";
 
 // ---------------------------------------------------------------------------
@@ -217,5 +221,86 @@ describe("buildPropertiesSearchParams", () => {
     const sp = buildPropertiesSearchParams(q);
     expect(sp.get("checkIn")).toBe("2026-06-06");
     expect(sp.get("checkOut")).toBe("2026-06-13");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// property detail date context preservation
+// ---------------------------------------------------------------------------
+
+describe("property detail search context", () => {
+  const today = "2026-06-08";
+
+  it("strictly validates real YYYY-MM-DD calendar dates", () => {
+    expect(isStrictIsoDay("2026-07-10")).toBe(true);
+    expect(isStrictIsoDay("2026-02-30")).toBe(false);
+    expect(isStrictIsoDay("2026-7-10")).toBe(false);
+    expect(isStrictIsoDay("abc")).toBe(false);
+  });
+
+  it("accepts future ordered check-in/check-out ranges", () => {
+    expect(isValidFutureIsoRange("2026-07-10", "2026-07-15", { today })).toBe(true);
+  });
+
+  it("rejects reversed, malformed, and past date ranges", () => {
+    expect(isValidFutureIsoRange("2026-08-10", "2026-08-01", { today })).toBe(false);
+    expect(isValidFutureIsoRange("abc", "xyz", { today })).toBe(false);
+    expect(isValidFutureIsoRange("2026-06-07", "2026-06-10", { today })).toBe(false);
+  });
+
+  it("parses valid detail search params for booking card initialization", () => {
+    const context = parsePropertyDetailSearchContext(
+      new URLSearchParams("checkIn=2026-07-10&checkOut=2026-07-15&guests=4"),
+      { today },
+    );
+    expect(context).toEqual({
+      checkIn: "2026-07-10",
+      checkOut: "2026-07-15",
+      guests: 4,
+    });
+  });
+
+  it("ignores invalid date params without dropping valid guests", () => {
+    const context = parsePropertyDetailSearchContext(
+      new URLSearchParams("checkIn=abc&checkOut=xyz&guests=3"),
+      { today },
+    );
+    expect(context).toEqual({ guests: 3 });
+  });
+
+  it("builds clean property detail hrefs with selected dates and guests", () => {
+    expect(
+      buildPropertyDetailHref({
+        slug: "some-property-slug",
+        checkIn: "2026-07-10",
+        checkOut: "2026-07-15",
+        guests: 2,
+        today,
+      }),
+    ).toBe("/properties/some-property-slug?checkIn=2026-07-10&checkOut=2026-07-15&guests=2");
+  });
+
+  it("places hash fragments after preserved query params", () => {
+    expect(
+      buildPropertyDetailHref({
+        slug: "some-property-slug",
+        checkIn: "2026-07-10",
+        checkOut: "2026-07-15",
+        guests: 2,
+        hash: "book",
+        today,
+      }),
+    ).toBe("/properties/some-property-slug?checkIn=2026-07-10&checkOut=2026-07-15&guests=2#book");
+  });
+
+  it("does not append malformed date params to property links", () => {
+    expect(
+      buildPropertyDetailHref({
+        slug: "test",
+        checkIn: "2026-08-10",
+        checkOut: "2026-08-01",
+        today,
+      }),
+    ).toBe("/properties/test");
   });
 });

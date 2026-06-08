@@ -308,6 +308,7 @@ export class VendorPropertiesService {
         title: true,
         slug: true,
         propertyType: true,
+        furnishingStatus: true,
         description: true,
         city: true,
         area: true,
@@ -334,6 +335,7 @@ export class VendorPropertiesService {
             url: true,
             alt: true,
             sortOrder: true,
+            isCover: true,
             category: true,
           },
         },
@@ -379,6 +381,7 @@ export class VendorPropertiesService {
     prop: {
       lat: number | null;
       lng: number | null;
+      furnishingStatus?: string | null;
     },
   ): Promise<void> {
     const [media, docs] = await this.prisma.$transaction([
@@ -393,6 +396,12 @@ export class VendorPropertiesService {
     ]);
 
     const missingLines: string[] = [];
+
+    if (!prop.furnishingStatus) {
+      missingLines.push(
+        `- Select furnishing status (Furnished or Unfurnished).`,
+      );
+    }
 
     if (prop.lat == null || prop.lng == null) {
       missingLines.push(
@@ -650,6 +659,7 @@ export class VendorPropertiesService {
             title: dto.title.trim(),
             slug,
             propertyType: dto.propertyType,
+            furnishingStatus: dto.furnishingStatus ?? null,
             description: dto.description?.trim() || null,
             city: dto.city.trim(),
             area: dto.area?.trim() || null,
@@ -723,6 +733,8 @@ export class VendorPropertiesService {
         title: dto.title?.trim(),
         slug,
         propertyType: dto.propertyType,
+        furnishingStatus:
+          dto.furnishingStatus !== undefined ? dto.furnishingStatus : undefined,
         description: dto.description?.trim(),
         city: dto.city?.trim(),
         area: dto.area?.trim(),
@@ -1374,6 +1386,35 @@ export class VendorPropertiesService {
     );
 
     await this.applyVendorEditState(propertyId, prop.status);
+
+    return this.prisma.media.findMany({
+      where: { propertyId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async setCoverImage(
+    vendorUserId: string,
+    propertyId: string,
+    mediaId: string,
+  ) {
+    await this.assertOwnership(vendorUserId, propertyId);
+
+    const media = await this.prisma.media.findUnique({ where: { id: mediaId } });
+    if (!media || media.propertyId !== propertyId) {
+      throw new NotFoundException('Media not found.');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.media.updateMany({
+        where: { propertyId, isCover: true },
+        data: { isCover: false },
+      }),
+      this.prisma.media.update({
+        where: { id: mediaId },
+        data: { isCover: true },
+      }),
+    ]);
 
     return this.prisma.media.findMany({
       where: { propertyId },

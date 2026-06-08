@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import {
   PropertyDocumentType,
+  PropertyFurnishingStatus,
   PropertyMediaCategory,
   PropertyType,
 } from '@prisma/client';
@@ -41,6 +42,10 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsEnum(PropertyType)
   propertyType?: PropertyType;
+
+  @IsOptional()
+  @IsEnum(PropertyFurnishingStatus)
+  furnishingStatus?: PropertyFurnishingStatus;
 
   @IsOptional()
   @IsString()
@@ -146,6 +151,10 @@ export class UpdatePropertyDto {
   @IsOptional()
   @IsEnum(PropertyType)
   propertyType?: PropertyType;
+
+  @IsOptional()
+  @IsEnum(PropertyFurnishingStatus)
+  furnishingStatus?: PropertyFurnishingStatus | null;
 
   @IsOptional()
   @IsString()

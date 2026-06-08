@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { VendorPortalService } from './vendor-portal.service';
+import { PropertyFeeService } from '../../modules/fees/property-fee.service';
 
 import { JwtAccessGuard } from '../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -40,6 +41,7 @@ export class VendorPortalController {
   constructor(
     private readonly service: VendorPortalService,
     private readonly notifications: PortalNotificationsService,
+    private readonly propertyFees: PropertyFeeService,
   ) {}
 
   private parseOptionalBoolean(value?: string): boolean | undefined {
@@ -206,6 +208,11 @@ export class VendorPortalController {
   ) {
     const { page, pageSize } = parsePageParams(query);
     return this.service.getVendorReviews(user.id, page, pageSize);
+  }
+
+  @Get('property-fees')
+  listPropertyFees(@CurrentUser() user: User) {
+    return this.propertyFees.getVendorPropertyFees(user.id);
   }
 
   @Post('block-requests')

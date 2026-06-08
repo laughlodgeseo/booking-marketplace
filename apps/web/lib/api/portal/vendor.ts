@@ -187,6 +187,7 @@ export type VendorPropertyMedia = {
   alt: string | null;
   sortOrder: number;
   category: MediaCategory;
+  isCover: boolean;
   createdAt: string;
 };
 
@@ -338,6 +339,8 @@ export type VendorPropertyDetail = {
 
   isInstantBook: boolean;
 
+  furnishingStatus: "FURNISHED" | "UNFURNISHED" | null;
+
   status: VendorPropertyStatus;
   documentUrl?: string | null;
   documentPublicId?: string | null;
@@ -371,6 +374,7 @@ export type VendorPropertyDraftInput = {
   title: string;
   slug?: string;
   propertyType?: PropertyType;
+  furnishingStatus?: "FURNISHED" | "UNFURNISHED" | null;
   description?: string;
 
   city: string;
@@ -1148,5 +1152,67 @@ export async function requestVendorPropertyDeletion(
       body: { reason: reason?.trim() || undefined },
     }
   );
+  return unwrap(res);
+}
+
+export async function setVendorPropertyCoverImage(
+  propertyId: string,
+  mediaId: string,
+): Promise<VendorPropertyMedia[]> {
+  const res = await apiFetch<VendorPropertyMedia[]>(
+    `/vendor/properties/${encodeURIComponent(propertyId)}/media/${encodeURIComponent(mediaId)}/cover`,
+    {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  return unwrap(res);
+}
+
+export type PropertyFeeItem = {
+  id: string;
+  type: "ACTIVATION" | "INSURANCE" | "FURNISHING";
+  amountMinor: number;
+  amountFormatted: string;
+  currency: string;
+  status: "UNPAID" | "PAID" | "WAIVED" | "CANCELLED";
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendorPropertyFeeEntry = {
+  propertyId: string;
+  propertyTitle: string;
+  propertyCity: string;
+  propertyStatus: string;
+  furnishingStatus: "FURNISHED" | "UNFURNISHED" | null;
+  feeStatus: "paid" | "partially_paid" | "unpaid";
+  totalDueMinor: number;
+  paidMinor: number;
+  outstandingMinor: number;
+  fees: PropertyFeeItem[];
+};
+
+export type VendorPropertyFeesResponse = {
+  summary: {
+    totalDueMinor: number;
+    totalPaidMinor: number;
+    outstandingMinor: number;
+    propertiesWithFees: number;
+    totalDueFormatted: string;
+    totalPaidFormatted: string;
+    outstandingFormatted: string;
+  };
+  items: VendorPropertyFeeEntry[];
+};
+
+export async function getVendorPropertyFees(): Promise<VendorPropertyFeesResponse> {
+  const res = await apiFetch<VendorPropertyFeesResponse>("/portal/vendor/property-fees", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
   return unwrap(res);
 }

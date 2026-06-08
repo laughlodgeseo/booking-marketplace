@@ -16,6 +16,7 @@ import ThingsToKnowSection, { type ThingsToKnowBlock } from "@/components/tourm/
 import QuotePanelBatchA from "@/components/booking/QuotePanelBatchA";
 import { parseSupportedCurrency } from "@/lib/currency/currency";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { parsePropertyDetailSearchContext } from "@/lib/search/params";
 
 const PublicPropertyCalendar = dynamic(
   () => import("@/components/property/PublicPropertyCalendar"),
@@ -36,6 +37,7 @@ const GoogleMap = dynamic(() => import("@/components/maps/GoogleMap"), {
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 type AmenityLike = string | { key: string; label?: string };
@@ -310,6 +312,10 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function PropertyDetailPage(props: PageProps) {
   const { slug } = await props.params;
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const bookingContext = parsePropertyDetailSearchContext(searchParams);
+  const autoReserve =
+    (Array.isArray(searchParams.autoreserve) ? searchParams.autoreserve[0] : searchParams.autoreserve) === "1";
   const locale = await getRequestLocale();
   const copy = PROPERTY_PAGE_COPY[locale];
   const cookieStore = await cookies();
@@ -711,6 +717,10 @@ export default async function PropertyDetailPage(props: PageProps) {
                 currency={p.currency}
                 priceFrom={p.priceFrom}
                 priceFromAed={p.priceFromAed}
+                initialCheckIn={bookingContext.checkIn}
+                initialCheckOut={bookingContext.checkOut}
+                initialGuests={bookingContext.guests}
+                initialAutoReserve={autoReserve}
               />
             </aside>
           </div>

@@ -34,6 +34,7 @@ import {
 } from '../../vendor/vendor-properties.dto';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
 import { ActivationPaymentService } from '../../modules/payments/activation-payment.service';
+import { PropertyFeeService } from '../../modules/fees/property-fee.service';
 import {
   appendReviewHistoryEntry,
   computePropertyChanges,
@@ -58,6 +59,7 @@ export class AdminPropertiesService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly activationPayments: ActivationPaymentService,
+    private readonly propertyFees: PropertyFeeService,
   ) {}
 
   // -------------------------
@@ -241,6 +243,7 @@ export class AdminPropertiesService {
         title: true,
         slug: true,
         propertyType: true,
+        furnishingStatus: true,
         description: true,
         city: true,
         area: true,
@@ -267,6 +270,7 @@ export class AdminPropertiesService {
             url: true,
             alt: true,
             sortOrder: true,
+            isCover: true,
             category: true,
           },
         },
@@ -728,15 +732,6 @@ export class AdminPropertiesService {
     // Admin can publish from most states except SUSPENDED
     if (prop.status === PropertyStatus.SUSPENDED) {
       throw new BadRequestException('Property is suspended.');
-    }
-
-    if (
-      prop.status === PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT &&
-      !prop.createdByAdminId
-    ) {
-      throw new BadRequestException(
-        'Activation payment is required before publishing this vendor listing.',
-      );
     }
 
     if (prop.lat == null || prop.lng == null) {
@@ -1402,26 +1397,11 @@ export class AdminPropertiesService {
         );
       }
 
-      const wasActivationPaid =
-        prop.activationPaymentStatus === PropertyActivationPaymentStatus.PAID;
-      const requiresActivation = !prop.createdByAdminId && !wasActivationPaid;
-      const activationFeeMinor = requiresActivation
-        ? this.parseActivationFeeMinor(dto.activationFee)
-        : null;
-      const activationCurrency = requiresActivation ? 'AED' : null;
-
-      if (requiresActivation && dto.activationFeeCurrency) {
-        this.normalizeActivationCurrency(dto.activationFeeCurrency);
-      }
-
-      const nextStatus = requiresActivation
-        ? PropertyStatus.APPROVED_PENDING_ACTIVATION_PAYMENT
-        : PropertyStatus.APPROVED;
       const snapshot = await this.buildReviewSnapshot(tx, propertyId);
       const now = new Date();
 
       const propertyUpdateData: Prisma.PropertyUpdateInput = {
-        status: nextStatus,
+        status: PropertyStatus.APPROVED,
         lastReviewedAt: now,
         reviewHistory: appendReviewHistoryEntry(prop.reviewHistory, {
           action: 'APPROVED',
@@ -1432,12 +1412,7 @@ export class AdminPropertiesService {
         }),
       };
 
-      if (requiresActivation && activationFeeMinor && activationCurrency) {
-        propertyUpdateData.activationFee = activationFeeMinor;
-        propertyUpdateData.activationFeeCurrency = activationCurrency;
-        propertyUpdateData.activationPaymentStatus =
-          PropertyActivationPaymentStatus.UNPAID;
-      } else if (prop.createdByAdminId) {
+      if (prop.createdByAdminId) {
         propertyUpdateData.activationPaymentStatus =
           PropertyActivationPaymentStatus.PAID;
       }
@@ -1457,41 +1432,50 @@ export class AdminPropertiesService {
         },
       });
 
-      return {
-        ok: true,
-        item: updated,
-        requiresActivation,
-        activationFeeMinor,
-        activationCurrency,
-      };
+      return { ok: true, item: updated };
     });
 
-    if (
-      result.requiresActivation &&
-      result.activationFeeMinor &&
-      result.activationCurrency
-    ) {
-      await this.activationPayments.ensurePendingInvoice({
-        propertyId,
-        vendorId: result.item.vendorId,
-        amount: result.activationFeeMinor,
-        currency: result.activationCurrency,
-      });
+    await this.propertyFees.ensureFeesForProperty(
+      propertyId,
+      result.item.vendorId,
+    );
 
-      await this.notifications.emit({
-        type: NotificationType.PROPERTY_APPROVED_ACTIVATION_REQUIRED,
-        entityType: 'property',
-        entityId: propertyId,
-        recipientUserId: result.item.vendorId,
-        payload: {
-          propertyId,
-          title: result.item.title,
-          status: result.item.status,
-          activationAmount: result.activationFeeMinor,
-          currency: result.activationCurrency,
-          actionUrl: `/vendor/properties/${propertyId}/activation`,
+    // Notify vendor with properly formatted fee amounts
+    try {
+      const property = await this.prisma.property.findUnique({
+        where: { id: propertyId },
+        select: {
+          furnishingStatus: true,
+          vendorId: true,
+          title: true,
+          city: true,
         },
       });
+
+      if (property) {
+        const { activation, insurance, furnishing } =
+          this.propertyFees.feesForFurnishingStatus(property.furnishingStatus);
+        const totalMinor = activation + insurance + furnishing;
+        const fmt = (n: number) => `AED ${(n / 100).toFixed(2)}`;
+
+        await this.notifications.emit({
+          type: NotificationType.PROPERTY_APPROVED_ACTIVATION_REQUIRED,
+          entityType: 'PROPERTY',
+          entityId: propertyId,
+          recipientUserId: property.vendorId,
+          payload: {
+            title: property.title,
+            city: property.city ?? '',
+            activationFeeFormatted: fmt(activation),
+            insuranceFeeFormatted: fmt(insurance),
+            furnishingFeeFormatted: furnishing > 0 ? fmt(furnishing) : null,
+            totalFormatted: fmt(totalMinor),
+            actionUrl: `${process.env.WEB_BASE_URL ?? ''}/vendor/property-fees`,
+          },
+        });
+      }
+    } catch {
+      // Non-critical: never block the approval response on notification failure
     }
 
     return { ok: result.ok, item: result.item };

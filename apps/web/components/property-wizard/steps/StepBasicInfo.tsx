@@ -1,8 +1,31 @@
 "use client";
 
-import type { StepProps } from "../types";
+import type { StepProps, PropertyFurnishingStatus } from "../types";
 import type { PropertyType } from "@/lib/types/property-type";
 import { PROPERTY_TYPE_LABELS } from "@/lib/types/property-type";
+
+const FURNISHING_OPTIONS: {
+  value: PropertyFurnishingStatus;
+  label: string;
+  icon: string;
+  hint: string;
+  fees: string;
+}[] = [
+  {
+    value: "FURNISHED",
+    label: "Furnished",
+    icon: "🛋️",
+    hint: "Property comes with furniture and appliances",
+    fees: "Total fees: AED 2,150",
+  },
+  {
+    value: "UNFURNISHED",
+    label: "Unfurnished",
+    icon: "🏗️",
+    hint: "Empty unit — furniture to be arranged separately",
+    fees: "Total fees: AED 5,150",
+  },
+];
 
 const PROPERTY_TYPES = [
   { icon: "🏢", value: "APARTMENT" as PropertyType },
@@ -55,6 +78,52 @@ export function StepBasicInfo({ data, patch }: StepProps) {
                 <span className="text-2xl">{type.icon}</span>
                 <span className={`text-xs font-semibold ${selected ? "text-accent-text" : "text-secondary group-hover:text-primary"}`}>
                   {PROPERTY_TYPE_LABELS[type.value]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Furnishing status */}
+      <div className="rounded-3xl border border-line/50 bg-surface p-5 shadow-sm">
+        <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted">
+          Furnishing Status <span className="text-danger normal-case font-normal">*</span>
+        </div>
+        <p className="mb-4 text-xs text-secondary">
+          This affects your total fee obligations — choose carefully.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {FURNISHING_OPTIONS.map((opt) => {
+            const selected = data.furnishingStatus === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => patch({ furnishingStatus: opt.value })}
+                aria-pressed={selected}
+                className={[
+                  "relative flex flex-col items-start gap-2 rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.99]",
+                  selected
+                    ? "border-brand bg-brand text-accent-text shadow-[0_12px_30px_rgba(79,70,229,0.28)] ring-2 ring-brand/30"
+                    : "border-line/60 bg-warm-base text-secondary hover:border-brand/30 hover:bg-accent-soft/10 hover:text-primary",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "absolute right-3 top-3 h-2.5 w-2.5 rounded-full transition-all",
+                    selected ? "bg-accent-text shadow-[0_0_0_4px_rgba(255,255,255,0.22)]" : "bg-line/70",
+                  ].join(" ")}
+                />
+                <span className="text-3xl">{opt.icon}</span>
+                <span className={`text-sm font-bold ${selected ? "text-accent-text" : "text-primary"}`}>
+                  {opt.label}
+                </span>
+                <span className={`text-xs ${selected ? "text-accent-text/80" : "text-secondary"}`}>
+                  {opt.hint}
+                </span>
+                <span className={`mt-1 text-xs font-semibold ${selected ? "text-accent-text" : "text-brand"}`}>
+                  {opt.fees}
                 </span>
               </button>
             );

@@ -1,13 +1,84 @@
 <!doctype html>
-<html>
-  <body style="font-family:Arial,sans-serif;color:#111827;line-height:1.5;">
-    <h2 style="margin:0 0 12px;">Property approved</h2>
-    <p style="margin:0 0 12px;">Your property <strong>{{title}}</strong> has been approved.</p>
-    <p style="margin:0 0 12px;">Activation payment is required before publishing.</p>
-    <p style="margin:0 0 12px;">
-      Amount: <strong>{{activationAmount}} {{currency}}</strong>
-    </p>
-    <p style="margin:0 0 12px;">Open: {{actionUrl}}</p>
-    <p style="margin:0;">If you did not expect this message, contact support.</p>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Property Approved — Laugh &amp; Lodge</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;">
+          <!-- Header -->
+          <tr>
+            <td style="background:#1a1a2e;padding:28px 40px;text-align:center;">
+              <span style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:1px;">Laugh &amp; Lodge</span>
+            </td>
+          </tr>
+          <!-- Hero -->
+          <tr>
+            <td style="padding:36px 40px 20px;text-align:center;">
+              <div style="display:inline-block;background:#dcfce7;border-radius:50%;width:64px;height:64px;line-height:64px;font-size:32px;margin-bottom:16px;">✓</div>
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#111827;">Property Approved!</h1>
+              <p style="margin:0;font-size:15px;color:#6b7280;">Your property has been reviewed and approved by our team.</p>
+            </td>
+          </tr>
+          <!-- Property -->
+          <tr>
+            <td style="padding:0 40px 24px;">
+              <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;">
+                <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Property</p>
+                <p style="margin:0;font-size:18px;font-weight:700;color:#111827;">{{title}}</p>
+                <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">{{city}}</p>
+              </div>
+            </td>
+          </tr>
+          <!-- Fee breakdown -->
+          <tr>
+            <td style="padding:0 40px 28px;">
+              <p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#111827;">Outstanding fee obligations:</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+                <tr style="background:#f9fafb;">
+                  <td style="padding:10px 16px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb;">Fee type</td>
+                  <td style="padding:10px 16px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb;text-align:right;">Amount</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">Activation Fee</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600;">{{activationFeeFormatted}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">Property Insurance</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600;">{{insuranceFeeFormatted}}</td>
+                </tr>
+                {{#if furnishingFeeFormatted}}
+                <tr>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;">Furnishing Fee</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600;">{{furnishingFeeFormatted}}</td>
+                </tr>
+                {{/if}}
+                <tr style="background:#f9fafb;">
+                  <td style="padding:14px 16px;font-size:15px;font-weight:700;color:#111827;">Total</td>
+                  <td style="padding:14px 16px;font-size:15px;font-weight:700;color:#111827;text-align:right;">{{totalFormatted}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- CTA -->
+          <tr>
+            <td style="padding:0 40px 32px;text-align:center;">
+              <a href="{{actionUrl}}" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;">View Fee Details</a>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 40px;border-top:1px solid #f3f4f6;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">If you did not expect this message, please contact <a href="mailto:support@laughandlodge.com" style="color:#1a1a2e;">support@laughandlodge.com</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
 </html>

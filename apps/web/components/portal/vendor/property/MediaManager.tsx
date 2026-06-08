@@ -7,6 +7,7 @@ import {
   deleteVendorPropertyMedia,
   registerVendorPropertyMedia,
   reorderVendorPropertyMedia,
+  setVendorPropertyCoverImage,
   updateVendorPropertyMediaCategory,
   uploadVendorPropertyMedia,
 } from "@/lib/api/portal/vendor";
@@ -86,6 +87,7 @@ export function MediaManager({ property, onChanged }: Props) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [uploadBatch, setUploadBatch] = useState<{ current: number; total: number } | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const [otherCategory, setOtherCategory] = useState<MediaCategory>("OTHER");
 
@@ -244,7 +246,20 @@ export function MediaManager({ property, onChanged }: Props) {
   }
 
   function viewMedia(url: string) {
-    window.open(url, "_blank", "noopener,noreferrer");
+    setLightboxUrl(url);
+  }
+
+  async function setCover(mediaId: string) {
+    setError(null);
+    setBusy("Setting cover...");
+    try {
+      const rows = await setVendorPropertyCoverImage(property.id, mediaId);
+      onChanged({ ...property, media: rows });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to set cover.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   function downloadMedia(url: string, filename: string) {
@@ -322,6 +337,7 @@ export function MediaManager({ property, onChanged }: Props) {
   }, []);
 
   return (
+    <>
     <section className="relative space-y-4">
       {/* Upload overlay — covers the whole section while busy */}
       {busy && (
@@ -447,17 +463,26 @@ export function MediaManager({ property, onChanged }: Props) {
 
             return (
               <div key={m.id} className="overflow-hidden rounded-2xl border border-line/80 bg-surface">
-                <div className="relative aspect-[4/3] w-full bg-warm-base">
+                <div
+                  className="relative aspect-[4/3] w-full cursor-pointer bg-warm-base"
+                  onClick={() => viewMedia(m.url)}
+                  title="Click to view full size"
+                >
                   <OptimizedImage
                     src={m.url}
                     alt={m.alt ?? `Photo ${idx + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-opacity hover:opacity-90"
                     sizes="(max-width: 1024px) 50vw, 33vw"
                   />
                   <div className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-semibold text-primary shadow-sm">
                     #{m.sortOrder}
                   </div>
+                  {m.isCover && (
+                    <div className="absolute bottom-3 left-3 rounded-full bg-brand px-2.5 py-1 text-xs font-bold text-accent-text shadow-sm">
+                      Cover
+                    </div>
+                  )}
                   <div className="absolute right-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-semibold text-primary shadow-sm">
                     {safeCategory}
                   </div>
@@ -518,6 +543,17 @@ export function MediaManager({ property, onChanged }: Props) {
                     </button>
                   </div>
 
+                  {!m.isCover && (
+                    <button
+                      type="button"
+                      onClick={() => void setCover(m.id)}
+                      disabled={busy !== null}
+                      className="w-full rounded-xl border border-brand/40 bg-brand/10 px-3 py-2 text-sm font-semibold text-brand hover:bg-brand/20 disabled:opacity-50"
+                    >
+                      Set as cover
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => void removeMedia(m.id)}
@@ -526,10 +562,6 @@ export function MediaManager({ property, onChanged }: Props) {
                   >
                     Delete photo
                   </button>
-
-                  <p className="text-xs text-muted">
-                    Tip: set your best image as <span className="font-medium">Cover</span>.
-                  </p>
                 </div>
               </div>
             );
@@ -543,5 +575,34 @@ export function MediaManager({ property, onChanged }: Props) {
         </div>
       </div>
     </section>
+
+    {/* Lightbox */}
+    {lightboxUrl && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        onClick={() => setLightboxUrl(null)}
+      >
+        <div
+          className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-2xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt="Full size view"
+            className="max-h-[85vh] max-w-[85vw] object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

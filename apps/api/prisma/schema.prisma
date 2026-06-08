@@ -49,6 +49,24 @@ enum PropertyType {
   CHALET
 }
 
+enum PropertyFurnishingStatus {
+  FURNISHED
+  UNFURNISHED
+}
+
+enum PropertyFeeType {
+  ACTIVATION
+  INSURANCE
+  FURNISHING
+}
+
+enum FeeStatus {
+  UNPAID
+  PAID
+  WAIVED
+  CANCELLED
+}
+
 enum BookingStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -474,6 +492,7 @@ model User {
 
   notifications NotificationEvent[] @relation("NotificationRecipient")
   activationInvoices PropertyActivationInvoice[] @relation("ActivationInvoiceVendor")
+  propertyFees       PropertyFee[]               @relation("PropertyFeeVendor")
 
   // ✅ Property review relations
   propertyReviews   PropertyReview[]   @relation("PropertyReviewedByAdmin")
@@ -696,6 +715,8 @@ model Property {
   /// Defaults to 3 (standard apartment) when not explicitly set.
   starRating  Int?   @default(3)
 
+  furnishingStatus PropertyFurnishingStatus?
+
   minNights      Int     @default(1)
   maxNights      Int?
   checkInFromMin Int?
@@ -743,6 +764,7 @@ model Property {
   maintenance   MaintenanceRequest[]
   blockRequests BlockRequest[]
   activationInvoices PropertyActivationInvoice[]
+  propertyFees       PropertyFee[]
 
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
@@ -844,6 +866,7 @@ model Media {
   url       String
   alt       String?
   sortOrder Int     @default(0)
+  isCover   Boolean @default(false)
 
   // ✅ NEW: photo categorization
   category PropertyMediaCategory @default(OTHER)
@@ -1778,6 +1801,33 @@ model PropertyActivationInvoice {
   @@index([propertyId, status])
   @@index([stripePaymentIntentId])
   @@unique([stripePaymentIntentId])
+}
+
+model PropertyFee {
+  id String @id @default(uuid())
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  vendorId String
+  vendor   User   @relation("PropertyFeeVendor", fields: [vendorId], references: [id], onDelete: Cascade)
+
+  type        PropertyFeeType
+  amountMinor Int
+  currency    String          @default("AED")
+  status      FeeStatus       @default(UNPAID)
+
+  paidAt    DateTime?
+  paidRef   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([type])
+  @@index([propertyId, type], map: "uniq_property_fee_property_type")
 }
 
 model ServicePlan {
