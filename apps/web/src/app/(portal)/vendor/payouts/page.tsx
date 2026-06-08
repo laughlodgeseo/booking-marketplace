@@ -9,7 +9,14 @@ import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChar
 import { StatCard } from "@/components/portal/StatCard";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  portalActionDanger,
+  portalActionSecondary,
+  portalRowSecondary,
+  portalRowSuccess,
+} from "@/components/portal/ui/portal-actions";
+import {
   vendorConfirmPayoutReceived,
+  vendorFetchPayoutProofBlob,
   vendorGetPayout,
   vendorListPayouts,
   vendorReportPayoutIssue,
@@ -116,6 +123,8 @@ function PayoutDetailDrawer({
   const [message, setMessage] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [proofBusy, setProofBusy] = useState<"view" | "download" | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -143,6 +152,49 @@ function PayoutDetailDrawer({
       setMessage(err instanceof Error ? err.message : "Could not report issue.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function viewProof() {
+    if (!payout) return;
+    setProofBusy("view");
+    setProofError(null);
+    // Open the blank popup synchronously before the async fetch to avoid popup blockers
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const { blob } = await vendorFetchPayoutProofBlob(payout.id, "view");
+      const objectUrl = URL.createObjectURL(blob);
+      if (popup) {
+        popup.location.href = objectUrl;
+      } else {
+        window.location.href = objectUrl;
+      }
+    } catch (err) {
+      popup?.close();
+      setProofError(err instanceof Error ? err.message : "Could not open payout proof. Please try again.");
+    } finally {
+      setProofBusy(null);
+    }
+  }
+
+  async function downloadProof() {
+    if (!payout) return;
+    setProofBusy("download");
+    setProofError(null);
+    try {
+      const { blob, filename } = await vendorFetchPayoutProofBlob(payout.id, "download");
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename ?? `payout-proof-${payout.id}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setProofError(err instanceof Error ? err.message : "Could not download payout proof. Please try again.");
+    } finally {
+      setProofBusy(null);
     }
   }
 
@@ -203,26 +255,31 @@ function PayoutDetailDrawer({
                   ) : null}
                   <div className="flex flex-wrap gap-2">
                     {payout.proofViewUrl ? (
-                      <a
-                        href={payout.proofViewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700"
+                      <button
+                        type="button"
+                        onClick={() => void viewProof()}
+                        disabled={proofBusy !== null}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 disabled:opacity-60"
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View proof
-                      </a>
+                        {proofBusy === "view" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                        {proofBusy === "view" ? "Opening…" : "View proof"}
+                      </button>
                     ) : null}
                     {payout.proofDownloadUrl ? (
-                      <a
-                        href={payout.proofDownloadUrl}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700"
+                      <button
+                        type="button"
+                        onClick={() => void downloadProof()}
+                        disabled={proofBusy !== null}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 disabled:opacity-60"
                       >
-                        <Download className="h-3.5 w-3.5" />
-                        Download proof
-                      </a>
+                        {proofBusy === "download" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        {proofBusy === "download" ? "Downloading…" : "Download proof"}
+                      </button>
                     ) : null}
                   </div>
+                  {proofError ? (
+                    <div className="mt-2 text-xs text-danger">{proofError}</div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
@@ -254,14 +311,14 @@ function PayoutDetailDrawer({
                         type="button"
                         onClick={() => void reportIssue()}
                         disabled={busy}
-                        className="rounded-xl border border-danger/30 px-4 py-2 text-sm font-semibold text-danger disabled:opacity-50"
+                        className={`${portalActionDanger} px-4 py-2 text-sm disabled:opacity-50`}
                       >
                         Report issue
                       </button>
                     </>
                   ) : null}
                   {payout.status === "PENDING_DETAILS" ? (
-                    <Link href="/vendor/payout-settings" className="rounded-xl border border-brand/30 px-4 py-2 text-sm font-semibold text-brand">
+                    <Link href="/vendor/payout-settings" className={portalActionSecondary}>
                       Add payout details
                     </Link>
                   ) : null}
@@ -364,10 +421,10 @@ export default function VendorPayoutsPage() {
                   <div className="flex flex-wrap items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     <StatusPill status={row.status}>{pretty(row.status)}</StatusPill>
                     {row.status === "PENDING_DETAILS" ? (
-                      <Link href="/vendor/payout-settings" className="rounded-lg border border-brand/30 px-3 py-1.5 text-xs font-semibold text-brand">Add payout details</Link>
+                      <Link href="/vendor/payout-settings" className={portalRowSecondary}>Add payout details</Link>
                     ) : null}
                     {row.proofAvailable ? (
-                      <button type="button" onClick={() => setDetailPayoutId(row.id)} className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                      <button type="button" onClick={() => setDetailPayoutId(row.id)} className={portalRowSuccess}>
                         View proof
                       </button>
                     ) : null}

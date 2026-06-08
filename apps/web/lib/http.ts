@@ -191,6 +191,83 @@ async function refreshAccessToken(debugLog: boolean): Promise<string | null> {
   }
 }
 
+/**
+ * Like apiFetch but returns the raw Response instead of parsing JSON.
+ * Attaches auth headers and handles token refresh on 401 identically to apiFetch.
+ * Use this when you need to read response headers (Content-Disposition, Content-Type)
+ * or stream a Blob (file downloads, proof viewing).
+ */
+export async function apiFetchRaw(
+  path: string,
+  opts?: {
+    method?: HttpMethod;
+    query?: Record<string, string | number | boolean | null | undefined>;
+    headers?: Record<string, string>;
+    credentials?: RequestCredentials;
+    cache?: RequestCache;
+    auth?: "auto" | "none";
+  }
+): Promise<Response> {
+  const method = opts?.method ?? "GET";
+
+  let url: URL;
+  try {
+    url = resolveRequestUrl(path);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Invalid URL";
+    throw new Error(msg);
+  }
+
+  if (opts?.query) {
+    for (const [k, v] of Object.entries(opts.query)) {
+      if (v === null || v === undefined) continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  const headers: Record<string, string> = { ...(opts?.headers ?? {}) };
+  const authMode = opts?.auth ?? "auto";
+  const accessToken = authMode === "auto" ? getAccessToken() : null;
+
+  if (authMode === "auto" && accessToken && !headers.Authorization) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const hadBearerToken =
+    typeof headers.Authorization === "string" &&
+    headers.Authorization.trim().length > 0;
+
+  const credentials: RequestCredentials = opts?.credentials ?? "include";
+
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), { method, headers, credentials, cache: opts?.cache });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Network error";
+    throw new Error(msg);
+  }
+
+  if (res.status === 401 && canTryRefresh(path, authMode)) {
+    const nextToken = await refreshAccessToken(false);
+    if (nextToken) {
+      const retryHeaders = { ...headers, Authorization: `Bearer ${nextToken}` };
+      try {
+        res = await fetch(url.toString(), { method, headers: retryHeaders, credentials, cache: opts?.cache });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Network error";
+        throw new Error(msg);
+      }
+    }
+  }
+
+  if (res.status === 401 && hadBearerToken) {
+    clearAccessToken();
+    maybeRedirectToLoginOnAuthFailure(path);
+  }
+
+  return res;
+}
+
 export async function apiFetch<T>(
   path: string,
   opts?: {

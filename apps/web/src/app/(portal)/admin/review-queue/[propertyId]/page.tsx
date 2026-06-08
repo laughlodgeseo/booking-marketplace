@@ -8,6 +8,11 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  portalActionSuccess,
+  portalActionSecondary,
+  portalActionDanger,
+} from "@/components/portal/ui/portal-actions";
+import {
   approveAdminPropertyWithActivationFee,
   getAdminPropertyChanges,
   type AdminPropertyChange,
@@ -407,7 +412,7 @@ export default function AdminReviewQueueDetailPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void runApprove()}
-                    className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-accent-text hover:opacity-95 disabled:opacity-60"
+                    className={`${portalActionSuccess} disabled:opacity-60`}
                   >
                     Approve
                   </button>
@@ -416,7 +421,7 @@ export default function AdminReviewQueueDetailPage() {
                       type="button"
                       disabled={busy !== null}
                       onClick={() => void runUpdateActivationFee()}
-                      className="rounded-xl border border-brand/40 bg-brand/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-brand/15 disabled:opacity-60"
+                      className={`${portalActionSecondary} disabled:opacity-60`}
                     >
                       Update activation fee
                     </button>
@@ -433,7 +438,7 @@ export default function AdminReviewQueueDetailPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void runReject()}
-                    className="rounded-xl border border-danger/40 bg-danger/12 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/18 disabled:opacity-60"
+                    className={`${portalActionDanger} px-4 py-2 text-sm disabled:opacity-60`}
                   >
                     Reject
                   </button>

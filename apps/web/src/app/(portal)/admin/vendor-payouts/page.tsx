@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileUp, Loader2, Search, Wallet, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, ExternalLink, FileUp, Loader2, Search, Wallet, X } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
 import { StatCard } from "@/components/portal/StatCard";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  portalRowSecondary,
+  portalRowSuccess,
+  portalRowWarning,
+  portalRowDanger,
+} from "@/components/portal/ui/portal-actions";
+import {
   adminCancelVendorPayout,
+  adminFetchVendorPayoutProofBlob,
   adminGetVendorPayout,
   adminListVendorPayouts,
   adminMarkVendorPayoutPaid,
@@ -70,6 +77,8 @@ function PayoutDetailDrawer({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [proofBusy, setProofBusy] = useState<"view" | "download" | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -146,6 +155,48 @@ function PayoutDetailDrawer({
       setMessage(error instanceof Error ? error.message : "Could not cancel payout.");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function viewProof() {
+    if (!payout) return;
+    setProofBusy("view");
+    setProofError(null);
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const { blob } = await adminFetchVendorPayoutProofBlob(payout.id, "view");
+      const objectUrl = URL.createObjectURL(blob);
+      if (popup) {
+        popup.location.href = objectUrl;
+      } else {
+        window.location.href = objectUrl;
+      }
+    } catch (err) {
+      popup?.close();
+      setProofError(err instanceof Error ? err.message : "Could not open payout proof. Please try again.");
+    } finally {
+      setProofBusy(null);
+    }
+  }
+
+  async function downloadProof() {
+    if (!payout) return;
+    setProofBusy("download");
+    setProofError(null);
+    try {
+      const { blob, filename } = await adminFetchVendorPayoutProofBlob(payout.id, "download");
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename ?? `payout-proof-${payout.id}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setProofError(err instanceof Error ? err.message : "Could not download payout proof. Please try again.");
+    } finally {
+      setProofBusy(null);
     }
   }
 
@@ -226,17 +277,36 @@ function PayoutDetailDrawer({
               )}
             </div>
 
-            {payout.proofAvailable && payout.proofViewUrl ? (
+            {payout.proofAvailable ? (
               <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
                 <div className="mb-3 text-xs font-semibold uppercase text-muted">Payment proof</div>
-                <a
-                  href={payout.proofViewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-brand/30 px-3 py-1.5 text-xs font-semibold text-brand"
-                >
-                  View proof
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  {payout.proofViewUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => void viewProof()}
+                      disabled={proofBusy !== null}
+                      className={`${portalRowSuccess} disabled:opacity-60`}
+                    >
+                      {proofBusy === "view" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                      {proofBusy === "view" ? "Opening…" : "View proof"}
+                    </button>
+                  ) : null}
+                  {payout.proofDownloadUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => void downloadProof()}
+                      disabled={proofBusy !== null}
+                      className={`${portalRowSecondary} disabled:opacity-60`}
+                    >
+                      {proofBusy === "download" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                      {proofBusy === "download" ? "Downloading…" : "Download proof"}
+                    </button>
+                  ) : null}
+                </div>
+                {proofError ? (
+                  <div className="mt-2 text-xs text-danger">{proofError}</div>
+                ) : null}
               </div>
             ) : null}
 
@@ -251,12 +321,12 @@ function PayoutDetailDrawer({
               <div className="mb-3 text-xs font-semibold uppercase text-muted">Actions</div>
               <div className="flex flex-wrap gap-2">
                 {canMarkProcessing ? (
-                  <button type="button" onClick={() => void markProcessing()} disabled={busy !== null} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+                  <button type="button" onClick={() => void markProcessing()} disabled={busy !== null} className={`${portalRowWarning} disabled:opacity-50`}>
                     {busy === "processing" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Mark processing"}
                   </button>
                 ) : null}
                 {canUploadProof ? (
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+                  <label className={`${portalRowSecondary} cursor-pointer disabled:opacity-50`}>
                     <FileUp className="h-3.5 w-3.5" />
                     {busy === "proof" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Upload proof"}
                     <input
@@ -269,12 +339,12 @@ function PayoutDetailDrawer({
                   </label>
                 ) : null}
                 {canMarkPaid ? (
-                  <button type="button" onClick={() => void markPaid()} disabled={busy !== null} className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                  <button type="button" onClick={() => void markPaid()} disabled={busy !== null} className={`${portalRowSuccess} disabled:opacity-50`}>
                     {busy === "paid" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Mark paid"}
                   </button>
                 ) : null}
                 {canCancel ? (
-                  <button type="button" onClick={() => void cancel()} disabled={busy !== null} className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger disabled:opacity-50">
+                  <button type="button" onClick={() => void cancel()} disabled={busy !== null} className={`${portalRowDanger} disabled:opacity-50`}>
                     {busy === "cancel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cancel"}
                   </button>
                 ) : null}
@@ -420,7 +490,7 @@ export default function AdminVendorPayoutsPage() {
                   <button
                     type="button"
                     onClick={() => setDetailPayoutId(row.id)}
-                    className="rounded-lg border border-line px-2 py-1 text-xs font-semibold"
+                    className={portalRowSecondary}
                   >
                     View
                   </button>
@@ -428,14 +498,14 @@ export default function AdminVendorPayoutsPage() {
                     <button
                       type="button"
                       onClick={() => setDetailPayoutId(row.id)}
-                      className="rounded-lg border border-brand/30 px-2 py-1 text-xs font-semibold text-brand"
+                      className={portalRowWarning}
                     >
                       Process
                     </button>
                   ) : null}
                   {(row.status === "PROCESSING" || row.status === "READY_FOR_PAYOUT") ? (
                     <label
-                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs font-semibold"
+                      className={`${portalRowSecondary} cursor-pointer`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <FileUp className="h-3.5 w-3.5" />

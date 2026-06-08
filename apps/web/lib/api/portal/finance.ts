@@ -1,5 +1,25 @@
-import { apiFetch } from "@/lib/http";
+import { apiFetch, apiFetchRaw } from "@/lib/http";
 import type { HttpResult } from "@/lib/http";
+
+export type ProofBlobResult = {
+  blob: Blob;
+  filename: string | null;
+  contentType: string | null;
+};
+
+function extractFilename(contentDisposition: string | null): string | null {
+  if (!contentDisposition) return null;
+  const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+  if (!match) return null;
+  return decodeURIComponent(match[1].replace(/['"]/g, "").trim()) || null;
+}
+
+function proofFriendlyError(status: number): string {
+  if (status === 401) return "Your session has expired. Please sign in again.";
+  if (status === 403) return "You do not have access to this payout proof.";
+  if (status === 404) return "This payout proof is not available yet.";
+  return "Could not load payout proof. Please try again.";
+}
 
 function unwrap<T>(res: HttpResult<T>): T {
   if (!res.ok) {
@@ -315,6 +335,22 @@ export async function vendorReportPayoutIssue(id: string, note: string): Promise
   return unwrap(res);
 }
 
+export async function vendorFetchPayoutProofBlob(
+  payoutId: string,
+  mode: "view" | "download",
+): Promise<ProofBlobResult> {
+  const response = await apiFetchRaw(
+    `/portal/vendor/payouts/${encodeURIComponent(payoutId)}/proof/${mode}`,
+    { method: "GET" },
+  );
+  if (!response.ok) throw new Error(proofFriendlyError(response.status));
+  return {
+    blob: await response.blob(),
+    filename: extractFilename(response.headers.get("content-disposition")),
+    contentType: response.headers.get("content-type"),
+  };
+}
+
 /* ------------------------------ Admin endpoints ------------------------------ */
 
 export async function adminListStatements(params?: {
@@ -566,6 +602,22 @@ export async function adminMarkVendorPayoutPaid(id: string, note?: string): Prom
     body: { note: note ?? undefined },
   });
   return unwrap(res);
+}
+
+export async function adminFetchVendorPayoutProofBlob(
+  payoutId: string,
+  mode: "view" | "download",
+): Promise<ProofBlobResult> {
+  const response = await apiFetchRaw(
+    `/portal/admin/vendor-payouts/${encodeURIComponent(payoutId)}/proof/${mode}`,
+    { method: "GET" },
+  );
+  if (!response.ok) throw new Error(proofFriendlyError(response.status));
+  return {
+    blob: await response.blob(),
+    filename: extractFilename(response.headers.get("content-disposition")),
+    contentType: response.headers.get("content-type"),
+  };
 }
 
 export async function adminCancelVendorPayout(id: string, note?: string): Promise<{ ok: true }> {

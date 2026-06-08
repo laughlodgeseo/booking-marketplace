@@ -6,6 +6,13 @@ import { CheckCircle2, Eye, Loader2, Search, ShieldCheck, ShieldX, X } from "luc
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  portalRowSecondary,
+  portalRowSuccess,
+  portalRowDanger,
+  portalActionSuccess,
+  portalActionDanger,
+} from "@/components/portal/ui/portal-actions";
+import {
   adminGetPayoutMethod,
   adminListPayoutMethods,
   adminRejectPayoutMethod,
@@ -189,7 +196,7 @@ export default function AdminVendorPayoutMethodsPage() {
                         type="button"
                         onClick={() => void reveal(row)}
                         disabled={busy === row.id}
-                        className="inline-flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-primary"
+                        className={portalRowSecondary}
                       >
                         <Eye className="h-3.5 w-3.5" /> Details
                       </button>
@@ -197,7 +204,7 @@ export default function AdminVendorPayoutMethodsPage() {
                         type="button"
                         onClick={() => void verify(row)}
                         disabled={busy === row.id || row.status === "VERIFIED"}
-                        className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        className={`${portalRowSuccess} disabled:opacity-50`}
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" /> Verify
                       </button>
@@ -205,7 +212,7 @@ export default function AdminVendorPayoutMethodsPage() {
                         type="button"
                         onClick={() => void reject(row)}
                         disabled={busy === row.id || row.status === "REJECTED"}
-                        className="inline-flex items-center gap-1 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger disabled:opacity-50"
+                        className={`${portalRowDanger} disabled:opacity-50`}
                       >
                         <ShieldX className="h-3.5 w-3.5" /> Reject
                       </button>
@@ -332,7 +339,7 @@ export default function AdminVendorPayoutMethodsPage() {
                     const ok = await reject(detail);
                     if (ok) setDetail(null);
                   }}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-danger/40 bg-white px-4 text-xs font-semibold text-danger transition hover:bg-danger/8 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`${portalActionDanger} px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50`}
                 >
                   {isModalBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldX className="h-3.5 w-3.5" />}
                   Reject
@@ -344,7 +351,7 @@ export default function AdminVendorPayoutMethodsPage() {
                     const ok = await verify(detail);
                     if (ok) setDetail(null);
                   }}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-4 text-xs font-semibold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`${portalActionSuccess} px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50`}
                 >
                   {isModalBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
                   Approve

@@ -732,11 +732,86 @@ textarea {
     color: rgb(var(--color-accent-hover-rgb)) !important;
   }
 
+  /* portal-action-success — approve / confirm / mark-paid / mark-succeeded */
+  .portal-action-success {
+    border: 1px solid rgb(22 163 74 / 0.34) !important;
+    background: linear-gradient(145deg, rgb(22 163 74), rgb(21 128 61)) !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 30px rgb(22 163 74 / 0.26), inset 0 1px 0 rgb(255 255 255 / 0.20);
+  }
+
+  .portal-action-success:hover {
+    background: linear-gradient(145deg, rgb(21 128 61), rgb(20 83 45)) !important;
+    box-shadow: 0 18px 36px rgb(22 163 74 / 0.32);
+    transform: translateY(-1px);
+  }
+
+  /* portal-row-success — table-row approve / confirm / view-proof actions */
+  .portal-row-success {
+    min-height: 2rem;
+    border: 1px solid rgb(22 163 74 / 0.34) !important;
+    background: rgb(22 163 74) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgb(22 163 74 / 0.22);
+  }
+
+  .portal-row-success:hover {
+    background: rgb(21 128 61) !important;
+    box-shadow: 0 10px 22px rgb(22 163 74 / 0.28);
+  }
+
+  /* portal-action-warning — pay-now / payment pending / amber financial actions */
+  .portal-action-warning {
+    border: 1px solid rgb(217 119 6 / 0.34) !important;
+    background: linear-gradient(145deg, rgb(245 158 11), rgb(217 119 6)) !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 30px rgb(245 158 11 / 0.26), inset 0 1px 0 rgb(255 255 255 / 0.20);
+  }
+
+  .portal-action-warning:hover {
+    background: linear-gradient(145deg, rgb(217 119 6), rgb(180 83 9)) !important;
+    box-shadow: 0 18px 36px rgb(245 158 11 / 0.32);
+    transform: translateY(-1px);
+  }
+
+  /* portal-row-warning — table-row payment / process / pay-fee actions */
+  .portal-row-warning {
+    min-height: 2rem;
+    border: 1px solid rgb(217 119 6 / 0.34) !important;
+    background: rgb(245 158 11) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgb(245 158 11 / 0.22);
+  }
+
+  .portal-row-warning:hover {
+    background: rgb(217 119 6) !important;
+    box-shadow: 0 10px 22px rgb(245 158 11 / 0.28);
+  }
+
+  /* portal-row-danger — table-row cancel / delete / filled-danger actions */
+  .portal-row-danger {
+    min-height: 2rem;
+    border: 1px solid rgb(220 38 38 / 0.34) !important;
+    background: rgb(220 38 38) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgb(220 38 38 / 0.22);
+  }
+
+  .portal-row-danger:hover {
+    background: rgb(185 28 28) !important;
+    box-shadow: 0 10px 22px rgb(220 38 38 / 0.28);
+  }
+
   .portal-action-primary:focus-visible,
   .portal-action-secondary:focus-visible,
   .portal-action-ghost:focus-visible,
+  .portal-action-success:focus-visible,
+  .portal-action-warning:focus-visible,
   .portal-row-primary:focus-visible,
   .portal-row-secondary:focus-visible,
+  .portal-row-success:focus-visible,
+  .portal-row-warning:focus-visible,
+  .portal-row-danger:focus-visible,
   .portal-action-danger:focus-visible,
   .portal-icon-button:focus-visible {
     outline: none;

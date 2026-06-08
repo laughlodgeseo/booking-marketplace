@@ -1,0 +1,20 @@
+Laugh & Lodge
+
+Your refund has been processed
+
+The refund has been sent back through the original payment method. Your bank or card provider may take a little longer to show it.
+
+Status: Processed
+
+Refund amount: AED 2,000.00
+
+Refund details
+Booking reference: booking_preview
+Refund reference: refund_p
+
+View refunds: https://www.rentpropertyuae.com/account/refunds
+
+If the amount is not visible yet, allow standard bank or card settlement time.
+
+Support: info@rentpropertyuae.com
+www.rentpropertyuae.com

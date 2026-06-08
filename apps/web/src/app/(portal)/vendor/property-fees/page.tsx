@@ -22,6 +22,7 @@ import {
   type PropertyFeeItem,
   type FeePaymentInitResponse,
 } from "@/lib/api/portal/vendor";
+import { portalRowWarning } from "@/components/portal/ui/portal-actions";
 
 // ─── Currency helpers ─────────────────────────────────────────────────────────
 const _feeFormatter = new Intl.NumberFormat("en-US", {
@@ -623,7 +624,7 @@ export default function VendorPropertyFeesPage() {
                                         entry.propertyTitle,
                                       )
                                     }
-                                    className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className={`${portalRowWarning} py-1 disabled:cursor-not-allowed disabled:opacity-50`}
                                   >
                                     Pay fee
                                   </button>

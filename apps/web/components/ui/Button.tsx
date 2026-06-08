@@ -15,8 +15,13 @@ type ButtonVariant =
   | "portalPrimary"
   | "portalSecondary"
   | "portalGhost"
+  | "portalSuccess"
+  | "portalWarning"
   | "portalRowPrimary"
   | "portalRowSecondary"
+  | "portalRowSuccess"
+  | "portalRowWarning"
+  | "portalRowDanger"
   | "portalDanger"
   | "portalIcon";
 type ButtonSize = "sm" | "md" | "lg";
@@ -43,8 +48,13 @@ const variantClasses: Record<ButtonVariant, string> = {
   portalPrimary: "portal-action-primary active:scale-95",
   portalSecondary: "portal-action-secondary active:scale-95",
   portalGhost: "portal-action-ghost active:scale-95",
+  portalSuccess: "portal-action-success active:scale-95",
+  portalWarning: "portal-action-warning active:scale-95",
   portalRowPrimary: "portal-row-primary active:scale-95",
   portalRowSecondary: "portal-row-secondary active:scale-95",
+  portalRowSuccess: "portal-row-success active:scale-95",
+  portalRowWarning: "portal-row-warning active:scale-95",
+  portalRowDanger: "portal-row-danger active:scale-95",
   portalDanger: "portal-action-danger active:scale-95",
   portalIcon: "portal-icon-button active:scale-95",
 };

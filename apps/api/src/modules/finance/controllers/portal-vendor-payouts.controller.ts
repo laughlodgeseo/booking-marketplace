@@ -55,6 +55,8 @@ export class PortalVendorPayoutsController {
       'Content-Disposition',
       `inline; filename="${encodeURIComponent(result.fileName)}"`,
     );
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     return new StreamableFile(result.buffer);
   }
 
@@ -74,6 +76,8 @@ export class PortalVendorPayoutsController {
       'Content-Disposition',
       `attachment; filename="${encodeURIComponent(result.fileName)}"`,
     );
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     return new StreamableFile(result.buffer);
   }
 

@@ -1,0 +1,23 @@
+Laugh & Lodge
+
+Your property has a new booking
+
+A guest has completed a paid booking. The payout amount below is the vendor net payable amount.
+
+Status: Confirmed
+
+Estimated payout: AED 1,722.00
+Expected within 2 business days.
+
+Booking summary
+Property: Marina Residence
+Stay dates: 12 June 2026 → 16 June 2026
+Booking reference: booking_preview
+Payout setup: Payout details needed
+
+View booking: https://www.rentpropertyuae.com/vendor/bookings/booking_preview
+
+Please add your payout details from Payout Settings so we can process payouts smoothly.
+
+Support: info@rentpropertyuae.com
+www.rentpropertyuae.com

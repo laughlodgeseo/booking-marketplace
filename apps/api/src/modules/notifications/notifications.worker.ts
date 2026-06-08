@@ -3,9 +3,8 @@ import { Cron } from '@nestjs/schedule';
 import { NotificationChannel } from '@prisma/client';
 import { NotificationEventsService } from './notification-events.service';
 import { PrismaService } from '../prisma/prisma.service';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Resend } from 'resend';
+import { renderNotificationEmail } from './email-renderer';
 
 type JsonObject = Record<string, unknown>;
 type WorkerMetrics = {
@@ -40,8 +39,6 @@ type DeliveryErrorContext = {
 @Injectable()
 export class NotificationsWorker implements OnModuleInit {
   private readonly logger = new Logger(NotificationsWorker.name);
-  private readonly defaultRemoteBrandLogoUrl =
-    'https://rentpropertyuae.com/brand/logo.svg';
 
   // Outbox knobs
   private readonly batchSize = 10;
@@ -204,17 +201,10 @@ export class NotificationsWorker implements OnModuleInit {
       throw new Error('Recipient email not found');
     }
 
-    const subject = this.mapSubject(input.type, input.payload);
-    const html = this.renderTemplate(
-      NotificationChannel.EMAIL,
-      input.type,
-      input.payload,
-    );
-    const text = this.renderTextTemplate(
-      NotificationChannel.EMAIL,
-      input.type,
-      input.payload,
-    );
+    const rendered = renderNotificationEmail(input.type, input.payload);
+    const subject = rendered.subject;
+    const html = rendered.html;
+    const text = rendered.text;
 
     const config = this.resendConfig();
     if (!config.configured) {
@@ -305,7 +295,7 @@ export class NotificationsWorker implements OnModuleInit {
     const apiKey = this.readEnv('RESEND_API_KEY');
     const from =
       this.readEnv('SMTP_FROM') ||
-      'RentPropertyUAE <booking@rentpropertyuae.com>';
+      'Laugh & Lodge <booking@rentpropertyuae.com>';
     const replyTo = this.readEnv('SMTP_REPLY_TO') || undefined;
 
     return {
@@ -347,11 +337,15 @@ export class NotificationsWorker implements OnModuleInit {
   }
 
   private warnOnInsecureLogoUrl() {
-    const rawLogoUrl = (process.env.BRAND_LOGO_URL || '').trim();
+    const rawLogoUrl = (
+      process.env.EMAIL_BRAND_LOGO_URL ||
+      process.env.BRAND_LOGO_URL ||
+      ''
+    ).trim();
 
     if (!rawLogoUrl) {
       this.logger.warn(
-        'BRAND_LOGO_URL is not set. Set BRAND_LOGO_URL to an HTTPS logo URL.',
+        'EMAIL_BRAND_LOGO_URL is not set. Emails will render a text wordmark fallback.',
       );
       return;
     }
@@ -359,7 +353,7 @@ export class NotificationsWorker implements OnModuleInit {
     const lower = rawLogoUrl.toLowerCase();
     if (!lower.startsWith('https://')) {
       this.logger.warn(
-        'BRAND_LOGO_URL should use HTTPS to ensure images render correctly in email clients.',
+        'EMAIL_BRAND_LOGO_URL should use HTTPS to ensure images render correctly in email clients.',
       );
     }
   }
@@ -532,249 +526,6 @@ export class NotificationsWorker implements OnModuleInit {
       return;
     }
     this.logger.log(line);
-  }
-
-  private mapSubject(type: string, payload: JsonObject): string {
-    switch (type) {
-      case 'PASSWORD_RESET_REQUESTED':
-        return 'Reset your password';
-      case 'EMAIL_VERIFICATION_OTP':
-        return 'Your verification code (OTP)';
-      case 'BOOKING_CONFIRMED':
-        return 'Booking confirmed';
-      case 'BOOKING_CANCELLED':
-      case 'BOOKING_CANCELLED_BY_GUEST':
-        return 'Booking cancelled';
-      case 'PAYMENT_FAILED':
-        return 'Payment failed for your booking';
-      case 'PAYMENT_PENDING':
-        return 'Payment pending for your booking';
-      case 'REFUND_PROCESSED':
-        return 'Refund processed';
-      case 'DOCUMENT_UPLOAD_REQUEST':
-        return 'Action required: upload guest documents';
-      case 'OPS_TASKS_CREATED':
-        return 'Your stay services are scheduled';
-      case 'PROPERTY_APPROVED_ACTIVATION_REQUIRED':
-        return 'Property approved: activation payment required';
-      case 'NEW_BOOKING_RECEIVED':
-        return 'Your property has been booked';
-      case 'VENDOR_PAYOUT_PAID':
-        return 'Your payout has been marked as paid';
-      case 'MAINTENANCE_REQUEST_CREATED':
-        return 'New maintenance request';
-      default: {
-        const ref = this.getNested(payload, 'booking.id');
-        if (typeof ref === 'string' && ref.trim())
-          return `Update for booking ${ref.trim()}`;
-        return 'Account update';
-      }
-    }
-  }
-
-  private renderTemplate(
-    channel: NotificationChannel,
-    type: string,
-    payload: JsonObject,
-  ): string {
-    if (channel !== NotificationChannel.EMAIL) {
-      return JSON.stringify({ type, payload });
-    }
-
-    const templateBase = this.mapTemplateBase(type);
-    const fileName = `${templateBase}.html`;
-    const templatePath = this.resolveTemplatePath(fileName);
-
-    if (!templatePath) {
-      return JSON.stringify({ type, payload }, null, 2);
-    }
-
-    const html = fs.readFileSync(templatePath, 'utf8');
-    const payloadBrand = this.getNested(payload, 'brand');
-    const brandOverrides = this.isObject(payloadBrand) ? payloadBrand : {};
-
-    const merged: JsonObject = {
-      ...payload,
-      brand: {
-        ...this.defaultBrand(),
-        ...brandOverrides,
-      },
-    };
-
-    return this.simpleInterpolate(html, merged);
-  }
-
-  private renderTextTemplate(
-    channel: NotificationChannel,
-    type: string,
-    payload: JsonObject,
-  ): string {
-    if (channel !== NotificationChannel.EMAIL) {
-      return JSON.stringify({ type, payload });
-    }
-
-    const templateBase = this.mapTemplateBase(type);
-    const txtPath = this.resolveTemplatePath(`${templateBase}.txt`);
-
-    const payloadBrand = this.getNested(payload, 'brand');
-    const brandOverrides = this.isObject(payloadBrand) ? payloadBrand : {};
-
-    const merged: JsonObject = {
-      ...payload,
-      brand: {
-        ...this.defaultBrand(),
-        ...brandOverrides,
-      },
-    };
-
-    if (txtPath) {
-      const txt = fs.readFileSync(txtPath, 'utf8');
-      return this.simpleInterpolate(txt, merged);
-    }
-
-    const html = this.renderTemplate(channel, type, payload);
-    return this.stripHtml(html);
-  }
-
-  private defaultBrand() {
-    const logoUrl =
-      (process.env.BRAND_LOGO_URL || '').trim() ||
-      this.defaultRemoteBrandLogoUrl;
-    return {
-      name: 'RentPropertyUAE',
-      legalName: 'RentPropertyUAE',
-      domain: 'rentpropertyuae.com',
-      supportEmail: 'info@rentpropertyuae.com',
-      bookingEmail: 'booking@rentpropertyuae.com',
-      phone: '+971 50 234 8756',
-      country: 'United Arab Emirates',
-      logoUrl,
-    };
-  }
-
-  private resolveTemplatePath(fileName: string): string | null {
-    const candidates = [
-      path.join(__dirname, 'templates', fileName),
-      path.join(
-        process.cwd(),
-        'src',
-        'modules',
-        'notifications',
-        'templates',
-        fileName,
-      ),
-      path.join(
-        process.cwd(),
-        'dist',
-        'src',
-        'modules',
-        'notifications',
-        'templates',
-        fileName,
-      ),
-      path.join(
-        process.cwd(),
-        'dist',
-        'modules',
-        'notifications',
-        'templates',
-        fileName,
-      ),
-    ];
-
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) return candidate;
-    }
-
-    return null;
-  }
-
-  private mapTemplateBase(type: string) {
-    switch (type) {
-      case 'PASSWORD_RESET_REQUESTED':
-        return 'password-reset-requested';
-      case 'EMAIL_VERIFICATION_OTP':
-        return 'email-verification-otp';
-      case 'BOOKING_CONFIRMED':
-        return 'booking-confirmed';
-      case 'BOOKING_CANCELLED':
-      case 'BOOKING_CANCELLED_BY_GUEST':
-        return 'booking-cancelled';
-      case 'PAYMENT_PENDING':
-        return 'payment-pending';
-      case 'PAYMENT_FAILED':
-        return 'payment-failed';
-      case 'REFUND_PROCESSED':
-        return 'refund-processed';
-      case 'DOCUMENT_UPLOAD_REQUEST':
-        return 'document-upload-request';
-      case 'OPS_TASKS_CREATED':
-        return 'ops-tasks-created';
-      case 'PROPERTY_APPROVED_ACTIVATION_REQUIRED':
-        return 'property-approved-activation-required';
-      case 'NEW_BOOKING_RECEIVED':
-        return 'new-booking-received';
-      case 'VENDOR_PAYOUT_PAID':
-        return 'vendor-payout-paid';
-      default:
-        return 'booking-confirmed';
-    }
-  }
-
-  private simpleInterpolate(html: string, payload: JsonObject) {
-    return html.replace(
-      /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g,
-      (_m, key: string) => {
-        const value = this.getNested(payload, key);
-        if (value === null || value === undefined) return '';
-
-        if (
-          typeof value === 'string' ||
-          typeof value === 'number' ||
-          typeof value === 'boolean' ||
-          typeof value === 'bigint'
-        ) {
-          return this.escapeHtml(String(value));
-        }
-        if (value instanceof Date) {
-          return this.escapeHtml(value.toISOString());
-        }
-        if (Array.isArray(value) || this.isObject(value)) {
-          try {
-            return this.escapeHtml(JSON.stringify(value));
-          } catch {
-            return '';
-          }
-        }
-        return '';
-      },
-    );
-  }
-
-  private escapeHtml(input: string): string {
-    return input
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  private stripHtml(input: string): string {
-    return input
-      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<\/?(p|div|tr|table|h1|h2|h3|li|br)\b[^>]*>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/[ \t]+\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
   }
 
   private getNested(obj: JsonObject, key: string): unknown {

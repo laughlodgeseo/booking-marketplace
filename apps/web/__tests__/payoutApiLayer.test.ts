@@ -13,13 +13,15 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { VendorPayoutRow } from "@/lib/api/portal/finance";
 
 // ---------------------------------------------------------------------------
-// Mock apiFetch so no real HTTP calls are made
+// Mock apiFetch and apiFetchRaw so no real HTTP calls are made
 // ---------------------------------------------------------------------------
 
 const mockApiFetch = vi.fn();
+const mockApiFetchRaw = vi.fn();
 
 vi.mock("@/lib/http", () => ({
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+  apiFetchRaw: (...args: unknown[]) => mockApiFetchRaw(...args),
 }));
 
 // Import after mocking
@@ -42,11 +44,36 @@ const PAYOUT_ID = "payout-abc123";
 describe("payout API layer", () => {
   beforeEach(() => {
     mockApiFetch.mockReset();
+    mockApiFetchRaw.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
+  function mockRawOk(contentType: string, contentDisposition: string, blob: Blob) {
+    mockApiFetchRaw.mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: () => Promise.resolve(blob),
+      headers: {
+        get: (h: string) => {
+          if (h === "content-type") return contentType;
+          if (h === "content-disposition") return contentDisposition;
+          return null;
+        },
+      },
+    });
+  }
+
+  function mockRawError(status: number) {
+    mockApiFetchRaw.mockResolvedValue({
+      ok: false,
+      status,
+      blob: () => Promise.resolve(new Blob()),
+      headers: { get: () => null },
+    });
+  }
 
   it("1. proofViewUrl on VendorPayoutRow is an API proxy path, not a Cloudinary URL", () => {
     const row: VendorPayoutRow = {
@@ -180,5 +207,88 @@ describe("payout API layer", () => {
     const [url] = mockApiFetch.mock.calls[0] as [string];
     expect(url).not.toContain(" ");
     expect(url).toContain(encodeURIComponent(specialId));
+  });
+
+  it("8. vendorFetchPayoutProofBlob uses apiFetchRaw and returns blob/filename/contentType", async () => {
+    const blob = new Blob(["pdf content"], { type: "application/pdf" });
+    mockRawOk("application/pdf", 'inline; filename="proof.pdf"', blob);
+
+    const result = await finance.vendorFetchPayoutProofBlob(PAYOUT_ID, "view");
+
+    expect(mockApiFetchRaw).toHaveBeenCalledWith(
+      `/portal/vendor/payouts/${PAYOUT_ID}/proof/view`,
+      expect.objectContaining({ method: "GET" })
+    );
+    expect(result.blob).toBe(blob);
+    expect(result.filename).toBe("proof.pdf");
+    expect(result.contentType).toBe("application/pdf");
+  });
+
+  it("9. vendorFetchPayoutProofBlob download mode uses correct endpoint", async () => {
+    const blob = new Blob(["pdf content"], { type: "application/pdf" });
+    mockRawOk("application/pdf", 'attachment; filename="payout-proof.pdf"', blob);
+
+    const result = await finance.vendorFetchPayoutProofBlob(PAYOUT_ID, "download");
+
+    expect(mockApiFetchRaw).toHaveBeenCalledWith(
+      `/portal/vendor/payouts/${PAYOUT_ID}/proof/download`,
+      expect.objectContaining({ method: "GET" })
+    );
+    expect(result.filename).toBe("payout-proof.pdf");
+  });
+
+  it("10. adminFetchVendorPayoutProofBlob uses apiFetchRaw and returns blob/filename/contentType", async () => {
+    const blob = new Blob(["pdf content"], { type: "application/pdf" });
+    mockRawOk("application/pdf", 'attachment; filename="vendor-proof.pdf"', blob);
+
+    const result = await finance.adminFetchVendorPayoutProofBlob(PAYOUT_ID, "download");
+
+    expect(mockApiFetchRaw).toHaveBeenCalledWith(
+      `/portal/admin/vendor-payouts/${PAYOUT_ID}/proof/download`,
+      expect.objectContaining({ method: "GET" })
+    );
+    expect(result.blob).toBe(blob);
+    expect(result.filename).toBe("vendor-proof.pdf");
+    expect(result.contentType).toBe("application/pdf");
+  });
+
+  it("11. vendorFetchPayoutProofBlob throws friendly 401 error", async () => {
+    mockRawError(401);
+
+    await expect(finance.vendorFetchPayoutProofBlob(PAYOUT_ID, "view")).rejects.toThrow(
+      "Your session has expired. Please sign in again."
+    );
+  });
+
+  it("12. vendorFetchPayoutProofBlob throws friendly 403 error", async () => {
+    mockRawError(403);
+
+    await expect(finance.vendorFetchPayoutProofBlob(PAYOUT_ID, "view")).rejects.toThrow(
+      "You do not have access to this payout proof."
+    );
+  });
+
+  it("13. vendorFetchPayoutProofBlob throws friendly 404 error", async () => {
+    mockRawError(404);
+
+    await expect(finance.vendorFetchPayoutProofBlob(PAYOUT_ID, "view")).rejects.toThrow(
+      "This payout proof is not available yet."
+    );
+  });
+
+  it("14. adminFetchVendorPayoutProofBlob throws friendly 401 error", async () => {
+    mockRawError(401);
+
+    await expect(finance.adminFetchVendorPayoutProofBlob(PAYOUT_ID, "view")).rejects.toThrow(
+      "Your session has expired. Please sign in again."
+    );
+  });
+
+  it("15. adminFetchVendorPayoutProofBlob throws friendly 403 error", async () => {
+    mockRawError(403);
+
+    await expect(finance.adminFetchVendorPayoutProofBlob(PAYOUT_ID, "view")).rejects.toThrow(
+      "You do not have access to this payout proof."
+    );
   });
 });
