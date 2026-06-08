@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AlertCircle, Building2, CheckCircle2, CreditCard, Loader2, LockKeyhole, X } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  Loader2,
+  LockKeyhole,
+  X,
+} from "lucide-react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -58,12 +66,10 @@ function friendlyInitError(raw: unknown): string {
     return "Payments are temporarily unavailable. Please contact support.";
   }
 
-  // Raw JSON / parser errors must never reach the user
   if (msg.startsWith("{") || msg.startsWith("[") || msg.includes("unexpected token") || msg.includes("is not valid json")) {
     return "We could not start this payment. Please try again.";
   }
 
-  // Short, readable backend messages can pass through (e.g. "Payment already succeeded.")
   if (msg.length <= 120 && !msg.includes("{") && !msg.includes("[")) {
     return msg;
   }
@@ -103,7 +109,7 @@ function PropertyFeeStatus({ status }: { status: string }) {
   return <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-bold text-warning">Outstanding</span>;
 }
 
-// ─── Fee payment form (inside Stripe Elements context) ────────────────────────
+// ─── Fee checkout form (inside Stripe Elements context) ───────────────────────
 type FeeFormState =
   | { kind: "idle" }
   | { kind: "processing" }
@@ -111,11 +117,17 @@ type FeeFormState =
   | { kind: "error"; message: string };
 
 function FeeCheckoutForm({
-  totalFormatted,
+  intent,
+  propertyTitle,
+  fees,
   onSubmitted,
+  onCancel,
 }: {
-  totalFormatted: string;
+  intent: FeePaymentInitResponse;
+  propertyTitle: string;
+  fees: PropertyFeeItem[];
   onSubmitted: () => void;
+  onCancel: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -141,7 +153,15 @@ function FeeCheckoutForm({
       const result = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
-        confirmParams: { ...(returnUrl ? { return_url: returnUrl } : {}) },
+        confirmParams: {
+          ...(returnUrl ? { return_url: returnUrl } : {}),
+          payment_method_data: {
+            billing_details: {
+              name: "Laugh & Lodge Vendor",
+              address: { country: "AE" },
+            },
+          },
+        },
       });
       if (result.error) {
         setState({ kind: "error", message: result.error.message ?? "Payment failed. Please try again." });
@@ -155,45 +175,106 @@ function FeeCheckoutForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="rounded-2xl border border-line/80 bg-white/80 p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-xs font-semibold text-secondary">Total due</div>
-            <div className="mt-1 text-lg font-semibold text-primary">{totalFormatted}</div>
+    <form onSubmit={onSubmit} className="flex flex-col">
+      {/* Scrollable content */}
+      <div className="px-6 py-5 space-y-5">
+        {/* Payment summary */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            Payment summary
+          </p>
+          <p className="mb-3 truncate text-sm font-medium text-slate-800">{propertyTitle}</p>
+          <div className="space-y-2">
+            {fees.map((fee) => (
+              <div key={fee.id} className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">
+                  <FeeTypeLabel type={fee.type} />
+                </span>
+                <span className="tabular-nums font-semibold text-slate-800">{fee.amountFormatted}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-line/80 bg-surface/80 px-3 py-1 text-xs font-semibold text-secondary">
-            <LockKeyhole className="h-3.5 w-3.5" /> Encrypted
+          <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+            <span className="text-sm font-semibold text-slate-800">Total due</span>
+            <span className="text-xl font-bold tracking-tight text-slate-900 tabular-nums">
+              {intent.totalFormatted}
+            </span>
           </div>
         </div>
-        <div className="rounded-xl border border-line/80 bg-white px-3 py-3">
-          <PaymentElement onReady={() => setIsReady(true)} />
+
+        {/* Stripe card form */}
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Card details
+            </p>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <LockKeyhole className="h-3 w-3" /> Secured by Stripe
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <PaymentElement
+              onReady={() => setIsReady(true)}
+              options={{
+                fields: {
+                  billingDetails: "never",
+                },
+                terms: { card: "never" },
+              }}
+            />
+          </div>
         </div>
+
+        {/* Inline stripe error */}
+        {state.kind === "error" && (
+          <div className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/8 px-4 py-3 text-sm text-danger">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{state.message}</span>
+          </div>
+        )}
+
+        {/* Success notice */}
+        {state.kind === "submitted" && (
+          <div className="flex items-start gap-2 rounded-xl border border-success/30 bg-success/8 px-4 py-3 text-sm text-success">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span><span className="font-semibold">Payment submitted.</span> Confirming with Stripe — this page will refresh shortly.</span>
+          </div>
+        )}
       </div>
 
-      {state.kind === "error" && (
-        <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-xs text-danger">
-          {state.message}
+      {/* Sticky footer inside the scroll container */}
+      <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-6 py-4 backdrop-blur-sm">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-11 flex-1 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="flex h-11 flex-[2] items-center justify-center gap-2 rounded-2xl bg-brand text-sm font-semibold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {state.kind === "processing" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing…
+              </>
+            ) : state.kind === "submitted" ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Submitted
+              </>
+            ) : (
+              `Pay ${intent.totalFormatted}`
+            )}
+          </button>
         </div>
-      )}
-      {state.kind === "submitted" && (
-        <div className="rounded-xl border border-success/30 bg-success/12 px-4 py-3 text-xs text-success">
-          <span className="font-semibold">Payment submitted.</span> Confirming with Stripe — this page will refresh shortly.
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="flex h-11 w-full items-center justify-center rounded-2xl bg-brand text-sm font-semibold text-accent-text transition hover:bg-brand-hover disabled:bg-warm-alt disabled:text-muted"
-      >
-        {state.kind === "processing" ? (
-          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</>
-        ) : state.kind === "submitted" ? "Submitted" : "Pay now"}
-      </button>
-
-      <div className="text-[11px] text-secondary text-center">
-        Card data goes directly to Stripe. Fees are confirmed only by backend webhook.
+        <p className="mt-2 text-center text-[10px] text-slate-400">
+          Card data goes directly to Stripe. Fees confirmed by secure webhook.
+        </p>
       </div>
     </form>
   );
@@ -203,7 +284,7 @@ function FeeCheckoutForm({
 type ModalState =
   | { kind: "closed" }
   | { kind: "initiating" }
-  | { kind: "ready"; intent: FeePaymentInitResponse }
+  | { kind: "ready"; intent: FeePaymentInitResponse; propertyTitle: string; fees: PropertyFeeItem[] }
   | { kind: "error"; message: string };
 
 function FeePaymentModal({
@@ -227,66 +308,112 @@ function FeePaymentModal({
       ? ((state.intent.publishableKey ?? "").trim() || envKey)
       : envKey;
 
+  const isReady = state.kind === "ready";
+  const hasStripe = isReady && Boolean(publishableKey);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-md rounded-3xl bg-surface shadow-2xl p-6 space-y-4"
+        className="flex w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl"
+        style={{ maxHeight: "min(90vh, 700px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <header className="flex shrink-0 items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <h2 className="font-semibold text-primary text-lg">Pay fee</h2>
-            <p className="text-xs text-secondary mt-0.5">{label}</p>
+            <h2 className="text-lg font-semibold text-slate-900">Pay property fee</h2>
+            <p className="mt-0.5 text-xs text-slate-500 line-clamp-1">{label}</p>
           </div>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-warm-alt text-muted">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="ml-4 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          >
             <X className="h-4 w-4" />
           </button>
-        </div>
+        </header>
+
+        {/* ── Body ────────────────────────────────────────────────────── */}
+        <main className="flex-1 overflow-y-auto">
+          {state.kind === "initiating" && (
+            <div className="flex items-center justify-center gap-2.5 py-20 text-sm text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Preparing secure payment…
+            </div>
+          )}
+
+          {state.kind === "error" && (
+            <div className="px-6 py-6">
+              <div className="flex items-start gap-3 rounded-2xl border border-danger/30 bg-danger/8 px-5 py-4 text-sm text-danger">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <span>{state.message}</span>
+              </div>
+            </div>
+          )}
+
+          {isReady && !publishableKey && (
+            <div className="px-6 py-6">
+              <div className="rounded-2xl border border-danger/30 bg-danger/8 px-5 py-4 text-sm text-danger">
+                Payments are temporarily unavailable. Please contact support.
+              </div>
+            </div>
+          )}
+
+          {hasStripe && (
+            <Elements
+              stripe={getStripePromise(publishableKey)}
+              options={{ clientSecret: state.intent.clientSecret }}
+            >
+              <FeeCheckoutForm
+                intent={state.intent}
+                propertyTitle={state.propertyTitle}
+                fees={state.fees}
+                onSubmitted={() => {
+                  setTimeout(() => {
+                    onPaid();
+                    onClose();
+                  }, 2000);
+                }}
+                onCancel={onClose}
+              />
+            </Elements>
+          )}
+        </main>
+
+        {/* ── Footer (non-ready states only) ──────────────────────────── */}
+        {!hasStripe && state.kind !== "initiating" && (
+          <footer className="shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="h-11 flex-1 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              {state.kind === "error" && onRetry && (
+                <button
+                  onClick={onRetry}
+                  className="h-11 flex-1 rounded-2xl bg-brand text-sm font-semibold text-white transition hover:bg-brand-hover"
+                >
+                  Try again
+                </button>
+              )}
+            </div>
+          </footer>
+        )}
 
         {state.kind === "initiating" && (
-          <div className="flex items-center justify-center py-10 gap-2 text-sm text-secondary">
-            <Loader2 className="h-5 w-5 animate-spin" /> Preparing secure payment…
-          </div>
-        )}
-
-        {state.kind === "error" && (
-          <div className="space-y-3">
-            <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
-              <AlertCircle className="inline-block h-4 w-4 mr-1.5 align-text-bottom" />
-              {state.message}
-            </div>
-            {onRetry && (
-              <button
-                onClick={onRetry}
-                className="flex h-10 w-full items-center justify-center rounded-2xl border border-brand/40 bg-brand/10 text-sm font-semibold text-brand hover:bg-brand/20 transition"
-              >
-                Try again
-              </button>
-            )}
-          </div>
-        )}
-
-        {state.kind === "ready" && publishableKey && (
-          <Elements
-            stripe={getStripePromise(publishableKey)}
-            options={{ clientSecret: state.intent.clientSecret }}
-          >
-            <FeeCheckoutForm
-              totalFormatted={state.intent.totalFormatted}
-              onSubmitted={() => {
-                setTimeout(() => {
-                  onPaid();
-                  onClose();
-                }, 2000);
-              }}
-            />
-          </Elements>
-        )}
-
-        {state.kind === "ready" && !publishableKey && (
-          <div className="rounded-xl border border-danger/30 bg-danger/12 px-4 py-3 text-sm text-danger">
-            Payments are temporarily unavailable. Please contact support.
-          </div>
+          <footer className="shrink-0 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+            <button
+              onClick={onClose}
+              className="h-11 w-full rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+          </footer>
         )}
       </div>
     </div>
@@ -320,6 +447,7 @@ export default function VendorPropertyFeesPage() {
     propertyId: string,
     fees: PropertyFeeItem[],
     label: string,
+    propertyTitle: string,
   ) {
     const feeIds = fees.filter((f) => f.status === "UNPAID").map((f) => f.id);
     if (feeIds.length === 0) return;
@@ -329,7 +457,12 @@ export default function VendorPropertyFeesPage() {
       setModal({ kind: "initiating" });
       try {
         const intent = await initiatePropertyFeePayment(propertyId, feeIds);
-        setModal({ kind: "ready", intent });
+        setModal({
+          kind: "ready",
+          intent,
+          propertyTitle,
+          fees: fees.filter((f) => f.status === "UNPAID"),
+        });
       } catch (e: unknown) {
         if (process.env.NODE_ENV !== "production") {
           console.error("[FeePayment] initiation failed", e);
@@ -403,7 +536,7 @@ export default function VendorPropertyFeesPage() {
                   const unpaidFees = entry.fees.filter((f) => f.status === "UNPAID");
                   const isInitiating = modal.kind === "initiating";
                   return (
-                    <div key={entry.propertyId} className="rounded-3xl border border-line/50 bg-surface shadow-sm overflow-hidden">
+                    <div key={entry.propertyId} className="overflow-hidden rounded-3xl border border-line/50 bg-surface shadow-sm">
                       {/* Property header */}
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/50 px-6 py-4">
                         <div>
@@ -427,9 +560,10 @@ export default function VendorPropertyFeesPage() {
                                   entry.propertyId,
                                   unpaidFees,
                                   `Pay all outstanding — ${entry.propertyTitle}`,
+                                  entry.propertyTitle,
                                 )
                               }
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-xs font-semibold text-accent-text hover:bg-brand-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <CreditCard className="h-3.5 w-3.5" />
                               Pay all outstanding
@@ -452,7 +586,7 @@ export default function VendorPropertyFeesPage() {
                           {entry.fees.map((fee) => (
                             <tr key={fee.id} className="border-b border-line/20 last:border-0">
                               <td className="px-6 py-3 text-sm text-primary"><FeeTypeLabel type={fee.type} /></td>
-                              <td className="px-6 py-3 text-right text-sm font-semibold text-primary">{fee.amountFormatted}</td>
+                              <td className="px-6 py-3 text-right text-sm font-semibold text-primary tabular-nums">{fee.amountFormatted}</td>
                               <td className="px-6 py-3 text-right"><FeeBadge status={fee.status} /></td>
                               <td className="px-6 py-3 text-right">
                                 {fee.status === "UNPAID" ? (
@@ -462,10 +596,11 @@ export default function VendorPropertyFeesPage() {
                                       openPaymentModal(
                                         entry.propertyId,
                                         [fee],
-                                        `Pay ${fee.type === "ACTIVATION" ? "Activation Fee" : fee.type === "INSURANCE" ? "Insurance Fee" : "Furnishing Fee"} — ${entry.propertyTitle}`,
+                                        `${fee.type === "ACTIVATION" ? "Activation Fee" : fee.type === "INSURANCE" ? "Property Insurance" : "Furnishing Fee"} — ${entry.propertyTitle}`,
+                                        entry.propertyTitle,
                                       )
                                     }
-                                    className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-brand/40 bg-brand/10 px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/20 disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     Pay fee
                                   </button>
@@ -481,7 +616,7 @@ export default function VendorPropertyFeesPage() {
                         <tfoot>
                           <tr className="bg-warm-base">
                             <td className="px-6 py-3 text-sm font-bold text-primary">Total</td>
-                            <td className="px-6 py-3 text-right text-sm font-bold text-primary">
+                            <td className="px-6 py-3 text-right text-sm font-bold text-primary tabular-nums">
                               {fmtAed(entry.totalDueMinor)}
                             </td>
                             <td colSpan={2} />

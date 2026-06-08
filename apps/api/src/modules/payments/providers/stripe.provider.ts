@@ -27,8 +27,14 @@ export class StripePaymentsProvider {
     metadata: Record<string, string>;
     description: string;
     idempotencyKey?: string | null;
+    paymentMethodTypes?: string[] | null;
   }): Promise<Stripe.PaymentIntent> {
     const stripe = this.getClient();
+
+    const methodConfig =
+      args.paymentMethodTypes && args.paymentMethodTypes.length > 0
+        ? { payment_method_types: args.paymentMethodTypes as Stripe.PaymentIntentCreateParams['payment_method_types'] }
+        : { automatic_payment_methods: { enabled: true } as const };
 
     return await stripe.paymentIntents.create(
       {
@@ -36,7 +42,7 @@ export class StripePaymentsProvider {
         currency: this.normalizeCurrency(args.currency),
         metadata: args.metadata,
         description: args.description,
-        automatic_payment_methods: { enabled: true },
+        ...methodConfig,
       },
       args.idempotencyKey ? { idempotencyKey: args.idempotencyKey } : undefined,
     );

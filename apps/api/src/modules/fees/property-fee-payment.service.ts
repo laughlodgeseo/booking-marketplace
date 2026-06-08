@@ -138,6 +138,7 @@ export class PropertyFeePaymentService {
         feeIds: sortedFeeIds.join(','),
       },
       idempotencyKey,
+      paymentMethodTypes: ['card'],
     });
 
     const clientSecret =
