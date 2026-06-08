@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { findUserBookingById, type BookingListItem } from "@/lib/api/bookings";
+import { getBookingStatusDirect, type BookingListItem } from "@/lib/api/bookings";
 
 type PollState =
   | { kind: "idle"; booking: BookingListItem | null; message?: never }
@@ -77,7 +77,7 @@ export function useBookingPoll(args: {
     const tickOnce = async () => {
       try {
         const now = Date.now();
-        const b = await findUserBookingById({ bookingId: args.bookingId });
+        const b = await getBookingStatusDirect({ bookingId: args.bookingId });
         setNowMs(now);
         setState({ kind: "polling", booking: b });
         setTicks((t) => t + 1);

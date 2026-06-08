@@ -124,6 +124,37 @@ export async function getUserBookingDetail(args: { bookingId: string }): Promise
   return res.data;
 }
 
+/**
+ * Efficient single-call status fetch using the booking detail endpoint.
+ * Used by useBookingPoll instead of the slow list-pagination approach.
+ * Returns null (not throws) on any error so polling can continue safely.
+ */
+export async function getBookingStatusDirect(args: { bookingId: string }): Promise<BookingListItem | null> {
+  try {
+    const res = await apiFetch<BookingDetail>(`/portal/user/bookings/${args.bookingId}`, {
+      method: "GET",
+      auth: "auto",
+    });
+    if (!res.ok) return null;
+    const d = res.data;
+    return {
+      id: d.id,
+      status: d.status,
+      checkIn: d.checkIn,
+      checkOut: d.checkOut,
+      currency: d.currency ?? null,
+      totalAmount: d.totalAmount ?? null,
+      propertyId: d.property?.id ?? null,
+      propertyTitle: d.property?.title ?? null,
+      propertySlug: d.property?.slug ?? null,
+      expiresAt: d.expiresAt ?? null,
+      createdAt: null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function findUserBookingById(args: {
   bookingId: string;
   maxPages?: number;

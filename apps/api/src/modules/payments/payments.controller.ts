@@ -2,8 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Headers,
   Logger,
+  Param,
   Post,
   Req,
   UnauthorizedException,
@@ -149,6 +151,30 @@ export class PaymentsController {
       depositId: body.depositId,
       claimAmount: body.claimAmount,
       note: body.note,
+    });
+  }
+
+  @Get('booking/:bookingId/status')
+  @Roles(...CUSTOMER_CAPABLE_ROLES)
+  getBookingPaymentStatus(
+    @CurrentUser() user: AuthUser,
+    @Param('bookingId') bookingId: string,
+  ) {
+    return this.payments.getBookingPaymentStatus({
+      actor: { id: user.id, role: user.role },
+      bookingId: bookingId.trim(),
+    });
+  }
+
+  @Post('booking/:bookingId/reconcile')
+  @Roles(UserRole.ADMIN)
+  reconcileBookingPayment(
+    @CurrentUser() user: AuthUser,
+    @Param('bookingId') bookingId: string,
+  ) {
+    return this.payments.reconcileBookingPayment({
+      actor: { id: user.id, role: user.role },
+      bookingId: bookingId.trim(),
     });
   }
 }

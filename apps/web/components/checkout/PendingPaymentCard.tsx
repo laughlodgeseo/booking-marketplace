@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   CreditCard,
+  Loader2,
   Timer,
 } from "lucide-react";
 import { useBookingPoll } from "@/components/checkout/useBookingPoll";
@@ -119,6 +120,13 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   const [detailState, setDetailState] = useState<DetailState>({ kind: "idle" });
   const intentOnceRef = useRef(false);
 
+  // Tracks whether customer successfully submitted payment to Stripe client-side.
+  // When true we hide the payment form and show a "Confirming booking" view.
+  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
+
+  // Tracks whether poll ever reached "polling" state (used to detect timeout).
+  const pollEverStartedRef = useRef(false);
+
   const loginHref = useMemo(() => {
     const currentQuery = searchParams.toString();
     const next = currentQuery ? `${pathname}?${currentQuery}` : pathname;
@@ -131,11 +139,14 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   const baseStatus = latest?.status ?? props.status;
   const isPendingForPolling = upper(baseStatus).includes("PENDING");
 
+  // Poll faster (every 2 s) right after payment submit, otherwise every 5 s.
+  const pollIntervalMs = paymentSubmitted ? 2000 : 5000;
+
   const poll = useBookingPoll({
     bookingId: props.bookingId,
     enabled: isPendingForPolling,
-    intervalMs: 5000,
-    maxMs: 2 * 60 * 1000,
+    intervalMs: pollIntervalMs,
+    maxMs: 3 * 60 * 1000, // 3 minutes
   });
   const effectiveLatest = poll.state.booking ?? latest;
   const status = effectiveLatest?.status ?? props.status;
@@ -147,6 +158,16 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   const isExpired = s.includes("EXPIRE");
   const authRequired = detailState.kind === "unauthorized";
   const bookingDataReady = detailState.kind === "ready";
+
+  // Detect poll timeout: poll was running but stopped while booking still pending.
+  if (poll.state.kind === "polling") {
+    pollEverStartedRef.current = true;
+  }
+  const pollTimedOut =
+    pollEverStartedRef.current &&
+    poll.state.kind === "idle" &&
+    paymentSubmitted &&
+    isPending;
 
   const canCancel = useMemo(() => {
     return !isCancelled && !isConfirmed && !isExpired;
@@ -244,7 +265,7 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
             to: bookingDetail.checkOut.slice(0, 10),
           });
         } catch {
-          // Non-blocking: cancellation succeeded, availability will still refresh on next view load.
+          // Non-blocking
         }
       }
 
@@ -301,11 +322,11 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
   }
 
   useEffect(() => {
-    if (isPending && bookingDataReady && !authRequired) {
+    if (isPending && bookingDataReady && !authRequired && !paymentSubmitted) {
       void prepareIntent();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPending, bookingDataReady, authRequired, props.bookingId]);
+  }, [isPending, bookingDataReady, authRequired, paymentSubmitted, props.bookingId]);
 
   const stripeElementOptions = useMemo(
     () => ({
@@ -382,9 +403,9 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
       {/* Heading */}
       <div className="space-y-2.5">
         <h2 className="text-xl font-semibold tracking-tight text-primary">
-          {isConfirmed ? "Payment confirmed" : "Complete your payment"}
+          {isConfirmed ? "Payment confirmed" : paymentSubmitted ? "Confirming your booking…" : "Complete your payment"}
         </h2>
-        {isPending && totalText !== "—" && (
+        {isPending && !paymentSubmitted && totalText !== "—" && (
           <div className="inline-flex items-center gap-2.5 rounded-full bg-linear-to-r from-indigo-500/10 to-violet-500/10 px-4 py-2 ring-1 ring-brand/20">
             <CreditCard className="h-4 w-4 shrink-0 text-brand" />
             <span className="text-sm font-bold text-primary">{totalText}</span>
@@ -394,11 +415,95 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
       </div>
 
       {/* Expiry timer — only show when less than 15 min remaining */}
-      {poll.remainingMs !== null && isPending && poll.remainingMs < 15 * 60 * 1000 && (
+      {poll.remainingMs !== null && isPending && !paymentSubmitted && poll.remainingMs < 15 * 60 * 1000 && (
         <div className="flex items-center gap-2 rounded-xl bg-warning/10 px-4 py-2.5 text-xs text-warning ring-1 ring-warning/20">
           <Timer className="h-3.5 w-3.5 shrink-0" />
           Reservation expires in{" "}
           <span className="font-bold">{fmtCountdown(poll.remainingMs)}</span>
+        </div>
+      )}
+
+      {/* ── Payment submitted — confirming state ───────────────────────────── */}
+      {paymentSubmitted && isPending && !pollTimedOut && (
+        <div className="space-y-4">
+          <div className="flex items-start gap-4 rounded-2xl bg-brand/8 px-5 py-5 ring-1 ring-brand/20">
+            <Loader2 className="mt-0.5 h-6 w-6 shrink-0 animate-spin text-brand" />
+            <div>
+              <div className="font-semibold text-primary">Payment received — confirming booking</div>
+              <p className="mt-1 text-sm text-secondary">
+                Your payment was accepted by Stripe. We are waiting for the payment confirmation
+                from our server. This usually takes a few seconds.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-xl border border-line/80 bg-surface/70 px-4 py-4 text-xs text-secondary">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-brand" />
+              Checking booking status every {pollIntervalMs / 1000}s…
+            </div>
+            <div className="mt-1">
+              Booking ID: <span className="font-mono">{props.bookingId}</span>
+            </div>
+          </div>
+
+          {/* Manual refresh if user wants to check immediately */}
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            disabled={state.kind === "refreshing"}
+            className="text-xs text-secondary underline underline-offset-2 hover:text-primary disabled:opacity-50"
+          >
+            {state.kind === "refreshing" ? "Checking…" : "Check status now"}
+          </button>
+        </div>
+      )}
+
+      {/* ── Poll timed out — payment received but backend hasn't confirmed yet ── */}
+      {pollTimedOut && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-warning/30 bg-warning/8 px-5 py-5">
+            <div className="font-semibold text-primary">Payment received — verification still processing</div>
+            <p className="mt-2 text-sm text-secondary">
+              Your card was charged by Stripe, but our server is still finalizing your booking.
+              This can happen when there is a short delay in payment notification delivery.
+            </p>
+            <p className="mt-2 text-sm text-secondary">
+              Your booking will be confirmed automatically. Please check your email and booking
+              dashboard in a few minutes.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              disabled={state.kind === "refreshing"}
+              className="inline-flex items-center justify-center rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-primary hover:bg-warm-alt disabled:opacity-50"
+            >
+              {state.kind === "refreshing" ? "Checking…" : "Check status"}
+            </button>
+            <Link
+              href="/account/bookings"
+              className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-accent-text hover:bg-brand-hover"
+            >
+              Go to my bookings
+            </Link>
+          </div>
+
+          <p className="text-xs text-secondary">
+            If your booking does not appear confirmed within 10 minutes, please{" "}
+            <Link href="/contact" className="underline hover:text-primary">
+              contact support
+            </Link>{" "}
+            with your booking ID: <span className="font-mono">{props.bookingId}</span>
+          </p>
+
+          {state.kind === "error" && (
+            <div className="rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
+              {state.message}
+            </div>
+          )}
         </div>
       )}
 
@@ -418,8 +523,8 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
         </div>
       )}
 
-      {/* Non-pending / non-confirmed state */}
-      {!isPending && !isConfirmed && !isExpired && !authRequired && (
+      {/* Non-pending / non-confirmed state (not submitted) */}
+      {!isPending && !isConfirmed && !isExpired && !authRequired && !paymentSubmitted && (
         <div className="rounded-xl bg-[rgb(var(--color-bg-rgb)/0.7)] px-4 py-3 text-sm text-secondary ring-1 ring-black/[0.07]">
           Payment is not available for this booking status.
         </div>
@@ -436,15 +541,15 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
       )}
 
       {/* Loading booking details */}
-      {isPending && !authRequired && !bookingDataReady && (
+      {isPending && !authRequired && !bookingDataReady && !paymentSubmitted && (
         <div className="flex items-center gap-2 text-sm text-secondary">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
           Preparing payment…
         </div>
       )}
 
-      {/* Stripe payment form */}
-      {isPending && !authRequired && bookingDataReady && (
+      {/* Stripe payment form — hidden once payment is submitted */}
+      {isPending && !authRequired && bookingDataReady && !paymentSubmitted && (
         <div className="space-y-3">
           {intentState.kind === "idle" || intentState.kind === "loading" ? (
             <div className="flex items-center gap-2 text-sm text-secondary">
@@ -483,7 +588,10 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
                   isTestMode={isTestMode}
                   bookingId={props.bookingId}
                   clientSecret={intentState.clientSecret}
-                  onSubmitted={() => void refresh()}
+                  onSubmitted={() => {
+                    setPaymentSubmitted(true);
+                    void refresh();
+                  }}
                 />
               </StripeProvider>
             </div>
@@ -504,8 +612,8 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
         </div>
       )}
 
-      {/* Error states */}
-      {state.kind === "error" && (
+      {/* Error states (non-timeout) */}
+      {!pollTimedOut && state.kind === "error" && (
         <div className="rounded-xl bg-danger/8 px-4 py-3 text-xs text-danger ring-1 ring-danger/20">
           {state.message}
         </div>
@@ -516,8 +624,8 @@ export function PendingPaymentCard(props: { bookingId: string; status: string; s
         </div>
       )}
 
-      {/* Cancel — subtle text button */}
-      {canCancel && isPending && (
+      {/* Cancel — only before payment is submitted */}
+      {canCancel && isPending && !paymentSubmitted && (
         <button
           type="button"
           onClick={() => void onCancel()}

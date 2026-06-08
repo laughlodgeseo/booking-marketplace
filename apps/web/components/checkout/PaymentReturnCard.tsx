@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Timer } from "lucide-react";
 import { useBookingPoll } from "@/components/checkout/useBookingPoll";
-import { findUserBookingById, type BookingListItem } from "@/lib/api/bookings";
+import { getBookingStatusDirect, type BookingListItem } from "@/lib/api/bookings";
 
 type ViewState =
   | { kind: "idle" }
@@ -59,7 +59,7 @@ export function PaymentReturnCard(props: { bookingId: string }) {
     if (!bookingId) return;
     setState({ kind: "refreshing" });
     try {
-      const b = await findUserBookingById({ bookingId, maxPages: 50, pageSize: 20 });
+      const b = await getBookingStatusDirect({ bookingId });
       setLatest(b);
       setState({ kind: "idle" });
     } catch (e) {

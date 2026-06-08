@@ -28,6 +28,7 @@ import {
   NotificationType,
   SecurityDepositMode,
   SecurityDepositStatus,
+  UserRole,
 } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -2230,12 +2231,17 @@ export class PaymentsService {
     }
 
     if (!payment) {
+      // Use the actual PaymentIntent amount (converted from minor units) so
+      // that the subsequent amount-match check in handleStripePaymentIntentSucceeded
+      // passes even when the charge includes a security deposit on top of
+      // booking.totalAmount.
+      const intentAmountMajor = paymentIntent.amount / 100;
       payment = await tx.payment.create({
         data: {
           bookingId: booking.id,
           provider: PaymentProvider.STRIPE,
           status: PaymentStatus.REQUIRES_ACTION,
-          amount: booking.totalAmount,
+          amount: intentAmountMajor,
           currency: booking.currency,
           providerRef: paymentIntent.id,
           stripePaymentIntentId: paymentIntent.id,
@@ -3115,5 +3121,125 @@ export class PaymentsService {
       `claimSecurityDeposit completed depositId=${deposit.id} bookingId=${deposit.bookingId} claimAmount=${claimAmount}`,
     );
     return { ok: true, deposit: updated };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Booking payment status — lightweight read for polling
+  // ---------------------------------------------------------------------------
+
+  async getBookingPaymentStatus(args: {
+    actor: { id: string; role: UserRole };
+    bookingId: string;
+  }): Promise<{
+    bookingId: string;
+    bookingStatus: string;
+    paymentStatus: string;
+    paymentIntentId: string | null;
+    paymentIntentStatus: string | null;
+  }> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: args.bookingId },
+      include: { payment: true },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found.');
+
+    const isOwner = booking.customerId === args.actor.id;
+    const isAdmin = args.actor.role === UserRole.ADMIN;
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('Access denied.');
+    }
+
+    return {
+      bookingId: booking.id,
+      bookingStatus: booking.status,
+      paymentStatus: booking.paymentStatus,
+      paymentIntentId: booking.payment?.stripePaymentIntentId ?? null,
+      paymentIntentStatus: booking.payment?.status ?? null,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Admin reconciliation — re-drives finalization from Stripe for a stuck booking
+  // ---------------------------------------------------------------------------
+
+  async reconcileBookingPayment(args: {
+    actor: { id: string; role: UserRole };
+    bookingId: string;
+  }): Promise<{
+    bookingId: string;
+    action: 'confirmed' | 'already_confirmed' | 'no_payment_intent' | 'stripe_not_succeeded' | 'skipped';
+    bookingStatus: string;
+    stripeStatus?: string;
+  }> {
+    if (args.actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Admin only.');
+    }
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: args.bookingId },
+      include: { payment: true, property: { select: { vendorId: true } } },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found.');
+
+    if (booking.status === BookingStatus.CONFIRMED) {
+      return {
+        bookingId: booking.id,
+        action: 'already_confirmed',
+        bookingStatus: booking.status,
+      };
+    }
+
+    const paymentIntentId = booking.payment?.stripePaymentIntentId ?? null;
+    if (!paymentIntentId) {
+      return {
+        bookingId: booking.id,
+        action: 'no_payment_intent',
+        bookingStatus: booking.status,
+      };
+    }
+
+    let pi: Stripe.PaymentIntent;
+    try {
+      pi = await this.stripeProvider.retrievePaymentIntent(paymentIntentId);
+    } catch (error: unknown) {
+      throw new BadGatewayException(
+        `Failed to retrieve Stripe PaymentIntent: ${this.getStripeErrorMessage(error, 'Unknown error')}`,
+      );
+    }
+
+    if (pi.status !== 'succeeded') {
+      return {
+        bookingId: booking.id,
+        action: 'stripe_not_succeeded',
+        bookingStatus: booking.status,
+        stripeStatus: pi.status,
+      };
+    }
+
+    // Drive the same finalization path as the webhook, using a deterministic
+    // idempotency key so re-running this is safe.
+    const syntheticEventId = `reconcile_${booking.id}_${paymentIntentId}`;
+
+    await this.handleStripePaymentIntentSucceeded({
+      paymentIntent: pi,
+      eventId: syntheticEventId,
+    });
+
+    const updated = await this.prisma.booking.findUniqueOrThrow({
+      where: { id: booking.id },
+    });
+
+    this.logger.log(
+      `reconcileBookingPayment completed bookingId=${booking.id} oldStatus=${booking.status} newStatus=${updated.status}`,
+    );
+
+    return {
+      bookingId: booking.id,
+      action: 'confirmed',
+      bookingStatus: updated.status,
+      stripeStatus: pi.status,
+    };
   }
 }
