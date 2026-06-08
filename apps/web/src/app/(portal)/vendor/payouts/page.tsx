@@ -10,7 +10,9 @@ import { StatCard } from "@/components/portal/StatCard";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   portalActionDanger,
+  portalActionPrimary,
   portalActionSecondary,
+  portalRowPrimary,
   portalRowSecondary,
   portalRowSuccess,
 } from "@/components/portal/ui/portal-actions";
@@ -100,7 +102,7 @@ function ConfirmModal({
           <button type="button" onClick={onClose} disabled={busy} className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary disabled:opacity-50">
             Cancel
           </button>
-          <button type="button" onClick={() => void confirm()} disabled={busy} className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          <button type="button" onClick={() => void confirm()} disabled={busy} className={`${portalActionPrimary} disabled:opacity-50`}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm received"}
           </button>
         </div>
@@ -303,7 +305,7 @@ function PayoutDetailDrawer({
                         type="button"
                         onClick={() => setShowConfirm(true)}
                         disabled={busy}
-                        className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        className={`${portalActionPrimary} disabled:opacity-50`}
                       >
                         Confirm received
                       </button>
@@ -429,7 +431,7 @@ export default function VendorPayoutsPage() {
                       </button>
                     ) : null}
                     {row.status === "PAID_AWAITING_VENDOR_CONFIRMATION" ? (
-                      <button type="button" onClick={() => setDetailPayoutId(row.id)} className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">
+                      <button type="button" onClick={() => setDetailPayoutId(row.id)} className={portalRowPrimary}>
                         Confirm received
                       </button>
                     ) : null}

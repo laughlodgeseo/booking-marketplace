@@ -8,6 +8,7 @@ import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionDanger } from "@/components/portal/ui/portal-actions";
 import {
   downloadAdminBookingDocument,
   forceCancelAdminBooking,
@@ -436,7 +437,7 @@ export default function AdminBookingDetailPage() {
                     type="button"
                     disabled={cancelBusy}
                     onClick={() => void forceCancel()}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-danger px-4 py-2 text-sm font-semibold text-inverted hover:bg-danger disabled:opacity-60"
+                    className={`${portalActionDanger} disabled:opacity-60`}
                   >
                     <AlertTriangle className="h-4 w-4" />
                     {cancelBusy ? "Cancelling..." : "Force cancel booking"}

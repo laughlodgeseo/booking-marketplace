@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { portalActionSuccess, portalActionDanger } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminCustomerDocument,
   downloadAdminCustomerDocument,
@@ -228,7 +229,7 @@ export default function AdminCustomerDocumentDetailPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void approve(state.item)}
-                    className="rounded-xl bg-success px-4 py-2 text-sm font-semibold text-inverted hover:opacity-90 disabled:opacity-50"
+                    className={`${portalActionSuccess} disabled:opacity-50`}
                   >
                     Approve
                   </button>
@@ -236,7 +237,7 @@ export default function AdminCustomerDocumentDetailPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void reject(state.item)}
-                    className="rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-inverted hover:opacity-90 disabled:opacity-50"
+                    className={`${portalActionDanger} disabled:opacity-50`}
                   >
                     Reject
                   </button>

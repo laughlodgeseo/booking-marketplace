@@ -6,6 +6,11 @@ import { Building2, CheckCircle2, Globe2, Landmark, Loader2, ShieldAlert, Trash2
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
+  portalActionPrimary,
+  portalRowSecondary,
+  portalRowDanger,
+} from "@/components/portal/ui/portal-actions";
+import {
   vendorCreatePayoutMethod,
   vendorDisablePayoutMethod,
   vendorListPayoutMethods,
@@ -164,7 +169,7 @@ export default function VendorPayoutSettingsPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => void save()} disabled={busy !== null} className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-white disabled:opacity-50">
+            <button type="button" onClick={() => void save()} disabled={busy !== null} className={`${portalActionPrimary} disabled:opacity-50`}>
               {busy === "Saving payout method..." ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Save payout method
             </button>
@@ -196,8 +201,8 @@ export default function VendorPayoutSettingsPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusPill status={method.status}>{pretty(method.status)}</StatusPill>
-                    <button type="button" onClick={() => void setDefault(method.id)} disabled={busy !== null || method.isDefault} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50">Set default</button>
-                    <button type="button" onClick={() => void disable(method.id)} disabled={busy !== null} className="rounded-lg border border-danger/30 px-2 py-1.5 text-danger disabled:opacity-50" aria-label="Disable payout method">
+                    <button type="button" onClick={() => void setDefault(method.id)} disabled={busy !== null || method.isDefault} className={`${portalRowSecondary} disabled:opacity-50`}>Set default</button>
+                    <button type="button" onClick={() => void disable(method.id)} disabled={busy !== null} className={`${portalRowDanger} disabled:opacity-50`} aria-label="Disable payout method">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>

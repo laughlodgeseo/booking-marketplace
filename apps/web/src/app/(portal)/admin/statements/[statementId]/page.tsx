@@ -10,6 +10,7 @@ import { DateText } from "@/components/portal/ui/DateText";
 import { MoneyText } from "@/components/portal/ui/MoneyText";
 import { SkeletonBlock, SkeletonTable } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { portalRowSuccess, portalRowDanger } from "@/components/portal/ui/portal-actions";
 import {
   adminCreatePayoutFromStatement,
   adminFinalizeStatement,
@@ -220,7 +221,7 @@ export default function AdminStatementDetailPage() {
                       type="button"
                       disabled={busy !== null}
                       onClick={() => void finalizeStatement()}
-                      className="rounded-xl bg-success px-3 py-2 text-xs font-semibold text-inverted hover:bg-success disabled:opacity-60"
+                      className={`${portalRowSuccess} disabled:opacity-60`}
                     >
                       Finalize
                     </button>
@@ -230,7 +231,7 @@ export default function AdminStatementDetailPage() {
                       type="button"
                       disabled={busy !== null}
                       onClick={() => void voidCurrentStatement()}
-                      className="rounded-xl bg-danger px-3 py-2 text-xs font-semibold text-inverted hover:bg-danger disabled:opacity-60"
+                      className={`${portalRowDanger} disabled:opacity-60`}
                     >
                       Void
                     </button>

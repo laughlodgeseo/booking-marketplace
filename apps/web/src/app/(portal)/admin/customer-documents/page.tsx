@@ -7,7 +7,7 @@ import { FileCheck, Search } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
-import { portalActionDanger, portalRowPrimary, portalRowSecondary } from "@/components/portal/ui/portal-actions";
+import { portalActionDanger, portalRowPrimary, portalRowSecondary, portalRowSuccess } from "@/components/portal/ui/portal-actions";
 import {
   approveAdminCustomerDocument,
   downloadAdminCustomerDocument,
@@ -222,7 +222,7 @@ export default function AdminCustomerDocumentsPage() {
                         <button type="button" disabled={busy !== null} onClick={() => void download(item)} className={portalRowSecondary}>
                           Download
                         </button>
-                        <button type="button" disabled={busy !== null} onClick={() => void approve(item)} className="inline-flex min-h-8 items-center justify-center rounded-xl bg-success px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/40 disabled:opacity-50">
+                        <button type="button" disabled={busy !== null} onClick={() => void approve(item)} className={`${portalRowSuccess} disabled:opacity-50`}>
                           Approve
                         </button>
                         <button type="button" disabled={busy !== null} onClick={() => void reject(item)} className={portalActionDanger}>

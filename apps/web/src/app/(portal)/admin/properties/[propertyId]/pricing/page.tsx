@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
+import { portalActionPrimary } from "@/components/portal/ui/portal-actions";
 import {
   listAdminPricingRules,
   createAdminPricingRule,
@@ -423,7 +424,7 @@ function CreateRuleForm({
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60 transition-colors"
+          className={`${portalActionPrimary} w-full disabled:opacity-60`}
         >
           {saving ? "Creating…" : "Create Rule"}
         </button>
@@ -533,7 +534,7 @@ export default function AdminPropertyPricingPage() {
         {!showForm ? (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90 transition-colors"
+            className={portalActionPrimary}
           >
             <Plus className="h-4 w-4" />
             Add Pricing Rule

@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { getUserOverview } from "@/lib/api/portal/user";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { portalRowPrimary } from "@/components/portal/ui/portal-actions";
 import { StatCard } from "@/components/portal/StatCard";
 import { HostIllustration } from "@/components/portal/ui/PortalIllustration";
 
@@ -163,7 +164,7 @@ export default function AccountOverviewPage() {
             </div>
             <Link
               href="/account/documents"
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-hover transition"
+              className={`shrink-0 ${portalRowPrimary}`}
             >
               {tPortal("accountOverview.uploadNow")} <ArrowRight className="h-3 w-3" />
             </Link>

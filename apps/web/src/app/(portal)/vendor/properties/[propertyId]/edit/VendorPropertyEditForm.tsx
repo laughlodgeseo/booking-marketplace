@@ -10,6 +10,7 @@ import {
   updateVendorPropertyLocation,
 } from "@/lib/api/portal/vendor";
 import { ReviewChecklistCard, computeGates } from "@/components/portal/vendor/property/ReviewChecklistCard";
+import { portalActionSuccess } from "@/components/portal/ui/portal-actions";
 import { VendorPropertyTimeline } from "./VendorPropertyTimeline";
 import { VendorPropertyMediaSection } from "./VendorPropertyMediaSection";
 import { VendorPropertyDocsSection } from "./VendorPropertyDocsSection";
@@ -318,7 +319,7 @@ export default function VendorPropertyEditForm({ initial }: Props) {
                 type="button"
                 disabled={busy !== null || p.status !== "APPROVED"}
                 onClick={() => void publish()}
-                className="rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-inverted hover:bg-success disabled:opacity-50"
+                className={`${portalActionSuccess} disabled:opacity-50`}
               >
                 Publish (after APPROVED)
               </button>

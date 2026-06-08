@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
+import { portalRowSuccess, portalRowDanger } from "@/components/portal/ui/portal-actions";
 import {
   adminCancelPayout,
   adminGetPayoutDetail,
@@ -225,7 +226,7 @@ export default function AdminPayoutDetailPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void markSucceeded()}
-                    className="rounded-xl bg-success px-3 py-2 text-xs font-semibold text-inverted hover:bg-success disabled:opacity-60"
+                    className={`${portalRowSuccess} disabled:opacity-60`}
                   >
                     Mark succeeded
                   </button>
@@ -235,7 +236,7 @@ export default function AdminPayoutDetailPage() {
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void markFailed()}
-                    className="rounded-xl bg-danger px-3 py-2 text-xs font-semibold text-inverted hover:bg-danger disabled:opacity-60"
+                    className={`${portalRowDanger} disabled:opacity-60`}
                   >
                     Mark failed
                   </button>

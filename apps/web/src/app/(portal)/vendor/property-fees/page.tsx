@@ -22,7 +22,7 @@ import {
   type PropertyFeeItem,
   type FeePaymentInitResponse,
 } from "@/lib/api/portal/vendor";
-import { portalRowWarning } from "@/components/portal/ui/portal-actions";
+import { portalRowWarning, portalRowPrimary } from "@/components/portal/ui/portal-actions";
 
 // ─── Currency helpers ─────────────────────────────────────────────────────────
 const _feeFormatter = new Intl.NumberFormat("en-US", {
@@ -587,7 +587,7 @@ export default function VendorPropertyFeesPage() {
                                   entry.propertyTitle,
                                 )
                               }
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+                              className={`${portalRowPrimary} disabled:cursor-not-allowed disabled:opacity-50`}
                             >
                               <CreditCard className="h-3.5 w-3.5" />
                               Pay all outstanding
