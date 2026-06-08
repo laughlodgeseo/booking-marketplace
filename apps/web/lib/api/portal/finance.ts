@@ -81,7 +81,10 @@ export type VendorPayoutRow = {
   vendorConfirmationNote: string | null;
   proofDocumentId: string | null;
   proofAvailable: boolean;
+  /** API proxy URL — always server-routed, never a direct Cloudinary URL */
   proofViewUrl: string | null;
+  proofDownloadUrl: string | null;
+  proofUploadedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -294,6 +297,16 @@ export async function vendorConfirmPayoutReceived(id: string, note?: string): Pr
 
 export async function vendorDisputePayout(id: string, note: string): Promise<{ ok: true }> {
   const res = await apiFetch<{ ok: true }>(`/portal/vendor/payouts/${encodeURIComponent(id)}/dispute`, {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    body: { note },
+  });
+  return unwrap(res);
+}
+
+export async function vendorReportPayoutIssue(id: string, note: string): Promise<{ ok: true }> {
+  const res = await apiFetch<{ ok: true }>(`/portal/vendor/payouts/${encodeURIComponent(id)}/report-issue`, {
     method: "POST",
     credentials: "include",
     cache: "no-store",
@@ -561,6 +574,27 @@ export async function adminCancelVendorPayout(id: string, note?: string): Promis
     credentials: "include",
     cache: "no-store",
     body: { note: note ?? undefined },
+  });
+  return unwrap(res);
+}
+
+export async function adminReconcileVendorPayoutAmounts(): Promise<{
+  checked: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  log: string[];
+}> {
+  const res = await apiFetch<{
+    checked: number;
+    updated: number;
+    skipped: number;
+    errors: number;
+    log: string[];
+  }>("/portal/admin/vendor-payouts/reconcile-amounts", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
   });
   return unwrap(res);
 }

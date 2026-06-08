@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { CreateBookingResponse } from "@/lib/types/property";
 import { apiFetch } from "@/lib/http";
+import { formatBookingStatusForCustomer, formatFriendlyBookingReference } from "@/lib/customerDisplay";
 
 type CreateUi =
   | { kind: "idle" }
@@ -107,12 +108,12 @@ export default function CreateBookingCard(props: { holdId: string }) {
       <div>
         <div className="text-sm font-semibold text-primary">Create booking</div>
         <p className="mt-1 text-xs text-secondary">
-          Converts your hold into a booking (PENDING_PAYMENT). Payment confirmation happens via verified webhooks.
+          Confirm your reserved dates and continue to secure payment.
         </p>
       </div>
 
       <div className="mt-4 rounded-xl border border-line bg-warm-alt px-4 py-3 text-xs text-secondary">
-        Hold ID: <span className="font-mono font-semibold">{holdId}</span>
+        Your selected dates are temporarily reserved.
       </div>
 
       <div className="mt-5 grid gap-3">
@@ -133,10 +134,10 @@ export default function CreateBookingCard(props: { holdId: string }) {
           <div className="rounded-2xl border border-success/30 bg-success/12 p-4 text-sm text-success">
             <div className="font-semibold">Booking created</div>
             <div className="mt-2 text-xs text-success/80">
-              Booking ID: <span className="font-mono font-semibold">{ui.bookingId}</span>
+              Booking reference: <span className="font-semibold">{formatFriendlyBookingReference(ui.bookingId)}</span>
             </div>
             <div className="mt-1 text-xs text-success/80">
-              Status: <span className="font-semibold">{ui.status}</span>
+              Status: <span className="font-semibold">{formatBookingStatusForCustomer(ui.status)}</span>
             </div>
             <div className="mt-1 text-xs text-success/80">
               Total: <span className="font-semibold">{formatMoney(ui.currency, ui.totalAmount)}</span>
@@ -146,7 +147,7 @@ export default function CreateBookingCard(props: { holdId: string }) {
             </div>
 
             <div className="mt-4 rounded-xl border border-success/30 bg-surface px-4 py-3 text-xs text-success/80">
-              Next step (coming next): start hosted payment (Stripe/Telr). Booking becomes CONFIRMED only after webhook verification.
+              Next step: complete your secure payment.
             </div>
           </div>
         ) : null}

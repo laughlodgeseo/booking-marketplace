@@ -6,6 +6,8 @@ import {
   Param,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -13,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import { UserRole, VendorPayoutStatus, type User } from '@prisma/client';
+import type { Response } from 'express';
 
 import { JwtAccessGuard } from '../../../auth/guards/jwt-access.guard';
 import { RolesGuard } from '../../../auth/guards/roles.guard';
@@ -41,6 +44,8 @@ function parsePayoutStatus(value: unknown): VendorPayoutStatus | null {
 export class PortalAdminVendorPayoutsController {
   constructor(private readonly payouts: VendorPayoutLifecycleService) {}
 
+  // ── Static routes MUST come before dynamic :payoutId routes ────────────────
+
   @Get()
   list(@Query() query: { status?: string; vendorId?: string }) {
     return this.payouts.adminListVendorPayouts({
@@ -49,9 +54,44 @@ export class PortalAdminVendorPayoutsController {
     });
   }
 
+  @Post('reconcile-amounts')
+  reconcileAmounts() {
+    return this.payouts.reconcilePayoutAmounts();
+  }
+
+  // ── Dynamic :payoutId routes ────────────────────────────────────────────────
+
   @Get(':payoutId')
   detail(@Param('payoutId') payoutId: string) {
     return this.payouts.adminGetVendorPayout(payoutId);
+  }
+
+  @Get(':payoutId/proof/view')
+  async proofView(
+    @Param('payoutId') payoutId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.payouts.adminGetPayoutProof(payoutId, 'view');
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(result.fileName)}"`,
+    );
+    return new StreamableFile(result.buffer);
+  }
+
+  @Get(':payoutId/proof/download')
+  async proofDownload(
+    @Param('payoutId') payoutId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.payouts.adminGetPayoutProof(payoutId, 'download');
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(result.fileName)}"`,
+    );
+    return new StreamableFile(result.buffer);
   }
 
   @Post(':payoutId/mark-processing')

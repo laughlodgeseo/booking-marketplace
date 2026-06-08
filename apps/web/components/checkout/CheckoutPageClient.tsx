@@ -216,13 +216,13 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
 
     if (authStatus === "authenticated") {
       return (
-        <div className="flex items-center gap-3 rounded-2xl bg-success/10 px-4 py-3.5 ring-1 ring-success/25">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.30)]">
+        <div className="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-[0_8px_20px_rgba(79,70,229,0.25)]">
             <CheckCircle2 className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-primary">Signed in</div>
-            <div className="text-xs text-secondary">{user?.email ?? "Authenticated"}</div>
+            <div className="text-sm font-semibold text-indigo-700">Signed in</div>
+            <div className="text-xs text-slate-600">{user?.email ?? "Authenticated"}</div>
           </div>
         </div>
       );
@@ -417,11 +417,6 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
   return (
     <>
       <main className="min-h-screen bg-transparent">
-        {/* Decorative bg glow */}
-        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
-          <div className="absolute -top-40 left-1/4 h-125 w-125 rounded-full bg-linear-to-br from-indigo-500/8 to-violet-500/5 blur-3xl" />
-          <div className="absolute bottom-20 right-1/4 h-100 w-100 rounded-full bg-linear-to-tl from-violet-500/6 to-brand/5 blur-3xl" />
-        </div>
         <div className="mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
           {/* Back */}
           <Link
@@ -440,22 +435,20 @@ export function CheckoutPageClient(props: CheckoutPageClientProps) {
               <div className={[
                 "overflow-hidden rounded-3xl transition-all duration-300",
                 step > 1
-                  ? "premium-card-tinted ring-1 ring-success/20 shadow-[0_8px_32px_rgba(11,15,25,0.08)]"
+                  ? "border border-indigo-100 bg-white shadow-[0_8px_32px_rgba(11,15,25,0.08)]"
                   : "premium-card premium-card-tinted ring-2 ring-brand/20 shadow-[0_20px_60px_rgba(79,70,229,0.13)]",
               ].join(" ")}>
                 {/* Gradient top bar */}
                 <div className={[
                   "h-[3px]",
-                  step > 1
-                    ? "bg-linear-to-r from-emerald-400 to-teal-500"
-                    : "bg-linear-to-r from-indigo-500 via-violet-500 to-purple-500",
+                  "bg-linear-to-r from-indigo-500 via-violet-500 to-purple-500",
                 ].join(" ")} />
                 <div className="flex items-center gap-4 p-6 pb-4">
                   <div
                     className={[
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300",
                       step > 1
-                        ? "bg-linear-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.30)]"
+                        ? "bg-indigo-600 text-white shadow-[0_8px_20px_rgba(79,70,229,0.25)]"
                         : "bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-[0_6px_20px_rgba(79,70,229,0.35)]",
                     ].join(" ")}
                   >

@@ -125,20 +125,20 @@ export default function CheckoutForm(props: CheckoutFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="rounded-2xl border border-line/80 bg-white/80 p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-semibold text-secondary">Total due</div>
-            <div className="mt-1 text-lg font-semibold text-primary">{props.totalText}</div>
+            <div className="text-xs font-semibold text-slate-500">Total due</div>
+            <div className="mt-1 text-lg font-semibold text-slate-950">{props.totalText}</div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-line/80 bg-surface/80 px-3 py-1 text-xs font-semibold text-secondary">
+          <div className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
             <LockKeyhole className="h-3.5 w-3.5" />
             Encrypted
           </div>
         </div>
 
         <div className="mt-4 grid gap-3">
-          <label className="grid gap-1 text-xs font-semibold text-secondary" htmlFor="cardholderName">
+          <label className="grid gap-1 text-xs font-semibold text-slate-600" htmlFor="cardholderName">
             Cardholder name
             <input
               id="cardholderName"
@@ -146,11 +146,11 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               onChange={(e) => setCardholderName(e.target.value)}
               placeholder="Full name"
               autoComplete="cc-name"
-              className="h-11 rounded-xl border border-line/80 bg-white px-3 text-sm text-primary outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20"
             />
           </label>
 
-          <div className="relative z-20 rounded-xl border border-line/80 bg-white px-3 py-3 shadow-[inset_0_1px_0_rgba(15,23,42,0.03)] transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25">
+          <div className="relative z-20 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600/20">
             <PaymentElement
               options={paymentElementOptions}
               onReady={() => setIsElementReady(true)}
@@ -180,9 +180,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       ) : null}
 
       {props.isTestMode ? (
-        <div className="rounded-xl border border-line/80 bg-surface/70 px-4 py-3 text-[11px] text-secondary">
-          Test cards:
-          <div className="mt-2 space-y-1 text-[11px]">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+          <div className="font-semibold text-slate-600">Test mode cards</div>
+          <div className="mt-2 space-y-1">
             <div>
               <span className="font-semibold">Success</span>: 4242 4242 4242 4242, any future date, any CVC
             </div>
@@ -197,15 +197,24 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         type="submit"
         disabled={!canSubmit}
         className={classNames(
-          "flex h-11 w-full items-center justify-center rounded-2xl text-sm font-semibold transition",
-          canSubmit ? "bg-brand text-accent-text hover:bg-brand-hover" : "bg-warm-alt text-muted",
+          "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition",
+          canSubmit
+            ? "bg-indigo-600 text-white shadow-[0_18px_40px_rgba(79,70,229,0.22)] hover:bg-indigo-700"
+            : "bg-slate-100 text-slate-500",
         )}
       >
-        {state.kind === "processing" ? "Processing..." : state.kind === "submitted" ? "Submitted" : "Pay now"}
+        <LockKeyhole className="h-4 w-4" />
+        {state.kind === "processing"
+          ? "Processing payment..."
+          : state.kind === "submitted"
+            ? "Payment submitted"
+            : canSubmit
+              ? `Pay ${props.totalText} securely`
+              : "Complete card details to continue"}
       </button>
 
-      <div className="text-[11px] text-secondary">
-        Card data goes directly to Stripe. Booking is confirmed only by backend webhook verification.
+      <div className="text-[11px] text-slate-500">
+        Card details are encrypted and handled securely by our payment partner.
       </div>
     </form>
   );

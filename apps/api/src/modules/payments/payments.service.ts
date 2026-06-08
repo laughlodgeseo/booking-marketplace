@@ -2450,8 +2450,9 @@ export class PaymentsService {
 
         const payoutAmount =
           vendorPayout?.vendorNetAmountMinor ??
-          this.vendorPayouts.calculateVendorPayout(booking.totalAmount)
-            .vendorNetAmountMinor;
+          this.vendorPayouts.calculateVendorPayout(
+            Math.round(Number(booking.totalAmount) * 100),
+          ).vendorNetAmountMinor;
         const payoutCurrency = vendorPayout?.currency ?? booking.currency;
         const hasPayoutDetails = Boolean(vendorPayout?.payoutMethodId);
 

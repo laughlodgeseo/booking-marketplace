@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileUp, Loader2, Search, Wallet } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileUp, Loader2, Search, Wallet, X } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
@@ -9,9 +9,11 @@ import { StatCard } from "@/components/portal/StatCard";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   adminCancelVendorPayout,
+  adminGetVendorPayout,
   adminListVendorPayouts,
   adminMarkVendorPayoutPaid,
   adminMarkVendorPayoutProcessing,
+  adminReconcileVendorPayoutAmounts,
   adminUploadVendorPayoutProof,
   type VendorPayoutRow,
 } from "@/lib/api/portal/finance";
@@ -46,6 +48,245 @@ function monthlyPoints(rows: VendorPayoutRow[]): BarPoint[] {
   return Array.from(map.entries()).map(([label, value]) => ({ label, value }));
 }
 
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2 text-sm border-b border-line/40 last:border-0">
+      <span className="text-muted shrink-0 w-36">{label}</span>
+      <span className="text-primary text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function PayoutDetailDrawer({
+  payoutId,
+  onClose,
+  onAction,
+}: {
+  payoutId: string;
+  onClose: () => void;
+  onAction: () => void;
+}) {
+  const [payout, setPayout] = useState<VendorPayoutRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await adminGetVendorPayout(payoutId);
+      setPayout(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [payoutId]);
+
+  async function markProcessing() {
+    if (!payout) return;
+    setBusy("processing");
+    setMessage(null);
+    try {
+      await adminMarkVendorPayoutProcessing(payout.id);
+      setMessage("Marked as processing.");
+      onAction();
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not mark processing.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function uploadProof(file: File | null) {
+    if (!file || !payout) return;
+    setBusy("proof");
+    setMessage(null);
+    try {
+      await adminUploadVendorPayoutProof(payout.id, file);
+      setMessage("Proof uploaded. Payout is now awaiting vendor confirmation.");
+      onAction();
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not upload proof.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function markPaid() {
+    if (!payout) return;
+    setBusy("paid");
+    setMessage(null);
+    try {
+      await adminMarkVendorPayoutPaid(payout.id);
+      setMessage("Payout marked as paid.");
+      onAction();
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not mark paid.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function cancel() {
+    if (!payout) return;
+    const note = window.prompt("Cancellation note");
+    if (!note?.trim()) return;
+    setBusy("cancel");
+    setMessage(null);
+    try {
+      await adminCancelVendorPayout(payout.id, note);
+      setMessage("Payout cancelled.");
+      onAction();
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not cancel payout.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const method = payout?.payoutMethod;
+  const canUploadProof =
+    payout &&
+    (payout.status === "PROCESSING" || payout.status === "READY_FOR_PAYOUT");
+  const canMarkProcessing = payout?.status === "READY_FOR_PAYOUT";
+  const canMarkPaid =
+    payout?.proofAvailable &&
+    payout.status !== "CONFIRMED_RECEIVED" &&
+    payout.status !== "CANCELLED";
+  const canCancel =
+    payout &&
+    ["PENDING_DETAILS", "READY_FOR_PAYOUT", "PROCESSING", "DISPUTED"].includes(payout.status);
+
+  return (
+    <div className="fixed inset-0 z-40 flex">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative ml-auto flex h-full w-full max-w-xl flex-col overflow-y-auto bg-surface shadow-2xl">
+        <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
+          <div className="text-base font-semibold text-primary">Payout Details</div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-neutral-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-1 items-center justify-center p-10 text-sm text-secondary">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : !payout ? (
+          <div className="p-8 text-sm text-danger">Payout not found.</div>
+        ) : (
+          <div className="flex-1 space-y-5 p-5">
+            {message ? (
+              <div className="rounded-xl border border-line/70 bg-warm-base p-3 text-sm text-secondary">{message}</div>
+            ) : null}
+
+            <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+              <div className="mb-3 text-xs font-semibold uppercase text-muted">Payout summary</div>
+              <DetailRow label="Status" value={<StatusPill status={payout.status}>{pretty(payout.status)}</StatusPill>} />
+              <DetailRow label="Property" value={payout.propertyTitle ?? "—"} />
+              <DetailRow label="Booking ID" value={<span className="font-mono text-xs">{payout.bookingId ?? "—"}</span>} />
+              <DetailRow label="Check-in" value={dateLabel(payout.checkIn)} />
+              <DetailRow label="Check-out" value={dateLabel(payout.checkOut)} />
+              <DetailRow label="Due date" value={dateLabel(payout.dueAt)} />
+              <DetailRow label="Paid at" value={dateLabel(payout.paidAt)} />
+              <DetailRow label="Confirmed at" value={dateLabel(payout.confirmedAt)} />
+            </div>
+
+            <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+              <div className="mb-3 text-xs font-semibold uppercase text-muted">Amounts</div>
+              <DetailRow label="Gross booking" value={<span className="font-semibold">{moneyMinor(payout.grossBookingAmountMinor, payout.currency)}</span>} />
+              <DetailRow
+                label={`Commission (${((payout.platformCommissionRateBps / 100)).toFixed(0)}%)`}
+                value={<span className="text-danger">{moneyMinor(payout.platformCommissionMinor, payout.currency)}</span>}
+              />
+              <DetailRow label="Vendor net payout" value={<span className="text-lg font-bold text-primary">{moneyMinor(payout.vendorNetAmountMinor, payout.currency)}</span>} />
+            </div>
+
+            <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+              <div className="mb-3 text-xs font-semibold uppercase text-muted">Payout method</div>
+              {!method ? (
+                <div className="text-sm text-amber-700">No payout method on file. Vendor must add one before payout can proceed.</div>
+              ) : (
+                <>
+                  <DetailRow label="Type" value={pretty(method.type)} />
+                  <DetailRow label="Status" value={<StatusPill status={method.status}>{pretty(method.status)}</StatusPill>} />
+                  <DetailRow label="Account holder" value={method.accountHolderName ?? method.manualMethodLabel ?? "—"} />
+                  <DetailRow label="Bank name" value={method.bankName ?? "—"} />
+                  <DetailRow label="IBAN" value={method.ibanMasked ?? "—"} />
+                  <DetailRow label="Account ending" value={method.accountNumberLast4 ?? "—"} />
+                  <DetailRow label="SWIFT/BIC" value={method.swiftCode ?? "—"} />
+                  <DetailRow label="Country" value={method.bankCountry ?? "—"} />
+                  <DetailRow label="Currency" value={method.currency} />
+                </>
+              )}
+            </div>
+
+            {payout.proofAvailable && payout.proofViewUrl ? (
+              <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase text-muted">Payment proof</div>
+                <a
+                  href={payout.proofViewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-brand/30 px-3 py-1.5 text-xs font-semibold text-brand"
+                >
+                  View proof
+                </a>
+              </div>
+            ) : null}
+
+            {payout.adminNotes ? (
+              <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+                <div className="mb-1 text-xs font-semibold uppercase text-muted">Admin notes</div>
+                <p className="text-sm text-secondary">{payout.adminNotes}</p>
+              </div>
+            ) : null}
+
+            <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+              <div className="mb-3 text-xs font-semibold uppercase text-muted">Actions</div>
+              <div className="flex flex-wrap gap-2">
+                {canMarkProcessing ? (
+                  <button type="button" onClick={() => void markProcessing()} disabled={busy !== null} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+                    {busy === "processing" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Mark processing"}
+                  </button>
+                ) : null}
+                {canUploadProof ? (
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+                    <FileUp className="h-3.5 w-3.5" />
+                    {busy === "proof" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Upload proof"}
+                    <input
+                      type="file"
+                      accept="application/pdf,image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(e) => void uploadProof(e.target.files?.[0] ?? null)}
+                      disabled={busy !== null}
+                    />
+                  </label>
+                ) : null}
+                {canMarkPaid ? (
+                  <button type="button" onClick={() => void markPaid()} disabled={busy !== null} className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                    {busy === "paid" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Mark paid"}
+                  </button>
+                ) : null}
+                {canCancel ? (
+                  <button type="button" onClick={() => void cancel()} disabled={busy !== null} className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger disabled:opacity-50">
+                    {busy === "cancel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cancel"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminVendorPayoutsPage() {
   const [rows, setRows] = useState<VendorPayoutRow[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
@@ -54,6 +295,8 @@ export default function AdminVendorPayoutsPage() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [detailPayoutId, setDetailPayoutId] = useState<string | null>(null);
+  const [reconcileResult, setReconcileResult] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -73,62 +316,25 @@ export default function AdminVendorPayoutsPage() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return rows;
-    return rows.filter((row) => [row.id, row.vendorId, row.propertyTitle ?? "", row.bookingId ?? "", row.status].join(" | ").toLowerCase().includes(needle));
+    return rows.filter((row) =>
+      [row.id, row.vendorId, row.propertyTitle ?? "", row.bookingId ?? "", row.status].join(" | ").toLowerCase().includes(needle)
+    );
   }, [q, rows]);
 
   const chart = useMemo(() => monthlyPoints(rows), [rows]);
 
-  async function markProcessing(row: VendorPayoutRow) {
-    setBusy(row.id);
+  async function reconcile() {
+    setBusy("reconcile");
+    setReconcileResult(null);
     setMessage(null);
     try {
-      await adminMarkVendorPayoutProcessing(row.id);
-      await load();
+      const result = await adminReconcileVendorPayoutAmounts();
+      setReconcileResult(
+        `Reconcile complete: checked ${result.checked}, updated ${result.updated}, skipped ${result.skipped}, errors ${result.errors}.`
+      );
+      if (result.updated > 0) await load();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not mark processing.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function uploadProof(row: VendorPayoutRow, file: File | null) {
-    if (!file) return;
-    setBusy(row.id);
-    setMessage(null);
-    try {
-      await adminUploadVendorPayoutProof(row.id, file);
-      setMessage("Proof uploaded and payout marked paid awaiting vendor confirmation.");
-      await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not upload proof.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function markPaid(row: VendorPayoutRow) {
-    setBusy(row.id);
-    setMessage(null);
-    try {
-      await adminMarkVendorPayoutPaid(row.id);
-      await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not mark paid.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function cancel(row: VendorPayoutRow) {
-    const note = window.prompt("Cancellation note");
-    if (!note?.trim()) return;
-    setBusy(row.id);
-    setMessage(null);
-    try {
-      await adminCancelVendorPayout(row.id, note);
-      await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not cancel payout.");
+      setMessage(error instanceof Error ? error.message : "Reconcile failed.");
     } finally {
       setBusy(null);
     }
@@ -150,15 +356,37 @@ export default function AdminVendorPayoutsPage() {
         <div className="portal-command-bar">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendor, property, booking..." className="h-9 w-full rounded-lg bg-neutral-50 pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-neutral-200/60 focus:ring-2 focus:ring-brand/20" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search vendor, property, booking..."
+              className="h-9 w-full rounded-lg bg-neutral-50 pl-8 pr-3 text-sm text-primary outline-none ring-1 ring-neutral-200/60 focus:ring-2 focus:ring-brand/20"
+            />
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="portal-select">
             <option value="ALL">All statuses</option>
-            {["PENDING_DETAILS", "READY_FOR_PAYOUT", "PROCESSING", "PAID_AWAITING_VENDOR_CONFIRMATION", "CONFIRMED_RECEIVED", "DISPUTED", "CANCELLED"].map((s) => <option key={s} value={s}>{pretty(s)}</option>)}
+            {["PENDING_DETAILS", "READY_FOR_PAYOUT", "PROCESSING", "PAID_AWAITING_VENDOR_CONFIRMATION", "CONFIRMED_RECEIVED", "DISPUTED", "CANCELLED"].map((s) => (
+              <option key={s} value={s}>{pretty(s)}</option>
+            ))}
           </select>
+          <button
+            type="button"
+            onClick={() => void reconcile()}
+            disabled={busy === "reconcile"}
+            title="Recalculate payout amounts from source booking data (fixes existing records with wrong amounts)"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-line px-3 text-xs font-semibold text-secondary hover:bg-neutral-50 disabled:opacity-50"
+          >
+            {busy === "reconcile" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Reconcile amounts
+          </button>
         </div>
 
-        {message ? <div className="rounded-xl border border-line/70 bg-warm-base p-3 text-sm text-secondary">{message}</div> : null}
+        {reconcileResult ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{reconcileResult}</div>
+        ) : null}
+        {message ? (
+          <div className="rounded-xl border border-line/70 bg-warm-base p-3 text-sm text-secondary">{message}</div>
+        ) : null}
 
         {loading ? (
           <div className="rounded-2xl border border-line/70 bg-surface p-6 text-sm text-secondary">Loading vendor payouts...</div>
@@ -175,7 +403,11 @@ export default function AdminVendorPayoutsPage() {
             {filtered.length === 0 ? (
               <div className="p-6 text-sm text-secondary">No payouts found.</div>
             ) : filtered.map((row) => (
-              <div key={row.id} className="grid grid-cols-12 gap-3 border-b border-line/50 px-4 py-4 text-sm last:border-0">
+              <div
+                key={row.id}
+                className="grid grid-cols-12 gap-3 border-b border-line/50 px-4 py-4 text-sm last:border-0 hover:bg-neutral-50/50 cursor-pointer"
+                onClick={() => setDetailPayoutId(row.id)}
+              >
                 <div className="col-span-12 min-w-0 md:col-span-3">
                   <div className="truncate font-semibold text-primary">{row.propertyTitle ?? row.vendorId}</div>
                   <div className="mt-1 truncate text-xs text-muted">Booking {row.bookingId ?? "—"} · due {dateLabel(row.dueAt)}</div>
@@ -184,17 +416,52 @@ export default function AdminVendorPayoutsPage() {
                 <div className="col-span-4 md:col-span-2">{moneyMinor(row.platformCommissionMinor, row.currency)}</div>
                 <div className="col-span-4 font-semibold text-primary md:col-span-2">{moneyMinor(row.vendorNetAmountMinor, row.currency)}</div>
                 <div className="col-span-6 md:col-span-1"><StatusPill status={row.status}>{pretty(row.status)}</StatusPill></div>
-                <div className="col-span-6 flex flex-wrap justify-end gap-2 md:col-span-2">
-                  {row.status === "READY_FOR_PAYOUT" ? <button type="button" onClick={() => void markProcessing(row)} disabled={busy === row.id} className="rounded-lg border border-line px-2 py-1 text-xs font-semibold">Processing</button> : null}
-                  {row.status === "PROCESSING" || row.status === "READY_FOR_PAYOUT" ? (
-                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs font-semibold">
+                <div className="col-span-6 flex flex-wrap justify-end gap-2 md:col-span-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setDetailPayoutId(row.id)}
+                    className="rounded-lg border border-line px-2 py-1 text-xs font-semibold"
+                  >
+                    View
+                  </button>
+                  {row.status === "READY_FOR_PAYOUT" ? (
+                    <button
+                      type="button"
+                      onClick={() => setDetailPayoutId(row.id)}
+                      className="rounded-lg border border-brand/30 px-2 py-1 text-xs font-semibold text-brand"
+                    >
+                      Process
+                    </button>
+                  ) : null}
+                  {(row.status === "PROCESSING" || row.status === "READY_FOR_PAYOUT") ? (
+                    <label
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs font-semibold"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <FileUp className="h-3.5 w-3.5" />
                       Proof
-                      <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => void uploadProof(row, e.target.files?.[0] ?? null)} />
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setBusy(row.id);
+                          setMessage(null);
+                          try {
+                            await adminUploadVendorPayoutProof(row.id, file);
+                            setMessage("Proof uploaded and payout marked awaiting vendor confirmation.");
+                            await load();
+                          } catch (err) {
+                            setMessage(err instanceof Error ? err.message : "Could not upload proof.");
+                          } finally {
+                            setBusy(null);
+                          }
+                        }}
+                      />
                     </label>
                   ) : null}
-                  {row.proofAvailable ? <button type="button" onClick={() => void markPaid(row)} disabled={busy === row.id} className="rounded-lg bg-brand px-2 py-1 text-xs font-semibold text-white">Mark paid</button> : null}
-                  {["PENDING_DETAILS", "READY_FOR_PAYOUT", "PROCESSING", "DISPUTED"].includes(row.status) ? <button type="button" onClick={() => void cancel(row)} disabled={busy === row.id} className="rounded-lg border border-danger/30 px-2 py-1 text-xs font-semibold text-danger">Cancel</button> : null}
                   {busy === row.id ? <Loader2 className="h-4 w-4 animate-spin text-muted" /> : null}
                 </div>
               </div>
@@ -202,6 +469,14 @@ export default function AdminVendorPayoutsPage() {
           </div>
         )}
       </div>
+
+      {detailPayoutId ? (
+        <PayoutDetailDrawer
+          payoutId={detailPayoutId}
+          onClose={() => setDetailPayoutId(null)}
+          onAction={() => void load()}
+        />
+      ) : null}
     </PortalShell>
   );
 }

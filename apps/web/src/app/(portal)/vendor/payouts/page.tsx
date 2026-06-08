@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileCheck2, Loader2, Wallet } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, ExternalLink, FileCheck2, Loader2, Wallet, X } from "lucide-react";
 
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SimpleBarChart, type BarPoint } from "@/components/portal/SimpleBarChart";
@@ -10,8 +10,9 @@ import { StatCard } from "@/components/portal/StatCard";
 import { StatusPill } from "@/components/portal/ui/StatusPill";
 import {
   vendorConfirmPayoutReceived,
-  vendorDisputePayout,
+  vendorGetPayout,
   vendorListPayouts,
+  vendorReportPayoutIssue,
   type VendorPayoutRow,
 } from "@/lib/api/portal/finance";
 
@@ -46,12 +47,253 @@ function trendPoints(rows: VendorPayoutRow[]): BarPoint[] {
   return Array.from(buckets.entries()).map(([label, value]) => ({ label, value }));
 }
 
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2 text-sm border-b border-line/40 last:border-0">
+      <span className="text-muted shrink-0 w-36">{label}</span>
+      <span className="text-primary text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function ConfirmModal({
+  payoutId,
+  onConfirm,
+  onClose,
+}: {
+  payoutId: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    setBusy(true);
+    setError(null);
+    try {
+      await vendorConfirmPayoutReceived(payoutId);
+      onConfirm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not confirm payout.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-2xl bg-surface p-6 shadow-2xl">
+        <div className="mb-4 text-base font-semibold text-primary">Confirm payout received</div>
+        <p className="text-sm text-secondary">
+          I confirm I have received this payout in my bank or payment account.
+        </p>
+        {error ? <div className="mt-3 text-sm text-danger">{error}</div> : null}
+        <div className="mt-5 flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={busy} className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="button" onClick={() => void confirm()} disabled={busy} className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm received"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PayoutDetailDrawer({
+  payoutId,
+  onClose,
+  onAction,
+}: {
+  payoutId: string;
+  onClose: () => void;
+  onAction: () => void;
+}) {
+  const [payout, setPayout] = useState<VendorPayoutRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await vendorGetPayout(payoutId);
+      setPayout(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [payoutId]);
+
+  async function reportIssue() {
+    const note = window.prompt("Describe the payout issue");
+    if (!note?.trim()) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await vendorReportPayoutIssue(payoutId, note);
+      setMessage("Issue reported. Our team will review and contact you.");
+      onAction();
+      await load();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not report issue.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 flex">
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative ml-auto flex h-full w-full max-w-xl flex-col overflow-y-auto bg-surface shadow-2xl">
+          <div className="flex items-center justify-between border-b border-line/70 px-5 py-4">
+            <div className="text-base font-semibold text-primary">Payout Details</div>
+            <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-neutral-100">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-1 items-center justify-center p-10 text-sm text-secondary">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+            </div>
+          ) : !payout ? (
+            <div className="p-8 text-sm text-danger">Payout not found.</div>
+          ) : (
+            <div className="flex-1 space-y-5 p-5">
+              {message ? (
+                <div className="rounded-xl border border-line/70 bg-warm-base p-3 text-sm text-secondary">{message}</div>
+              ) : null}
+
+              <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase text-muted">Payout summary</div>
+                <DetailRow label="Status" value={<StatusPill status={payout.status}>{pretty(payout.status)}</StatusPill>} />
+                <DetailRow label="Property" value={payout.propertyTitle ?? "—"} />
+                <DetailRow label="Booking" value={<span className="font-mono text-xs">{payout.bookingId ?? "—"}</span>} />
+                <DetailRow label="Check-in" value={dateLabel(payout.checkIn)} />
+                <DetailRow label="Check-out" value={dateLabel(payout.checkOut)} />
+                <DetailRow label="Due date" value={dateLabel(payout.dueAt)} />
+                <DetailRow label="Paid at" value={dateLabel(payout.paidAt)} />
+                <DetailRow label="Confirmed at" value={dateLabel(payout.confirmedAt)} />
+              </div>
+
+              <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase text-muted">Amounts</div>
+                <DetailRow label="Gross booking" value={moneyMinor(payout.grossBookingAmountMinor, payout.currency)} />
+                <DetailRow
+                  label={`Commission (${(payout.platformCommissionRateBps / 100).toFixed(0)}%)`}
+                  value={<span className="text-muted">{moneyMinor(payout.platformCommissionMinor, payout.currency)}</span>}
+                />
+                <DetailRow
+                  label="Your payout"
+                  value={<span className="text-lg font-bold text-primary">{moneyMinor(payout.vendorNetAmountMinor, payout.currency)}</span>}
+                />
+              </div>
+
+              {payout.proofAvailable ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="mb-2 text-xs font-semibold uppercase text-emerald-700">Payment proof available</div>
+                  {payout.proofUploadedAt ? (
+                    <div className="mb-3 text-xs text-emerald-600">Uploaded on {dateLabel(payout.proofUploadedAt)}</div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {payout.proofViewUrl ? (
+                      <a
+                        href={payout.proofViewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View proof
+                      </a>
+                    ) : null}
+                    {payout.proofDownloadUrl ? (
+                      <a
+                        href={payout.proofDownloadUrl}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Download proof
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                  No payment proof uploaded yet. Proof will appear here once the admin sends your payout.
+                </div>
+              )}
+
+              {payout.vendorConfirmationNote ? (
+                <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+                  <div className="mb-1 text-xs font-semibold uppercase text-muted">Your note</div>
+                  <p className="text-sm text-secondary">{payout.vendorConfirmationNote}</p>
+                </div>
+              ) : null}
+
+              <div className="rounded-2xl border border-line/70 bg-neutral-50 p-4">
+                <div className="mb-3 text-xs font-semibold uppercase text-muted">Actions</div>
+                <div className="flex flex-wrap gap-2">
+                  {payout.status === "PAID_AWAITING_VENDOR_CONFIRMATION" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(true)}
+                        disabled={busy}
+                        className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        Confirm received
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void reportIssue()}
+                        disabled={busy}
+                        className="rounded-xl border border-danger/30 px-4 py-2 text-sm font-semibold text-danger disabled:opacity-50"
+                      >
+                        Report issue
+                      </button>
+                    </>
+                  ) : null}
+                  {payout.status === "PENDING_DETAILS" ? (
+                    <Link href="/vendor/payout-settings" className="rounded-xl border border-brand/30 px-4 py-2 text-sm font-semibold text-brand">
+                      Add payout details
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showConfirm && payout ? (
+        <ConfirmModal
+          payoutId={payout.id}
+          onConfirm={() => {
+            setShowConfirm(false);
+            setMessage("Payout confirmed as received.");
+            onAction();
+            void load();
+          }}
+          onClose={() => setShowConfirm(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export default function VendorPayoutsPage() {
   const [rows, setRows] = useState<VendorPayoutRow[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [detailPayoutId, setDetailPayoutId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -70,36 +312,6 @@ export default function VendorPayoutsPage() {
 
   const chart = useMemo(() => trendPoints(rows), [rows]);
   const hasMissingDetails = rows.some((r) => r.status === "PENDING_DETAILS");
-
-  async function confirm(row: VendorPayoutRow) {
-    setBusy(row.id);
-    setMessage(null);
-    try {
-      await vendorConfirmPayoutReceived(row.id);
-      setMessage("Payout receipt confirmed.");
-      await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not confirm payout.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function dispute(row: VendorPayoutRow) {
-    const note = window.prompt("Describe the payout issue");
-    if (!note?.trim()) return;
-    setBusy(row.id);
-    setMessage(null);
-    try {
-      await vendorDisputePayout(row.id, note);
-      setMessage("Payout issue reported.");
-      await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not report payout issue.");
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <PortalShell role="vendor" title="Payouts" subtitle="Booking earnings and payout confirmation">
@@ -130,28 +342,39 @@ export default function VendorPayoutsPage() {
         ) : (
           <div className="grid gap-3">
             {rows.map((row) => (
-              <article key={row.id} className="rounded-2xl border border-line/70 bg-surface p-4">
+              <article
+                key={row.id}
+                className="cursor-pointer rounded-2xl border border-line/70 bg-surface p-4 hover:border-brand/30 hover:bg-neutral-50/50 transition"
+                onClick={() => setDetailPayoutId(row.id)}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-primary">{row.propertyTitle ?? "Property payout"}</div>
                     <div className="mt-1 text-xs text-secondary">Booking {row.bookingId ?? "—"} · {dateLabel(row.checkIn)} to {dateLabel(row.checkOut)}</div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-lg bg-neutral-100 px-2 py-1 font-semibold text-primary">Payout amount: {moneyMinor(row.vendorNetAmountMinor, row.currency)}</span>
+                      <span className="rounded-lg bg-neutral-100 px-2 py-1 font-semibold text-primary">
+                        {moneyMinor(row.vendorNetAmountMinor, row.currency)}
+                      </span>
                       <span className="rounded-lg bg-neutral-100 px-2 py-1 text-secondary">Due: {dateLabel(row.dueAt)}</span>
-                      <span className="rounded-lg bg-neutral-100 px-2 py-1 text-secondary">Method: {row.payoutMethod?.bankName ?? row.payoutMethod?.manualMethodLabel ?? "Missing"}</span>
+                      <span className="rounded-lg bg-neutral-100 px-2 py-1 text-secondary">
+                        {row.payoutMethod?.bankName ?? row.payoutMethod?.manualMethodLabel ?? "No payout method"}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     <StatusPill status={row.status}>{pretty(row.status)}</StatusPill>
-                    {row.status === "PENDING_DETAILS" ? <Link href="/vendor/payout-settings" className="rounded-lg border border-brand/30 px-3 py-1.5 text-xs font-semibold text-brand">Add payout details</Link> : null}
-                    {row.proofAvailable && row.proofViewUrl ? <a href={row.proofViewUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-primary">View proof</a> : null}
+                    {row.status === "PENDING_DETAILS" ? (
+                      <Link href="/vendor/payout-settings" className="rounded-lg border border-brand/30 px-3 py-1.5 text-xs font-semibold text-brand">Add payout details</Link>
+                    ) : null}
+                    {row.proofAvailable ? (
+                      <button type="button" onClick={() => setDetailPayoutId(row.id)} className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                        View proof
+                      </button>
+                    ) : null}
                     {row.status === "PAID_AWAITING_VENDOR_CONFIRMATION" ? (
-                      <>
-                        <button type="button" onClick={() => void confirm(row)} disabled={busy === row.id} className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">
-                          {busy === row.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirm received"}
-                        </button>
-                        <button type="button" onClick={() => void dispute(row)} disabled={busy === row.id} className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger disabled:opacity-60">Report issue</button>
-                      </>
+                      <button type="button" onClick={() => setDetailPayoutId(row.id)} className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">
+                        Confirm received
+                      </button>
                     ) : null}
                   </div>
                 </div>
@@ -160,6 +383,17 @@ export default function VendorPayoutsPage() {
           </div>
         )}
       </div>
+
+      {detailPayoutId ? (
+        <PayoutDetailDrawer
+          payoutId={detailPayoutId}
+          onClose={() => setDetailPayoutId(null)}
+          onAction={() => {
+            setMessage(null);
+            void load();
+          }}
+        />
+      ) : null}
     </PortalShell>
   );
 }

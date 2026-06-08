@@ -30,7 +30,7 @@ function isUnauthorizedError(e: unknown): boolean {
 function isHoldExpiredError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e ?? "");
   const s = msg.toLowerCase();
-  // match multiple realistic backend messages
+  // Match multiple realistic reservation service messages.
   return (
     (s.includes("hold") && s.includes("expire")) ||
     (s.includes("hold") && s.includes("not active")) ||
@@ -64,7 +64,7 @@ function getOrCreateIdempotencyKey(holdId: string): string {
 function extractBookingFromUnknown(x: unknown): { id: string; status: string } | null {
   if (!x || typeof x !== "object") return null;
 
-  // Most likely backend returns booking object: { id, status, ... }
+  // Most likely response shape: { id, status, ... }
   const anyObj = x as Record<string, unknown>;
   const id = typeof anyObj.id === "string" ? anyObj.id : null;
   const status = typeof anyObj.status === "string" ? anyObj.status : null;
@@ -104,7 +104,7 @@ export function CreateBookingCardBatchA(props: { propertyId: string; holdId: str
   const [view, setView] = useState<ViewState>({ kind: "idle" });
 
   // If a previous run already created booking (e.g., refresh), we keep UI stable by not resetting automatically.
-  // The PendingPaymentCard itself will refresh/poll backend truth.
+  // The PendingPaymentCard itself will refresh/poll the latest booking state.
   useEffect(() => {
     // no-op placeholder for future: could restore last bookingId per hold if desired
   }, []);

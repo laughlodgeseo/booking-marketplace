@@ -446,9 +446,17 @@ export class VendorPayoutLifecycleService {
     }
 
     const vendorId = booking.property.vendorId;
-    const gross = booking.payment.amount;
+    //
+    // MONEY CONTRACT (do not change without updating all callers):
+    //   booking.payment.amount          → integer major-AED (e.g. 6851 = AED 6,851.00)
+    //   VendorPayout.grossBookingAmountMinor  → minor fils (e.g. 685100 = AED 6,851.00)
+    //   VendorPayout.platformCommissionMinor  → minor fils
+    //   VendorPayout.vendorNetAmountMinor     → minor fils
+    //   Frontend formatMoneyMinor(n)          → divides by 100 exactly once
+    //
+    const grossMinor = Math.round(Number(booking.payment.amount) * 100);
     const currency = booking.payment.currency || booking.currency || 'AED';
-    const breakdown = calculateVendorPayout(gross);
+    const breakdown = calculateVendorPayout(grossMinor);
 
     const method = await tx.vendorPayoutMethod.findFirst({
       where: {
@@ -528,23 +536,56 @@ export class VendorPayoutLifecycleService {
     return payout;
   }
 
-  private async proofUrl(proof: {
+  /**
+   * Fetch a payout proof from storage and return it as a buffer for streaming.
+   * Always goes through the server — never redirects to Cloudinary directly.
+   */
+  private async fetchProofBuffer(proof: {
     cloudinaryPublicId: string;
     cloudinaryResourceType: string | null;
     cloudinaryDeliveryType: string | null;
-  } | null) {
-    if (!proof) return null;
-    return this.storage.getSignedUrl(proof.cloudinaryPublicId, {
-      expiresInSeconds: 900,
-      resourceType: proof.cloudinaryResourceType ?? undefined,
-      deliveryType: proof.cloudinaryDeliveryType ?? undefined,
-    });
+    originalName: string | null;
+    mimeType: string | null;
+  }): Promise<{ buffer: Buffer; mimeType: string; fileName: string }> {
+    const signedUrl = await this.storage.getSignedUrl(
+      proof.cloudinaryPublicId,
+      {
+        expiresInSeconds: 120,
+        resourceType: proof.cloudinaryResourceType ?? undefined,
+        deliveryType: proof.cloudinaryDeliveryType ?? undefined,
+      },
+    );
+
+    const upstream = await fetch(signedUrl);
+    if (!upstream.ok) {
+      throw new Error(
+        `Proof file fetch failed: ${upstream.status} ${upstream.statusText}`,
+      );
+    }
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+    const mimeType =
+      proof.mimeType ??
+      upstream.headers.get('content-type') ??
+      'application/octet-stream';
+    const fileName = proof.originalName ?? `payout-proof`;
+    return { buffer, mimeType, fileName };
   }
 
-  private async payoutPayload(
+  /**
+   * Build the payout payload returned to callers.
+   * proofViewUrl/proofDownloadUrl are API proxy routes — never direct Cloudinary URLs.
+   * role determines which proxy prefix to use.
+   */
+  private payoutPayload(
     payout: Awaited<ReturnType<VendorPayoutLifecycleService['payoutSelect']>>,
-    includeProofUrl = false,
+    role: 'vendor' | 'admin' = 'vendor',
   ) {
+    const hasProof = Boolean(payout.proofDocument);
+    const proofBase =
+      role === 'admin'
+        ? `/api/portal/admin/vendor-payouts/${payout.id}/proof`
+        : `/api/portal/vendor/payouts/${payout.id}/proof`;
+
     return {
       id: payout.id,
       vendorId: payout.vendorId,
@@ -568,7 +609,10 @@ export class VendorPayoutLifecycleService {
           payout.platformCommissionMinor,
           payout.currency,
         ),
-        vendorNet: formatMoneyMinor(payout.vendorNetAmountMinor, payout.currency),
+        vendorNet: formatMoneyMinor(
+          payout.vendorNetAmountMinor,
+          payout.currency,
+        ),
       },
       status: payout.status,
       dueAt: payout.dueAt?.toISOString() ?? null,
@@ -577,11 +621,46 @@ export class VendorPayoutLifecycleService {
       adminNotes: payout.adminNotes,
       vendorConfirmationNote: payout.vendorConfirmationNote,
       proofDocumentId: payout.proofDocumentId,
-      proofAvailable: Boolean(payout.proofDocument),
-      proofViewUrl: includeProofUrl ? await this.proofUrl(payout.proofDocument) : null,
+      proofAvailable: hasProof,
+      proofUploadedAt:
+        (payout.proofDocument as { createdAt?: Date } | null)?.createdAt?.toISOString() ??
+        null,
+      proofViewUrl: hasProof ? `${proofBase}/view` : null,
+      proofDownloadUrl: hasProof ? `${proofBase}/download` : null,
       createdAt: payout.createdAt.toISOString(),
       updatedAt: payout.updatedAt.toISOString(),
     };
+  }
+
+  async vendorGetPayoutProof(
+    vendorId: string,
+    payoutId: string,
+    mode: 'view' | 'download',
+  ) {
+    const payout = await this.prisma.vendorPayout.findUnique({
+      where: { id: payoutId },
+      include: { proofDocument: true },
+    });
+    if (!payout) throw new NotFoundException('Vendor payout not found.');
+    if (payout.vendorId !== vendorId) {
+      throw new ForbiddenException('You can only access your own payout proof.');
+    }
+    if (!payout.proofDocument) {
+      throw new NotFoundException('No proof document uploaded for this payout.');
+    }
+    return this.fetchProofBuffer(payout.proofDocument);
+  }
+
+  async adminGetPayoutProof(payoutId: string, mode: 'view' | 'download') {
+    const payout = await this.prisma.vendorPayout.findUnique({
+      where: { id: payoutId },
+      include: { proofDocument: true },
+    });
+    if (!payout) throw new NotFoundException('Vendor payout not found.');
+    if (!payout.proofDocument) {
+      throw new NotFoundException('No proof document uploaded for this payout.');
+    }
+    return this.fetchProofBuffer(payout.proofDocument);
   }
 
   async vendorListPayouts(vendorId: string) {
@@ -627,7 +706,7 @@ export class VendorPayoutLifecycleService {
 
     return {
       summary,
-      items: await Promise.all(rows.map((row) => this.payoutPayload(row))),
+      items: rows.map((row) => this.payoutPayload(row, 'vendor')),
     };
   }
 
@@ -636,7 +715,7 @@ export class VendorPayoutLifecycleService {
     if (payout.vendorId !== vendorId) {
       throw new ForbiddenException('You can only view your own payout.');
     }
-    return this.payoutPayload(payout, true);
+    return this.payoutPayload(payout, 'vendor');
   }
 
   async vendorConfirmReceived(vendorId: string, payoutId: string, note?: string) {
@@ -736,13 +815,13 @@ export class VendorPayoutLifecycleService {
 
     return {
       summary,
-      items: await Promise.all(rows.map((row) => this.payoutPayload(row))),
+      items: rows.map((row) => this.payoutPayload(row, 'admin')),
     };
   }
 
   async adminGetVendorPayout(payoutId: string) {
     const payout = await this.payoutSelect({ id: payoutId });
-    return this.payoutPayload(payout, true);
+    return this.payoutPayload(payout, 'admin');
   }
 
   async adminMarkProcessing(payoutId: string, note?: string) {
@@ -940,5 +1019,99 @@ export class VendorPayoutLifecycleService {
       },
     });
     return { ok: true as const };
+  }
+
+  /**
+   * Reconcile vendor payout amounts for all mutable (non-completed) payouts.
+   *
+   * Historically, payment.amount (integer major AED) was passed directly to
+   * calculateVendorPayout() which expects minor units, causing all stored
+   * amounts to be 100x too small. This method recomputes from the source
+   * booking payment and updates any rows where values are wrong.
+   *
+   * Safe to run multiple times; completed/cancelled payouts are never mutated.
+   */
+  async reconcilePayoutAmounts(): Promise<{
+    checked: number;
+    updated: number;
+    skipped: number;
+    errors: number;
+    log: string[];
+  }> {
+    const mutableStatuses = [
+      VendorPayoutStatus.PENDING_DETAILS,
+      VendorPayoutStatus.READY_FOR_PAYOUT,
+      VendorPayoutStatus.PROCESSING,
+      VendorPayoutStatus.PAID_AWAITING_VENDOR_CONFIRMATION,
+      VendorPayoutStatus.DISPUTED,
+    ];
+
+    const payouts = await this.prisma.vendorPayout.findMany({
+      where: { status: { in: mutableStatuses } },
+      include: {
+        booking: {
+          select: {
+            id: true,
+            totalAmount: true,
+            payment: { select: { amount: true, currency: true } },
+          },
+        },
+      },
+    });
+
+    let checked = 0;
+    let updated = 0;
+    let skipped = 0;
+    let errors = 0;
+    const log: string[] = [];
+
+    for (const payout of payouts) {
+      checked++;
+      try {
+        const rawAmount =
+          payout.booking?.payment?.amount ?? payout.booking?.totalAmount;
+        if (rawAmount == null) {
+          log.push(`SKIP ${payout.id}: no payment/booking amount available`);
+          skipped++;
+          continue;
+        }
+
+        // rawAmount is integer major-AED (the historical storage unit).
+        const grossMinor = Math.round(Number(rawAmount) * 100);
+        const breakdown = calculateVendorPayout(grossMinor);
+
+        const storedGross = payout.grossBookingAmountMinor;
+        const expectedGross = breakdown.grossAmountMinor;
+
+        if (storedGross === expectedGross) {
+          skipped++;
+          continue;
+        }
+
+        log.push(
+          `UPDATE ${payout.id}: gross ${storedGross} → ${expectedGross}, ` +
+            `commission ${payout.platformCommissionMinor} → ${breakdown.platformCommissionMinor}, ` +
+            `vendorNet ${payout.vendorNetAmountMinor} → ${breakdown.vendorNetAmountMinor}`,
+        );
+
+        await this.prisma.vendorPayout.update({
+          where: { id: payout.id },
+          data: {
+            grossBookingAmountMinor: breakdown.grossAmountMinor,
+            platformCommissionRateBps: breakdown.platformCommissionRateBps,
+            platformCommissionMinor: breakdown.platformCommissionMinor,
+            vendorNetAmountMinor: breakdown.vendorNetAmountMinor,
+          },
+        });
+        updated++;
+      } catch (err) {
+        errors++;
+        log.push(
+          `ERROR ${payout.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    return { checked, updated, skipped, errors, log };
   }
 }

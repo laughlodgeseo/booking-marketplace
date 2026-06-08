@@ -117,7 +117,7 @@ export function CheckoutEditModal({
       : null;
 
   // Allow confirming regardless of canBook — the user is editing their OWN hold,
-  // so the backend seeing those dates as "held" is expected and not a real block.
+  // so the reservation service seeing those dates as "held" is expected and not a real block.
   const canConfirm = isValidDate(checkIn) && isValidDate(checkOut) && checkOut > checkIn;
   const displayCurrency = quote?.currency ?? selectedCurrency ?? "AED";
 

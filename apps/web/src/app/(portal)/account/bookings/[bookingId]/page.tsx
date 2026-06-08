@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MessageSquare, ReceiptText } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, MessageSquare, ReceiptText, Upload, WalletCards } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { PortalShell } from "@/components/portal/PortalShell";
-import { StatusPill } from "@/components/portal/ui/StatusPill";
 import { SkeletonBlock } from "@/components/portal/ui/Skeleton";
 import { cancelBooking, refetchPropertyAvailability } from "@/lib/api/bookings";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+  formatBookingStatusForCustomer,
+  formatMinutesFromMidnight,
+  formatPaymentStatusForCustomer,
+} from "@/lib/customerDisplay";
 import {
   downloadUserBookingDocument,
   getUserBookingDetail,
@@ -63,6 +67,50 @@ function labelDocType(type: BookingDocumentType): string {
   if (type === "VISA") return "Visa";
   if (type === "ARRIVAL_FORM") return "Arrival Form";
   return "Other";
+}
+
+function formatGuestCount(adults: number, children: number): string {
+  const parts = [`${adults} adult${adults === 1 ? "" : "s"}`];
+  if (children > 0) parts.push(`${children} child${children === 1 ? "" : "ren"}`);
+  return parts.join(", ");
+}
+
+function formatCancellation(policy: UserBookingDetailResponse["property"]["cancellationPolicy"]): string {
+  if (!policy?.isActive) return "Cancellation policy applies";
+  if (policy.freeCancelBeforeHours > 0) {
+    return `Free cancellation until ${policy.freeCancelBeforeHours} hours before check-in`;
+  }
+  return "Cancellation policy applies";
+}
+
+function getTimelineDate(data: UserBookingDetailResponse, keys: string[]): string {
+  const hit = data.timeline.find((item) => {
+    const key = `${item.key} ${item.label}`.toLowerCase();
+    return keys.some((needle) => key.includes(needle));
+  });
+  return hit?.at ?? data.updatedAt ?? data.createdAt;
+}
+
+function getCustomerProgress(data: UserBookingDetailResponse): Array<{ label: string; at: string }> {
+  const rows: Array<{ label: string; at: string }> = [
+    { label: "Booking created", at: data.createdAt },
+  ];
+
+  if (data.payment) {
+    rows.push({
+      label: formatPaymentStatusForCustomer(data.payment.status),
+      at: data.payment.updatedAt ?? data.payment.createdAt,
+    });
+  }
+
+  if (data.status === "CONFIRMED" || data.status === "COMPLETED") {
+    rows.push({
+      label: "Booking confirmed",
+      at: getTimelineDate(data, ["confirm"]),
+    });
+  }
+
+  return rows;
 }
 
 export default function AccountBookingDetailPage() {
@@ -165,13 +213,14 @@ export default function AccountBookingDetailPage() {
   return (
     <PortalShell
       role="customer"
-      title="Booking Detail"
-      subtitle="Full timeline, policies, documents, and support context"
+      title="Booking details"
+      subtitle="Your stay dates, payment summary, documents, and support options"
       right={(
         <Link
           href="/account/bookings"
-          className="rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt"
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
         >
+          <ArrowLeft className="h-4 w-4" />
           Back to bookings
         </Link>
       )}
@@ -189,8 +238,8 @@ export default function AccountBookingDetailPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <section className="overflow-hidden rounded-3xl border border-line/70 bg-surface shadow-sm">
-            <div className="relative aspect-[16/10] w-full bg-warm-base sm:aspect-[21/9]">
+          <section className="overflow-hidden rounded-[28px] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+            <div className="relative aspect-[4/3] w-full bg-[#faf8f5] sm:aspect-[16/7]">
               {heroImage ? (
                 <OptimizedImage
                   src={heroImage}
@@ -206,40 +255,40 @@ export default function AccountBookingDetailPage() {
               )}
             </div>
 
-            <div className="p-5">
+            <div className="p-5 sm:p-6">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusPill status={state.data.status}>{state.data.status}</StatusPill>
-                <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
-                  Total: {formatMoney(state.data.totalAmount, state.data.currency)}
+                <span className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                  {formatBookingStatusForCustomer(state.data.status)}
                 </span>
-                <span className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {formatMoney(state.data.totalAmount, state.data.currency)} paid
+                </span>
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
                   {state.data.nights} nights
                 </span>
               </div>
 
-              <h2 className="mt-3 text-xl font-semibold text-primary">{state.data.property.title}</h2>
-              <div className="mt-1 text-sm text-secondary">
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{state.data.property.title}</h2>
+              <div className="mt-1 text-sm text-slate-600">
                 {[state.data.property.area, state.data.property.city].filter(Boolean).join(", ")}
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-line/70 bg-warm-base p-3">
-                  <div className="text-xs font-semibold text-muted">Check-in</div>
-                  <div className="mt-1 text-sm font-semibold text-primary">{formatDate(state.data.checkIn)}</div>
+                <div className="rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
+                  <div className="text-xs font-semibold text-slate-500">Check-in</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-950">{formatDate(state.data.checkIn)}</div>
                 </div>
-                <div className="rounded-2xl border border-line/70 bg-warm-base p-3">
-                  <div className="text-xs font-semibold text-muted">Check-out</div>
-                  <div className="mt-1 text-sm font-semibold text-primary">{formatDate(state.data.checkOut)}</div>
+                <div className="rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
+                  <div className="text-xs font-semibold text-slate-500">Check-out</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-950">{formatDate(state.data.checkOut)}</div>
                 </div>
-                <div className="rounded-2xl border border-line/70 bg-warm-base p-3">
-                  <div className="text-xs font-semibold text-muted">Guests</div>
-                  <div className="mt-1 text-sm font-semibold text-primary">
-                    {state.data.adults} adults, {state.data.children} children
-                  </div>
+                <div className="rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
+                  <div className="text-xs font-semibold text-slate-500">Guests</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-950">{formatGuestCount(state.data.adults, state.data.children)}</div>
                 </div>
-                <div className="rounded-2xl border border-line/70 bg-warm-base p-3">
-                  <div className="text-xs font-semibold text-muted">Bedrooms / Bathrooms</div>
-                  <div className="mt-1 text-sm font-semibold text-primary">
+                <div className="rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
+                  <div className="text-xs font-semibold text-slate-500">Bedrooms / Bathrooms</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-950">
                     {state.data.property.bedrooms} / {state.data.property.bathrooms}
                   </div>
                 </div>
@@ -247,88 +296,101 @@ export default function AccountBookingDetailPage() {
             </div>
           </section>
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-              <div className="text-sm font-semibold text-primary">Booking timeline</div>
-              <div className="mt-3 space-y-2">
-                {state.data.timeline.map((item) => (
-                  <div
-                    key={`${item.key}-${item.at}`}
-                    className="rounded-2xl border border-line/70 bg-warm-base p-3"
-                  >
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted">{item.label}</div>
-                    <div className="mt-1 text-sm text-primary">{formatDateTime(item.at)}</div>
+          <div className="grid gap-4 xl:grid-cols-3">
+            <section className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm xl:col-span-1">
+              <div className="text-base font-semibold text-slate-950">Booking progress</div>
+              <div className="mt-4 space-y-3">
+                {getCustomerProgress(state.data).map((item) => (
+                  <div key={`${item.label}-${item.at}`} className="flex gap-3">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">{item.label}</div>
+                      <div className="mt-0.5 text-xs text-slate-500">{formatDateTime(item.at)}</div>
+                    </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-              <div className="text-sm font-semibold text-primary">Policy snapshot</div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <PolicyRow label="Min nights" value={String(state.data.property.minNights)} />
-                <PolicyRow label="Max nights" value={state.data.property.maxNights ? String(state.data.property.maxNights) : "-"} />
+            <section className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm xl:col-span-2">
+              <div className="text-base font-semibold text-slate-950">Stay details</div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <PolicyRow
-                  label="Check-in window"
+                  label="Check-in"
                   value={
                     state.data.property.checkInFromMin !== null && state.data.property.checkInToMax !== null
-                      ? `${state.data.property.checkInFromMin}:00 - ${state.data.property.checkInToMax}:00`
-                      : "-"
+                      ? `${formatMinutesFromMidnight(state.data.property.checkInFromMin)} – ${formatMinutesFromMidnight(state.data.property.checkInToMax)}`
+                      : "Not available"
                   }
                 />
                 <PolicyRow
-                  label="Check-out after"
-                  value={state.data.property.checkOutMin !== null ? `${state.data.property.checkOutMin}:00` : "-"}
-                />
-                <PolicyRow label="Instant book" value={state.data.property.isInstantBook ? "Yes" : "No"} />
-                <PolicyRow
-                  label="Free cancel before"
+                  label="Check-out"
                   value={
-                    state.data.property.cancellationPolicy
-                      ? `${state.data.property.cancellationPolicy.freeCancelBeforeHours}h`
-                      : "-"
+                    state.data.property.checkOutMin !== null
+                      ? `By ${formatMinutesFromMidnight(state.data.property.checkOutMin)}`
+                      : "Not available"
                   }
                 />
+                <PolicyRow
+                  label="Minimum stay"
+                  value={`${state.data.property.minNights} night${state.data.property.minNights === 1 ? "" : "s"}`}
+                />
+                <PolicyRow
+                  label="Maximum stay"
+                  value={
+                    state.data.property.maxNights
+                      ? `${state.data.property.maxNights} night${state.data.property.maxNights === 1 ? "" : "s"}`
+                      : "Not available"
+                  }
+                />
+                <PolicyRow label="Cancellation" value={formatCancellation(state.data.property.cancellationPolicy)} />
+                <PolicyRow label="Booking type" value={state.data.property.isInstantBook ? "Instant booking" : "Request booking"} />
               </div>
 
-              {state.data.payment ? (
-                <div className="mt-4 rounded-2xl border border-line/70 bg-warm-base p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">Payment</div>
-                  <div className="mt-1 text-sm font-semibold text-primary">
-                    {state.data.payment.provider} · {state.data.payment.status}
-                  </div>
-                  <div className="mt-1 text-sm text-secondary">
-                    {formatMoney(state.data.payment.amount, state.data.payment.currency)}
-                  </div>
-
-                  <div className="mt-3 space-y-2">
-                    {state.data.payment.events.map((event) => (
-                      <div key={event.id} className="rounded-xl border border-line/60 bg-surface p-2.5">
-                        <div className="text-xs font-semibold text-primary">{event.label}</div>
-                        <div className="text-xs text-secondary">{formatDateTime(event.createdAt)}</div>
-                      </div>
-                    ))}
-                  </div>
+              <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
+                <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
+                  <WalletCards className="h-4 w-4 text-indigo-700" />
+                  Payment summary
                 </div>
-              ) : null}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <PaymentSummaryRow
+                    label="Status"
+                    value={formatPaymentStatusForCustomer(state.data.payment?.status ?? state.data.status)}
+                  />
+                  <PaymentSummaryRow
+                    label="Total paid"
+                    value={formatMoney(state.data.totalAmount, state.data.currency)}
+                  />
+                  <PaymentSummaryRow label="Payment method" value={state.data.payment ? "Card" : "Not available"} />
+                  <PaymentSummaryRow
+                    label="Receipt"
+                    value={state.data.status === "CONFIRMED" || state.data.status === "COMPLETED" ? "Available after confirmation" : "Available when confirmed"}
+                  />
+                </div>
+              </div>
             </section>
           </div>
 
-          <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
-            <div className="text-sm font-semibold text-primary">Guest documents</div>
-            <div className="mt-1 text-xs text-secondary">
-              Required for compliance before check-in. Missing documents are highlighted below.
+          <section className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
+              <FileText className="h-4 w-4 text-indigo-700" />
+              Guest documents
+            </div>
+            <div className="mt-1 text-sm text-slate-600">
+              Passport required before check-in. Upload your passport from the Documents page so the host team can verify your stay.
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {state.data.documents.requiredTypes.map((type) => (
-                <span key={`required-${type}`} className="rounded-full bg-warm-alt px-3 py-1 text-xs font-semibold text-secondary">
-                  Required: {labelDocType(type)}
+                <span key={`required-${type}`} className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                  {labelDocType(type)} required
                 </span>
               ))}
               {state.data.documents.missingTypes.map((type) => (
-                <span key={`missing-${type}`} className="rounded-full bg-danger/10 px-3 py-1 text-xs font-semibold text-danger">
-                  Missing: {labelDocType(type)}
+                <span key={`missing-${type}`} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                  Action needed: {labelDocType(type)} still required
                 </span>
               ))}
             </div>
@@ -341,24 +403,24 @@ export default function AccountBookingDetailPage() {
 
             <div className="mt-4 space-y-2">
               {state.data.documents.items.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
-                  No documents uploaded yet.
+                <div className="rounded-2xl border border-dashed border-amber-200 bg-[#fff8eb] p-4 text-sm text-amber-900">
+                  Passport still required before check-in.
                 </div>
               ) : (
                 state.data.documents.items.map((doc) => (
-                  <div key={doc.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line/70 bg-warm-base p-3">
+                  <div key={doc.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-primary">
+                      <div className="truncate text-sm font-semibold text-slate-950">
                         {doc.originalName ?? `Document ${doc.id.slice(0, 8)}`}
                       </div>
-                      <div className="mt-1 text-xs text-secondary">
+                      <div className="mt-1 text-xs text-slate-600">
                         {labelDocType(doc.type)} · {formatDateTime(doc.createdAt)}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => void downloadDocument(doc)}
-                      className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50"
                     >
                       Download
                     </button>
@@ -366,17 +428,38 @@ export default function AccountBookingDetailPage() {
                 ))
               )}
             </div>
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/account/documents"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                <Upload className="h-4 w-4" />
+                Upload document
+              </Link>
+              <Link
+                href="/account/documents"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                View documents
+              </Link>
+            </div>
           </section>
 
-          <section className="rounded-3xl border border-line/70 bg-surface p-5 shadow-sm">
+          <section className="rounded-[24px] border border-slate-200/70 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <MessageSquare className="h-4 w-4" />
-                Messages
+              <div>
+                <div className="flex items-center gap-2 text-base font-semibold text-slate-950">
+                  <MessageSquare className="h-4 w-4 text-indigo-700" />
+                  Need help with this booking?
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Message the Laugh &amp; Lodge team if you need help with check-in, documents, or booking changes.
+                </p>
               </div>
               <Link
                 href="/account/messages"
-                className="rounded-xl border border-line/80 bg-surface px-3 py-2 text-xs font-semibold text-primary hover:bg-warm-alt"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 Open inbox
               </Link>
@@ -384,14 +467,14 @@ export default function AccountBookingDetailPage() {
 
             <div className="mt-3 space-y-2">
               {state.data.messages.threads.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-line/70 bg-warm-base p-4 text-sm text-secondary">
-                  No support thread yet for this account.
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-[#faf8f5] p-4 text-sm text-slate-600">
+                  No support thread has been started yet.
                 </div>
               ) : (
                 state.data.messages.threads.map((thread) => (
-                  <div key={thread.id} className="rounded-2xl border border-line/70 bg-warm-base p-3">
+                  <div key={thread.id} className="rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold text-primary">
+                      <div className="text-sm font-semibold text-slate-950">
                         {thread.subject || "Support conversation"}
                       </div>
                       {thread.unreadCount > 0 ? (
@@ -400,10 +483,10 @@ export default function AccountBookingDetailPage() {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-1 text-xs text-secondary">
+                    <div className="mt-1 text-xs text-slate-600">
                       {thread.lastMessagePreview || "No message preview"}
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
                       <span>{thread.admin.fullName || thread.admin.email}</span>
                       <span>{thread.lastMessageAt ? formatDateTime(thread.lastMessageAt) : "-"}</span>
                     </div>
@@ -413,13 +496,27 @@ export default function AccountBookingDetailPage() {
             </div>
           </section>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link
+              href="/account/bookings"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to bookings
+            </Link>
             <Link
               href={`/properties/${state.data.property.slug}`}
-              className="inline-flex items-center gap-1 rounded-2xl border border-line/80 bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm hover:bg-warm-alt"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
             >
               <ReceiptText className="h-4 w-4" />
-              View property page
+              View property
+            </Link>
+            <Link
+              href="/account/messages"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Open inbox
             </Link>
             {canCancel ? (
               <button
@@ -445,9 +542,18 @@ export default function AccountBookingDetailPage() {
 
 function PolicyRow(props: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-line/70 bg-warm-base p-2.5">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{props.label}</div>
-      <div className="mt-1 text-sm font-semibold text-primary">{props.value}</div>
+    <div className="rounded-2xl border border-slate-200 bg-[#faf8f5] p-3">
+      <div className="text-xs font-semibold text-slate-500">{props.label}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-950">{props.value}</div>
+    </div>
+  );
+}
+
+function PaymentSummaryRow(props: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold text-slate-500">{props.label}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-950">{props.value}</div>
     </div>
   );
 }
