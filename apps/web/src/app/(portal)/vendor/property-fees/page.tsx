@@ -266,20 +266,20 @@ function FeeCheckoutForm({
         )}
       </div>
 
-      {/* Sticky footer — always visible at bottom of modal */}
-      <div className="sticky bottom-0 border-t border-slate-100 bg-white/95 px-6 py-4 backdrop-blur-sm">
-        <div className="flex gap-3">
+      {/* Footer — Cancel left, Pay right, always visible */}
+      <div className="sticky bottom-0 border-t border-slate-100 bg-white px-6 py-4">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="h-11 flex-1 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="h-11 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!canSubmit}
-            className="flex h-11 flex-[2] items-center justify-center gap-2 rounded-2xl bg-brand text-sm font-semibold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 min-w-[160px] items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
           >
             {state.kind === "processing" ? (
               <>
