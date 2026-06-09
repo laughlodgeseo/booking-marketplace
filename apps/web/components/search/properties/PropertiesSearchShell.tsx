@@ -11,6 +11,7 @@ import { searchMapViewport } from "@/lib/api/search";
 import TourmPropertyCard from "@/components/tourm/property/TourmPropertyCard";
 import FiltersPanel from "@/components/search/properties/PropertiesFiltersPanel";
 import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
+import PropertyPagination from "@/components/search/properties/PropertyPagination";
 
 const GoogleMap = dynamic(() => import("@/components/maps/GoogleMap"), {
   ssr: false,
@@ -214,6 +215,17 @@ export default function PropertiesSearchShell(props: Props) {
   const totalPages = props.meta ? Math.max(1, Math.ceil(props.meta.total / props.meta.limit)) : 1;
   const page = props.meta?.page ?? props.query.page;
 
+  // Scroll back to the results section after each page navigation (items change signals new server render)
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [props.items]);
+
   useEffect(() => {
     if (viewMode !== "map") return;
 
@@ -293,7 +305,8 @@ export default function PropertiesSearchShell(props: Props) {
         <FiltersPanel query={props.query} resultsCount={props.meta?.total ?? null} onChange={onChangeFilters} busyKey={qKey} />
       ) : null}
 
-      <div className={gridClassName}>
+      {/* Scroll anchor — pagination navigations scroll back here */}
+      <div ref={resultsRef} id="property-results" className={gridClassName}>
         {props.items.map((it) => (
           <div
             key={it.id}
@@ -313,7 +326,8 @@ export default function PropertiesSearchShell(props: Props) {
 
       {props.meta && totalPages > 1 ? (
         <>
-          <div className="mt-2 sm:hidden">
+          {/* Mobile: load-more button */}
+          <div className="sm:hidden">
             {page < totalPages ? (
               <button
                 type="button"
@@ -327,26 +341,9 @@ export default function PropertiesSearchShell(props: Props) {
             )}
           </div>
 
-          <div className="mt-2 hidden flex-wrap items-center justify-center gap-2 sm:flex">
-            {Array.from({ length: totalPages }).slice(0, 10).map((_, i) => {
-              const p = i + 1;
-              const active = p === page;
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => onGoToPage(p)}
-                  className={[
-                    "h-11 rounded-xl px-4 text-sm transition",
-                    active
-                      ? "bg-brand text-text-invert shadow-sm"
-                      : "bg-surface text-secondary shadow-sm hover:bg-brand-soft-2",
-                  ].join(" ")}
-                >
-                  {p}
-                </button>
-              );
-            })}
+          {/* Desktop: premium paginator */}
+          <div className="hidden sm:block">
+            <PropertyPagination page={page} totalPages={totalPages} onGoToPage={onGoToPage} />
           </div>
         </>
       ) : null}

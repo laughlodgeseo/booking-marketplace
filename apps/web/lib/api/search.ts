@@ -101,7 +101,7 @@ export async function searchProperties(params: SearchParams, context?: RequestCo
       amenities,
 
       page: params.page ?? 1,
-      pageSize: params.pageSize ?? 12,
+      pageSize: params.pageSize ?? 20,
       sort: normalizeSort(params.sort),
     },
     next: { revalidate: 30 },

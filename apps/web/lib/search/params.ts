@@ -263,7 +263,7 @@ export function parsePropertiesQuery(sp: RawSearchParams): PropertiesQuery {
         : undefined;
 
   const page = Math.max(1, pickNumber(sp.page) ?? 1);
-  const pageSize = Math.min(60, Math.max(6, pickNumber(sp.pageSize) ?? 12));
+  const pageSize = Math.min(60, Math.max(6, pickNumber(sp.pageSize) ?? 20));
 
   return {
     q: q?.trim() || undefined,
@@ -309,7 +309,7 @@ export function buildPropertiesSearchParams(q: PropertiesQuery): URLSearchParams
 
   if (q.sort) sp.set("sort", q.sort);
   if (q.page && q.page !== 1) sp.set("page", String(q.page));
-  if (q.pageSize && q.pageSize !== 12) sp.set("pageSize", String(q.pageSize));
+  if (q.pageSize && q.pageSize !== 20) sp.set("pageSize", String(q.pageSize));
 
   return sp;
 }
