@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Building2, MapPin, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { siteCompliance } from "@/lib/site-compliance";
 
 export const metadata: Metadata = {
   title: "About | Laugh & Lodge",
@@ -30,6 +31,9 @@ type AboutCopy = {
     jurisdiction: string;
     generalEmail: string;
     bookingSupport: string;
+    dtcmPermit: string;
+    businessRegistration: string;
+    registeredOffice: string;
   };
   values: {
     jurisdiction: string;
@@ -60,6 +64,9 @@ const COPY: Record<"en" | "ar", AboutCopy> = {
       jurisdiction: "Jurisdiction",
       generalEmail: "General email",
       bookingSupport: "Booking support",
+      dtcmPermit: "DTCM Holiday Homes Permit",
+      businessRegistration: "Business Registration No",
+      registeredOffice: "Registered Office",
     },
     values: {
       jurisdiction: "United Arab Emirates",
@@ -118,6 +125,9 @@ const COPY: Record<"en" | "ar", AboutCopy> = {
       jurisdiction: "الولاية القانونية",
       generalEmail: "البريد العام",
       bookingSupport: "دعم الحجوزات",
+      dtcmPermit: "تصريح DTCM للمنازل السياحية",
+      businessRegistration: "رقم السجل التجاري",
+      registeredOffice: "المكتب المسجل",
     },
     values: {
       jurisdiction: "الإمارات العربية المتحدة",
@@ -240,6 +250,18 @@ export default async function AboutPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.bookingSupport}</p>
                 <p className="mt-1 font-semibold text-primary">Booking@rentpropertyuae.com</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.dtcmPermit}</p>
+                <p className="mt-1 font-semibold text-primary">{siteCompliance.dtcmPermit}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.businessRegistration}</p>
+                <p className="mt-1 font-semibold text-primary">{siteCompliance.businessRegistrationNumber}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.registeredOffice}</p>
+                <p className="mt-1 font-semibold text-primary">{siteCompliance.registeredOffice}</p>
               </div>
             </div>
 

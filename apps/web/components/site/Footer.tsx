@@ -12,6 +12,7 @@ import {
   Facebook,
   Linkedin,
 } from "lucide-react";
+import { BusinessComplianceBlock } from "@/components/site/BusinessComplianceBlock";
 
 type FooterLink = { href: string; label: string };
 
@@ -190,8 +191,13 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* ── Compliance disclosure ─────────────────────────────────── */}
+        <div className="mt-9 border-t border-violet-400/20 pt-5">
+          <BusinessComplianceBlock variant="footer" />
+        </div>
+
         {/* ── Bottom bar ────────────────────────────────────────────── */}
-        <div className="mt-9 border-t border-violet-400/25 pt-5">
+        <div className="mt-6 border-t border-violet-400/25 pt-5">
           <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:justify-between">
 
             {/* Copyright */}

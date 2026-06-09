@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { Building2, CheckCircle2, Mail, Phone, Users } from "lucide-react";
 import type { AppLocale } from "@/lib/i18n/config";
+import { BusinessComplianceBlock } from "@/components/site/BusinessComplianceBlock";
 
 type CardLine = { label: string; value: string; href?: string };
 
@@ -226,6 +227,10 @@ export default function ContactCards(props: { locale: AppLocale }) {
           {copy.cards.map((card) => (
             <CardItem key={card.title} card={card} routedNote={copy.routedNote} />
           ))}
+        </div>
+
+        <div className="mt-5">
+          <BusinessComplianceBlock variant="card" locale={props.locale} />
         </div>
       </div>
 
