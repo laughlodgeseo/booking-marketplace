@@ -11,7 +11,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { setAccessToken } from "@/lib/auth/tokenStore";
 import { setLastPortalIntent } from "@/lib/auth/portalIntent";
 import type { AuthUiRole } from "@/components/auth/authFlow";
-import { canUserUsePortal, resolvePostLoginPath } from "@/components/auth/authFlow";
+import {
+  canUserUsePortal,
+  resolvePostLoginPath,
+} from "@/components/auth/authFlow";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { googleLogin } from "@/lib/api/oauth";
@@ -26,9 +29,9 @@ const INPUT_CLASS =
 
 const COPY = {
   en: {
-    roleVendor: "Vendor",
-    roleCustomer: "Customer",
-    roleSignIn: (roleLabel: string) => `${roleLabel} portal sign in`,
+    roleVendor: "Property owner",
+    roleCustomer: "Guest",
+    roleSignIn: (roleLabel: string) => `${roleLabel} account`,
     switchRole: "Switch role",
     email: "Email",
     password: "Password",
@@ -83,8 +86,16 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
   const [showStartHosting, setShowStartHosting] = useState(false);
 
   const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
-  const roleIcon = role === "vendor" ? <Building2 className="h-4 w-4" /> : <User2 className="h-4 w-4" />;
-  const arrowClass = locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100";
+  const roleIcon =
+    role === "vendor" ? (
+      <Building2 className="h-4 w-4" />
+    ) : (
+      <User2 className="h-4 w-4" />
+    );
+  const arrowClass =
+    locale === "ar"
+      ? "h-4 w-4 rotate-180 text-indigo-100"
+      : "h-4 w-4 text-indigo-100";
 
   const qsGateway = useMemo(() => {
     const qs = new URLSearchParams({ mode: "login", role });
@@ -151,16 +162,23 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
       <div className="flex w-full flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="site-chip inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold">
-            <span className="text-indigo-600"><Building2 className="h-4 w-4" /></span>
+            <span className="text-indigo-600">
+              <Building2 className="h-4 w-4" />
+            </span>
             {copy.roleSignIn(copy.roleVendor)}
           </div>
-          <Link href={qsGateway} className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+          <Link
+            href={qsGateway}
+            className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+          >
             {copy.switchRole}
           </Link>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
-          <p className="text-sm font-semibold text-amber-900">{copy.notAVendorYet}</p>
+          <p className="text-sm font-semibold text-amber-900">
+            {copy.notAVendorYet}
+          </p>
           <p className="mt-1 text-sm text-amber-800">{copy.startHostingDesc}</p>
 
           <div className="mt-4 flex flex-col gap-2">
@@ -192,14 +210,19 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
           <span className="text-indigo-600">{roleIcon}</span>
           {copy.roleSignIn(roleLabel)}
         </div>
-        <Link href={qsGateway} className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+        <Link
+          href={qsGateway}
+          className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+        >
           {copy.switchRole}
         </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="block">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">{copy.email}</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">
+            {copy.email}
+          </span>
           <input
             type="email"
             required
@@ -212,7 +235,9 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">{copy.password}</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">
+            {copy.password}
+          </span>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -229,7 +254,11 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
               className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-secondary/70 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
               aria-label={showPassword ? copy.hidePassword : copy.showPassword}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </button>
           </div>
         </label>
@@ -258,10 +287,16 @@ export function AuthPanelLogin({ role, nextPath }: AuthPanelLoginProps) {
         </button>
 
         <div className="mt-1 flex items-center justify-between text-xs">
-          <Link href={forgotHref} className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+          <Link
+            href={forgotHref}
+            className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+          >
             {copy.forgotPassword}
           </Link>
-          <Link href={qsSignup} className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+          <Link
+            href={qsSignup}
+            className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+          >
             {copy.createAccount}
           </Link>
         </div>

@@ -36,10 +36,10 @@ const COPY = {
     subtitleSignup: "Select an account type to begin.",
     tabLogin: "Log in",
     tabSignup: "Sign up",
-    customer: "Customer",
-    customerDesc: "Book stays, manage trips, documents, refunds, and support.",
-    vendor: "Vendor",
-    vendorDesc: "List homes, manage availability, bookings, pricing, and operations.",
+    customer: "Guest",
+    customerDesc: "Find your next stay and keep your trips in one place.",
+    vendor: "Property owner",
+    vendorDesc: "Care for your properties, bookings and owner account.",
     continueLogin: "Continue to sign in",
     continueSignup: "Continue to account setup",
     backHome: "Back to home",
@@ -93,7 +93,15 @@ interface RoleCardProps {
   onClick: () => void;
 }
 
-function RoleCard({ active, title, desc, icon, iconActiveCls, iconIdleCls, onClick }: RoleCardProps) {
+function RoleCard({
+  active,
+  title,
+  desc,
+  icon,
+  iconActiveCls,
+  iconIdleCls,
+  onClick,
+}: RoleCardProps) {
   return (
     <button
       type="button"
@@ -120,10 +128,17 @@ function RoleCard({ active, title, desc, icon, iconActiveCls, iconIdleCls, onCli
         </div>
       </div>
       <div className="mt-3">
-        <div className={["text-sm font-semibold", active ? "text-indigo-900" : "text-slate-800"].join(" ")}>
+        <div
+          className={[
+            "text-sm font-semibold",
+            active ? "text-indigo-900" : "text-slate-800",
+          ].join(" ")}
+        >
           {title}
         </div>
-        <div className="mt-1 text-xs leading-relaxed text-slate-500">{desc}</div>
+        <div className="mt-1 text-xs leading-relaxed text-slate-500">
+          {desc}
+        </div>
       </div>
       {active ? (
         <div className="absolute right-3.5 top-3.5 h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_0_2.5px_rgba(79,70,229,0.22)]" />
@@ -164,10 +179,9 @@ function AuthGatewayContent() {
       className="w-full max-w-[480px]"
     >
       {/* ── Elevated auth card — near-opaque so no backdrop-blur needed ── */}
-      <div className="overflow-hidden rounded-3xl border border-white/80 bg-[#fffdf9]/[0.97] shadow-[0_34px_90px_rgba(75,50,10,0.22),0_0_0_1.5px_rgba(255,255,255,0.55)] backdrop-blur-[4px]">
+      <div className="overflow-hidden rounded-3xl border border-white/80 bg-[#f3f5f4] shadow-[0_34px_90px_rgba(75,50,10,0.22),0_0_0_1.5px_rgba(255,255,255,0.55)] backdrop-blur-[4px]">
         {/* Card body */}
         <div className="p-6 sm:p-8">
-
           {/* Header */}
           <header className="mb-5">
             <h1 className="auth-display-heading text-[27px] text-slate-900 sm:text-[1.85rem]">
@@ -232,7 +246,13 @@ function AuthGatewayContent() {
               className="site-cta-primary inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2"
             >
               {mode === "login" ? copy.continueLogin : copy.continueSignup}
-              <ArrowRight className={isRtl ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100"} />
+              <ArrowRight
+                className={
+                  isRtl
+                    ? "h-4 w-4 rotate-180 text-indigo-100"
+                    : "h-4 w-4 text-indigo-100"
+                }
+              />
             </motion.button>
 
             {/* Footnote */}
@@ -268,11 +288,17 @@ function AuthGatewayContent() {
         <div className="border-t border-slate-100 px-6 py-3 sm:px-8">
           <p className="text-center text-[11px] leading-relaxed text-slate-400">
             {copy.termsPrefix}{" "}
-            <Link href="/terms" className="font-semibold text-slate-600 hover:text-indigo-700">
+            <Link
+              href="/terms"
+              className="font-semibold text-slate-600 hover:text-indigo-700"
+            >
               {copy.terms}
             </Link>{" "}
             {copy.and}{" "}
-            <Link href="/privacy" className="font-semibold text-slate-600 hover:text-indigo-700">
+            <Link
+              href="/privacy"
+              className="font-semibold text-slate-600 hover:text-indigo-700"
+            >
               {copy.privacy}
             </Link>
             .
@@ -290,7 +316,7 @@ function AuthGatewayContent() {
 function GatewayLoading() {
   return (
     <div className="w-full max-w-[480px]">
-      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/70 bg-[#fffdf9]/[0.97] shadow-[0_34px_90px_rgba(75,50,10,0.18)]">
+      <div className="animate-pulse overflow-hidden rounded-3xl border border-white/70 bg-[#f3f5f4] shadow-[0_34px_90px_rgba(75,50,10,0.18)]">
         <div className="p-6 sm:p-8">
           <div className="h-7 w-40 rounded-xl bg-slate-200/80" />
           <div className="mt-2 h-4 w-56 rounded-lg bg-slate-100" />
@@ -316,14 +342,19 @@ function GatewayLoading() {
 export default function AuthGatewayPage() {
   return (
     <main className="relative min-h-dvh w-full overflow-hidden">
-
       {/* ── Layer 1: Dubai collage background ── */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0"
+      >
         <DubaiAuthCollageBackground />
       </div>
 
       {/* ── Layer 2: Minimal depth — no global wash over the images ── */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[1]"
+      >
         {/* Localized warm glow behind card center only — does not touch tile edges */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_52%,rgba(255,253,249,0.36)_0%,rgba(255,253,249,0.10)_40%,transparent_66%)]" />
         {/* Very subtle top edge softener — keeps pill area clean */}
@@ -334,14 +365,15 @@ export default function AuthGatewayPage() {
 
       {/* ── Layer 3: Content ── */}
       <div className="relative z-[2] flex min-h-dvh flex-col">
-
         {/* Back to home — top-left chrome */}
         <div className="flex-none px-5 pt-5 sm:px-8">
           <Link
             href="/"
             className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3.5 py-2 text-[12.5px] font-semibold text-slate-700 ring-1 ring-white/80 transition hover:bg-white/88 hover:text-slate-900"
           >
-            <span aria-hidden="true" className="text-[11px]">&#8592;</span>
+            <span aria-hidden="true" className="text-[11px]">
+              &#8592;
+            </span>
             Back to home
           </Link>
         </div>
@@ -352,7 +384,6 @@ export default function AuthGatewayPage() {
             <AuthGatewayContent />
           </Suspense>
         </div>
-
       </div>
     </main>
   );

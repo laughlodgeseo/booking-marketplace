@@ -35,8 +35,8 @@ const INPUT_CLASS =
 
 const COPY = {
   en: {
-    roleVendor: "Vendor",
-    roleCustomer: "Customer",
+    roleVendor: "Property owner",
+    roleCustomer: "Guest",
     roleSignUp: (roleLabel: string) => `${roleLabel} account setup`,
     signIn: "Sign in",
     switchRole: "Switch role",
@@ -57,7 +57,8 @@ const COPY = {
     showPassword: "Show password",
     creatingAccount: "Creating account...",
     createAccount: "Create secure account",
-    profileInfoHint: "These profile details are used for booking communication, verification, and account security.",
+    profileInfoHint:
+      "These profile details are used for booking communication, verification, and account security.",
     signupFailed: "Signup failed",
     validation: {
       emailRequired: "Email is required.",
@@ -93,7 +94,8 @@ const COPY = {
     showPassword: "إظهار كلمة المرور",
     creatingAccount: "جارٍ إنشاء الحساب...",
     createAccount: "إنشاء حساب آمن",
-    profileInfoHint: "تُستخدم هذه البيانات للتواصل المرتبط بالحجز والتحقق وتعزيز أمان الحساب.",
+    profileInfoHint:
+      "تُستخدم هذه البيانات للتواصل المرتبط بالحجز والتحقق وتعزيز أمان الحساب.",
     signupFailed: "تعذر إنشاء الحساب",
     validation: {
       emailRequired: "البريد الإلكتروني مطلوب.",
@@ -113,10 +115,18 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
   const { refresh } = useAuth();
   const locale = normalizeLocale(useLocale());
   const copy = COPY[locale];
-  const arrowClass = locale === "ar" ? "h-4 w-4 rotate-180 text-indigo-100" : "h-4 w-4 text-indigo-100";
+  const arrowClass =
+    locale === "ar"
+      ? "h-4 w-4 rotate-180 text-indigo-100"
+      : "h-4 w-4 text-indigo-100";
 
   const roleLabel = role === "vendor" ? copy.roleVendor : copy.roleCustomer;
-  const roleIcon = role === "vendor" ? <Building2 className="h-4 w-4" /> : <User2 className="h-4 w-4" />;
+  const roleIcon =
+    role === "vendor" ? (
+      <Building2 className="h-4 w-4" />
+    ) : (
+      <User2 className="h-4 w-4" />
+    );
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -221,7 +231,11 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
       });
 
       await login({ email: email.trim(), password });
-      const qs = new URLSearchParams({ role, next: nextPath, email: email.trim() });
+      const qs = new URLSearchParams({
+        role,
+        next: nextPath,
+        email: email.trim(),
+      });
       router.push(`/verify-email?${qs.toString()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.signupFailed);
@@ -238,10 +252,16 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
           {copy.roleSignUp(roleLabel)}
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <Link href={qsLogin} className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+          <Link
+            href={qsLogin}
+            className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+          >
             {copy.signIn}
           </Link>
-          <Link href={qsGateway} className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
+          <Link
+            href={qsGateway}
+            className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+          >
             {copy.switchRole}
           </Link>
         </div>
@@ -251,24 +271,50 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
         {role === "customer" ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={copy.firstName}>
-              <TextInput value={firstName} onChange={setFirstName} placeholder={copy.firstNamePlaceholder} autoComplete="given-name" />
+              <TextInput
+                value={firstName}
+                onChange={setFirstName}
+                placeholder={copy.firstNamePlaceholder}
+                autoComplete="given-name"
+              />
             </Field>
             <Field label={copy.lastName}>
-              <TextInput value={lastName} onChange={setLastName} placeholder={copy.lastNamePlaceholder} autoComplete="family-name" />
+              <TextInput
+                value={lastName}
+                onChange={setLastName}
+                placeholder={copy.lastNamePlaceholder}
+                autoComplete="family-name"
+              />
             </Field>
           </div>
         ) : (
           <Field label={copy.contactName}>
-            <TextInput value={vendorContactName} onChange={setVendorContactName} placeholder={copy.contactNamePlaceholder} autoComplete="name" />
+            <TextInput
+              value={vendorContactName}
+              onChange={setVendorContactName}
+              placeholder={copy.contactNamePlaceholder}
+              autoComplete="name"
+            />
           </Field>
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label={copy.email}>
-            <TextInput type="email" value={email} onChange={setEmail} placeholder={copy.emailPlaceholder} autoComplete="email" />
+            <TextInput
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder={copy.emailPlaceholder}
+              autoComplete="email"
+            />
           </Field>
           <Field label={copy.phone}>
-            <TextInput value={phone} onChange={setPhone} placeholder={copy.phonePlaceholder} autoComplete="tel" />
+            <TextInput
+              value={phone}
+              onChange={setPhone}
+              placeholder={copy.phonePlaceholder}
+              autoComplete="tel"
+            />
           </Field>
         </div>
 
@@ -344,7 +390,9 @@ export function AuthPanelSignup({ role, nextPath }: AuthPanelSignupProps) {
 function Field(props: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">{props.label}</span>
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 sm:text-[11px]">
+        {props.label}
+      </span>
       {props.children}
     </label>
   );
@@ -397,7 +445,11 @@ function PasswordInput(props: {
         className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-secondary/70 transition-colors duration-150 hover:bg-indigo-50 hover:text-indigo-700"
         aria-label={props.show ? props.hideLabel : props.showLabel}
       >
-        {props.show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {props.show ? (
+          <EyeOff className="h-4 w-4" />
+        ) : (
+          <Eye className="h-4 w-4" />
+        )}
       </button>
     </div>
   );

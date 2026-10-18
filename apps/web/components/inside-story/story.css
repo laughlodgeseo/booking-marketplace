@@ -2033,3 +2033,93 @@
     transform: none !important;
   }
 }
+.auth-shell input,
+.auth-shell select,
+.auth-shell textarea {
+  background: #e9edeb !important;
+  background-image: none !important;
+  border: 1px solid #bcc7c1 !important;
+  box-shadow: none !important;
+  color: #1e2625 !important;
+}
+.auth-shell input::placeholder {
+  color: #64736b;
+}
+.auth-shell [class*="site-surface-card"] {
+  background: #f3f5f4 !important;
+}
+.auth-shell :is(.site-cta-primary, [type="submit"]) {
+  background: #38584a !important;
+  background-image: none !important;
+  color: #fff !important;
+}
+.auth-shell [class*="bg-[#fffdf9]"] {
+  background: #f3f5f4 !important;
+}
+.story-auth-state {
+  position: relative;
+  padding-top: 100px;
+  isolation: isolate;
+}
+.story-auth-state-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+}
+.story-auth-state [class*="bg-[#f"] {
+  background: #f3f5f4;
+}
+.story-auth-state h1 {
+  font-size: 38px;
+  line-height: 1.1;
+}
+.story-auth-state > div:last-child > div > div:last-child {
+  color: #f3f5f4;
+}
+.story-auth-state > div:last-child > div > div:last-child a {
+  color: #f3f5f4;
+}
+.story-payment-result {
+  padding: clamp(24px, 4vw, 60px);
+  border: 0 !important;
+  background: #e9edeb !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.story-payment-result h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.1;
+}
+.inside-story :is([class*="shadow-"], .site-surface-card):hover {
+  box-shadow: none !important;
+}
+.inside-story [class*="hover:-translate"]:hover {
+  transform: none;
+}
+.story-archive-item {
+  scroll-margin-top: 110px;
+}
+.story-gallery-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #84928b transparent;
+}
+.story-main:focus {
+  outline: none;
+}
+.story-wordmark {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: Switzer, Arial, sans-serif !important;
+}
+[dir="rtl"] .inside-story :is(h1, h2, h3),
+[dir="rtl"] .auth-shell :is(h1, h2, h3) {
+  font-family: var(--font-arabic), sans-serif !important;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+[dir="rtl"] .story-opening-caption,
+[dir="rtl"] .story-city-note {
+  right: auto;
+  left: 0;
+}

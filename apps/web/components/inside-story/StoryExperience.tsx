@@ -38,7 +38,8 @@ export default function StoryExperience() {
         anchors: true,
         prevent: (node: HTMLElement) =>
           Boolean(
-            node.closest("dialog,[data-lenis-prevent],.story-district-rail"),
+            document.querySelector("dialog[open]") ||
+              node.closest("dialog,[data-lenis-prevent],.story-district-rail"),
           ),
       });
       dispose = () => lenis.destroy();

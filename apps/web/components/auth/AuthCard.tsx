@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { useLocale } from "next-intl";
 import { normalizeLocale } from "@/lib/i18n/config";
@@ -63,8 +64,21 @@ export function AuthCard({
   const copy = COPY[locale];
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full items-start justify-center px-4 pb-10 pt-10 sm:px-6 lg:min-h-screen lg:items-center lg:px-8 lg:py-10">
-      <div className={`w-full ${widthClass(width)}`}>
+    <main className="story-auth-state mx-auto flex min-h-dvh w-full items-start justify-center px-4 pb-10 pt-10 sm:px-6 lg:min-h-screen lg:items-center lg:px-8 lg:py-10">
+      <div className="story-auth-state-bg" aria-hidden="true">
+        <Image
+          src="/images/home/interior-suite.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+      <Link href="/" className="story-auth-home story-wordmark">
+        laugh<span>&</span>lodge.
+      </Link>
+      <div className={`relative z-10 w-full ${widthClass(width)}`}>
         <div className="relative">
           <div className="site-surface-card rounded-3xl p-6 shadow-[0_28px_80px_rgba(5,10,28,0.24)] backdrop-blur-xl sm:p-8">
             <header className="mb-6">
@@ -85,7 +99,10 @@ export function AuthCard({
 
               {showBackHome ? (
                 <div className="mt-3 text-xs text-secondary/78">
-                  <Link href="/" className="font-semibold text-indigo-700 hover:underline">
+                  <Link
+                    href="/"
+                    className="font-semibold text-indigo-700 hover:underline"
+                  >
                     {copy.backHome}
                   </Link>
                 </div>
@@ -99,11 +116,17 @@ export function AuthCard({
 
           <div className="mt-4 text-center text-[11px] leading-relaxed text-secondary/72">
             {copy.termsPrefix}{" "}
-            <Link href="/terms" className="font-semibold text-primary hover:text-indigo-800">
+            <Link
+              href="/terms"
+              className="font-semibold text-primary hover:text-indigo-800"
+            >
               {copy.terms}
             </Link>{" "}
             {copy.and}{" "}
-            <Link href="/privacy" className="font-semibold text-primary hover:text-indigo-800">
+            <Link
+              href="/privacy"
+              className="font-semibold text-primary hover:text-indigo-800"
+            >
               {copy.privacy}
             </Link>
             .
