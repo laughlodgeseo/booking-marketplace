@@ -763,3 +763,8 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+:is(.v4-photo-essay, .v4-selector, .v4-practical, .v4-reading, .v4-faq)
+  :is(h2, h3) {
+  text-wrap: balance;
+}

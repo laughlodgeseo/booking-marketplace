@@ -3,6 +3,8 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLayoutEffect, type RefObject } from "react";
 gsap.registerPlugin(ScrollTrigger);
+// Lenis and ScrollTrigger share real elapsed time, including after a tab pause.
+gsap.ticker.lagSmoothing(0);
 export { gsap, ScrollTrigger };
 let refreshFrame = 0;
 function refreshScenes() {
