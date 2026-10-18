@@ -35,8 +35,7 @@ const COPY: Record<"en" | "ar", TermsCopy> = {
       "These terms explain how guests, owners, and users interact with our website and booking services.",
     privacyPolicy: "Privacy Policy",
     cancellationPolicy: "Cancellation Policy",
-    note:
-      "Please read these terms with our Privacy, Cancellation, and Refund policies.",
+    note: "Please read these terms with our Privacy, Cancellation, and Refund policies.",
     contactSupport: "Contact support team",
     reviewPrivacy: "Review Privacy Policy",
     sections: [
@@ -106,8 +105,7 @@ const COPY: Record<"en" | "ar", TermsCopy> = {
       "تنظم هذه الشروط طريقة تفاعل الضيوف والملاك والمستخدمين مع موقعنا وتدفقات الحجز والعمليات الخدمية المرتبطة.",
     privacyPolicy: "سياسة الخصوصية",
     cancellationPolicy: "سياسة الإلغاء",
-    note:
-      "يجب قراءة هذه الشروط مع سياسات الخصوصية والإلغاء والاسترداد لدينا، حيث تشكل معاً إطار السياسات الموجّه للمستخدم.",
+    note: "يجب قراءة هذه الشروط مع سياسات الخصوصية والإلغاء والاسترداد لدينا، حيث تشكل معاً إطار السياسات الموجّه للمستخدم.",
     contactSupport: "تواصل مع فريق الدعم",
     reviewPrivacy: "مراجعة سياسة الخصوصية",
     sections: [
@@ -174,23 +172,37 @@ const COPY: Record<"en" | "ar", TermsCopy> = {
 export default async function TermsPage() {
   const locale = await getRequestLocale();
   const copy = COPY[locale];
-  const arrowClass = locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
+  const arrowClass =
+    locale === "ar"
+      ? "h-4 w-4 text-indigo-100 rotate-180"
+      : "h-4 w-4 text-indigo-100";
 
   return (
-    <main className="indigo-no-gold min-h-screen bg-transparent">
+    <main className="indigo-no-gold story-legal min-h-screen bg-transparent">
       <section className="site-hero-shell relative overflow-hidden text-white">
         <div className="site-hero-grid absolute inset-0 opacity-25" />
         <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 sm:px-6 sm:pt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.legalEyebrow}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{copy.title}</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">
+            {copy.legalEyebrow}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            {copy.title}
+          </h1>
           <p className="mt-3 text-sm text-white/84 sm:text-base">
-            {locale === "ar" ? "تاريخ النفاذ:" : "Effective date:"} {copy.effectiveDate}. {copy.heroBody}
+            {locale === "ar" ? "تاريخ النفاذ:" : "Effective date:"}{" "}
+            {copy.effectiveDate}. {copy.heroBody}
           </p>
           <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold text-white/85">
-            <Link href="/privacy" className="underline decoration-white/35 underline-offset-4 hover:decoration-white">
+            <Link
+              href="/privacy"
+              className="underline decoration-white/35 underline-offset-4 hover:decoration-white"
+            >
               {copy.privacyPolicy}
             </Link>
-            <Link href="/cancellation" className="underline decoration-white/35 underline-offset-4 hover:decoration-white">
+            <Link
+              href="/cancellation"
+              className="underline decoration-white/35 underline-offset-4 hover:decoration-white"
+            >
               {copy.cancellationPolicy}
             </Link>
           </div>
@@ -211,12 +223,17 @@ export default async function TermsPage() {
               {copy.sections.map((section) => (
                 <article
                   key={section.title}
-                  className="rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.72))] p-5"
+                  className="rounded-2xl border border-indigo-100/80 bg-transparent p-5"
                 >
-                  <h2 className="text-base font-semibold text-primary">{section.title}</h2>
+                  <h2 className="text-base font-semibold text-primary">
+                    {section.title}
+                  </h2>
                   <div className="mt-2 space-y-2">
                     {section.body.map((paragraph) => (
-                      <p key={paragraph} className="text-sm leading-relaxed text-secondary/84">
+                      <p
+                        key={paragraph}
+                        className="text-sm leading-relaxed text-secondary/84"
+                      >
                         {paragraph}
                       </p>
                     ))}

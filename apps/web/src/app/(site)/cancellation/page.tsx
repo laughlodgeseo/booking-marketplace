@@ -5,7 +5,8 @@ import { getRequestLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Cancellation Policy | Laugh & Lodge",
-  description: "Simple cancellation policy for stays booked through Laugh & Lodge.",
+  description:
+    "Simple cancellation policy for stays booked through Laugh & Lodge.",
 };
 
 type LegalSection = {
@@ -31,11 +32,11 @@ const COPY: Record<"en" | "ar", CancellationCopy> = {
     legalEyebrow: "Legal",
     title: "Cancellation Policy",
     effectiveDate: "February 19, 2026",
-    heroBody: "Cancellation outcomes depend on policy windows and booking status.",
+    heroBody:
+      "Cancellation outcomes depend on policy windows and booking status.",
     refundsPolicy: "Refund Policy",
     termsAndConditions: "Terms and Conditions",
-    note:
-      "Please review cancellation terms before payment. Policy windows can change refund eligibility.",
+    note: "Please review cancellation terms before payment. Policy windows can change refund eligibility.",
     reviewRefundPolicy: "Review refund policy",
     contactSupport: "Contact support",
     sections: [
@@ -80,11 +81,11 @@ const COPY: Record<"en" | "ar", CancellationCopy> = {
     legalEyebrow: "قانوني",
     title: "سياسة الإلغاء",
     effectiveDate: "19 فبراير 2026",
-    heroBody: "نتائج الإلغاء تعتمد على نافذة السياسة ويتم تطبيقها عبر ضوابط حالة الحجز.",
+    heroBody:
+      "نتائج الإلغاء تعتمد على نافذة السياسة ويتم تطبيقها عبر ضوابط حالة الحجز.",
     refundsPolicy: "سياسة الاسترداد",
     termsAndConditions: "الشروط والأحكام",
-    note:
-      "راجع دائماً شروط الإلغاء الظاهرة في سياق حجزك قبل الدفع، إذ قد تؤثر نوافذ السياسة بشكل مباشر على مبالغ الاسترداد.",
+    note: "راجع دائماً شروط الإلغاء الظاهرة في سياق حجزك قبل الدفع، إذ قد تؤثر نوافذ السياسة بشكل مباشر على مبالغ الاسترداد.",
     reviewRefundPolicy: "مراجعة سياسة الاسترداد",
     contactSupport: "تواصل مع الدعم",
     sections: [
@@ -130,23 +131,37 @@ const COPY: Record<"en" | "ar", CancellationCopy> = {
 export default async function CancellationPage() {
   const locale = await getRequestLocale();
   const copy = COPY[locale];
-  const arrowClass = locale === "ar" ? "h-4 w-4 text-indigo-100 rotate-180" : "h-4 w-4 text-indigo-100";
+  const arrowClass =
+    locale === "ar"
+      ? "h-4 w-4 text-indigo-100 rotate-180"
+      : "h-4 w-4 text-indigo-100";
 
   return (
-    <main className="indigo-no-gold min-h-screen bg-transparent">
+    <main className="indigo-no-gold story-legal min-h-screen bg-transparent">
       <section className="site-hero-shell relative overflow-hidden text-white">
         <div className="site-hero-grid absolute inset-0 opacity-25" />
         <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 sm:px-6 sm:pt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.legalEyebrow}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{copy.title}</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">
+            {copy.legalEyebrow}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            {copy.title}
+          </h1>
           <p className="mt-3 text-sm text-white/84 sm:text-base">
-            {locale === "ar" ? "تاريخ النفاذ:" : "Effective date:"} {copy.effectiveDate}. {copy.heroBody}
+            {locale === "ar" ? "تاريخ النفاذ:" : "Effective date:"}{" "}
+            {copy.effectiveDate}. {copy.heroBody}
           </p>
           <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold text-white/85">
-            <Link href="/refunds" className="underline decoration-white/35 underline-offset-4 hover:decoration-white">
+            <Link
+              href="/refunds"
+              className="underline decoration-white/35 underline-offset-4 hover:decoration-white"
+            >
               {copy.refundsPolicy}
             </Link>
-            <Link href="/terms" className="underline decoration-white/35 underline-offset-4 hover:decoration-white">
+            <Link
+              href="/terms"
+              className="underline decoration-white/35 underline-offset-4 hover:decoration-white"
+            >
               {copy.termsAndConditions}
             </Link>
           </div>
@@ -167,12 +182,17 @@ export default async function CancellationPage() {
               {copy.sections.map((section) => (
                 <article
                   key={section.title}
-                  className="rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.72))] p-5"
+                  className="rounded-2xl border border-indigo-100/80 bg-transparent p-5"
                 >
-                  <h2 className="text-base font-semibold text-primary">{section.title}</h2>
+                  <h2 className="text-base font-semibold text-primary">
+                    {section.title}
+                  </h2>
                   <div className="mt-2 space-y-2">
                     {section.body.map((paragraph) => (
-                      <p key={paragraph} className="text-sm leading-relaxed text-secondary/84">
+                      <p
+                        key={paragraph}
+                        className="text-sm leading-relaxed text-secondary/84"
+                      >
                         {paragraph}
                       </p>
                     ))}

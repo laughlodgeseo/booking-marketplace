@@ -1,0 +1,374 @@
+{
+  "findings": [
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/properties/[propertyId]/pricing/page.tsx",
+      "line": 345,
+      "message": "Native date/time input is used without an explicit ownership decision.",
+      "remediation": "Record Date as native or reuse the typed/authored canonical owner.",
+      "ruleId": "ownership.native-date-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/pricing/page.tsx",
+      "line": 404,
+      "message": "Native date/time input is used without an explicit ownership decision.",
+      "remediation": "Record Date as native or reuse the typed/authored canonical owner.",
+      "ruleId": "ownership.native-date-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/account/documents/page.tsx",
+      "line": 570,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/block-requests/page.tsx",
+      "line": 110,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/bookings/page.tsx",
+      "line": 96,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/contact-submissions/page.tsx",
+      "line": 89,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/customer-documents/page.tsx",
+      "line": 196,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/ops-tasks/page.tsx",
+      "line": 105,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/payments/page.tsx",
+      "line": 109,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/payouts/page.tsx",
+      "line": 181,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/properties/[propertyId]/pricing/page.tsx",
+      "line": 322,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/properties/page.tsx",
+      "line": 230,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/refunds/page.tsx",
+      "line": 103,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/statements/page.tsx",
+      "line": 188,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/vendor-payout-methods/page.tsx",
+      "line": 149,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/vendor-payouts/page.tsx",
+      "line": 436,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/admin/vendor-property-fees/page.tsx",
+      "line": 62,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/block-requests/page.tsx",
+      "line": 68,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/bookings/page.tsx",
+      "line": 134,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/maintenance/page.tsx",
+      "line": 69,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/ops-tasks/page.tsx",
+      "line": 91,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/pricing/page.tsx",
+      "line": 374,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/properties/[propertyId]/edit/VendorPropertyMediaCard.tsx",
+      "line": 280,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/properties/page.tsx",
+      "line": 289,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "unresolved",
+      "file": "src/app/(portal)/vendor/work-orders/page.tsx",
+      "line": 98,
+      "message": "Native select is used without an explicit ownership decision.",
+      "remediation": "Record Select/Listbox as native or reuse the authored canonical owner.",
+      "ruleId": "ownership.native-select-undecided",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(auth)/reset-password/page.tsx",
+      "line": 165,
+      "message": "Application-owned form does not declare its validation owner.",
+      "remediation": "Add noValidate/novalidate and implement the canonical validation contract.",
+      "ruleId": "form.novalidate-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(auth)/verify-email/page.tsx",
+      "line": 211,
+      "message": "Application-owned form does not declare its validation owner.",
+      "remediation": "Add noValidate/novalidate and implement the canonical validation contract.",
+      "ruleId": "form.novalidate-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/account/profile/page.tsx",
+      "line": 186,
+      "message": "Application-owned form does not declare its validation owner.",
+      "remediation": "Add noValidate/novalidate and implement the canonical validation contract.",
+      "ruleId": "form.novalidate-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/admin/properties/[propertyId]/pricing/page.tsx",
+      "line": 318,
+      "message": "Application-owned form does not declare its validation owner.",
+      "remediation": "Add noValidate/novalidate and implement the canonical validation contract.",
+      "ruleId": "form.novalidate-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/properties/[propertyId]/activation/page.tsx",
+      "line": 138,
+      "message": "Application-owned form does not declare its validation owner.",
+      "remediation": "Add noValidate/novalidate and implement the canonical validation contract.",
+      "ruleId": "form.novalidate-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/property-fees/page.tsx",
+      "line": 199,
+      "message": "Application-owned form does not declare its validation owner.",
+      "remediation": "Add noValidate/novalidate and implement the canonical validation contract.",
+      "ruleId": "form.novalidate-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/admin/bookings/[bookingId]/page.tsx",
+      "line": 429,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/admin/contact-submissions/[submissionId]/page.tsx",
+      "line": 130,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/admin/review-queue/[propertyId]/page.tsx",
+      "line": 447,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/payout-settings/page.tsx",
+      "line": 158,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/payout-settings/page.tsx",
+      "line": 166,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/payout-settings/page.tsx",
+      "line": 237,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/properties/[propertyId]/edit/VendorPropertyEditForm.tsx",
+      "line": 453,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/(portal)/vendor/reviews/page.tsx",
+      "line": 142,
+      "message": "Literal product textarea does not show evidence of the canonical resize-none rule.",
+      "remediation": "Use the shared Textarea owner or apply resize-none/resize: none with adequate height or auto-grow behavior.",
+      "ruleId": "form.textarea-resize-missing",
+      "severity": "error"
+    },
+    {
+      "category": "violation",
+      "file": "src/app/globals.css",
+      "line": 440,
+      "message": "Scrollbar theme does not provide both standards-based scrollbar properties.",
+      "remediation": "Add global scrollbar-color and scrollbar-width standards properties plus fallbacks.",
+      "ruleId": "scrollbar.webkit-only",
+      "severity": "error"
+    }
+  ],
+  "mode": "strict",
+  "projectRoot": "/workspace/scratch/4ff3d253d767/booking-marketplace/apps/web",
+  "schemaVersion": 1,
+  "summary": {
+    "errors": 40,
+    "total": 40,
+    "unresolved": 25,
+    "violations": 15,
+    "warnings": 0
+  }
+}

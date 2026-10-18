@@ -1,105 +1,100 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import PricingHero from "@/components/tourm/pricing/PricingHero";
-import PricingCards from "@/components/tourm/pricing/PricingCards";
-import PricingBreakdown from "@/components/tourm/pricing/PricingBreakdown";
-import PricingFaq from "@/components/tourm/pricing/PricingFaq";
-import PricingCta from "@/components/tourm/pricing/PricingCta";
+import { ArrowUpRight } from "lucide-react";
 import { getRequestLocale } from "@/lib/i18n/server";
-
+import { PageHeading, NextRoute } from "@/components/inside-story/Editorial";
+import { SceneImage } from "@/components/inside-story/Motion";
 export const metadata: Metadata = {
-  title: "Pricing | Laugh & Lodge",
-  description: "Clear short-stay pricing with transparent fees and simple checkout rules.",
+  title: "Clear pricing",
+  description:
+    "Understand nightly rates, stay fees, taxes, cancellation policies and owner management arrangements.",
 };
-
-const COPY = {
-  en: {
-    jumpTo: "Navigate",
-    jumpLinks: [
-      { label: "Pricing model", href: "#pricing-model" },
-      { label: "Quote example", href: "#pricing-breakdown" },
-      { label: "FAQ", href: "#pricing-faq" },
-    ],
-    browseStays: "Browse stays",
-    cancellationPolicy: "Cancellation policy",
-    pricingQuestions: "Talk to pricing team",
-  },
-  ar: {
-    jumpTo: "تنقل إلى",
-    jumpLinks: [
-      { label: "نموذج التسعير", href: "#pricing-model" },
-      { label: "مثال عرض السعر", href: "#pricing-breakdown" },
-      { label: "الأسئلة الشائعة", href: "#pricing-faq" },
-    ],
-    browseStays: "تصفح الإقامات",
-    cancellationPolicy: "سياسة الإلغاء",
-    pricingQuestions: "تواصل مع مختص التسعير",
-  },
-} as const;
-
 export default async function PricingPage() {
-  const locale = await getRequestLocale();
-  const copy = COPY[locale];
-  const arrowClass = locale === "ar" ? "h-3.5 w-3.5 text-indigo-100 rotate-180" : "h-3.5 w-3.5 text-indigo-100";
-
+  const ar = (await getRequestLocale()) === "ar";
+  const rows = ar
+    ? [
+        [
+          "السعر يبدأ بإقامتك.",
+          "تعتمد الأسعار الليلية على العقار والتواريخ وعدد الضيوف. ابحث بتواريخك للحصول على عرض سعر خاص بإقامتك.",
+        ],
+        [
+          "اعرف تفاصيل الإجمالي.",
+          "عندما يتوفر عرض سعر، راجع السعر الليلي والرسوم والضرائب وأي تأمين واجب قبل الدفع. راجع ملخص الحجز لمعرفة المبالغ المطبقة.",
+        ],
+        [
+          "راجع السياسة قبل الحجز.",
+          "تخضع الإلغاءات والاستردادات للسياسة المطبقة على حجزك. اقرأ الشروط وتفاصيل الإلغاء قبل تأكيد إقامتك.",
+        ],
+        [
+          "للملاك: اتفاق يناسب عقارك.",
+          "يعتمد نطاق الإدارة والرسوم على العقار والخدمات المتفق عليها. تواصل معنا لمناقشة متطلباتك والحصول على تفاصيل مكتوبة.",
+        ],
+      ]
+    : [
+        [
+          "It starts with your stay.",
+          "Nightly rates depend on the home, your dates and your guest count. Search with your travel details for a quote specific to your stay.",
+        ],
+        [
+          "See what makes up the total.",
+          "When a quote is available, review the nightly amount, applicable fees, taxes and any required deposit before payment. Your booking summary explains the amounts that apply.",
+        ],
+        [
+          "Know the policy before you book.",
+          "Cancellations and refunds follow the policy applicable to your reservation. Read the terms and cancellation details before confirming your stay.",
+        ],
+        [
+          "For owners, a considered arrangement.",
+          "Management scope and fees depend on your property and the agreed services. Speak with our team about your requirements and receive the details in writing.",
+        ],
+      ];
   return (
-    <main className="indigo-no-gold min-h-screen bg-transparent">
-      <PricingHero locale={locale} />
-
-      <section className="site-surface-subtle border-y py-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="mr-2 text-xs font-semibold uppercase tracking-[0.22em] text-secondary/72">{copy.jumpTo}</p>
-              {copy.jumpLinks.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="site-chip inline-flex h-11 items-center px-3 text-xs font-semibold transition hover:bg-indigo-100/66"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/properties"
-                className="site-cta-muted inline-flex h-11 items-center rounded-full px-3 text-xs font-semibold transition"
-              >
-                {copy.browseStays}
-              </Link>
-              <Link
-                href="/cancellation"
-                className="site-cta-muted inline-flex h-11 items-center rounded-full px-3 text-xs font-semibold transition"
-              >
-                {copy.cancellationPolicy}
-              </Link>
-              <Link
-                href="/contact"
-                className="site-cta-primary inline-flex h-11 items-center gap-2 rounded-full px-3 text-xs font-semibold transition"
-              >
-                {copy.pricingQuestions} <ArrowRight className={arrowClass} />
-              </Link>
-            </div>
-          </div>
+    <>
+      <PageHeading
+        context={ar ? "الأسعار" : "Pricing, with clarity"}
+        title={
+          ar
+            ? "راحة تبدأ بوضوح التفاصيل."
+            : "The right stay. The whole picture."
+        }
+        intro={
+          ar
+            ? "لا نحتاج إلى أرقام افتراضية. إليك ما يجب معرفته عن تكلفة إقامتك الفعلية."
+            : "A good decision starts with understanding the details. Here’s what goes into the cost of your stay."
+        }
+      />
+      <div className="story-price-layout">
+        <SceneImage
+          src="/images/home/why-b.webp"
+          alt={ar ? "مساحة معيشة مضيئة" : "Sunlit living and dining space"}
+          sizes="(max-width:700px) 90vw, 40vw"
+        />
+        <div className="story-price-list">
+          {rows.map(([title, body], i) => (
+            <section key={title}>
+              <h2>{title}</h2>
+              <p>{body}</p>
+              {i === 2 && (
+                <Link className="story-link" href="/cancellation">
+                  {ar ? "سياسة الإلغاء" : "Read the cancellation policy"}
+                  <ArrowUpRight size={18} />
+                </Link>
+              )}
+              {i === 3 && (
+                <Link className="story-link" href="/contact?topic=owners">
+                  {ar ? "تحدث عن عقارك" : "Discuss your property"}
+                  <ArrowUpRight size={18} />
+                </Link>
+              )}
+            </section>
+          ))}
         </div>
-      </section>
-
-      <div className="bg-transparent">
-        <PricingCards locale={locale} />
       </div>
-      <div className="bg-transparent">
-        <PricingBreakdown locale={locale} />
-      </div>
-      <div className="bg-transparent">
-        <PricingFaq locale={locale} />
-      </div>
-      <div className="bg-transparent">
-        <PricingCta locale={locale} />
-      </div>
-      <div className="h-10 sm:h-16" />
-    </main>
+      <NextRoute
+        title={ar ? "اختر تواريخك. ابحث عن مساحتك." : "Your dates. Your place."}
+        label={ar ? "ابحث عن إقامة" : "Search for a stay"}
+        href="/properties"
+      />
+    </>
   );
 }

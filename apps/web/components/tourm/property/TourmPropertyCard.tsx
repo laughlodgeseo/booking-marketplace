@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 import type { SearchResponse } from "@/lib/types/search";
 import { WishlistHeart } from "@/components/property/WishlistHeart";
 import { propertyTypeLabel } from "@/lib/types/property-type";
-import { PROPERTY_DETAIL_LINK_REL, PROPERTY_DETAIL_LINK_TARGET } from "@/lib/search/params";
+import {
+  PROPERTY_DETAIL_LINK_REL,
+  PROPERTY_DETAIL_LINK_TARGET,
+} from "@/lib/search/params";
 
 type Item = SearchResponse["items"][number];
 type CardOrientation = "vertical" | "horizontal";
@@ -62,7 +65,8 @@ export default function TourmPropertyCard({
     .map((part) => part.trim())
     .filter(Boolean);
   const title = titleParts[0] || "Stay";
-  const titleLocationSuffix = titleParts.length > 1 ? titleParts.slice(1).join(" • ") : null;
+  const titleLocationSuffix =
+    titleParts.length > 1 ? titleParts.slice(1).join(" • ") : null;
   const area = item.location?.area ?? null;
   const city = item.location?.city ?? null;
   const meta = [area, city].filter(Boolean).join(" • ") || titleLocationSuffix;
@@ -78,7 +82,9 @@ export default function TourmPropertyCard({
   const baseNightly = item.pricing?.nightly ?? null;
   const itemCurrency = item.pricing?.currency ?? "AED";
   const price =
-    typeof baseNightly === "number" ? formatMoney(baseNightly, itemCurrency) : null;
+    typeof baseNightly === "number"
+      ? formatMoney(baseNightly, itemCurrency)
+      : null;
   const baseNightlyAed = item.pricing?.nightlyAed;
   const basePriceHint =
     itemCurrency !== "AED" && typeof baseNightlyAed === "number"
@@ -153,7 +159,9 @@ export default function TourmPropertyCard({
       if (raf) return;
       raf = window.requestAnimationFrame(() => {
         raf = 0;
-        const next = Math.round(rail.scrollLeft / Math.max(rail.clientWidth, 1));
+        const next = Math.round(
+          rail.scrollLeft / Math.max(rail.clientWidth, 1),
+        );
         setActiveIndex(clamp(next, 0, Math.max(0, slideCount - 1)));
       });
     };
@@ -176,7 +184,14 @@ export default function TourmPropertyCard({
     }, 1650);
 
     return () => window.clearInterval(timer);
-  }, [activeIndex, hasMultipleSlides, isDragging, isHovered, scrollToIndex, slideCount]);
+  }, [
+    activeIndex,
+    hasMultipleSlides,
+    isDragging,
+    isHovered,
+    scrollToIndex,
+    slideCount,
+  ]);
 
   useEffect(() => {
     const rail = railRef.current;
@@ -188,68 +203,87 @@ export default function TourmPropertyCard({
     return () => window.removeEventListener("resize", onResize);
   }, [activeIndex, scrollToIndex]);
 
-  const onRailPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!hasMultipleSlides) return;
-    if (e.pointerType === "mouse" && e.button !== 0) return;
+  const onRailPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!hasMultipleSlides) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
 
-    const rail = railRef.current;
-    if (!rail) return;
+      const rail = railRef.current;
+      if (!rail) return;
 
-    dragRef.current.pointerId = e.pointerId;
-    dragRef.current.down = true;
-    dragRef.current.moved = false;
-    dragRef.current.startX = e.clientX;
-    dragRef.current.startLeft = rail.scrollLeft;
+      dragRef.current.pointerId = e.pointerId;
+      dragRef.current.down = true;
+      dragRef.current.moved = false;
+      dragRef.current.startX = e.clientX;
+      dragRef.current.startLeft = rail.scrollLeft;
 
-    setIsDragging(false);
-    rail.setPointerCapture(e.pointerId);
-  }, [hasMultipleSlides]);
+      setIsDragging(false);
+      rail.setPointerCapture(e.pointerId);
+    },
+    [hasMultipleSlides],
+  );
 
-  const onRailPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const rail = railRef.current;
-    if (!rail || !dragRef.current.down) return;
+  const onRailPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const rail = railRef.current;
+      if (!rail || !dragRef.current.down) return;
 
-    const dx = e.clientX - dragRef.current.startX;
+      const dx = e.clientX - dragRef.current.startX;
 
-    if (!dragRef.current.moved && Math.abs(dx) > 6) {
-      dragRef.current.moved = true;
-      setIsDragging(true);
-    }
+      if (!dragRef.current.moved && Math.abs(dx) > 6) {
+        dragRef.current.moved = true;
+        setIsDragging(true);
+      }
 
-    if (dragRef.current.moved) {
-      rail.scrollLeft = dragRef.current.startLeft - dx;
-    }
-  }, []);
+      if (dragRef.current.moved) {
+        rail.scrollLeft = dragRef.current.startLeft - dx;
+      }
+    },
+    [],
+  );
 
-  const endDrag = useCallback((e?: React.PointerEvent<HTMLDivElement>) => {
-    const rail = railRef.current;
-    if (!rail || !dragRef.current.down) return;
+  const endDrag = useCallback(
+    (e?: React.PointerEvent<HTMLDivElement>) => {
+      const rail = railRef.current;
+      if (!rail || !dragRef.current.down) return;
 
-    if (e && dragRef.current.pointerId !== null && rail.hasPointerCapture(dragRef.current.pointerId)) {
-      rail.releasePointerCapture(dragRef.current.pointerId);
-    }
+      if (
+        e &&
+        dragRef.current.pointerId !== null &&
+        rail.hasPointerCapture(dragRef.current.pointerId)
+      ) {
+        rail.releasePointerCapture(dragRef.current.pointerId);
+      }
 
-    dragRef.current.pointerId = null;
-    dragRef.current.down = false;
+      dragRef.current.pointerId = null;
+      dragRef.current.down = false;
 
-    if (dragRef.current.moved) {
-      suppressClickRef.current = true;
-      window.setTimeout(() => {
-        suppressClickRef.current = false;
-      }, 180);
+      if (dragRef.current.moved) {
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 180);
 
-      window.setTimeout(() => setIsDragging(false), 120);
-      window.setTimeout(() => scrollToIndex(Math.round(rail.scrollLeft / Math.max(rail.clientWidth, 1))), 80);
-      return;
-    }
+        window.setTimeout(() => setIsDragging(false), 120);
+        window.setTimeout(
+          () =>
+            scrollToIndex(
+              Math.round(rail.scrollLeft / Math.max(rail.clientWidth, 1)),
+            ),
+          80,
+        );
+        return;
+      }
 
-    setIsDragging(false);
-  }, [scrollToIndex]);
+      setIsDragging(false);
+    },
+    [scrollToIndex],
+  );
 
   return (
     <article
       className={[
-        "premium-card premium-card-tinted premium-card-hover group relative flex h-full cursor-pointer overflow-hidden rounded-2xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(30,27,75,0.10)] hover:ring-1 hover:ring-indigo-200/70 before:!bg-[linear-gradient(180deg,rgb(99_102_241_/_0.12),transparent_68%)]",
+        "story-listing-card group relative flex h-full overflow-hidden",
         isHorizontal ? "flex-col md:h-[22rem] md:flex-row" : "flex-col",
       ].join(" ")}
     >
@@ -272,9 +306,15 @@ export default function TourmPropertyCard({
             ref={railRef}
             className={[
               "no-scrollbar flex h-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory",
-              isDragging ? "cursor-grabbing" : hasMultipleSlides ? "cursor-grab" : "cursor-default",
+              isDragging
+                ? "cursor-grabbing"
+                : hasMultipleSlides
+                  ? "cursor-grab"
+                  : "cursor-default",
             ].join(" ")}
-            style={{ touchAction: hasMultipleSlides ? "pan-y pinch-zoom" : "auto" }}
+            style={{
+              touchAction: hasMultipleSlides ? "pan-y pinch-zoom" : "auto",
+            }}
             onPointerDown={onRailPointerDown}
             onPointerMove={onRailPointerMove}
             onPointerUp={(e) => endDrag(e)}
@@ -333,7 +373,9 @@ export default function TourmPropertyCard({
                   onClick={() => scrollToIndex(idx)}
                   className={[
                     "rounded-full transition",
-                    active ? "h-1.5 w-5 bg-surface" : "h-1.5 w-1.5 bg-surface/55 hover:bg-surface/80",
+                    active
+                      ? "h-1.5 w-5 bg-surface"
+                      : "h-1.5 w-1.5 bg-surface/55 hover:bg-surface/80",
                   ].join(" ")}
                   aria-label={t("showImageAria", { index: idx + 1 })}
                 />
@@ -343,12 +385,18 @@ export default function TourmPropertyCard({
         ) : null}
       </div>
 
-      <div className={isHorizontal ? "pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3.5 md:p-5 lg:p-5" : "pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3 md:p-4"}>
+      <div
+        className={
+          isHorizontal
+            ? "pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3.5 md:p-5 lg:p-5"
+            : "pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3 md:p-4"
+        }
+      >
         <div className="flex-1 flex flex-col gap-1.5">
-          <div className="inline-flex items-center self-start rounded-full bg-indigo-100/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-700">
+          <div className="inline-flex items-center self-start text-xs text-secondary">
             {propertyType}
           </div>
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight text-primary">
+          <h3 className="line-clamp-2 text-[22px] font-normal leading-snug tracking-tight text-primary">
             <Link
               href={propertyHref}
               target={PROPERTY_DETAIL_LINK_TARGET}
@@ -359,7 +407,9 @@ export default function TourmPropertyCard({
             </Link>
           </h3>
 
-          {meta ? <p className="line-clamp-1 text-xs text-neutral-500">{meta}</p> : null}
+          {meta ? (
+            <p className="line-clamp-1 text-xs text-neutral-500">{meta}</p>
+          ) : null}
         </div>
 
         {isHorizontal ? (
@@ -375,7 +425,11 @@ export default function TourmPropertyCard({
                 <p className="text-[15px] font-semibold text-primary">
                   {price ? t("perNight", { price }) : t("priceOnRequest")}
                 </p>
-                {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
+                {basePriceHint ? (
+                  <p className="mt-0.5 text-[11px] text-neutral-500">
+                    {basePriceHint}
+                  </p>
+                ) : null}
               </div>
 
               <Link
@@ -401,7 +455,11 @@ export default function TourmPropertyCard({
                 <p className="text-[15px] font-semibold text-primary">
                   {price ? t("perNight", { price }) : t("priceOnRequest")}
                 </p>
-                {basePriceHint ? <p className="mt-0.5 text-[11px] text-neutral-500">{basePriceHint}</p> : null}
+                {basePriceHint ? (
+                  <p className="mt-0.5 text-[11px] text-neutral-500">
+                    {basePriceHint}
+                  </p>
+                ) : null}
               </div>
 
               <Link

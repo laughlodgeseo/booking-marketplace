@@ -1,8 +1,15 @@
+import { PageHeading, NextRoute } from "@/components/inside-story/Editorial";
 import type { Metadata } from "next";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
-import { CircleHelp, ExternalLink, FileText, MapPin, MessageSquare, Star } from "lucide-react";
+import {
+  CircleHelp,
+  ExternalLink,
+  FileText,
+  MapPin,
+  MessageSquare,
+} from "lucide-react";
 
 import { getPropertyBySlug } from "@/lib/api/properties";
 import PropertyGalleryHero from "@/components/property/PropertyGalleryHero";
@@ -10,8 +17,12 @@ import type { PropertyGalleryImage } from "@/components/property/property-galler
 import PropertyFacts from "@/components/property/PropertyFacts";
 
 import AmenitiesSection from "@/components/tourm/property/AmenitiesSection";
-import HouseRulesSection, { type HouseRuleItem } from "@/components/tourm/property/HouseRulesSection";
-import ThingsToKnowSection, { type ThingsToKnowBlock } from "@/components/tourm/property/ThingsToKnowSection";
+import HouseRulesSection, {
+  type HouseRuleItem,
+} from "@/components/tourm/property/HouseRulesSection";
+import ThingsToKnowSection, {
+  type ThingsToKnowBlock,
+} from "@/components/tourm/property/ThingsToKnowSection";
 
 import QuotePanelBatchA from "@/components/booking/QuotePanelBatchA";
 import { parseSupportedCurrency } from "@/lib/currency/currency";
@@ -59,13 +70,16 @@ const PROPERTY_PAGE_COPY = {
     aboutFallback:
       "Premium managed vacation home with hotel-style cleaning, verified availability, and fast support.",
     areaFallback: "Located in a connected urban neighborhood.",
-    areaMapKnown: "Map pin shows area-level location before booking confirmation.",
-    areaMapUnknown: "Exact map location is shared once this stay's location details are published.",
+    areaMapKnown:
+      "Map pin shows area-level location before booking confirmation.",
+    areaMapUnknown:
+      "Exact map location is shared once this stay's location details are published.",
     areaAccess:
       "Nearby dining, essentials, and transport can vary by time and season.",
     schemaFallback: "Managed vacation stay with verified availability.",
     heroTag: "Stay",
-    subtitleFallback: "Premium serviced stay with operator support and verified availability.",
+    subtitleFallback:
+      "Premium serviced stay with operator support and verified availability.",
     verifiedReviewsSuffix: "verified reviews",
     newListing: "New listing",
     verifiedAvailability: "Verified availability",
@@ -77,7 +91,8 @@ const PROPERTY_PAGE_COPY = {
     noReviews:
       "No approved reviews yet. Reviews appear after completed stays and moderation.",
     locationTitle: "Location",
-    locationSubtitle: "Area context will expand over time (nearby points, walkability).",
+    locationSubtitle:
+      "Area context will expand over time (nearby points, walkability).",
     openMaps: "Open in Maps",
     mapMissing: "Map location not set for this property.",
     areaHighlights: "Area highlights",
@@ -110,7 +125,8 @@ const PROPERTY_PAGE_COPY = {
       "إقامة مُدارة تشغيلياً مع تنظيف بمعايير فندقية وتوافر موثّق ودعم سريع للضيوف.",
     areaFallback: "يقع ضمن منطقة حضرية متصلة بالخدمات.",
     areaMapKnown: "تعرض الخريطة سياق المنطقة قبل تأكيد الحجز.",
-    areaMapUnknown: "يتم عرض موقع الخريطة الدقيق عند نشر تفاصيل الموقع لهذا السكن.",
+    areaMapUnknown:
+      "يتم عرض موقع الخريطة الدقيق عند نشر تفاصيل الموقع لهذا السكن.",
     areaAccess:
       "تتوفر خيارات المطاعم والاحتياجات الأساسية ووسائل النقل حسب الوقت والموسم.",
     schemaFallback: "إقامة مُدارة تشغيلياً مع توافر موثّق.",
@@ -127,7 +143,8 @@ const PROPERTY_PAGE_COPY = {
     noReviews:
       "لا توجد تقييمات معتمدة حتى الآن. تظهر التقييمات بعد اكتمال الإقامة واعتماد المراجعة.",
     locationTitle: "الموقع",
-    locationSubtitle: "سيتم توسيع معلومات المنطقة تدريجياً (المعالم القريبة وإمكانية المشي).",
+    locationSubtitle:
+      "سيتم توسيع معلومات المنطقة تدريجياً (المعالم القريبة وإمكانية المشي).",
     openMaps: "فتح في الخرائط",
     mapMissing: "لم يتم تحديد موقع الخريطة لهذا العقار.",
     areaHighlights: "مميزات المنطقة",
@@ -169,8 +186,12 @@ function normalizeAmenities(input: unknown): { key: string; label?: string }[] {
       }
 
       if (typeof raw === "object" && raw !== null) {
-        const maybeKey = "key" in raw ? String((raw as { key: unknown }).key) : "";
-        const maybeLabel = "label" in raw ? String((raw as { label?: unknown }).label ?? "") : "";
+        const maybeKey =
+          "key" in raw ? String((raw as { key: unknown }).key) : "";
+        const maybeLabel =
+          "label" in raw
+            ? String((raw as { label?: unknown }).label ?? "")
+            : "";
 
         const k = maybeKey.trim();
         const l = maybeLabel.trim();
@@ -226,11 +247,15 @@ function normalizeGuestReviews(
       comment: typeof obj.comment === "string" ? obj.comment : null,
       createdAt,
       reviewer:
-        obj.customer && typeof obj.customer.fullName === "string" && obj.customer.fullName.trim()
+        obj.customer &&
+        typeof obj.customer.fullName === "string" &&
+        obj.customer.fullName.trim()
           ? obj.customer.fullName.trim()
           : guestFallback,
-      hostResponseText: typeof obj.hostResponseText === "string" ? obj.hostResponseText : null,
-      hostResponseAt: typeof obj.hostResponseAt === "string" ? obj.hostResponseAt : null,
+      hostResponseText:
+        typeof obj.hostResponseText === "string" ? obj.hostResponseText : null,
+      hostResponseAt:
+        typeof obj.hostResponseAt === "string" ? obj.hostResponseAt : null,
     });
   }
 
@@ -238,7 +263,10 @@ function normalizeGuestReviews(
 }
 
 function googleMapsLink(lat: number, lng: number, label?: string | null) {
-  const q = label && label.trim().length > 0 ? encodeURIComponent(label.trim()) : `${lat},${lng}`;
+  const q =
+    label && label.trim().length > 0
+      ? encodeURIComponent(label.trim())
+      : `${lat},${lng}`;
   return `https://www.google.com/maps/search/?api=1&query=${q}`;
 }
 
@@ -254,10 +282,7 @@ function stableGalleryImageId(
 }
 
 function reviewerInitials(name: string): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "G";
   if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
   return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
@@ -278,7 +303,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       (locale === "ar"
         ? `إقامة مُدارة في ${p.area ?? p.city ?? "دبي"} مع توافر موثّق.`
         : `Operator-managed stay in ${p.area ?? p.city ?? "Dubai"} with verified availability.`);
-    const coverImageUrl = (p as unknown as { coverImage?: { url?: string | null } }).coverImage?.url;
+    const coverImageUrl = (
+      p as unknown as { coverImage?: { url?: string | null } }
+    ).coverImage?.url;
     const image =
       coverImageUrl ??
       p.media.find((m) => m.url && m.url.trim().length > 0)?.url ??
@@ -315,7 +342,9 @@ export default async function PropertyDetailPage(props: PageProps) {
   const searchParams = props.searchParams ? await props.searchParams : {};
   const bookingContext = parsePropertyDetailSearchContext(searchParams);
   const autoReserve =
-    (Array.isArray(searchParams.autoreserve) ? searchParams.autoreserve[0] : searchParams.autoreserve) === "1";
+    (Array.isArray(searchParams.autoreserve)
+      ? searchParams.autoreserve[0]
+      : searchParams.autoreserve) === "1";
   const locale = await getRequestLocale();
   const copy = PROPERTY_PAGE_COPY[locale];
   const cookieStore = await cookies();
@@ -325,36 +354,39 @@ export default async function PropertyDetailPage(props: PageProps) {
   if (!res.ok) {
     return (
       <main className="min-h-screen bg-transparent">
-        <div className="mx-auto max-w-4xl px-4 pb-16 pt-12 sm:px-6 sm:pt-14 lg:px-8">
-          <div className="premium-card premium-card-tinted rounded-2xl border border-white/70 p-6 text-sm text-secondary shadow-[0_18px_44px_rgba(11,15,25,0.1)]">
-            {copy.loadError}{" "}
-            <span className="font-semibold text-primary">{res.message}</span>
-          </div>
-        </div>
+        <PageHeading
+          title={
+            locale === "ar"
+              ? "المكان يستحق نظرة أقرب."
+              : "A place worth a closer look."
+          }
+          intro={
+            locale === "ar"
+              ? "تعذّر تحميل تفاصيل هذه الإقامة حالياً. حاول مجدداً أو تواصل معنا لمساعدتك."
+              : "We can’t load this stay right now. Please try again or contact us for help with your dates."
+          }
+        />
+        <NextRoute
+          title={
+            locale === "ar"
+              ? "دعنا نساعدك."
+              : "Let us help you find your place."
+          }
+          label={locale === "ar" ? "تواصل معنا" : "Talk to our team"}
+          href="/contact"
+        />
       </main>
     );
   }
 
   const p = res.data;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://rentpropertyuae.com";
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://rentpropertyuae.com";
 
-  const apiAmenities = normalizeAmenities((p as unknown as { amenities?: unknown }).amenities);
-  const fallbackAmenities: { key: string }[] = [
-    "WIFI",
-    "AIR_CONDITIONING",
-    "KITCHEN",
-    "TV",
-    "HOUSEKEEPING",
-    "SECURITY",
-    "NO_SMOKING",
-    "ELEVATOR",
-    "PARKING_FREE",
-    "HOT_WATER",
-    "WASHER",
-    "WORKSPACE",
-  ].map((k) => ({ key: k }));
-
-  const amenities = apiAmenities.length > 0 ? apiAmenities : fallbackAmenities;
+  const apiAmenities = normalizeAmenities(
+    (p as unknown as { amenities?: unknown }).amenities,
+  );
+  const amenities = apiAmenities;
   const guestReviews = normalizeGuestReviews(
     (p as unknown as { guestReviews?: unknown }).guestReviews,
     copy.guestFallback,
@@ -366,12 +398,23 @@ export default async function PropertyDetailPage(props: PageProps) {
         .map((r) => {
           if (typeof r === "string") return { key: r };
           if (typeof r === "object" && r !== null) {
-            const key = "key" in r ? String((r as { key: unknown }).key ?? "") : "";
-            const label = "label" in r ? String((r as { label?: unknown }).label ?? "") : "";
-            const detail = "detail" in r ? String((r as { detail?: unknown }).detail ?? "") : "";
+            const key =
+              "key" in r ? String((r as { key: unknown }).key ?? "") : "";
+            const label =
+              "label" in r
+                ? String((r as { label?: unknown }).label ?? "")
+                : "";
+            const detail =
+              "detail" in r
+                ? String((r as { detail?: unknown }).detail ?? "")
+                : "";
             const k = key.trim() || label.trim();
             if (!k) return null;
-            return { key: k, label: label.trim() || undefined, detail: detail.trim() || undefined };
+            return {
+              key: k,
+              label: label.trim() || undefined,
+              detail: detail.trim() || undefined,
+            };
           }
           return null;
         })
@@ -406,14 +449,20 @@ export default async function PropertyDetailPage(props: PageProps) {
   ];
 
   const hasCoords = p.lat !== null && p.lng !== null;
-  const mapsHref = hasCoords ? googleMapsLink(p.lat as number, p.lng as number, p.title) : null;
-  const metaLocation = [p.area ?? null, p.city ?? null].filter(Boolean).join(" • ");
+  const mapsHref = hasCoords
+    ? googleMapsLink(p.lat as number, p.lng as number, p.title)
+    : null;
+  const metaLocation = [p.area ?? null, p.city ?? null]
+    .filter(Boolean)
+    .join(" • ");
   const galleryImages: PropertyGalleryImage[] = p.media
     .reduce<PropertyGalleryImage[]>((acc, media, index) => {
       const url = (media.url ?? "").trim();
       if (!url) return acc;
 
-      const sortOrder = Number.isFinite(media.sortOrder) ? media.sortOrder : index;
+      const sortOrder = Number.isFinite(media.sortOrder)
+        ? media.sortOrder
+        : index;
       const alt = (media.alt ?? p.title).trim() || p.title;
 
       acc.push({
@@ -430,12 +479,14 @@ export default async function PropertyDetailPage(props: PageProps) {
   const reviewCount = guestReviews.length;
   const averageRating =
     reviewCount > 0
-      ? guestReviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
+      ? guestReviews.reduce((sum, review) => sum + review.rating, 0) /
+        reviewCount
       : null;
-  const aboutText =
-    p.description ?? copy.aboutFallback;
+  const aboutText = p.description ?? copy.aboutFallback;
   const aboutPreview =
-    aboutText.length > 320 ? `${aboutText.slice(0, 320).trimEnd()}...` : aboutText;
+    aboutText.length > 320
+      ? `${aboutText.slice(0, 320).trimEnd()}...`
+      : aboutText;
   const hasLongAbout = aboutText.length > 320;
   const areaHighlights = [
     metaLocation
@@ -443,19 +494,17 @@ export default async function PropertyDetailPage(props: PageProps) {
         ? `يقع في ${metaLocation}.`
         : `Located in ${metaLocation}.`
       : copy.areaFallback,
-    hasCoords
-      ? copy.areaMapKnown
-      : copy.areaMapUnknown,
+    hasCoords ? copy.areaMapKnown : copy.areaMapUnknown,
     copy.areaAccess,
   ];
   const detailJsonLd = {
     "@context": "https://schema.org",
     "@type": "LodgingBusiness",
     name: p.title,
-    description:
-      p.subtitle ?? p.description ?? copy.schemaFallback,
+    description: p.subtitle ?? p.description ?? copy.schemaFallback,
     image: [
-      (p as unknown as { coverImage?: { url?: string | null } }).coverImage?.url,
+      (p as unknown as { coverImage?: { url?: string | null } }).coverImage
+        ?.url,
       ...p.media.map((m) => m.url).filter((url) => Boolean(url && url.trim())),
     ].filter(Boolean),
     url: `${siteUrl}/properties/${p.slug}`,
@@ -494,48 +543,19 @@ export default async function PropertyDetailPage(props: PageProps) {
       <script type="application/ld+json" suppressHydrationWarning>
         {JSON.stringify(detailJsonLd)}
       </script>
-      <section className="relative overflow-hidden border-b border-white/24 bg-gradient-to-br from-[#4F46E5] to-[#4338CA] text-white">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(248,250,252,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(248,250,252,0.12)_1px,transparent_1px)] [background-size:34px_34px]" />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-14 lg:px-8">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">{copy.heroTag}</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              {p.title}
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-white/84 sm:text-base">
-              {p.subtitle ?? copy.subtitleFallback}
-            </p>
-
-            <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
-              {averageRating !== null ? (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                  <Star className="h-3.5 w-3.5 fill-current text-amber-300" />
-                  <span>
-                    {averageRating.toFixed(1)} · {reviewCount} {copy.verifiedReviewsSuffix}
-                  </span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                  {copy.newListing}
-                </div>
-              )}
-
-              {metaLocation ? (
-                <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                  {metaLocation}
-                </div>
-              ) : null}
-
-              <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                {copy.verifiedAvailability}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="story-property-heading">
+        <PageHeading
+          context={metaLocation || (locale === "ar" ? "إقامتك" : "Your stay")}
+          title={p.title}
+          intro={p.subtitle || undefined}
+        />
+        {averageRating !== null && (
+          <p className="story-property-rating">
+            ★ {averageRating.toFixed(1)} · {reviewCount}{" "}
+            {copy.verifiedReviewsSuffix}
+          </p>
+        )}
+      </div>
 
       <section className="bg-transparent pb-2 pt-6 sm:pt-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -549,7 +569,11 @@ export default async function PropertyDetailPage(props: PageProps) {
             <div className="space-y-6 sm:space-y-8 lg:col-span-7 xl:col-span-8">
               <PropertyFacts property={p} />
 
-              <AmenitiesSection title={copy.amenitiesTitle} items={amenities} previewCount={12} />
+              <AmenitiesSection
+                title={copy.amenitiesTitle}
+                items={amenities}
+                previewCount={12}
+              />
 
               <HouseRulesSection items={houseRules} />
 
@@ -562,7 +586,9 @@ export default async function PropertyDetailPage(props: PageProps) {
                   <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
                     <FileText className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                   </div>
-                  <div className="text-lg font-semibold tracking-tight text-primary">{copy.aboutTitle}</div>
+                  <div className="text-lg font-semibold tracking-tight text-primary">
+                    {copy.aboutTitle}
+                  </div>
                 </div>
 
                 <div className="prose prose-sm mt-3 max-w-none text-secondary">
@@ -571,7 +597,9 @@ export default async function PropertyDetailPage(props: PageProps) {
 
                 {hasLongAbout ? (
                   <details className="mt-2 rounded-xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-3 ring-1 ring-white/72">
-                    <summary className="cursor-pointer text-sm font-semibold text-primary">{copy.readMore}</summary>
+                    <summary className="cursor-pointer text-sm font-semibold text-primary">
+                      {copy.readMore}
+                    </summary>
                     <div className="prose prose-sm mt-3 max-w-none text-secondary">
                       <p>{aboutText}</p>
                     </div>
@@ -585,12 +613,15 @@ export default async function PropertyDetailPage(props: PageProps) {
                     <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/82 shadow-[0_6px_14px_rgba(11,15,25,0.08)] ring-1 ring-white/75">
                       <MessageSquare className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                     </div>
-                    <div className="text-lg font-semibold tracking-tight text-primary">{copy.guestReviewsTitle}</div>
+                    <div className="text-lg font-semibold tracking-tight text-primary">
+                      {copy.guestReviewsTitle}
+                    </div>
                   </div>
 
                   {reviewCount > 0 ? (
                     <div className="rounded-full bg-[rgb(var(--color-bg-rgb)/0.78)] px-3 py-1 text-xs font-semibold text-secondary ring-1 ring-white/72">
-                      {averageRating?.toFixed(1)} · {reviewCount} {copy.reviewsSuffix}
+                      {averageRating?.toFixed(1)} · {reviewCount}{" "}
+                      {copy.reviewsSuffix}
                     </div>
                   ) : null}
                 </div>
@@ -602,16 +633,23 @@ export default async function PropertyDetailPage(props: PageProps) {
                 ) : (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {guestReviews.slice(0, 8).map((review) => (
-                      <article key={review.id} className="rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-4 shadow-[0_8px_18px_rgba(11,15,25,0.08)] ring-1 ring-white/72">
+                      <article
+                        key={review.id}
+                        className="rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-4 shadow-[0_8px_18px_rgba(11,15,25,0.08)] ring-1 ring-white/72"
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div className="grid h-10 w-10 place-items-center rounded-full bg-white/82 text-xs font-bold text-primary ring-1 ring-white/72">
                               {reviewerInitials(review.reviewer)}
                             </div>
                             <div>
-                              <div className="text-sm font-semibold text-primary">{review.reviewer}</div>
+                              <div className="text-sm font-semibold text-primary">
+                                {review.reviewer}
+                              </div>
                               <div className="text-xs text-secondary/70">
-                                {new Date(review.createdAt).toLocaleDateString()}
+                                {new Date(
+                                  review.createdAt,
+                                ).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
@@ -620,10 +658,14 @@ export default async function PropertyDetailPage(props: PageProps) {
                           </div>
                         </div>
                         {review.title ? (
-                          <div className="mt-3 text-sm font-semibold text-primary">{review.title}</div>
+                          <div className="mt-3 text-sm font-semibold text-primary">
+                            {review.title}
+                          </div>
                         ) : null}
                         {review.comment ? (
-                          <p className="mt-1 text-sm leading-relaxed text-secondary/80">{review.comment}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-secondary/80">
+                            {review.comment}
+                          </p>
                         ) : null}
                         {review.hostResponseText ? (
                           <div className="mt-3 rounded-xl bg-indigo-50/60 p-3 ring-1 ring-indigo-100/50">
@@ -631,7 +673,10 @@ export default async function PropertyDetailPage(props: PageProps) {
                               <span>Host response</span>
                               {review.hostResponseAt ? (
                                 <span className="font-normal text-indigo-500">
-                                  · {new Date(review.hostResponseAt).toLocaleDateString()}
+                                  ·{" "}
+                                  {new Date(
+                                    review.hostResponseAt,
+                                  ).toLocaleDateString()}
                                 </span>
                               ) : null}
                             </div>
@@ -653,7 +698,9 @@ export default async function PropertyDetailPage(props: PageProps) {
                       <MapPin className="h-[19px] w-[19px] stroke-[1.9] text-indigo-600/90" />
                     </div>
                     <div>
-                      <div className="text-lg font-semibold tracking-tight text-primary">{copy.locationTitle}</div>
+                      <div className="text-lg font-semibold tracking-tight text-primary">
+                        {copy.locationTitle}
+                      </div>
                       <div className="text-xs text-secondary/70">
                         {metaLocation || copy.locationSubtitle}
                       </div>
@@ -699,7 +746,8 @@ export default async function PropertyDetailPage(props: PageProps) {
 
                 <div className="mt-3 rounded-2xl bg-[rgb(var(--color-bg-rgb)/0.78)] p-3 ring-1 ring-white/72">
                   <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    <CircleHelp className="h-3.5 w-3.5 text-indigo-600/90" /> {copy.areaHighlights}
+                    <CircleHelp className="h-3.5 w-3.5 text-indigo-600/90" />{" "}
+                    {copy.areaHighlights}
                   </div>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-secondary">
                     {areaHighlights.map((line) => (

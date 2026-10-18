@@ -1,17 +1,18 @@
 import type { ReactNode } from "react";
 import FloatingHeader from "@/components/site/FloatingHeader";
+import StoryExperience from "@/components/inside-story/StoryExperience";
 import Footer from "@/components/site/Footer";
-import PreloaderGate from "@/components/tourm/PreloaderGate";
-
+import { RouteArrival } from "@/components/inside-story/Motion";
+import "@/components/inside-story/story.css";
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="site-shell min-h-screen bg-[var(--site-bg)]">
-      <PreloaderGate />
-      {/* anchor for footer "Back to top" */}
+    <div className="site-shell inside-story">
+      <StoryExperience />
       <div id="top" />
       <FloatingHeader />
-      {/* kill ANY accidental horizontal overflow */}
-      <main className="min-h-screen overflow-x-clip bg-transparent pt-14 lg:pt-[80px]">{children}</main>
+      <main id="main-content" tabIndex={-1} className="story-main">
+        <RouteArrival>{children}</RouteArrival>
+      </main>
       <Footer />
     </div>
   );

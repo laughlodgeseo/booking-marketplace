@@ -1,293 +1,84 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, BadgeCheck, Building2, MapPin, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { siteCompliance } from "@/lib/site-compliance";
-
+import { EditorialHero, NextRoute } from "@/components/inside-story/Editorial";
+import { Reveal, SceneImage } from "@/components/inside-story/Motion";
 export const metadata: Metadata = {
-  title: "About | Laugh & Lodge",
+  title: "Our story",
   description:
-    "Learn how Laugh & Lodge delivers premium short-stay experiences for guests and owners in Dubai and UAE.",
+    "Laugh & Lodge Vacation Homes Rental LLC — Dubai holiday homes, thoughtful hosting and property care.",
 };
-
-type Pillar = {
-  title: string;
-  desc: string;
-  Icon: React.ComponentType<{ className?: string }>;
-};
-
-type AboutCopy = {
-  heroEyebrow: string;
-  heroTitle: string;
-  heroBody: string;
-  exploreStays: string;
-  ownerPrograms: string;
-  operateEyebrow: string;
-  operateTitle: string;
-  operateBody: string;
-  companyDetails: string;
-  labels: {
-    registeredName: string;
-    jurisdiction: string;
-    generalEmail: string;
-    bookingSupport: string;
-    dtcmPermit: string;
-    businessRegistration: string;
-    registeredOffice: string;
-  };
-  values: {
-    jurisdiction: string;
-  };
-  links: {
-    privacy: string;
-    terms: string;
-    contact: string;
-  };
-  pillars: ReadonlyArray<Pillar>;
-};
-
-const COPY: Record<"en" | "ar", AboutCopy> = {
-  en: {
-    heroEyebrow: "About",
-    heroTitle: "Premium hospitality for guests and property owners",
-    heroBody:
-      "Laugh & Lodge Vacation Homes Rental LLC is built on a simple idea: great stays need strong demand and reliable operations. We combine smart platform tools with on-ground service standards.",
-    exploreStays: "Explore stays",
-    ownerPrograms: "Owner programs",
-    operateEyebrow: "How we operate",
-    operateTitle: "Built for Dubai's fast short-stay market",
-    operateBody:
-      "We focus on clear standards, transparent owner updates, and policy-based booking operations.",
-    companyDetails: "Company details",
-    labels: {
-      registeredName: "Registered name",
-      jurisdiction: "Jurisdiction",
-      generalEmail: "General email",
-      bookingSupport: "Booking support",
-      dtcmPermit: "DTCM Holiday Homes Permit",
-      businessRegistration: "Business Registration No",
-      registeredOffice: "Registered Office",
-    },
-    values: {
-      jurisdiction: "United Arab Emirates",
-    },
-    links: {
-      privacy: "Privacy policy",
-      terms: "Terms and conditions",
-      contact: "Contact team",
-    },
-    pillars: [
-      {
-        title: "Reliable operations",
-        desc: "Service delivery follows clear workflows, readiness checks, and escalation rules.",
-        Icon: BadgeCheck,
-      },
-      {
-        title: "Owner transparency",
-        desc: "Programs are built with clear responsibilities, clear terms, and easy reporting.",
-        Icon: Building2,
-      },
-      {
-        title: "Guest consistency",
-        desc: "We protect stay quality from booking to check-out.",
-        Icon: Users,
-      },
-      {
-        title: "Compliance-first mindset",
-        desc: "Operations align with local short-stay rules and responsible hosting standards.",
-        Icon: ShieldCheck,
-      },
-      {
-        title: "Market intelligence",
-        desc: "Pricing and positioning are guided by season, demand, and location trends.",
-        Icon: Sparkles,
-      },
-      {
-        title: "Dubai-rooted delivery",
-        desc: "Built for Dubai standards with readiness for UAE growth.",
-        Icon: MapPin,
-      },
-    ],
-  },
-  ar: {
-    heroEyebrow: "من نحن",
-    heroTitle: "ضيافة تشغيلية بمعيار احترافي للضيوف وملاك العقارات",
-    heroBody:
-      "تأسست Laugh & Lodge Vacation Homes Rental LLC على مبدأ واضح: نجاح الإقامات القصيرة يحتاج طلباً قوياً وانضباطاً تشغيلياً. نجمع بين ضوابط المنصة ومعايير التنفيذ لتقديم نتائج موثوقة باستمرار.",
-    exploreStays: "استكشف الإقامات",
-    ownerPrograms: "برامج الملاك",
-    operateEyebrow: "كيف نعمل",
-    operateTitle: "مصمم للأداء في سوق الإقامات القصيرة سريع التغير",
-    operateBody: "نركز على معايير تنفيذ قابلة للتكرار وتواصل شفاف مع المالك وعمليات حجز متوافقة مع السياسات.",
-    companyDetails: "بيانات الشركة",
-    labels: {
-      registeredName: "الاسم المسجل",
-      jurisdiction: "الولاية القانونية",
-      generalEmail: "البريد العام",
-      bookingSupport: "دعم الحجوزات",
-      dtcmPermit: "تصريح DTCM للمنازل السياحية",
-      businessRegistration: "رقم السجل التجاري",
-      registeredOffice: "المكتب المسجل",
-    },
-    values: {
-      jurisdiction: "الإمارات العربية المتحدة",
-    },
-    links: {
-      privacy: "سياسة الخصوصية",
-      terms: "الشروط والأحكام",
-      contact: "تواصل مع الفريق",
-    },
-    pillars: [
-      {
-        title: "تميز تشغيلي",
-        desc: "تقديم الخدمة يعتمد على سير عمل واضح ونقاط تحقق للجاهزية ومنطق تصعيد منضبط.",
-        Icon: BadgeCheck,
-      },
-      {
-        title: "شفافية للمالك",
-        desc: "البرامج مبنية على مسؤوليات واضحة ووضوح تجاري وانضباط في التقارير.",
-        Icon: Building2,
-      },
-      {
-        title: "ثبات تجربة الضيف",
-        desc: "نركز على جودة إقامة موثوقة عبر الحجز والوصول والدعم والمغادرة.",
-        Icon: Users,
-      },
-      {
-        title: "منهج امتثال",
-        desc: "ممارسات التشغيل متوافقة مع متطلبات الإقامات القصيرة المحلية ومعايير الاستضافة المسؤولة.",
-        Icon: ShieldCheck,
-      },
-      {
-        title: "ذكاء سوقي",
-        desc: "يتم تشكيل التسعير والتموضع وفق المواسم وإشارات الطلب وسياق الموقع.",
-        Icon: Sparkles,
-      },
-      {
-        title: "تنفيذ بجذور دبي",
-        desc: "مصمم لوتيرة وتوقعات سوق دبي مع جاهزية للتوسع على مستوى الإمارات.",
-        Icon: MapPin,
-      },
-    ],
-  },
-};
-
 export default async function AboutPage() {
-  const locale = await getRequestLocale();
-  const copy = COPY[locale];
-  const arrowPrimary = locale === "ar" ? "ml-2 h-4 w-4 rotate-180" : "ml-2 h-4 w-4";
-  const arrowSecondary = locale === "ar" ? "ml-2 h-4 w-4 text-white/74 rotate-180" : "ml-2 h-4 w-4 text-white/74";
-
+  const ar = (await getRequestLocale()) === "ar";
   return (
-    <main className="indigo-no-gold min-h-screen bg-transparent">
-      <section className="relative overflow-hidden py-8 sm:py-10">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(248,250,252,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(248,250,252,0.12)_1px,transparent_1px)] [background-size:34px_34px]" />
-        </div>
-
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/24 bg-gradient-to-br from-[#4F46E5] to-[#4338CA] px-4 pb-12 pt-12 text-white shadow-[0_26px_70px_rgba(11,15,25,0.30)] sm:px-6 sm:pt-14">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/72">{copy.heroEyebrow}</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{copy.heroTitle}</h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/84 sm:text-base">{copy.heroBody}</p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/properties"
-                className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-5 text-sm font-semibold text-indigo-900 shadow-[0_12px_28px_rgba(11,15,25,0.24)] transition hover:bg-indigo-50"
-              >
-                {copy.exploreStays} <ArrowRight className={arrowPrimary} />
-              </Link>
-              <Link
-                href="/owners"
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/60 bg-transparent px-5 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                {copy.ownerPrograms} <ArrowRight className={arrowSecondary} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-transparent py-8 sm:py-10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">{copy.operateEyebrow}</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.operateTitle}</h2>
-            <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.operateBody}</p>
-          </div>
-
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {copy.pillars.map((pillar) => (
-              <article
-                key={pillar.title}
-                className="rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)]"
-              >
-                <span className="grid h-11 w-11 place-items-center rounded-xl border border-indigo-200/80 bg-indigo-50 text-indigo-600">
-                  <pillar.Icon className="h-5 w-5" />
-                </span>
-                <p className="mt-4 text-base font-semibold text-primary">{pillar.title}</p>
-                <p className="mt-2 text-sm leading-relaxed text-secondary/82">{pillar.desc}</p>
-              </article>
-            ))}
-          </div>
-
-          <div className="mt-10 rounded-2xl border border-indigo-100/90 bg-white/88 p-6 shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:p-8">
-            <p className="text-sm font-semibold text-primary">{copy.companyDetails}</p>
-            <div className="mt-4 grid gap-4 text-sm text-secondary/82 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.registeredName}</p>
-                <p className="mt-1 font-semibold text-primary">Laugh &amp; Lodge Vacation Homes Rental LLC</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.jurisdiction}</p>
-                <p className="mt-1 font-semibold text-primary">{copy.values.jurisdiction}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.generalEmail}</p>
-                <p className="mt-1 font-semibold text-primary">Info@rentpropertyuae.com</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.bookingSupport}</p>
-                <p className="mt-1 font-semibold text-primary">Booking@rentpropertyuae.com</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.dtcmPermit}</p>
-                <p className="mt-1 font-semibold text-primary">{siteCompliance.dtcmPermit}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.businessRegistration}</p>
-                <p className="mt-1 font-semibold text-primary">{siteCompliance.businessRegistrationNumber}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/60">{copy.labels.registeredOffice}</p>
-                <p className="mt-1 font-semibold text-primary">{siteCompliance.registeredOffice}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3 text-sm">
-              <Link
-                href="/privacy"
-                className="font-semibold text-indigo-700 underline decoration-indigo-300 underline-offset-4 hover:decoration-indigo-500"
-              >
-                {copy.links.privacy}
-              </Link>
-              <Link
-                href="/terms"
-                className="font-semibold text-indigo-700 underline decoration-indigo-300 underline-offset-4 hover:decoration-indigo-500"
-              >
-                {copy.links.terms}
-              </Link>
-              <Link
-                href="/contact"
-                className="font-semibold text-indigo-700 underline decoration-indigo-300 underline-offset-4 hover:decoration-indigo-500"
-              >
-                {copy.links.contact}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+    <>
+      <EditorialHero
+        title={
+          ar
+            ? "مدينة كبيرة. إحساس بالانتماء."
+            : "A big city. A more personal way to stay."
+        }
+        intro={
+          ar
+            ? "نؤمن أن المكان الذي تعود إليه هو جزء من تجربة المدينة."
+            : "Dubai is a city of extraordinary scale. We’re interested in the part that feels like yours."
+        }
+        context={ar ? "قصتنا" : "Our story"}
+        src="/images/home/dubai-skyline.webp"
+        alt={
+          ar
+            ? "أفق دبي في ضوء المساء"
+            : "The Dubai skyline in the evening light"
+        }
+      />
+      <div className="story-essay">
+        <Reveal className="story-essay-intro">
+          <h2>
+            {ar
+              ? "المدينة، من الداخل."
+              : "The inside makes all the difference."}
+          </h2>
+          <p>
+            {ar
+              ? "لاف آند لودج هي شركة لإيجارات بيوت العطلات في دبي. نجمع بين تجربة الضيف والعناية بالعقار، ليجد الضيوف مكاناً يناسب إقامتهم ويجد الملاك شريكاً يهتم بالتفاصيل."
+              : "Laugh & Lodge Vacation Homes Rental LLC brings together two sides of the same home: a guest looking for a place to belong, and an owner looking for thoughtful care. We connect the experience of staying with the work of hosting."}
+          </p>
+        </Reveal>
+        <section className="story-process-row">
+          <SceneImage
+            src="/images/home/interior-suite.webp"
+            alt={
+              ar
+                ? "غرفة معيشة دافئة ومضيئة"
+                : "A quiet room filled with natural light"
+            }
+          />
+          <Reveal>
+            <h2>{ar ? "مساحة لروتينك الخاص." : "Room for your own rhythm."}</h2>
+            <p>
+              {ar
+                ? "قهوة الصباح ووقت الراحة ونهاية يوم طويل في المدينة. نركز على الأماكن والتفاصيل التي تمنح الإقامة معناها."
+                : "The first coffee. An unhurried morning. A familiar room at the end of an unfamiliar day. A stay becomes memorable through small, ordinary moments. Our work is to make room for them."}
+            </p>
+          </Reveal>
+        </section>
+        <section className="story-company-details">
+          <h2>{ar ? "تفاصيل الشركة" : "Here in Dubai"}</h2>
+          <p>Laugh & Lodge Vacation Homes Rental LLC</p>
+          <p>{siteCompliance.registeredOffice}</p>
+          <p>
+            DTCM Holiday Homes Permit: {siteCompliance.dtcmPermit}
+            <br />
+            Business Registration No:{" "}
+            {siteCompliance.businessRegistrationNumber}
+          </p>
+        </section>
+      </div>
+      <NextRoute
+        title={ar ? "تعرف على مساحتك القادمة." : "Find your side of the city."}
+        label={ar ? "استكشف الإقامات" : "Explore the stays"}
+        href="/properties"
+      />
+    </>
   );
 }

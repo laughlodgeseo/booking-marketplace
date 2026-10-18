@@ -132,6 +132,7 @@ export async function fetchFeaturedStays(
     if (context?.currency) headers["x-currency"] = context.currency;
 
     res = await fetch(url, {
+      signal: AbortSignal.timeout(6500),
       headers,
       next: { revalidate: 60 },
     });

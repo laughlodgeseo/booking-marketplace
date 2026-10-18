@@ -27,7 +27,8 @@ function cleanImages(images: PropertyGalleryImage[], propertyName: string) {
       const url = (image.url ?? "").trim();
       if (!url) return null;
 
-      const id = (image.id ?? "").trim() || `${url}#${sortOrderValue(image, index)}`;
+      const id =
+        (image.id ?? "").trim() || `${url}#${sortOrderValue(image, index)}`;
       const alt = (image.alt ?? propertyName).trim() || propertyName;
 
       return {
@@ -51,7 +52,10 @@ function clamp(index: number, total: number) {
 export default function PropertyGalleryHero({ images, propertyName }: Props) {
   const locale = normalizeLocale(useLocale());
   const isAr = locale === "ar";
-  const gallery = useMemo(() => cleanImages(images, propertyName), [images, propertyName]);
+  const gallery = useMemo(
+    () => cleanImages(images, propertyName),
+    [images, propertyName],
+  );
   const [open, setOpen] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
 
@@ -75,7 +79,10 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
         {!heroImage ? (
           <div className="aspect-[16/11] h-auto w-full overflow-hidden rounded-3xl bg-warm-alt/60 shadow-[0_14px_34px_rgba(11,15,25,0.1)] sm:h-[380px] sm:aspect-auto lg:h-[500px]" />
         ) : (
-          <div className="relative aspect-[16/11] h-auto sm:h-[380px] sm:aspect-auto lg:h-[500px]">
+          <div
+            data-stay-cover={heroImage.url}
+            className="story-property-media relative aspect-[16/11] h-auto sm:h-[480px] sm:aspect-auto lg:h-[660px]"
+          >
             <div className="grid h-full gap-3 sm:grid-cols-12 sm:gap-3 lg:gap-4">
               <button
                 type="button"
@@ -145,7 +152,11 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
                     type="button"
                     onClick={() => openViewer(index + 1)}
                     className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl border border-white/75 bg-surface text-left"
-                    aria-label={isAr ? `عرض الصورة ${index + 2}` : `Open photo ${index + 2}`}
+                    aria-label={
+                      isAr
+                        ? `عرض الصورة ${index + 2}`
+                        : `Open photo ${index + 2}`
+                    }
                   >
                     <OptimizedImage
                       src={image.url}
@@ -167,14 +178,20 @@ export default function PropertyGalleryHero({ images, propertyName }: Props) {
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white">
                 <Images className="h-3.5 w-3.5" />
               </span>
-              {isAr ? `عرض كل الصور (${gallery.length})` : `View all ${gallery.length} photos`}
+              {isAr
+                ? `عرض كل الصور (${gallery.length})`
+                : `View all ${gallery.length} photos`}
             </button>
           </div>
         )}
       </section>
 
       <PropertyGalleryViewer
-        key={open ? `gallery-viewer-${gallery.length}-${initialIndex}` : "gallery-viewer-closed"}
+        key={
+          open
+            ? `gallery-viewer-${gallery.length}-${initialIndex}`
+            : "gallery-viewer-closed"
+        }
         open={open}
         images={gallery}
         propertyName={propertyName}

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/components/inside-story/story.css";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";

@@ -1,198 +1,99 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { cookies } from "next/headers";
-import { BadgeCheck, Building2, ShieldCheck } from "lucide-react";
-import ServicesHero from "@/components/tourm/services/ServicesHero";
-import ServiceGrid from "@/components/tourm/services/ServiceGrid";
-import ServicePlans from "@/components/tourm/services/ServicePlans";
-import ServicesFaq from "@/components/tourm/services/ServicesFaq";
-import ServicesCta from "@/components/tourm/services/ServicesCta";
-import { LOCALE_COOKIE_NAME, normalizeLocale, type AppLocale } from "@/lib/i18n/config";
-
+import { getRequestLocale } from "@/lib/i18n/server";
+import { EditorialHero, NextRoute } from "@/components/inside-story/Editorial";
+import { Reveal, SceneImage } from "@/components/inside-story/Motion";
 export const metadata: Metadata = {
-  title: "Services | Laugh & Lodge",
+  title: "The care behind your stay",
   description:
-    "Simple, premium hospitality services with clear workflows, quality checks, and owner support.",
+    "Explore the preparation, housekeeping and property care behind Laugh & Lodge holiday homes in Dubai.",
 };
-
-type ContextCard = {
-  title: string;
-  desc: string;
-  Icon: React.ComponentType<{ className?: string }>;
-};
-
-type ServicesPageCopy = {
-  jumpTo: string;
-  jumpLinks: Array<{ label: string; href: string }>;
-  ownerPrograms: string;
-  pricing: string;
-  bookConsult: string;
-  contextEyebrow: string;
-  contextTitle: string;
-  contextDesc: string;
-  contextCards: ContextCard[];
-};
-
-const COPY: Record<AppLocale, ServicesPageCopy> = {
-  en: {
-    jumpTo: "Jump to",
-    jumpLinks: [
-      { label: "Capabilities", href: "#capabilities" },
-      { label: "Programs", href: "#programs" },
-      { label: "FAQ", href: "#faq" },
-      { label: "Next step", href: "#next-step" },
-    ],
-    ownerPrograms: "Owner programs",
-    pricing: "Pricing",
-    bookConsult: "Book a call",
-    contextEyebrow: "Dubai market fit",
-    contextTitle: "Built for real short-stay operations in Dubai",
-    contextDesc:
-      "Our workflows are built for high turnover and premium guest expectations. The goal is simple: reliable quality every stay.",
-    contextCards: [
-      {
-        title: "Clear responsibilities",
-        desc: "Every service layer has clear owners and escalation paths.",
-        Icon: Building2,
-      },
-      {
-        title: "Quality checks",
-        desc: "Readiness checks reduce arrival-day issues.",
-        Icon: ShieldCheck,
-      },
-      {
-        title: "24/7 support visibility",
-        desc: "Task progress and urgent guest issues are tracked in real time.",
-        Icon: BadgeCheck,
-      },
-    ],
-  },
-  ar: {
-    jumpTo: "انتقل إلى",
-    jumpLinks: [
-      { label: "القدرات", href: "#capabilities" },
-      { label: "البرامج", href: "#programs" },
-      { label: "الأسئلة الشائعة", href: "#faq" },
-      { label: "الخطوة التالية", href: "#next-step" },
-    ],
-    ownerPrograms: "برامج الملاك",
-    pricing: "الأسعار",
-    bookConsult: "احجز استشارة",
-    contextEyebrow: "سياق التشغيل في دبي",
-    contextTitle: "تصميم خدمات متوافق مع متطلبات الإقامات القصيرة الفعلية",
-    contextDesc:
-      "نهيكل سير العمل بما يناسب ارتفاع وتيرة التحويل وتوقعات الضيوف واستدامة المساءلة على مستوى كل عقار. الهدف ليس كثرة الأنشطة، بل نتائج موثوقة قابلة للقياس.",
-    contextCards: [
-      {
-        title: "وضوح تشغيلي",
-        desc: "المسؤوليات ومسارات التصعيد واضحة في كل طبقة خدمية.",
-        Icon: Building2,
-      },
-      {
-        title: "ضبط الجودة",
-        desc: "فحوصات الجاهزية ونقاط التفتيش تقلل العيوب يوم الوصول.",
-        Icon: ShieldCheck,
-      },
-      {
-        title: "ثقة تدقيقية",
-        desc: "تقدم المهام والاستثناءات موثق لإتاحة الرؤية للمالك والمراجعة.",
-        Icon: BadgeCheck,
-      },
-    ],
-  },
-};
-
 export default async function ServicesPage() {
-  const cookieStore = await cookies();
-  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
-  const copy = COPY[locale];
-
+  const ar = (await getRequestLocale()) === "ar";
+  const scenes = ar
+    ? [
+        {
+          title: "مساحة جاهزة لاستقبالك.",
+          body: "التنظيف والبياضات وترتيب الأساسيات. نهتم بتفاصيل الغرفة لتكون لحظة الوصول بداية مريحة لإقامتك.",
+          src: "/images/owners/hero-4k/support_luxury_interior-4k.webp",
+          alt: "غرفة نوم مرتبة لاستقبال الضيوف",
+          context: "إعداد الإقامة",
+        },
+        {
+          title: "العناية تتجاوز المظهر.",
+          body: "فحوصات العقار ومتابعة الصيانة وتنسيق العمل. وراء كل إقامة جيدة تفاصيل تحتاج إلى متابعة واضحة.",
+          src: "/images/home/why-b.webp",
+          alt: "غرفة معيشة مشرقة",
+          context: "العناية بالعقار",
+        },
+        {
+          title: "نحن هنا للمساعدة.",
+          body: "أسئلة قبل الحجز أو استفسارات أثناء الإقامة؟ تواصل مع فريقنا للحصول على المساعدة ومعرفة الخطوة التالية.",
+          src: "/images/home/interior-suite.webp",
+          alt: "مساحة داخلية هادئة",
+          context: "تواصل واضح",
+        },
+      ]
+    : [
+        {
+          title: "The room, made ready.",
+          body: "Fresh linen. A clean space. The essentials, considered. We coordinate the preparation that turns a property into somewhere you can settle in.",
+          src: "/images/owners/hero-4k/support_luxury_interior-4k.webp",
+          alt: "A carefully prepared bedroom with fresh linen",
+          context: "Before the door opens",
+        },
+        {
+          title: "Care beyond the surface.",
+          body: "Inspections, maintenance coordination and property upkeep sit behind the scenes. Because a beautiful space should feel as good to live in as it looks.",
+          src: "/images/home/why-b.webp",
+          alt: "A bright living room open to the outdoors",
+          context: "While the home is in our care",
+        },
+        {
+          title: "A conversation away.",
+          body: "Questions before you book? Need help during your stay? Reach our team for booking guidance and support with what comes next.",
+          src: "/images/home/interior-suite.webp",
+          alt: "Quiet seating in a sunlit living space",
+          context: "When you need a hand",
+        },
+      ];
   return (
-    <main className="indigo-no-gold min-h-screen bg-transparent">
-      <ServicesHero locale={locale} />
-
-      <section className="border-y border-indigo-100/80 bg-white/72 py-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="mr-2 text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">
-                {copy.jumpTo}
-              </p>
-              {copy.jumpLinks.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="inline-flex h-11 items-center rounded-full border border-indigo-200/80 bg-indigo-50/75 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/owners"
-                className="inline-flex h-11 items-center rounded-full border border-line/80 bg-surface px-3 text-xs font-semibold text-primary transition hover:bg-warm-alt"
-              >
-                {copy.ownerPrograms}
-              </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex h-11 items-center rounded-full border border-line/80 bg-surface px-3 text-xs font-semibold text-primary transition hover:bg-warm-alt"
-              >
-                {copy.pricing}
-              </Link>
-              <Link
-                href="/contact"
-                className="inline-flex h-11 items-center rounded-full border border-indigo-300/80 bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-700"
-              >
-                {copy.bookConsult}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="bg-transparent">
-        <ServiceGrid locale={locale} />
+    <>
+      <EditorialHero
+        title={
+          ar
+            ? "العناية التي تشعر بها."
+            : "The things you feel. The work you don’t see."
+        }
+        intro={
+          ar
+            ? "الإقامة المريحة تبدأ قبل فتح الباب. هذه هي العناية وراء الكواليس."
+            : "An effortless stay doesn’t happen by accident. It starts with everything that happens before you arrive."
+        }
+        context={ar ? "خدماتنا" : "Our care"}
+        src="/images/home/hero-top-accent.webp"
+        alt={ar ? "مساحة معيشة مفتوحة" : "An open, considered living space"}
+      />
+      <div className="story-essay">
+        {scenes.map((scene) => (
+          <section className="story-process-row" key={scene.title}>
+            <SceneImage
+              src={scene.src}
+              alt={scene.alt}
+              sizes="(max-width:700px) 90vw, 45vw"
+            />
+            <Reveal>
+              <p className="story-context">{scene.context}</p>
+              <h2>{scene.title}</h2>
+              <p>{scene.body}</p>
+            </Reveal>
+          </section>
+        ))}
       </div>
-      <div className="bg-transparent">
-        <ServicePlans locale={locale} />
-      </div>
-
-      <section className="py-8 sm:py-10">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-indigo-100/90 bg-white/78 p-6 shadow-[0_14px_34px_rgba(15,23,42,0.08)] sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">{copy.contextEyebrow}</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">
-              {copy.contextTitle}
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm text-secondary/82 sm:text-base">
-              {copy.contextDesc}
-            </p>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {copy.contextCards.map((item) => (
-                <div key={item.title} className="rounded-2xl border border-indigo-100/80 bg-indigo-50/45 p-4">
-                  <span className="grid h-8 w-8 place-items-center rounded-lg border border-indigo-200/80 bg-white text-indigo-600">
-                    <item.Icon className="h-4 w-4" />
-                  </span>
-                  <p className="mt-3 text-sm font-semibold text-primary">{item.title}</p>
-                  <p className="mt-1 text-sm text-secondary/82">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="bg-transparent">
-        <ServicesFaq locale={locale} />
-      </div>
-      <div className="bg-transparent">
-        <ServicesCta locale={locale} />
-      </div>
-      <div className="h-10 sm:h-16" />
-    </main>
+      <NextRoute
+        title={ar ? "لنتحدث عن إقامتك." : "Make yourself at home."}
+        label={ar ? "تواصل معنا" : "Talk to our team"}
+        href="/contact"
+      />
+    </>
   );
 }

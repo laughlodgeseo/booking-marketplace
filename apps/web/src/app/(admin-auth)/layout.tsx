@@ -1,3 +1,4 @@
+import "@/components/inside-story/story.css";
 import type { ReactNode } from "react";
 import { AuthMotionBackdrop } from "@/components/auth/AuthMotionBackdrop";
 

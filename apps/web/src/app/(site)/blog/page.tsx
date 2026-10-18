@@ -1,52 +1,52 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import BlogHero from "@/components/tourm/blog/BlogHero";
-import BlogGrid from "@/components/tourm/blog/BlogGrid";
+import { BLOG_POSTS } from "@/lib/content/blog-posts";
 import { getRequestLocale } from "@/lib/i18n/server";
-
+import { PageHeading } from "@/components/inside-story/Editorial";
+import { SceneImage } from "@/components/inside-story/Motion";
 export const metadata: Metadata = {
-  title: "Blog | Laugh & Lodge",
-  description: "Simple travel tips, area guides, and hosting insights for Dubai and UAE stays.",
+  title: "The journal",
+  description:
+    "Notes on Dubai, choosing your neighborhood and making the most of a holiday-home stay.",
 };
-
-const COPY = {
-  en: {
-    eyebrow: "More",
-    title: "Ready to browse available stays?",
-    cta: "Explore stays",
-  },
-  ar: {
-    eyebrow: "المزيد",
-    title: "جاهز لتصفح الإقامات المتاحة؟",
-    cta: "استكشف الإقامات",
-  },
-} as const;
-
 export default async function BlogPage() {
-  const locale = await getRequestLocale();
-  const copy = COPY[locale];
-
+  const ar = (await getRequestLocale()) === "ar";
   return (
-    <main className="min-h-screen bg-transparent">
-      <BlogHero />
-      <div className="bg-transparent">
-        <BlogGrid />
-      </div>
-      <section className="py-8 sm:py-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center sm:flex-row sm:items-center sm:px-6 sm:text-left lg:px-8">
-          <div className="max-w-[38ch]">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary/70">{copy.eyebrow}</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary">{copy.title}</h2>
-          </div>
+    <>
+      <PageHeading
+        context={ar ? "المجلة" : "The journal"}
+        title={ar ? "قليل من المعرفة المحلية." : "A little local perspective."}
+        intro={
+          ar
+            ? "أفكار وأدلة لاكتشاف دبي وإقامة أكثر راحة. المقالات متاحة بالإنجليزية."
+            : "Notes from the city. Places to explore. Things worth knowing before you open the door."
+        }
+      />
+      <div className="story-journal">
+        {BLOG_POSTS.map((post, i) => (
           <Link
-            href="/properties"
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-brand px-5 text-sm font-semibold text-accent-text shadow-brand-soft transition hover:bg-brand-hover"
+            className="story-journal-post"
+            key={post.slug}
+            href={`/blog/${post.slug}`}
           >
-            {copy.cta}
+            <SceneImage
+              src={post.coverUrl}
+              alt={post.title}
+              sizes={i === 0 ? "90vw" : "(max-width:700px) 90vw, 45vw"}
+            />
+            <div>
+              <p>
+                {post.tag} · {post.dateLabel}
+              </p>
+              <h2>{post.title}</h2>
+              <p>{post.excerpt}</p>
+              <span className="story-link">
+                {ar ? "اقرأ المقال" : "Read the story"} ↗
+              </span>
+            </div>
           </Link>
-        </div>
-      </section>
-      <div className="h-10 sm:h-16" />
-    </main>
+        ))}
+      </div>
+    </>
   );
 }
