@@ -227,7 +227,19 @@ export default function StoryRail({
               const panel = Array.from(event.currentTarget.children).findIndex(
                 (child) => child.contains(event.target),
               );
-              if (panel >= 0 && trigger.current) moveTo(panel, true);
+              if (panel >= 0 && trigger.current) {
+                // Native focus scrolling happens after the focus event. Resolve
+                // on the next frame so it cannot override the pinned track.
+                requestAnimationFrame(() => {
+                  if (!root.current || !trigger.current) return;
+                  viewport.current?.scrollTo({
+                    left: 0,
+                    top: 0,
+                    behavior: "instant",
+                  });
+                  moveTo(panel, true);
+                });
+              }
             }}
           >
             {children}
