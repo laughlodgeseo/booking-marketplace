@@ -25,7 +25,7 @@ export default async function AboutPage() {
             : "Dubai is a city of extraordinary scale. We’re interested in the part that feels like yours."
         }
         context={ar ? "قصتنا" : "Our story"}
-        src="/images/home/dubai-skyline.webp"
+        src="/areas/downtown-dubai.webp"
         alt={
           ar
             ? "أفق دبي في ضوء المساء"

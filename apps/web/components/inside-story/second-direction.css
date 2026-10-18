@@ -116,7 +116,6 @@
 }
 .v2-hero-arrival span {
   display: block;
-  transform: translateY(115%);
 }
 .v2-hero-actions {
   position: absolute;
@@ -1362,4 +1361,13 @@
 .v2-search-calendar :focus-visible {
   outline: 2px solid #38584a;
   outline-offset: 3px;
+}
+.v2-hero-title {
+  z-index: 4;
+}
+.v2-hero-arrival {
+  z-index: 5;
+}
+.v2-hero-city img {
+  object-position: center 48%;
 }

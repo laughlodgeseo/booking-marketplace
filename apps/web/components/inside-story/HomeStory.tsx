@@ -130,7 +130,7 @@ export function HomeOpening() {
         <div className="v2-hero-stage">
           <div className="v2-hero-city">
             <Image
-              src="/images/home/dubai-skyline.webp"
+              src="/areas/downtown-dubai.webp"
               alt={ar ? "أفق دبي" : "Dubai’s skyline in the evening light"}
               fill
               priority

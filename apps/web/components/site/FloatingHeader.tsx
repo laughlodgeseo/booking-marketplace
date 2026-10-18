@@ -25,7 +25,7 @@ export default function FloatingHeader() {
     "/images/home/interior-suite.webp",
     "/images/owners/hero-4k/main_business_bay-4k.webp",
     "/images/owners/hero-4k/support_luxury_interior-4k.webp",
-    "/images/home/dubai-skyline.webp",
+    "/areas/downtown-dubai.webp",
     "/areas/dubai-creek-harbour.webp",
   ];
   const [scrolled, setScrolled] = useState(false);
