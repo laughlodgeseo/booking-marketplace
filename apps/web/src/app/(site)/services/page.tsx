@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { EditorialHero, NextRoute } from "@/components/inside-story/Editorial";
-import { Reveal, SceneImage } from "@/components/inside-story/Motion";
+import { SceneImage } from "@/components/inside-story/Motion";
+import StoryRail from "@/components/inside-story/StoryRail";
 export const metadata: Metadata = {
   title: "The care behind your stay",
   description:
@@ -74,21 +75,28 @@ export default async function ServicesPage() {
         src="/images/home/hero-top-accent.webp"
         alt={ar ? "مساحة معيشة مفتوحة" : "An open, considered living space"}
       />
-      <div className="story-essay v2-services-essay">
+      <StoryRail
+        variant="care"
+        title={
+          ar
+            ? "قبل وصولك. طوال إقامتك."
+            : "Before you arrive. While you’re here."
+        }
+      >
         {scenes.map((scene) => (
-          <section className="story-process-row" key={scene.title}>
+          <section className="v3-narrative-panel" key={scene.title}>
             <SceneImage
               src={scene.src}
               alt={scene.alt}
-              sizes="(max-width:700px) 90vw, 45vw"
+              sizes="(max-width:999px) 85vw, 60vw"
             />
-            <Reveal>
+            <div className="v3-panel-copy">
               <h2>{scene.title}</h2>
               <p>{scene.body}</p>
-            </Reveal>
+            </div>
           </section>
         ))}
-      </div>
+      </StoryRail>
       <NextRoute
         title={ar ? "لنتحدث عن إقامتك." : "Make yourself at home."}
         label={ar ? "تواصل معنا" : "Talk to our team"}

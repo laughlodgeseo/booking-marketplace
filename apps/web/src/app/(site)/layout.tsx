@@ -5,6 +5,7 @@ import Footer from "@/components/site/Footer";
 import { RouteArrival } from "@/components/inside-story/Motion";
 import "@/components/inside-story/story.css";
 import "@/components/inside-story/second-direction.css";
+import "@/components/inside-story/motion-refinements.css";
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="site-shell inside-story">

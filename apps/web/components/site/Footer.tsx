@@ -6,7 +6,6 @@ import { siteCompliance } from "@/lib/site-compliance";
 import Image from "next/image";
 import { useRef, useCallback } from "react";
 import { gsap, useSceneMotion } from "@/components/inside-story/choreography";
-import { Reveal } from "@/components/inside-story/Motion";
 export default function Footer() {
   const ar = useLocale() === "ar";
   const root = useRef<HTMLElement>(null);
@@ -14,51 +13,78 @@ export default function Footer() {
     root,
     useCallback((mm) => {
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.fromTo(
-          ".v2-finale-image",
-          { clipPath: "inset(0% 0% 0% 0%)" },
-          {
-            clipPath: "inset(20% 36% 20% 36%)",
-            yPercent: 15,
-            ease: "power2.inOut",
-            scrollTrigger: {
-              trigger: root.current,
-              start: "top bottom",
-              end: "top 10%",
-              scrub: 0.7,
-            },
+        const timeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: ".v3-footer-invitation",
+            start: "top 90%",
+            end: "bottom 45%",
+            scrub: 0.65,
           },
-        );
-        gsap.fromTo(
-          ".story-finale",
-          { yPercent: 35, scale: 0.85 },
-          {
-            yPercent: 0,
-            scale: 1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: ".story-finale",
-              start: "top 95%",
-              end: "top 45%",
-              scrub: 0.6,
+        });
+        timeline
+          .fromTo(
+            ".v3-footer-door",
+            { clipPath: "inset(48% 0% 48% 0%)", rotation: -7 },
+            {
+              clipPath: "inset(0% 0% 0% 0%)",
+              rotation: 0,
+              ease: "power2.inOut",
+              duration: 1,
             },
-          },
-        );
+            0,
+          )
+          .fromTo(
+            ".v3-footer-door img",
+            { scale: 1.4 },
+            { scale: 1, duration: 1.2, ease: "none" },
+            0,
+          )
+          .from(
+            ".v3-finale-word",
+            {
+              yPercent: 110,
+              rotation: 4,
+              stagger: 0.08,
+              duration: 0.8,
+              ease: "power3.out",
+            },
+            0.12,
+          );
       });
     }, []),
   );
   return (
     <footer ref={root} className="story-footer" id="site-footer">
-      <div className="v2-finale-image">
-        <Image
-          src="/images/home/interior-suite.webp"
-          alt={
-            ar ? "العودة إلى الداخل" : "Back to the room where the story began"
+      <div className="v3-footer-invitation">
+        <Link
+          href="/properties"
+          className="v3-footer-door"
+          aria-label={
+            ar ? "استكشف الإقامات" : "Open the door to your next stay"
           }
-          fill
-          sizes="100vw"
-          className="object-cover"
-        />
+        >
+          <Image
+            src="/images/home/interior-suite.webp"
+            alt=""
+            fill
+            sizes="(max-width:759px) 26vw, 13vw"
+            className="object-cover"
+          />
+          <span className="v3-door-shutter" aria-hidden />
+          <ArrowUpRight size={22} aria-hidden />
+        </Link>
+        <p
+          className="story-finale"
+          aria-label={ar ? "تفضل بالدخول." : "COME ON IN."}
+        >
+          {(ar ? ["تفضل", "بالدخول."] : ["COME", "ON", "IN."]).map((word) => (
+            <span className="v3-finale-mask" key={word}>
+              <span className="v3-finale-word" aria-hidden>
+                {word}
+              </span>
+            </span>
+          ))}
+        </p>
       </div>
       <div className="story-footer-intro">
         <Link href="/properties" className="story-link">
@@ -66,9 +92,6 @@ export default function Footer() {
           <ArrowUpRight size={20} />
         </Link>
       </div>
-      <Reveal>
-        <p className="story-finale">{ar ? "تفضل بالدخول." : "COME ON IN."}</p>
-      </Reveal>
       <div className="story-footer-detail">
         <Link href="/" className="story-wordmark">
           laugh<span>&</span>lodge.
@@ -103,6 +126,9 @@ export default function Footer() {
           <Link href="/cancellation">{ar ? "الإلغاء" : "Cancellation"}</Link>
           <Link href="/refunds">{ar ? "الاسترداد" : "Refunds"}</Link>
         </nav>
+        <p className="v3-studio-credit" dir="ltr">
+          By <span>Valtum Studio</span>
+        </p>
       </div>
       <p className="story-compliance">
         DTCM Holiday Homes Permit: {siteCompliance.dtcmPermit} · Business

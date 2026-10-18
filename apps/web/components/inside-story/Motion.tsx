@@ -10,6 +10,7 @@ import {
 import Image from "next/image";
 import { gsap, useSceneMotion } from "./choreography";
 import { usePathname } from "next/navigation";
+import EditorialDetails from "./EditorialDetails";
 
 export function Reveal({
   children,
@@ -94,7 +95,7 @@ export function RouteArrival({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   return (
     <div key={pathname} className="story-route">
-      {children}
+      <EditorialDetails>{children}</EditorialDetails>
     </div>
   );
 }

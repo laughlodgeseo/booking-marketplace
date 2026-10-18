@@ -4,6 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { EditorialHero, NextRoute } from "@/components/inside-story/Editorial";
 import { Reveal, SceneImage } from "@/components/inside-story/Motion";
+import StoryRail from "@/components/inside-story/StoryRail";
 export const metadata: Metadata = {
   title: "A new chapter for your property",
   description:
@@ -46,12 +47,17 @@ export default async function OwnersPage() {
             </Link>
           </div>
         </Reveal>
-        <section className="story-process-row">
+      </div>
+      <StoryRail
+        variant="owners"
+        title={ar ? "عناية تتصل بكل تفصيل." : "Care, at every turn."}
+      >
+        <section className="v3-narrative-panel">
           <SceneImage
             src="/images/home/hero-top-accent.webp"
             alt={ar ? "مساحة داخلية للعقار" : "A home, thoughtfully presented"}
           />
-          <Reveal>
+          <div className="v3-panel-copy">
             <h2>
               {ar
                 ? "نقدّم مساحتك بأفضل صورة."
@@ -62,9 +68,9 @@ export default async function OwnersPage() {
                 ? "تقديم العقار وتجهيزه، وتنسيق النظافة والصيانة، ومتابعة استقبال الضيوف. تفاصيل عملية تصنع تجربة إقامة متماسكة."
                 : "Property presentation, readiness, cleaning and maintenance coordination. Each part contributes to the guest experience; each deserves a clear plan."}
             </p>
-          </Reveal>
+          </div>
         </section>
-        <section className="story-process-row">
+        <section className="v3-narrative-panel">
           <SceneImage
             src="/images/owners/hero-4k/support_guest_experience-4k.webp"
             alt={
@@ -73,7 +79,7 @@ export default async function OwnersPage() {
                 : "A poolside hospitality scene at sunset"
             }
           />
-          <Reveal>
+          <div className="v3-panel-copy">
             <h2>
               {ar
                 ? "ابقَ قريباً من عقارك."
@@ -88,9 +94,9 @@ export default async function OwnersPage() {
               {ar ? "الرسوم ونموذج الإدارة" : "Understand the arrangement"}
               <ArrowUpRight size={20} />
             </Link>
-          </Reveal>
+          </div>
         </section>
-      </div>
+      </StoryRail>
       <NextRoute
         title={ar ? "لنكتب الفصل القادم." : "Let’s open the next chapter."}
         label={ar ? "ابدأ كمالك" : "Get started as an owner"}

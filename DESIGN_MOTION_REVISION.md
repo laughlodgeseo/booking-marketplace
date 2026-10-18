@@ -59,3 +59,17 @@ alternative. No WebGL, Playwright, fake properties, fabricated pricing or copied
 Check forward/reverse scrolling at the neighborhood boundaries, fast skipping, resize,
 menu focus/Escape, search and calendar open states, Arabic, mobile, route return and
 reduced motion. A successful build is engineering evidence, never an award score.
+
+## Motion refinement, 18 October 2026
+
+User approved the established identity and homepage hero. Preserve the hero composition and Switzer type, rather than selecting a new art direction. This pass concentrates motion in the supporting pages:
+
+- Spaces: one measured horizontal photographic track with internal image countertravel.
+- Owners: a dark horizontal narrative, preceded by the opening photograph widening as it enters view.
+- Services: a layered vertical takeover; each new scene covers the previous one while it recedes.
+- Gallery studies, journal, contact and pricing: staggered entrances for their actual content. Closing invitations resolve word by word. Homepage featured imagery opens its crop on approach.
+- Footer: remove the separate 60svh image block. Return the interior as a compact, interactive doorway next to the final line. Crop opening, camera pullback and masked word arrivals share a scroll timeline. Credit: **By Valtum Studio**.
+
+Each desktop journey uses a single pin and measured extent, with contextual previous/next and continue-below controls. Keyboard focus reveals its destination panel. Narrow screens use native horizontal swiping; reduced motion lays every panel out vertically, with all content visible. No new animation packages or media assets are needed. No backend or dashboard changes.
+
+Navigation → existing hero → photographic narrative → closing invitation maintains the established page structure. There is no bento grid to randomize or fill, and no new eyebrow labels or hero decoration.

@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import RouteHero from "./RouteHero";
 import { Reveal } from "./Motion";
+import ScrollWords from "./ScrollWords";
 export function PageHeading({
   title,
   intro,
@@ -48,7 +49,7 @@ export function NextRoute({
 }) {
   return (
     <section className="story-next-route">
-      <h2>{title}</h2>
+      <ScrollWords text={title} />
       <Link className="story-link" href={href}>
         {label}
         <ArrowUpRight size={20} />

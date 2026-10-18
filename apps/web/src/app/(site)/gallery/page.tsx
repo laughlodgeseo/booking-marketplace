@@ -8,6 +8,7 @@ import {
 import { getRequestLocale } from "@/lib/i18n/server";
 import { PageHeading } from "@/components/inside-story/Editorial";
 import { SceneImage } from "@/components/inside-story/Motion";
+import StoryRail from "@/components/inside-story/StoryRail";
 export const metadata: Metadata = {
   title: "Look inside",
   description:
@@ -35,24 +36,14 @@ export default async function GalleryPage() {
             : "Light. Texture. Space to imagine. An editorial collection of interiors and atmosphere, independent of bookable inventory."
         }
       />
-      <nav
-        className="story-gallery-nav"
-        aria-label={ar ? "فئات المعرض" : "Gallery collections"}
-      >
-        {GALLERY_ITEMS.map((item) => (
-          <a key={item.id} href={`#${item.slug}`}>
-            {ar ? arabic[item.category] : GALLERY_CATEGORY_LABEL[item.category]}
-          </a>
-        ))}
-      </nav>
-      <div className="story-archive">
+      <StoryRail title={ar ? "غرفة تلو الأخرى." : "Room by room."}>
         {GALLERY_ITEMS.map((item) => (
           <Link
             href={`/gallery/${item.slug}`}
             key={item.id}
             data-stay-key={item.cover.src}
             id={item.slug}
-            className="story-archive-item"
+            className="v3-space-panel"
           >
             <SceneImage
               src={item.cover.src}
@@ -61,7 +52,7 @@ export default async function GalleryPage() {
                   ? arabic[item.category]
                   : GALLERY_CATEGORY_LABEL[item.category]
               }
-              sizes="(max-width:700px) 90vw, 45vw"
+              sizes="(max-width:999px) 85vw, 74vw"
             />
             <h2>
               {ar
@@ -76,7 +67,7 @@ export default async function GalleryPage() {
             </p>
           </Link>
         ))}
-      </div>
+      </StoryRail>
     </>
   );
 }

@@ -29,6 +29,27 @@ export default function RouteHero({
             ease: "power4.out",
             delay: 0.05,
           });
+          gsap.to(".v2-route-headline", {
+            y: -55,
+            ease: "none",
+            scrollTrigger: {
+              trigger: root.current,
+              start: "top top",
+              end: "55% top",
+              scrub: 0.8,
+            },
+          });
+          gsap.from(".v2-route-intro", {
+            y: 50,
+            opacity: 0,
+            duration: 1.1,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: ".v2-route-intro",
+              start: "top 92%",
+              once: true,
+            },
+          });
           if (mode === "about") {
             gsap.from(".v2-route-slice", {
               yPercent: (i: number) => (i % 2 ? 35 : -35),
@@ -79,6 +100,17 @@ export default function RouteHero({
                 scrub: 0.6,
               },
             });
+            if (mode === "owners")
+              gsap.to(".v2-route-visual", {
+                width: "100%",
+                ease: "none",
+                scrollTrigger: {
+                  trigger: ".v2-route-visual",
+                  start: "top 80%",
+                  end: "top 10%",
+                  scrub: 0.8,
+                },
+              });
           }
         });
       },
