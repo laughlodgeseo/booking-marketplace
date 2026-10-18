@@ -1,5 +1,5 @@
 /* Photographic journeys. Desktop has one measured pin; touch stays native. */
-.v3-rail {
+.v3-rail-stage {
   width: 100%;
   padding: 105px 0 24px;
   height: 100svh;
@@ -276,7 +276,7 @@
   font-size: 12px;
 }
 .v3-studio-credit span {
-  border-bottom: 1px solid #768780;
+  border-bottom: 0;
   padding-bottom: 3px;
 }
 [dir="rtl"] .v3-footer-invitation .story-finale {
@@ -285,7 +285,7 @@
 }
 
 @media (max-width: 999px), (max-height: 579px) {
-  .v3-rail {
+  .v3-rail-stage {
     height: auto;
     min-height: 0;
     padding: 65px 0 40px;
@@ -403,7 +403,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .v3-rail {
+  .v3-rail-stage {
     height: auto;
     min-height: 0;
     padding: 65px 0;
@@ -471,4 +471,15 @@
   .v3-rail-care .v3-narrative-panel .story-image {
     clip-path: none;
   }
+}
+
+.v3-rail {
+  width: 100%;
+  position: relative;
+  background: #edf1ef;
+}
+.v3-rail-owners,
+.v3-rail-owners .v3-rail-stage {
+  background: #182320;
+  color: #edf1ef;
 }

@@ -1,3 +1,4 @@
+import PageDepth from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -68,6 +69,7 @@ export default async function GalleryPage() {
           </Link>
         ))}
       </StoryRail>
+      <PageDepth page="gallery" ar={ar} />
     </>
   );
 }

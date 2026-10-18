@@ -47,7 +47,7 @@ export default function RoomSequence() {
               trigger: root.current,
               start: "top top",
               end: () => `+=${innerHeight * 2.3}`,
-              pin: true,
+              pin: ".v2-rooms-stage",
               scrub: 0.7,
               anticipatePin: 1,
               invalidateOnRefresh: true,

@@ -40,7 +40,7 @@ export default function StoryRail({
                   trigger: root.current,
                   start: "top top",
                   end: () => `+=${innerHeight * (panels.length - 1) * 1.1}`,
-                  pin: true,
+                  pin: ".v3-rail-stage",
                   scrub: 0.65,
                   anticipatePin: 1,
                   invalidateOnRefresh: true,
@@ -78,7 +78,7 @@ export default function StoryRail({
                 trigger: root.current,
                 start: "top top",
                 end: () => `+=${distance()}`,
-                pin: true,
+                pin: ".v3-rail-stage",
                 scrub: 0.6,
                 anticipatePin: 1,
                 invalidateOnRefresh: true,
@@ -178,75 +178,79 @@ export default function StoryRail({
         className={`v3-rail v3-rail-${variant}`}
         aria-label={title}
       >
-        <div className="v3-rail-heading">
-          <h2>{title}</h2>
-          <div className="v3-rail-controls">
-            <a
-              href={`#${endId}`}
-              className="v3-rail-skip"
-              onClick={(e) => {
-                if (!trigger.current) return;
-                e.preventDefault();
-                window.dispatchEvent(
-                  new CustomEvent("story:scroll", {
-                    detail: { top: trigger.current.end + 1, immediate: true },
-                  }),
-                );
-                document.getElementById(endId)?.focus({ preventScroll: true });
+        <div className="v3-rail-stage">
+          <div className="v3-rail-heading">
+            <h2>{title}</h2>
+            <div className="v3-rail-controls">
+              <a
+                href={`#${endId}`}
+                className="v3-rail-skip"
+                onClick={(e) => {
+                  if (!trigger.current) return;
+                  e.preventDefault();
+                  window.dispatchEvent(
+                    new CustomEvent("story:scroll", {
+                      detail: { top: trigger.current.end + 1, immediate: true },
+                    }),
+                  );
+                  document
+                    .getElementById(endId)
+                    ?.focus({ preventScroll: true });
+                }}
+              >
+                {ar ? "تابع أدناه" : "Continue below"}
+                <ArrowDown size={16} />
+              </a>
+              <button
+                type="button"
+                onClick={() => step(-1)}
+                aria-label={ar ? "السابق" : "Previous scene"}
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => step(1)}
+                aria-label={ar ? "التالي" : "Next scene"}
+              >
+                <ArrowRight size={20} />
+              </button>
+            </div>
+          </div>
+          <div ref={viewport} className="v3-rail-window">
+            <div
+              ref={track}
+              className="v3-rail-track"
+              onFocusCapture={(event) => {
+                if (
+                  !(event.target instanceof HTMLElement) ||
+                  !event.target.matches(":focus-visible")
+                )
+                  return;
+                const panel = Array.from(
+                  event.currentTarget.children,
+                ).findIndex((child) => child.contains(event.target));
+                if (panel >= 0 && trigger.current) {
+                  // Native focus scrolling happens after the focus event. Resolve
+                  // on the next frame so it cannot override the pinned track.
+                  requestAnimationFrame(() => {
+                    if (!root.current || !trigger.current) return;
+                    viewport.current?.scrollTo({
+                      left: 0,
+                      top: 0,
+                      behavior: "instant",
+                    });
+                    moveTo(panel, true);
+                  });
+                }
               }}
             >
-              {ar ? "تابع أدناه" : "Continue below"}
-              <ArrowDown size={16} />
-            </a>
-            <button
-              type="button"
-              onClick={() => step(-1)}
-              aria-label={ar ? "السابق" : "Previous scene"}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => step(1)}
-              aria-label={ar ? "التالي" : "Next scene"}
-            >
-              <ArrowRight size={20} />
-            </button>
+              {children}
+            </div>
           </div>
-        </div>
-        <div ref={viewport} className="v3-rail-window">
-          <div
-            ref={track}
-            className="v3-rail-track"
-            onFocusCapture={(event) => {
-              if (
-                !(event.target instanceof HTMLElement) ||
-                !event.target.matches(":focus-visible")
-              )
-                return;
-              const panel = Array.from(event.currentTarget.children).findIndex(
-                (child) => child.contains(event.target),
-              );
-              if (panel >= 0 && trigger.current) {
-                // Native focus scrolling happens after the focus event. Resolve
-                // on the next frame so it cannot override the pinned track.
-                requestAnimationFrame(() => {
-                  if (!root.current || !trigger.current) return;
-                  viewport.current?.scrollTo({
-                    left: 0,
-                    top: 0,
-                    behavior: "instant",
-                  });
-                  moveTo(panel, true);
-                });
-              }
-            }}
-          >
-            {children}
+          <div className="v3-rail-progress" aria-hidden>
+            <span ref={progress} />
           </div>
-        </div>
-        <div className="v3-rail-progress" aria-hidden>
-          <span ref={progress} />
         </div>
       </section>
       <div id={endId} tabIndex={-1} className="v3-rail-end" />

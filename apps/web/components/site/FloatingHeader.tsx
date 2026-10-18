@@ -55,6 +55,11 @@ export default function FloatingHeader() {
       returnFocus?.focus();
     };
   }, [open]);
+  useEffect(() => {
+    const depart = () => setOpen(false);
+    window.addEventListener("story:depart", depart);
+    return () => window.removeEventListener("story:depart", depart);
+  }, []);
   const close = () => setOpen(false);
   const home = path === "/";
   return (

@@ -1,3 +1,11 @@
+import {
+  CityFieldNotes,
+  CityToRoom,
+  GuestPlanning,
+  GuestQuestions,
+  HomeStayStyles,
+  JournalStories,
+} from "@/components/inside-story/PageDepth";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -17,7 +25,9 @@ export default async function HomePage() {
   return (
     <>
       <HomeOpening />
+      <HomeStayStyles ar={locale === "ar"} />
       <CityJourney />
+      <CityFieldNotes ar={locale === "ar"} />
       <Suspense
         fallback={
           <section className="story-featured" aria-busy="true">
@@ -29,8 +39,12 @@ export default async function HomePage() {
       >
         <FeaturedStays locale={locale} currency={currency} />
       </Suspense>
+      <CityToRoom ar={locale === "ar"} />
       <RoomSequence />
+      <GuestPlanning ar={locale === "ar"} />
       <HomeCare />
+      <JournalStories ar={locale === "ar"} />
+      <GuestQuestions ar={locale === "ar"} />
     </>
   );
 }

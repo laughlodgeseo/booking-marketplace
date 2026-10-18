@@ -1,3 +1,7 @@
+import {
+  GuestQuestions,
+  ConnectedPaths,
+} from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { createTranslator } from "next-intl";
@@ -115,6 +119,8 @@ export default async function PropertiesPage(props: PageProps) {
         <div className="absolute -left-24 bottom-10 h-72 w-72 rounded-full bg-brand/8 blur-3xl" />
         <div className="absolute -right-24 top-32 h-72 w-72 rounded-full bg-dark-1/8 blur-3xl" />
       </div>
+      <GuestQuestions ar={locale === "ar"} />
+      <ConnectedPaths ar={locale === "ar"} />
     </main>
   );
 }

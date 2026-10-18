@@ -1,3 +1,4 @@
+import PageDepth from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -90,6 +91,7 @@ export default async function PricingPage() {
           ))}
         </div>
       </div>
+      <PageDepth page="pricing" ar={ar} />
       <NextRoute
         title={ar ? "اختر تواريخك. ابحث عن مساحتك." : "Your dates. Your place."}
         label={ar ? "ابحث عن إقامة" : "Search for a stay"}

@@ -68,7 +68,7 @@ export function HomeOpening() {
         const timeline = gsap.timeline({
           scrollTrigger: {
             trigger: root.current,
-            pin: !mobile,
+            pin: mobile ? false : ".v2-hero-stage",
             start: "top top",
             end: () => (mobile ? "bottom top" : `+=${innerHeight * 1.25}`),
             scrub: 0.65,
@@ -229,7 +229,7 @@ export function CityJourney() {
                 trigger: root.current,
                 start: "top top",
                 end: () => `+=${travel() * 0.95}`,
-                pin: true,
+                pin: ".v2-city-stage",
                 scrub: 0.45,
                 anticipatePin: 1,
                 invalidateOnRefresh: true,

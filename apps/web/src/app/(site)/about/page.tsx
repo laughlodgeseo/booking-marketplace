@@ -1,3 +1,4 @@
+import PageDepth from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { siteCompliance } from "@/lib/site-compliance";
@@ -75,6 +76,7 @@ export default async function AboutPage() {
           </p>
         </section>
       </div>
+      <PageDepth page="about" ar={ar} />
       <NextRoute
         title={ar ? "تعرف على مساحتك القادمة." : "Find your side of the city."}
         label={ar ? "استكشف الإقامات" : "Explore the stays"}

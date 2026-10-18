@@ -1,3 +1,4 @@
+import PageDepth from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/lib/content/blog-posts";
@@ -35,9 +36,6 @@ export default async function BlogPage() {
               sizes={i === 0 ? "90vw" : "(max-width:700px) 90vw, 45vw"}
             />
             <div>
-              <p>
-                {post.tag} · {post.dateLabel}
-              </p>
               <h2>{post.title}</h2>
               <p>{post.excerpt}</p>
               <span className="story-link">
@@ -47,6 +45,7 @@ export default async function BlogPage() {
           </Link>
         ))}
       </div>
+      <PageDepth page="blog" ar={ar} />
     </>
   );
 }

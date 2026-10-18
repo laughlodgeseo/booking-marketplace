@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "./choreography";
 import type Lenis from "lenis";
 import { usePathname, useRouter } from "next/navigation";
@@ -110,6 +110,8 @@ export default function StoryExperience() {
       )
         return;
       event.preventDefault();
+      event.stopImmediatePropagation();
+      window.dispatchEvent(new Event("story:depart"));
       if (departing.current) return;
       departing.current = true;
       if (departureTimer.current) clearTimeout(departureTimer.current);
@@ -117,7 +119,7 @@ export default function StoryExperience() {
         gsap.to(el.querySelectorAll("i"), { scaleX: 0, duration: 0.4 });
         gsap.set(el, { visibility: "hidden", delay: 0.4 });
         departing.current = false;
-      }, 2400);
+      }, 8000);
       const text = el.querySelector("span");
       if (text)
         text.textContent =
@@ -125,9 +127,19 @@ export default function StoryExperience() {
       gsap.set(el, { visibility: "visible" });
       gsap.set(text, { opacity: 0, y: 18 });
       const panels = el.querySelectorAll("i");
+      gsap.killTweensOf(panels);
+      gsap.killTweensOf(text);
       gsap
         .timeline({
-          onComplete: () => router.push(link.pathname + link.search),
+          onComplete: () => {
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill(true));
+            lenisRef.current?.stop();
+            lenisRef.current?.scrollTo(0, { immediate: true, force: true });
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+            router.push(link.pathname + link.search + link.hash, {
+              scroll: true,
+            });
+          },
         })
         .to(
           panels,
@@ -142,12 +154,21 @@ export default function StoryExperience() {
       gsap.killTweensOf(el.querySelectorAll("i,span"));
     };
   }, [router]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = shutterRef.current;
     if (!el) return;
+    if (!location.hash) {
+      lenisRef.current?.scrollTo(0, { immediate: true, force: true });
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+    const frame = requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+      lenisRef.current?.start();
+    });
     if (departureTimer.current) clearTimeout(departureTimer.current);
     departing.current = false;
     const panels = el.querySelectorAll("i");
+    gsap.killTweensOf(panels);
     gsap
       .timeline()
       .to(el.querySelector("span"), { opacity: 0, duration: 0.15 })
@@ -157,6 +178,7 @@ export default function StoryExperience() {
         0.08,
       )
       .set(el, { visibility: "hidden" });
+    return () => cancelAnimationFrame(frame);
   }, [pathname]);
   useEffect(() => {
     const click = (event: MouseEvent) => {
@@ -220,7 +242,13 @@ export default function StoryExperience() {
       }, 1800);
       pending.current = { overlay, key, timer };
       event.preventDefault();
-      router.push(link.pathname + link.search);
+      event.stopImmediatePropagation();
+      window.dispatchEvent(new Event("story:depart"));
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill(true));
+      lenisRef.current?.stop();
+      lenisRef.current?.scrollTo(0, { immediate: true, force: true });
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      router.push(link.pathname + link.search + link.hash, { scroll: true });
     };
     document.addEventListener("click", click, true);
     return () => document.removeEventListener("click", click, true);
@@ -280,6 +308,7 @@ export default function StoryExperience() {
   }, [pathname]);
   useEffect(
     () => () => {
+      if (departureTimer.current) clearTimeout(departureTimer.current);
       if (pending.current) {
         clearTimeout(pending.current.timer);
         pending.current.overlay.remove();

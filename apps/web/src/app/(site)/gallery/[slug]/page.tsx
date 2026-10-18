@@ -1,3 +1,7 @@
+import {
+  GuestPlanning,
+  ConnectedPaths,
+} from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -75,6 +79,8 @@ export default async function GalleryStudy({ params }: Props) {
           {ar ? "العودة إلى المعرض" : "Back to the archive"}
         </Link>
       </div>
+      <GuestPlanning ar={ar} />
+      <ConnectedPaths ar={ar} />
       <NextRoute
         title={
           ar

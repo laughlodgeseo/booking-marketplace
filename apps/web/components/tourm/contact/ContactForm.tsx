@@ -172,7 +172,6 @@ export default function ContactForm(props: { locale: AppLocale }) {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-secondary">{copy.sectionEyebrow}</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{copy.sectionTitle}</h2>
             <p className="mt-2 text-sm text-secondary/82 sm:text-base">{copy.sectionBody}</p>
 

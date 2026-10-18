@@ -1,3 +1,4 @@
+import PageDepth from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { EditorialHero, NextRoute } from "@/components/inside-story/Editorial";
@@ -97,6 +98,7 @@ export default async function ServicesPage() {
           </section>
         ))}
       </StoryRail>
+      <PageDepth page="services" ar={ar} />
       <NextRoute
         title={ar ? "لنتحدث عن إقامتك." : "Make yourself at home."}
         label={ar ? "تواصل معنا" : "Talk to our team"}

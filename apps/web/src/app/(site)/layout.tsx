@@ -1,14 +1,17 @@
 import type { ReactNode } from "react";
 import FloatingHeader from "@/components/site/FloatingHeader";
 import StoryExperience from "@/components/inside-story/StoryExperience";
+import SiteLoader from "@/components/inside-story/SiteLoader";
 import Footer from "@/components/site/Footer";
 import { RouteArrival } from "@/components/inside-story/Motion";
 import "@/components/inside-story/story.css";
 import "@/components/inside-story/second-direction.css";
 import "@/components/inside-story/motion-refinements.css";
+import "@/components/inside-story/depth.css";
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="site-shell inside-story">
+      <SiteLoader />
       <StoryExperience />
       <div id="top" />
       <FloatingHeader />

@@ -1,8 +1,8 @@
+import PageDepth from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { siteCompliance } from "@/lib/site-compliance";
 import ContactForm from "@/components/tourm/contact/ContactForm";
-import ContactFaq from "@/components/tourm/contact/ContactFaq";
 import { PageHeading } from "@/components/inside-story/Editorial";
 import { SceneImage } from "@/components/inside-story/Motion";
 export const metadata: Metadata = {
@@ -50,8 +50,11 @@ export default async function ContactPage() {
           </p>
         </div>
       </section>
-      <ContactForm locale={locale} />
-      <ContactFaq locale={locale} />
+      <div className="v4-contact-form">
+        <ContactForm locale={locale} />
+      </div>
+
+      <PageDepth page="contact" ar={ar} />
     </>
   );
 }

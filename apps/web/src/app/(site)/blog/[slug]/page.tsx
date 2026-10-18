@@ -1,3 +1,7 @@
+import {
+  JournalStories,
+  ConnectedPaths,
+} from "@/components/inside-story/PageDepth";
 import type { Metadata } from "next";
 import { PageHeading } from "@/components/inside-story/Editorial";
 import { SceneImage } from "@/components/inside-story/Motion";
@@ -46,21 +50,25 @@ export default async function BlogPostPage(props: PageProps) {
   if (!post) notFound();
 
   return (
-    <article className="story-article">
-      <PageHeading
-        context={`${post.tag} · ${post.dateLabel}`}
-        title={post.title}
-        intro={post.excerpt}
-      />
-      <SceneImage src={post.coverUrl} alt={post.title} priority />
-      <div className="story-article-body">
-        {post.body.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <Link className="story-link" href="/blog">
-          {locale === "ar" ? "العودة إلى المجلة" : "Back to the journal"} ↗
-        </Link>
-      </div>
-    </article>
+    <>
+      <article className="story-article">
+        <PageHeading
+          context={`${post.tag} · ${post.dateLabel}`}
+          title={post.title}
+          intro={post.excerpt}
+        />
+        <SceneImage src={post.coverUrl} alt={post.title} priority />
+        <div className="story-article-body">
+          {post.body.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
+          <Link className="story-link" href="/blog">
+            {locale === "ar" ? "العودة إلى المجلة" : "Back to the journal"} ↗
+          </Link>
+        </div>
+      </article>
+      <JournalStories ar={locale === "ar"} exclude={post.slug} />
+      <ConnectedPaths ar={locale === "ar"} />
+    </>
   );
 }
