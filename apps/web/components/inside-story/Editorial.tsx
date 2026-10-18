@@ -1,10 +1,10 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { Reveal, SceneImage } from "./Motion";
+import RouteHero from "./RouteHero";
+import { Reveal } from "./Motion";
 export function PageHeading({
   title,
   intro,
-  context,
 }: {
   title: string;
   intro?: string;
@@ -13,31 +13,28 @@ export function PageHeading({
   return (
     <div className="story-page-head">
       <Reveal>
-        {context && <p className="story-context">{context}</p>}
         <h1>{title}</h1>
       </Reveal>
       {intro && <p>{intro}</p>}
     </div>
   );
 }
-export function EditorialHero({
-  title,
-  intro,
-  context,
-  src,
-  alt,
-}: {
+export function EditorialHero(props: {
   title: string;
   intro: string;
-  context: string;
+  context?: string;
   src: string;
   alt: string;
+  mode?: "services" | "owners" | "about";
 }) {
   return (
-    <section className="story-editorial-hero">
-      <SceneImage src={src} alt={alt} priority />
-      <PageHeading title={title} intro={intro} context={context} />
-    </section>
+    <RouteHero
+      title={props.title}
+      intro={props.intro}
+      src={props.src}
+      alt={props.alt}
+      mode={props.mode || "about"}
+    />
   );
 }
 export function NextRoute({

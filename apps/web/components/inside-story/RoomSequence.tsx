@@ -1,96 +1,135 @@
 "use client";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import { SceneImage } from "./Motion";
+import { gsap, useSceneMotion } from "./choreography";
 const scenes = [
   {
     src: "/images/home/why-b.webp",
-    en: "Room for the everyday.",
-    ar: "مساحة ليومك.",
-    body: "Morning coffee. A long conversation. A little time with nowhere else to be.",
-    arBody: "قهوة الصباح، وحديث طويل، ووقت تستمتع به دون عجلة.",
+    en: "Time to do nothing.",
+    ar: "وقت بلا عجلة.",
+    body: "A morning with no agenda. Coffee, light, and a little space to yourself.",
+    arBody: "صباح بلا مواعيد. قهوة وضوء ومساحة لنفسك.",
   },
   {
     src: "/images/owners/hero-4k/support_luxury_interior-4k.webp",
-    en: "A softer landing.",
-    ar: "وصول أكثر راحة.",
-    body: "A quiet room at the end of a full day. Sometimes, that’s the best part of going away.",
-    arBody: "غرفة هادئة في نهاية يوم حافل. أحياناً، هذا أجمل ما في الرحلة.",
+    en: "Somewhere to switch off.",
+    ar: "مكان تستريح فيه.",
+    body: "Close the door on a full day. Let the city wait until tomorrow.",
+    arBody: "أغلق الباب على يوم حافل. ودع المدينة تنتظر حتى الغد.",
   },
   {
     src: "/images/home/interior-suite.webp",
-    en: "Make the day your own.",
-    ar: "اجعل اليوم لك.",
-    body: "Open the curtains. Take your time. There’s a whole city outside, whenever you’re ready.",
-    arBody: "افتح الستائر، وخذ وقتك. مدينة كاملة تنتظرك حين تكون مستعداً.",
+    en: "A place of your own.",
+    ar: "مساحتك الخاصة.",
+    body: "More than somewhere to sleep. Somewhere to simply be.",
+    arBody: "أكثر من مكان للنوم. مساحة تكون فيها على طبيعتك.",
   },
 ];
-function RoomPanel({
-  scene,
-  index,
-  ar,
-}: {
-  scene: (typeof scenes)[number];
-  index: number;
-  ar: boolean;
-}) {
-  const ref = useRef<HTMLElement>(null);
-  const reduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
-  });
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
-  const y = useTransform(scrollYProgress, [0, 1], [0, -45]);
-  return (
-    <section
-      ref={ref}
-      className="story-room-panel"
-      style={{ top: `${100 + index * 18}px`, zIndex: index + 1 }}
-    >
-      <motion.div
-        className="story-room-surface"
-        style={{ scale: reduced ? 1 : scale, y: reduced ? 0 : y }}
-      >
-        <SceneImage src={scene.src} alt={ar ? scene.ar : scene.en} />
-        <div className="story-room-copy">
-          <h3>{ar ? scene.ar : scene.en}</h3>
-          <p>{ar ? scene.arBody : scene.body}</p>
-          {index === 2 && (
-            <Link href="/gallery" className="story-link">
-              {ar ? "ألق نظرة بالداخل" : "Look inside"}
-              <ArrowUpRight size={20} />
-            </Link>
-          )}
-        </div>
-        <span className="story-room-caption">
-          {ar ? "صور للإلهام" : "An inside perspective · Editorial collection"}
-        </span>
-      </motion.div>
-    </section>
-  );
-}
 export default function RoomSequence() {
   const ar = useLocale() === "ar";
+  const root = useRef<HTMLElement>(null);
+  useSceneMotion(
+    root,
+    useCallback((mm) => {
+      mm.add(
+        "(min-width: 760px) and (prefers-reduced-motion: no-preference)",
+        () => {
+          const panels = gsap.utils.toArray<HTMLElement>(".v2-room-plane");
+          gsap.set(panels.slice(1), {
+            yPercent: 115,
+            rotation: (i: number) => (i % 2 ? 4 : -4),
+          });
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: root.current,
+              start: "top top",
+              end: () => `+=${innerHeight * 2.3}`,
+              pin: true,
+              scrub: 0.7,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
+          });
+          panels.slice(1).forEach((panel, i) => {
+            tl.to(
+              panels[i],
+              {
+                scale: 0.88,
+                rotation: i % 2 ? -3 : 3,
+                opacity: 0.55,
+                duration: 1,
+              },
+              i,
+            )
+              .to(
+                panel,
+                { yPercent: 0, rotation: 0, duration: 1, ease: "power2.inOut" },
+                i,
+              )
+              .fromTo(
+                panel.querySelector("img"),
+                { scale: 1.22 },
+                { scale: 1, duration: 1.25, ease: "none" },
+                i,
+              );
+          });
+        },
+      );
+      mm.add(
+        "(max-width: 759px) and (prefers-reduced-motion: no-preference)",
+        () => {
+          gsap.utils
+            .toArray<HTMLElement>(".v2-room-plane")
+            .forEach((panel, i) => {
+              gsap.fromTo(
+                panel,
+                { rotation: i % 2 ? 3 : -3, y: 60 },
+                {
+                  rotation: 0,
+                  y: 0,
+                  duration: 1.1,
+                  ease: "power3.out",
+                  scrollTrigger: { trigger: panel, start: "top 85%" },
+                },
+              );
+            });
+        },
+      );
+    }, []),
+  );
   return (
-    <div className="story-room-sequence">
-      <div className="story-room-heading">
-        <p className="story-context">
-          {ar ? "وقت لك" : "Space to be yourself"}
-        </p>
-        <h2>{ar ? "ليس مجرد مكان للنوم." : "More than somewhere to sleep."}</h2>
+    <section ref={root} className="v2-rooms">
+      <div className="v2-rooms-stage">
+        <h2>{ar ? "مساحة لتعيش بطريقتك." : "Not just a place. A feeling."}</h2>
+        <div className="v2-room-deck">
+          {scenes.map((scene, i) => (
+            <article className="v2-room-plane" key={scene.src}>
+              <div className="v2-room-photo">
+                <Image
+                  src={scene.src}
+                  alt={ar ? scene.ar : scene.en}
+                  fill
+                  sizes="(max-width:760px) 90vw, 75vw"
+                  className="object-cover"
+                />
+              </div>
+              <div className="v2-room-description">
+                <h3>{ar ? scene.ar : scene.en}</h3>
+                <p>{ar ? scene.arBody : scene.body}</p>
+                {i === 2 && (
+                  <Link href="/gallery">
+                    {ar ? "ألق نظرة بالداخل" : "Look inside"}
+                    <ArrowUpRight size={20} />
+                  </Link>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
-      {scenes.map((scene, index) => (
-        <RoomPanel key={scene.src} scene={scene} index={index} ar={ar} />
-      ))}
-    </div>
+    </section>
   );
 }

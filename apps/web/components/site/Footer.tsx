@@ -3,17 +3,64 @@ import Link from "next/link";
 import { ArrowUpRight, ArrowUp } from "lucide-react";
 import { useLocale } from "next-intl";
 import { siteCompliance } from "@/lib/site-compliance";
+import Image from "next/image";
+import { useRef, useCallback } from "react";
+import { gsap, useSceneMotion } from "@/components/inside-story/choreography";
 import { Reveal } from "@/components/inside-story/Motion";
 export default function Footer() {
   const ar = useLocale() === "ar";
+  const root = useRef<HTMLElement>(null);
+  useSceneMotion(
+    root,
+    useCallback((mm) => {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          ".v2-finale-image",
+          { clipPath: "inset(0% 0% 0% 0%)" },
+          {
+            clipPath: "inset(20% 36% 20% 36%)",
+            yPercent: 15,
+            ease: "power2.inOut",
+            scrollTrigger: {
+              trigger: root.current,
+              start: "top bottom",
+              end: "top 10%",
+              scrub: 0.7,
+            },
+          },
+        );
+        gsap.fromTo(
+          ".story-finale",
+          { yPercent: 35, scale: 0.85 },
+          {
+            yPercent: 0,
+            scale: 1,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: ".story-finale",
+              start: "top 95%",
+              end: "top 45%",
+              scrub: 0.6,
+            },
+          },
+        );
+      });
+    }, []),
+  );
   return (
-    <footer className="story-footer" id="site-footer">
+    <footer ref={root} className="story-footer" id="site-footer">
+      <div className="v2-finale-image">
+        <Image
+          src="/images/home/interior-suite.webp"
+          alt={
+            ar ? "العودة إلى الداخل" : "Back to the room where the story began"
+          }
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
       <div className="story-footer-intro">
-        <p>
-          {ar
-            ? "مكانك في المدينة يبدأ هنا."
-            : "Your own little corner of Dubai."}
-        </p>
         <Link href="/properties" className="story-link">
           {ar ? "استكشف الإقامات" : "Find your stay"}
           <ArrowUpRight size={20} />

@@ -14,6 +14,7 @@ export default async function OwnersPage() {
   return (
     <>
       <EditorialHero
+        mode="owners"
         title={
           ar
             ? "من عقار تملكه، إلى مكان يحبونه."
@@ -28,7 +29,7 @@ export default async function OwnersPage() {
         src="/images/owners/hero-4k/main_business_bay-4k.webp"
         alt={ar ? "أفق دبي عند الغروب" : "Dubai’s residential skyline at dusk"}
       />
-      <div className="story-essay">
+      <div className="story-essay v2-owners-essay">
         <Reveal className="story-essay-intro">
           <h2>
             {ar ? "نعتني بالتجربة كاملة." : "One home. Every detail connected."}
@@ -51,9 +52,6 @@ export default async function OwnersPage() {
             alt={ar ? "مساحة داخلية للعقار" : "A home, thoughtfully presented"}
           />
           <Reveal>
-            <p className="story-context">
-              {ar ? "العقار أولاً" : "The home comes first"}
-            </p>
             <h2>
               {ar
                 ? "نقدّم مساحتك بأفضل صورة."
@@ -76,9 +74,6 @@ export default async function OwnersPage() {
             }
           />
           <Reveal>
-            <p className="story-context">
-              {ar ? "رؤية واضحة" : "A clearer picture"}
-            </p>
             <h2>
               {ar
                 ? "ابقَ قريباً من عقارك."

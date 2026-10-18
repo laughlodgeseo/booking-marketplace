@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 
 type DateRangePopoverProps = {
   open: boolean;
+  surfaceClassName?: string;
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   variant?: "single" | "double";
@@ -19,7 +27,8 @@ type PopoverRect = {
 };
 
 function computeDesktopRect(months: 1 | 2): PopoverRect {
-  if (typeof window === "undefined") return { top: 88, left: 12, width: months === 2 ? 812 : 438 };
+  if (typeof window === "undefined")
+    return { top: 88, left: 12, width: months === 2 ? 812 : 438 };
 
   const preferred = months === 2 ? 812 : 438;
   const min = months === 2 ? 748 : 382;
@@ -30,7 +39,10 @@ function computeDesktopRect(months: 1 | 2): PopoverRect {
   if (width < min) width = viewportMax;
 
   const left = Math.max(margin, Math.round((window.innerWidth - width) / 2));
-  const top = Math.max(margin, Math.round((window.innerHeight - estimatedHeight) / 2));
+  const top = Math.max(
+    margin,
+    Math.round((window.innerHeight - estimatedHeight) / 2),
+  );
 
   return { top, left, width };
 }
@@ -41,8 +53,10 @@ export default function DateRangePopover(props: DateRangePopoverProps) {
   const [desktopRect, setDesktopRect] = useState<PopoverRect | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const requestedMonths = monthsCount ?? (variant === "double" ? 2 : 1);
-  const resolvedViewportWidth = viewportWidth ?? (typeof window !== "undefined" ? window.innerWidth : null);
-  const isMobile = resolvedViewportWidth !== null ? resolvedViewportWidth < 768 : false;
+  const resolvedViewportWidth =
+    viewportWidth ?? (typeof window !== "undefined" ? window.innerWidth : null);
+  const isMobile =
+    resolvedViewportWidth !== null ? resolvedViewportWidth < 768 : false;
   const isTwoMonths = requestedMonths === 2 && !isMobile;
   const fallbackRect =
     typeof window === "undefined"
@@ -118,6 +132,7 @@ export default function DateRangePopover(props: DateRangePopoverProps) {
       <div
         ref={popoverRef}
         className={[
+          props.surfaceClassName ?? "",
           "fixed border border-indigo-100/90 bg-white shadow-[0_28px_72px_rgba(15,23,42,0.24)]",
           isMobile
             ? "inset-x-3 bottom-3 top-auto max-h-[calc(100dvh-24px)] overflow-y-auto rounded-[1.75rem] p-3 pb-4"
@@ -127,7 +142,9 @@ export default function DateRangePopover(props: DateRangePopoverProps) {
         ].join(" ")}
         style={desktopStyle}
       >
-        {isMobile ? <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-200" /> : null}
+        {isMobile ? (
+          <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-200" />
+        ) : null}
         {children}
       </div>
     </div>,

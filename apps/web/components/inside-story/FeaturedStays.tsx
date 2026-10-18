@@ -105,9 +105,6 @@ export default async function FeaturedStays({
             </span>
           </div>
           <div className="story-inventory-message">
-            <p className="story-context">
-              {ar ? "لنجد إقامتك" : "Let’s find your place"}
-            </p>
             <h3>
               {ar
                 ? "إقامتك القادمة تستحق البحث."

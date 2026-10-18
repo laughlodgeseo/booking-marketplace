@@ -185,9 +185,6 @@ export default async function PrivacyPage() {
       <section className="site-hero-shell relative overflow-hidden text-white">
         <div className="site-hero-grid absolute inset-0 opacity-25" />
         <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 sm:px-6 sm:pt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/74">
-            {copy.legalEyebrow}
-          </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             {copy.title}
           </h1>

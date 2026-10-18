@@ -13,6 +13,7 @@ export default async function AboutPage() {
   return (
     <>
       <EditorialHero
+        mode="about"
         title={
           ar
             ? "مدينة كبيرة. إحساس بالانتماء."
@@ -31,7 +32,7 @@ export default async function AboutPage() {
             : "The Dubai skyline in the evening light"
         }
       />
-      <div className="story-essay">
+      <div className="story-essay v2-about-essay">
         <Reveal className="story-essay-intro">
           <h2>
             {ar

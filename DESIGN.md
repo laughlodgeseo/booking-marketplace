@@ -44,3 +44,11 @@ and narrow viewports. Never use Playwright. Validate offline inventory, menu
 keyboard handling, locale switching, auth form transitions and search URLs.
 No self-assigned award scores. Railway outage means transaction success cannot
 be established from a frontend build.
+
+## Revision: architectural continuity
+
+See `DESIGN_MOTION_REVISION.md`. `second-direction.css` owns the revised
+public compositions; `choreography.ts` supplies scoped GSAP lifecycle. No marketing
+eyebrows. Each route needs its own composition, not a background-photo hero template.
+Lenis and GSAP share one clock; horizontal travel is measured without React
+scroll-state or hydration-driven height switching. Backend work is out of scope.

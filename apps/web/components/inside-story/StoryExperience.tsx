@@ -1,9 +1,15 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { gsap, ScrollTrigger } from "./choreography";
+import type Lenis from "lenis";
 import { usePathname, useRouter } from "next/navigation";
 
 export default function StoryExperience() {
   const pathname = usePathname();
+  const lenisRef = useRef<Lenis | null>(null);
+  const shutterRef = useRef<HTMLDivElement>(null);
+  const departing = useRef(false);
+  const departureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const pending = useRef<{
     overlay: HTMLDivElement;
@@ -31,8 +37,8 @@ export default function StoryExperience() {
       const { default: Lenis } = await import("lenis");
       if (cancelled || !media.matches) return;
       const lenis = new Lenis({
-        autoRaf: true,
-        duration: 1.05,
+        autoRaf: false,
+        duration: 0.9,
         smoothWheel: true,
         syncTouch: false,
         anchors: true,
@@ -42,7 +48,15 @@ export default function StoryExperience() {
               node.closest("dialog,[data-lenis-prevent],.story-district-rail"),
           ),
       });
-      dispose = () => lenis.destroy();
+      lenisRef.current = lenis;
+      const tick = (time: number) => lenis.raf(time * 1000);
+      lenis.on("scroll", ScrollTrigger.update);
+      gsap.ticker.add(tick);
+      dispose = () => {
+        gsap.ticker.remove(tick);
+        lenis.destroy();
+        lenisRef.current = null;
+      };
     }
     void setup();
     media.addEventListener("change", setup);
@@ -51,6 +65,98 @@ export default function StoryExperience() {
       media.removeEventListener("change", setup);
       dispose?.();
     };
+  }, [pathname]);
+  useEffect(() => {
+    const scroll = (event: Event) => {
+      const { top, immediate } = (
+        event as CustomEvent<{ top: number; immediate?: boolean }>
+      ).detail;
+      if (lenisRef.current)
+        lenisRef.current.scrollTo(top, { immediate, duration: 0.95 });
+      else window.scrollTo({ top, behavior: immediate ? "instant" : "smooth" });
+    };
+    window.addEventListener("story:scroll", scroll);
+    return () => window.removeEventListener("story:scroll", scroll);
+  }, []);
+  useEffect(() => {
+    const el = shutterRef.current;
+    if (!el) return;
+    const click = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+        return;
+      const link = (event.target as Element).closest<HTMLAnchorElement>(
+        "a[href]",
+      );
+      if (
+        !link ||
+        link.target ||
+        link.download ||
+        link.origin !== location.origin ||
+        link.pathname === location.pathname ||
+        link.dataset.stayKey ||
+        link.pathname.startsWith("/account") ||
+        link.pathname.startsWith("/admin") ||
+        link.pathname.startsWith("/vendor") ||
+        link.pathname.startsWith("/checkout") ||
+        link.pathname.startsWith("/payment")
+      )
+        return;
+      event.preventDefault();
+      if (departing.current) return;
+      departing.current = true;
+      if (departureTimer.current) clearTimeout(departureTimer.current);
+      departureTimer.current = setTimeout(() => {
+        gsap.to(el.querySelectorAll("i"), { scaleX: 0, duration: 0.4 });
+        gsap.set(el, { visibility: "hidden", delay: 0.4 });
+        departing.current = false;
+      }, 2400);
+      const text = el.querySelector("span");
+      if (text)
+        text.textContent =
+          link.textContent?.trim().slice(0, 48) || "Laugh & Lodge";
+      gsap.set(el, { visibility: "visible" });
+      gsap.set(text, { opacity: 0, y: 18 });
+      const panels = el.querySelectorAll("i");
+      gsap
+        .timeline({
+          onComplete: () => router.push(link.pathname + link.search),
+        })
+        .to(
+          panels,
+          { scaleX: 1, stagger: 0.035, duration: 0.42, ease: "power3.inOut" },
+          0,
+        )
+        .to(text, { opacity: 1, y: 0, duration: 0.25 }, 0.2);
+    };
+    document.addEventListener("click", click, true);
+    return () => {
+      document.removeEventListener("click", click, true);
+      gsap.killTweensOf(el.querySelectorAll("i,span"));
+    };
+  }, [router]);
+  useEffect(() => {
+    const el = shutterRef.current;
+    if (!el) return;
+    if (departureTimer.current) clearTimeout(departureTimer.current);
+    departing.current = false;
+    const panels = el.querySelectorAll("i");
+    gsap
+      .timeline()
+      .to(el.querySelector("span"), { opacity: 0, duration: 0.15 })
+      .to(
+        panels,
+        { scaleX: 0, duration: 0.55, stagger: 0.04, ease: "power3.inOut" },
+        0.08,
+      )
+      .set(el, { visibility: "hidden" });
   }, [pathname]);
   useEffect(() => {
     const click = (event: MouseEvent) => {
@@ -182,5 +288,11 @@ export default function StoryExperience() {
     },
     [],
   );
-  return null;
+  return (
+    <div ref={shutterRef} className="v2-route-shutter" aria-hidden="true">
+      <i />
+      <i />
+      <span />
+    </div>
+  );
 }

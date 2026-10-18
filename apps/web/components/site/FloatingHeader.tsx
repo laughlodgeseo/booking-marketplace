@@ -19,6 +19,15 @@ const links = [
 ];
 export default function FloatingHeader() {
   const [open, setOpen] = useState(false);
+  const [preview, setPreview] = useState(0);
+  const previewPhotos = [
+    "/images/home/why-b.webp",
+    "/images/home/interior-suite.webp",
+    "/images/owners/hero-4k/main_business_bay-4k.webp",
+    "/images/owners/hero-4k/support_luxury_interior-4k.webp",
+    "/images/home/dubai-skyline.webp",
+    "/areas/dubai-creek-harbour.webp",
+  ];
   const [scrolled, setScrolled] = useState(false);
   const path = usePathname();
   const router = useRouter();
@@ -130,15 +139,28 @@ export default function FloatingHeader() {
             </div>
             <div className="story-menu-body">
               <div className="story-menu-photo">
-                <Image
-                  src="/images/home/interior-suite.webp"
-                  alt={
-                    ar ? "مساحة معيشة مضيئة" : "A sunlit room, open to the day"
-                  }
-                  fill
-                  sizes="40vw"
-                  className="object-cover"
-                />
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={preview}
+                    className="v2-menu-image"
+                    initial={
+                      reduced
+                        ? false
+                        : { clipPath: "inset(0% 0% 100% 0%)", scale: 1.1 }
+                    }
+                    animate={{ clipPath: "inset(0% 0% 0% 0%)", scale: 1 }}
+                    exit={{ clipPath: "inset(100% 0% 0% 0%)" }}
+                    transition={{ duration: 0.65, ease: [0.76, 0, 0.24, 1] }}
+                  >
+                    <Image
+                      src={previewPhotos[preview]}
+                      alt=""
+                      fill
+                      sizes="40vw"
+                      className="object-cover"
+                    />
+                  </motion.div>
+                </AnimatePresence>
                 <p>
                   {ar
                     ? "مدينة واحدة. احتمالات كثيرة."
@@ -159,6 +181,8 @@ export default function FloatingHeader() {
                     <Link
                       href={href}
                       onClick={close}
+                      onMouseEnter={() => setPreview(i)}
+                      onFocus={() => setPreview(i)}
                       aria-current={path === href ? "page" : undefined}
                     >
                       {ar ? arabic : en}

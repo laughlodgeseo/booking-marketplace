@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useRef, useCallback, type ReactNode } from "react";
 import {
   motion,
   useReducedMotion,
@@ -8,6 +8,7 @@ import {
   useTransform,
 } from "framer-motion";
 import Image from "next/image";
+import { gsap, useSceneMotion } from "./choreography";
 import { usePathname } from "next/navigation";
 
 export function Reveal({
@@ -17,17 +18,33 @@ export function Reveal({
   children: ReactNode;
   className?: string;
 }) {
-  const reduced = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  useSceneMotion(
+    ref,
+    useCallback((mm) => {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          ref.current,
+          { clipPath: "inset(0% 0% 100% 0%)", y: 65 },
+          {
+            clipPath: "inset(0% 0% 0% 0%)",
+            y: 0,
+            duration: 1.15,
+            ease: "power4.out",
+            scrollTrigger: {
+              trigger: ref.current,
+              start: "top 94%",
+              once: true,
+            },
+          },
+        );
+      });
+    }, []),
+  );
   return (
-    <motion.div
-      className={className}
-      initial={false}
-      whileInView={reduced ? {} : { y: [24, 0] }}
-      viewport={{ once: true, amount: 0.12 }}
-      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div ref={ref} className={className}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -75,15 +92,9 @@ export function SceneImage({
 
 export function RouteArrival({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const reduced = useReducedMotion();
   return (
-    <motion.div
-      key={pathname}
-      initial={reduced ? false : { opacity: 0.65, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div key={pathname} className="story-route">
       {children}
-    </motion.div>
+    </div>
   );
 }

@@ -1,24 +1,11 @@
 "use client";
-import {
-  Suspense,
-  useRef,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { Suspense, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale } from "next-intl";
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-  useMotionValueEvent,
-} from "framer-motion";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import UnifiedSearchBar from "@/components/search/UnifiedSearchBar";
-import { Reveal, SceneImage } from "./Motion";
+import { gsap, ScrollTrigger, useSceneMotion } from "./choreography";
 
 const districts = [
   {
@@ -36,8 +23,8 @@ const districts = [
     ar: "وسط مدينة دبي",
     line: "At the heart of it.",
     arLine: "في قلب المدينة.",
-    body: "Landmark views and the energy of a city always in motion.",
-    arBody: "إطلالات على المعالم وحيوية مدينة لا تتوقف.",
+    body: "The landmarks you came to see. A neighborhood to come home to.",
+    arBody: "معالم جئت لرؤيتها وحيّ تعود إليه كأنك في بيتك.",
   },
   {
     slug: "palm-jumeirah",
@@ -45,275 +32,347 @@ const districts = [
     ar: "نخلة جميرا",
     line: "A different pace.",
     arLine: "إيقاع مختلف.",
-    body: "Sea air, open horizons, and a little more room to unwind.",
-    arBody: "هواء البحر وآفاق مفتوحة ومساحة للاسترخاء.",
+    body: "Sea air, open horizons, and room to take your time.",
+    arBody: "هواء البحر وآفاق مفتوحة ومساحة لتأخذ وقتك.",
   },
   {
     slug: "jbr",
-    name: "Jumeirah Beach Residence",
+    name: "JBR",
     ar: "جميرا بيتش ريزيدنس",
     line: "Life by the water.",
     arLine: "الحياة بجانب البحر.",
-    body: "From your morning coffee to the sand beneath your feet.",
-    arBody: "من قهوتك الصباحية إلى الرمال تحت قدميك.",
-  },
-  {
-    slug: "dubai-creek-harbour",
-    name: "Dubai Creek Harbour",
-    ar: "خور دبي",
-    line: "Space to slow down.",
-    arLine: "مساحة للهدوء.",
-    body: "Waterfront paths and a new perspective on the skyline.",
-    arBody: "مسارات على الواجهة البحرية ومنظور جديد لأفق المدينة.",
+    body: "Morning coffee, an open promenade, and the beach around the corner.",
+    arBody: "قهوة الصباح وممشى مفتوح والشاطئ قريب منك.",
   },
 ];
-
 export function HomeOpening() {
   const ar = useLocale() === "ar";
-  const ref = useRef<HTMLElement>(null);
-  const reduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
-  });
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "19%"]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
-  const textY = useTransform(scrollYProgress, [0, 0.9], [0, 110]);
+  const root = useRef<HTMLElement>(null);
+  useSceneMotion(
+    root,
+    useCallback((mm) => {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const mobile = innerWidth < 760;
+        gsap.from(".v2-hero-cityword", {
+          clipPath: "inset(100% 0% 0% 0%)",
+          duration: 1.25,
+          ease: "power4.out",
+          delay: 0.1,
+        });
+        gsap.from(".v2-hero-room", {
+          opacity: 0,
+          duration: 1.25,
+          ease: "power3.out",
+          delay: 0.25,
+        });
+        const timeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: root.current,
+            pin: !mobile,
+            start: "top top",
+            end: () => (mobile ? "bottom top" : `+=${innerHeight * 1.25}`),
+            scrub: 0.65,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+        timeline
+          .to(
+            ".v2-hero-city",
+            { scale: 1.14, yPercent: -12, ease: "none", duration: 1 },
+            0,
+          )
+          .to(
+            ".v2-hero-letter",
+            {
+              yPercent: -145,
+              xPercent: (i: number) => (i - 2) * 15,
+              stagger: 0.018,
+              ease: "power1.in",
+              duration: 0.48,
+            },
+            0,
+          )
+          .to(
+            ".v2-hero-tagline",
+            { yPercent: 120, opacity: 0, duration: 0.25 },
+            0.08,
+          )
+          .to(
+            ".v2-hero-room",
+            {
+              clipPath: "inset(0% 0% 0% 0%)",
+              scale: 1,
+              ease: "power2.inOut",
+              duration: 0.85,
+            },
+            0.05,
+          )
+          .fromTo(
+            ".v2-hero-room img",
+            { scale: 1.16 },
+            { scale: 1, ease: "none", duration: 1 },
+            0,
+          )
+          .fromTo(
+            ".v2-hero-arrival span",
+            { yPercent: 115 },
+            { yPercent: 0, stagger: 0.08, duration: 0.35, ease: "power3.out" },
+            0.6,
+          )
+          .to(".v2-hero-arrival", { yPercent: -15, duration: 0.2 }, 0.95);
+      });
+    }, []),
+  );
   return (
     <>
-      <section ref={ref} className="story-opening">
-        <motion.div
-          className="story-opening-media"
-          style={{ y: reduced ? 0 : imageY, scale: reduced ? 1 : scale }}
-        >
-          <Image
-            src="/images/home/interior-suite.webp"
-            alt={
-              ar
-                ? "غرفة معيشة مضيئة ونوافذ تفتح على المساحات الخضراء"
-                : "Sunlight across a quiet living room, framed by floor-to-ceiling windows"
-            }
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        </motion.div>
-        <div className="story-opening-shade" />
-        <motion.div
-          className="story-opening-title"
-          style={{ y: reduced ? 0 : textY }}
-        >
-          <h1>
-            {ar ? (
-              <>
-                دبي،
-                <br />
-                من الداخل.
-              </>
-            ) : (
-              <>
-                Dubai,
-                <br />
-                from the inside.
-              </>
-            )}
+      <section ref={root} className="v2-hero">
+        <div className="v2-hero-stage">
+          <div className="v2-hero-city">
+            <Image
+              src="/images/home/dubai-skyline.webp"
+              alt={ar ? "أفق دبي" : "Dubai’s skyline in the evening light"}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
+          <h1
+            className="v2-hero-title"
+            aria-label={ar ? "دبي، من الداخل." : "Dubai, from the inside."}
+          >
+            <span className="v2-hero-cityword" aria-hidden>
+              {(ar ? ["د", "ب", "ي"] : ["D", "U", "B", "A", "I"]).map(
+                (letter, i) => (
+                  <span className="v2-hero-letter" key={i}>
+                    {letter}
+                  </span>
+                ),
+              )}
+            </span>
+            <span className="v2-hero-tagline" aria-hidden>
+              {ar ? "من الداخل." : "from the inside."}
+            </span>
           </h1>
-          <div className="story-opening-caption">
-            <p>
-              {ar
-                ? "أماكن تشعرك بالانتماء. ومدينة تستحق الاكتشاف."
-                : "A city to discover.\nA place to make your own."}
-            </p>
+          <div className="v2-hero-room">
+            <Image
+              src="/images/home/interior-suite.webp"
+              alt={
+                ar
+                  ? "غرفة تفتح على الضوء"
+                  : "An interior opening onto the light"
+              }
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
+          <div className="v2-hero-arrival" aria-hidden>
+            <div>
+              <span>{ar ? "افتح الباب." : "Open the door."}</span>
+            </div>
+            <div>
+              <span>{ar ? "اجعلها إقامتك." : "Make it yours."}</span>
+            </div>
+          </div>
+          <div className="v2-hero-actions">
+            <a href="#find-your-stay">
+              {ar ? "ابحث عن إقامتك" : "Find your stay"}
+              <ArrowDown size={18} />
+            </a>
             <Link
               href="/properties"
-              className="story-round-link"
               aria-label={ar ? "استكشف الإقامات" : "Explore stays"}
             >
-              <ArrowUpRight size={32} />
+              <ArrowUpRight size={25} />
             </Link>
           </div>
-        </motion.div>
-        <div className="story-opening-base">
-          <span>
-            {ar
-              ? "إقامات في دبي، برؤية مختلفة."
-              : "Dubai stays, with a different point of view."}
-          </span>
-          <a href="#the-city">
-            {ar ? "اكتشف المزيد" : "Step inside"}
-            <ArrowDown size={16} />
-          </a>
         </div>
       </section>
-      <div className="story-search-dock">
+      <section className="v2-search-section" id="find-your-stay">
+        <h2>{ar ? "أين تأخذك المدينة؟" : "Where will the city take you?"}</h2>
         <Suspense
           fallback={
             <div className="story-search-loading">
-              {ar ? "ابحث عن إقامتك" : "Find your place in the city"}
+              {ar ? "ابحث عن إقامتك" : "Find your stay"}
             </div>
           }
         >
           <UnifiedSearchBar variant="home" />
         </Suspense>
-      </div>
+      </section>
     </>
   );
 }
-const CITY_MEDIA =
-  "(min-width: 1100px) and (min-height: 800px) and (prefers-reduced-motion: no-preference)";
-function subscribeCity(callback: () => void) {
-  const media = matchMedia(CITY_MEDIA);
-  media.addEventListener("change", callback);
-  return () => media.removeEventListener("change", callback);
-}
 export function CityJourney() {
   const ar = useLocale() === "ar";
-  const ref = useRef<HTMLDivElement>(null);
-  const scene = useRef<HTMLElement>(null);
-  const [distance, setDistance] = useState(0);
-  const enabled =
-    useSyncExternalStore(
-      subscribeCity,
-      () => matchMedia(CITY_MEDIA).matches,
-      () => false,
-    ) && !ar;
-  const { scrollYProgress } = useScroll({
-    target: scene,
-    offset: ["start start", "end end"],
-  });
-  const x = useTransform(scrollYProgress, [0, 1], [0, -distance]);
-  const active = useRef(0);
-  useMotionValueEvent(scrollYProgress, "change", (value) => {
-    active.current = Math.round(value * (districts.length - 1));
-  });
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() =>
-      setDistance(Math.max(0, el.scrollWidth - window.innerWidth)),
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [enabled]);
-  function moveTo(index: number) {
-    const el = scene.current;
-    if (!el) return;
-    const n = Math.max(0, Math.min(districts.length - 1, index));
-    const top = el.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({
-      top:
-        top +
-        (el.offsetHeight - window.innerHeight) * (n / (districts.length - 1)),
-      behavior: "smooth",
-    });
-  }
-  function travel(direction: number) {
-    if (enabled) {
-      moveTo(active.current + direction);
-      return;
-    }
-    const el = ref.current;
-    if (el)
-      el.scrollBy({
-        left: direction * (ar ? -1 : 1) * el.clientWidth * 0.72,
+  const root = useRef<HTMLElement>(null);
+  const rail = useRef<HTMLDivElement>(null);
+  const trigger = useRef<ScrollTrigger | null>(null);
+  const progress = useRef<HTMLSpanElement>(null);
+  useSceneMotion(
+    root,
+    useCallback(
+      (mm) => {
+        mm.add(
+          "(min-width: 1000px) and (prefers-reduced-motion: no-preference)",
+          () => {
+            const track = rail.current;
+            if (!track) return;
+            const travel = () => Math.max(0, track.scrollWidth - innerWidth);
+            const tween = gsap.to(track, {
+              x: () => (ar ? travel() : -travel()),
+              ease: "none",
+              scrollTrigger: {
+                trigger: root.current,
+                start: "top top",
+                end: () => `+=${travel() * 0.95}`,
+                pin: true,
+                scrub: 0.45,
+                anticipatePin: 1,
+                invalidateOnRefresh: true,
+                onUpdate: (self) => {
+                  if (progress.current)
+                    progress.current.style.transform = `scaleX(${0.12 + self.progress * 0.88})`;
+                },
+              },
+            });
+            trigger.current = tween.scrollTrigger || null;
+            gsap.utils
+              .toArray<HTMLElement>(".v2-district-photo img")
+              .forEach((image, i) =>
+                gsap.fromTo(
+                  image,
+                  { xPercent: i % 2 ? 8 : -6, scale: 1.12 },
+                  {
+                    xPercent: i % 2 ? -8 : 6,
+                    ease: "none",
+                    scrollTrigger: {
+                      trigger: root.current,
+                      start: "top top",
+                      end: () => `+=${travel() * 0.95}`,
+                      scrub: 0.7,
+                    },
+                  },
+                ),
+              );
+            return () => {
+              trigger.current = null;
+            };
+          },
+        );
+      },
+      [ar],
+    ),
+  );
+  function go(direction: number) {
+    const t = trigger.current;
+    if (t) {
+      const next = Math.max(
+        0,
+        Math.min(1, t.progress + direction / (districts.length - 1)),
+      );
+      window.dispatchEvent(
+        new CustomEvent("story:scroll", {
+          detail: { top: t.start + (t.end - t.start) * next },
+        }),
+      );
+    } else
+      rail.current?.scrollBy({
+        left: direction * (ar ? -1 : 1) * innerWidth * 0.85,
         behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
           ? "instant"
           : "smooth",
       });
   }
+  function focus(index: number) {
+    const t = trigger.current;
+    if (t)
+      window.dispatchEvent(
+        new CustomEvent("story:scroll", {
+          detail: {
+            top: t.start + (t.end - t.start) * (index / (districts.length - 1)),
+            immediate: true,
+          },
+        }),
+      );
+  }
   return (
-    <section
-      ref={scene}
-      className={`story-city ${enabled ? "story-city-pinned" : ""}`}
-      id="the-city"
-    >
-      <div className="story-city-viewport">
-        <Reveal className="story-city-heading">
-          <p className="story-context">
-            {ar ? "اكتشف دبي" : "A city of possibilities"}
-          </p>
+    <section ref={root} className="v2-city" id="the-city">
+      <div className="v2-city-stage">
+        <div className="v2-city-top">
           <h2>
             {ar ? (
               <>
-                لكل حيّ
+                اختر إيقاعك.
                 <br />
-                إيقاعه الخاص.
+                اختر حيّك.
               </>
             ) : (
               <>
-                Every corner.
-                <br />A different rhythm.
+                Find your rhythm.
+                <br />
+                Find your neighborhood.
               </>
             )}
           </h2>
-          <div className="story-city-note">
-            <p>
-              {ar
-                ? "ابدأ بالمكان الذي يناسبك. ثم ابحث عن إقامتك فيه."
-                : "Start with a feeling.\nFind the neighborhood that fits."}
-            </p>
-            <div className="story-arrows">
-              <button
-                onClick={() => travel(-1)}
-                aria-label={ar ? "الحي السابق" : "Previous neighborhood"}
-              >
-                <ArrowLeft />
-              </button>
-              <button
-                onClick={() => travel(1)}
-                aria-label={ar ? "الحي التالي" : "Next neighborhood"}
-              >
-                <ArrowRight />
-              </button>
-            </div>
-          </div>
-        </Reveal>
-        <motion.div
-          ref={ref}
-          style={{ x: enabled ? x : 0 }}
-          className="story-district-rail"
-          aria-label={ar ? "أحياء دبي" : "Dubai neighborhoods"}
-          tabIndex={0}
-        >
-          {districts.map((area, i) => (
-            <Link
-              href={`/properties?q=${encodeURIComponent(area.name === "Jumeirah Beach Residence" ? "JBR" : area.name)}`}
-              className={`story-district story-district-${i}`}
-              key={area.slug}
-              onFocus={() => {
-                if (enabled) moveTo(i);
-              }}
+          <div className="v2-city-controls">
+            <button
+              onClick={() => go(-1)}
+              aria-label={ar ? "الحي السابق" : "Previous neighborhood"}
             >
-              <div className="story-district-media">
-                <Image
-                  src={`/areas/${area.slug}.webp`}
-                  alt={ar ? area.ar : area.name}
-                  fill
-                  sizes="(max-width: 700px) 84vw, 48vw"
-                  className="object-cover"
-                />
-                <span className="story-district-enter">
-                  <ArrowUpRight size={25} />
-                </span>
-              </div>
-              <div className="story-district-title">
-                <span>{ar ? area.ar : area.name}</span>
-                <span aria-hidden>{String(i + 1).padStart(2, "0")} / 05</span>
-              </div>
-              <h3>{ar ? area.arLine : area.line}</h3>
-              <p>{ar ? area.arBody : area.body}</p>
-            </Link>
-          ))}
-        </motion.div>
-        <div className="story-city-end">
-          <span>
-            {ar
-              ? "اختر وجهتك، وابدأ من هناك."
-              : "Different neighborhoods. Your kind of Dubai."}
-          </span>
-          <Link href="/properties" className="story-link">
-            {ar ? "كل الإقامات" : "All stays"}
+              <ArrowLeft />
+            </button>
+            <button
+              onClick={() => go(1)}
+              aria-label={ar ? "الحي التالي" : "Next neighborhood"}
+            >
+              <ArrowRight />
+            </button>
+          </div>
+        </div>
+        <div className="v2-city-window">
+          <div
+            ref={rail}
+            className="v2-city-track"
+            aria-label={ar ? "أحياء دبي" : "Dubai neighborhoods"}
+          >
+            {districts.map((area, i) => (
+              <Link
+                className={`v2-district v2-district-${i}`}
+                key={area.slug}
+                onFocus={() => focus(i)}
+                href={`/properties?q=${encodeURIComponent(area.name)}`}
+              >
+                <div className="v2-district-photo">
+                  <Image
+                    src={`/areas/${area.slug}.webp`}
+                    alt={ar ? area.ar : area.name}
+                    fill
+                    sizes="(max-width:1000px) 88vw, 52vw"
+                    className="object-cover"
+                  />
+                  <span className="v2-district-name">
+                    {ar ? area.ar : area.name}
+                  </span>
+                  <ArrowUpRight />
+                </div>
+                <div className="v2-district-copy">
+                  <h3>{ar ? area.arLine : area.line}</h3>
+                  <p>{ar ? area.arBody : area.body}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="v2-city-bottom">
+          <div className="v2-city-progress">
+            <span ref={progress} />
+          </div>
+          <Link href="/properties">
+            {ar ? "كل الإقامات" : "See all stays"}
             <ArrowUpRight size={18} />
           </Link>
         </div>
@@ -323,111 +382,141 @@ export function CityJourney() {
 }
 export function HomeCare() {
   const ar = useLocale() === "ar";
+  const root = useRef<HTMLDivElement>(null);
+  useSceneMotion(
+    root,
+    useCallback((mm) => {
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          ".v2-care-sentence span",
+          { color: "#a6b2ab" },
+          {
+            color: "#1e2625",
+            stagger: 0.12,
+            ease: "none",
+            scrollTrigger: {
+              trigger: ".v2-care-sentence",
+              start: "top 80%",
+              end: "bottom 40%",
+              scrub: 0.4,
+            },
+          },
+        );
+        gsap.fromTo(
+          ".v2-care-strip",
+          { xPercent: -12, rotation: -5 },
+          {
+            xPercent: 6,
+            rotation: 3,
+            ease: "none",
+            scrollTrigger: {
+              trigger: ".v2-care",
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 0.7,
+            },
+          },
+        );
+        gsap.fromTo(
+          ".v2-owner-image",
+          { clipPath: "inset(12% 20% 12% 20%)" },
+          {
+            clipPath: "inset(0% 0% 0% 0%)",
+            ease: "power2.inOut",
+            scrollTrigger: {
+              trigger: ".v2-owner",
+              start: "top 85%",
+              end: "top 10%",
+              scrub: 0.6,
+            },
+          },
+        );
+        gsap.fromTo(
+          ".v2-owner-title span",
+          { yPercent: 100 },
+          {
+            yPercent: 0,
+            stagger: 0.08,
+            ease: "power3.out",
+            scrollTrigger: { trigger: ".v2-owner", start: "top 50%" },
+            duration: 1.1,
+          },
+        );
+      });
+    }, []),
+  );
+  const words = (
+    ar
+      ? "الإقامة الجميلة تبدأ بالتفاصيل الصغيرة."
+      : "A great stay begins long before you arrive."
+  ).split(" ");
   return (
-    <>
-      <section className="story-care">
-        <div className="story-care-left">
-          <Reveal>
-            <p className="story-context">
-              {ar ? "راحة مدروسة" : "The feeling of being looked after"}
-            </p>
-            <h2>
-              {ar ? (
-                <>
-                  قبل وصولك،
-                  <br />
-                  نعتني بالتفاصيل.
-                </>
-              ) : (
-                <>
-                  Arrive.
-                  <br />
-                  Exhale.
-                  <br />
-                  You’re home.
-                </>
-              )}
-            </h2>
-          </Reveal>
-          <SceneImage
-            src="/images/home/why-b.webp"
-            alt={
-              ar
-                ? "مساحة معيشة مفتوحة ومضيئة"
-                : "An open living space, made for unhurried days"
-            }
-            sizes="(max-width: 700px) 90vw, 40vw"
-          />
-        </div>
-        <div className="story-care-right">
-          <SceneImage
+    <div ref={root}>
+      <section className="v2-care">
+        <h2 className="v2-care-sentence">
+          {words.map((word, i) => (
+            <span key={i}>{word} </span>
+          ))}
+        </h2>
+        <div className="v2-care-strip">
+          <Image
             src="/images/owners/hero-4k/support_luxury_interior-4k.webp"
             alt={
               ar
-                ? "غرفة نوم معدة لاستقبال الضيوف"
-                : "Crisp linen and a room prepared for rest"
+                ? "تفاصيل غرفة النوم"
+                : "The quiet details of a prepared bedroom"
             }
-            sizes="(max-width: 700px) 90vw, 45vw"
+            fill
+            sizes="80vw"
+            className="object-cover"
           />
-          <Reveal>
-            <h3>
-              {ar
-                ? "التفاصيل الصغيرة تصنع الفرق."
-                : "A good stay is in the details."}
-            </h3>
-            <p>
-              {ar
-                ? "من ترتيب الغرف إلى فهم تفاصيل الحجز، نضع العناية والوضوح في صميم التجربة."
-                : "The room you return to. The linen you sink into. The clarity of knowing what comes next. Thoughtful hosting begins long before you open the door."}
-            </p>
-            <Link href="/services" className="story-link">
-              {ar ? "اكتشف خدماتنا" : "The care behind your stay"}
-              <ArrowUpRight size={20} />
-            </Link>
-          </Reveal>
+        </div>
+        <div className="v2-care-note">
+          <p>
+            {ar
+              ? "من الغرفة التي تعود إليها إلى التفاصيل التي تمنحك الراحة. العناية جزء من الإقامة."
+              : "The room you return to. The linen you sink into. The small things that let you simply be here."}
+          </p>
+          <Link className="story-link" href="/services">
+            {ar ? "العناية وراء إقامتك" : "The care behind your stay"}
+            <ArrowUpRight size={20} />
+          </Link>
         </div>
       </section>
-      <section className="story-owner">
-        <SceneImage
-          src="/images/owners/hero-4k/support_guest_experience-4k.webp"
-          alt={
-            ar
-              ? "نخيل ومسبح عند الغروب"
-              : "Palm silhouettes reflected in a pool at dusk"
-          }
-        />
-        <div className="story-owner-copy">
-          <Reveal>
-            <p className="story-context">
-              {ar ? "للملاك" : "A different perspective"}
-            </p>
-            <h2>
-              {ar ? (
-                <>
-                  مساحتك.
-                  <br />
-                  قصتها القادمة.
-                </>
-              ) : (
-                <>
-                  Your space.
-                  <br />
-                  Its next chapter.
-                </>
-              )}
-            </h2>
-            <p>
-              {ar
-                ? "يرى الضيف إقامة رائعة. وترى أنت عقاراً يستحق العناية. نحن نجمع بين الاثنين."
-                : "Your guests see a beautiful stay. You see a home with potential. We take care of the space between."}
-            </p>
-            <Link href="/owners" className="story-link">
-              {ar ? "لأصحاب العقارات" : "Explore property management"}
-              <ArrowUpRight size={20} />
-            </Link>
-          </Reveal>
+      <section className="v2-owner">
+        <div className="v2-owner-image">
+          <Image
+            src="/images/owners/hero-4k/main_business_bay-4k.webp"
+            alt={
+              ar
+                ? "عقارات دبي وقت الغروب"
+                : "Dubai’s residential skyline at dusk"
+            }
+            fill
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+        <h2 className="v2-owner-title">
+          <div>
+            <span>{ar ? "مساحتك." : "Your space."}</span>
+          </div>
+          <div>
+            <span>{ar ? "قصتها القادمة." : "Its next chapter."}</span>
+          </div>
+        </h2>
+        <div className="v2-owner-note">
+          <p>
+            {ar
+              ? "يرى ضيوفك إقامة مميزة. وترى أنت بيتاً يستحق العناية."
+              : "Your guests see a beautiful stay. You see a home with potential. Let’s bring the two together."}
+          </p>
+          <Link className="story-link" href="/owners">
+            {ar ? "لأصحاب العقارات" : "For property owners"}
+            <ArrowUpRight size={20} />
+          </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }

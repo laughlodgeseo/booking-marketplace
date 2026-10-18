@@ -1,12 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, MapPin, Search, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import { createPortal } from "react-dom";
-import DateRangePicker, { type DateRangeValue, type DateSelectionPhase } from "@/components/booking/DateRangePicker";
+import DateRangePicker, {
+  type DateRangeValue,
+  type DateSelectionPhase,
+} from "@/components/booking/DateRangePicker";
 import DateRangePopover from "@/components/search/DateRangePopover";
 import FiltersBar from "@/components/search/FiltersBar";
 import { isValidIsoRange } from "@/lib/date-range";
@@ -66,7 +76,10 @@ const LOCATION_SUGGESTIONS: ReadonlyArray<LocationSuggestion> = [
     id: "dubai-marina",
     value: "Dubai Marina",
     title: { en: "Dubai Marina", ar: "دبي مارينا" },
-    subtitle: { en: "Waterfront towers and nightlife", ar: "أبراج على الواجهة البحرية وحياة ليلية" },
+    subtitle: {
+      en: "Waterfront towers and nightlife",
+      ar: "أبراج على الواجهة البحرية وحياة ليلية",
+    },
     keywords: ["marina", "waterfront", "beach"],
   },
   {
@@ -80,56 +93,80 @@ const LOCATION_SUGGESTIONS: ReadonlyArray<LocationSuggestion> = [
     id: "palm-jumeirah",
     value: "Palm Jumeirah",
     title: { en: "Palm Jumeirah", ar: "نخلة جميرا" },
-    subtitle: { en: "Beach resorts and sea views", ar: "منتجعات شاطئية وإطلالات بحرية" },
+    subtitle: {
+      en: "Beach resorts and sea views",
+      ar: "منتجعات شاطئية وإطلالات بحرية",
+    },
     keywords: ["palm", "jumeirah", "resort"],
   },
   {
     id: "jbr",
     value: "JBR",
     title: { en: "JBR", ar: "جي بي آر" },
-    subtitle: { en: "The Walk, beach, and dining", ar: "ممشى جي بي آر والشاطئ والمطاعم" },
+    subtitle: {
+      en: "The Walk, beach, and dining",
+      ar: "ممشى جي بي آر والشاطئ والمطاعم",
+    },
     keywords: ["jbr", "beach", "the walk"],
   },
   {
     id: "business-bay",
     value: "Business Bay",
     title: { en: "Business Bay", ar: "بزنس باي" },
-    subtitle: { en: "Central district near Downtown", ar: "منطقة مركزية قريبة من داون تاون" },
+    subtitle: {
+      en: "Central district near Downtown",
+      ar: "منطقة مركزية قريبة من داون تاون",
+    },
     keywords: ["business bay", "canal", "central"],
   },
   {
     id: "difc",
     value: "DIFC",
     title: { en: "DIFC", ar: "مركز دبي المالي" },
-    subtitle: { en: "Financial core and fine dining", ar: "قلب الأعمال ومطاعم راقية" },
+    subtitle: {
+      en: "Financial core and fine dining",
+      ar: "قلب الأعمال ومطاعم راقية",
+    },
     keywords: ["difc", "financial centre", "restaurants"],
   },
   {
     id: "jlt",
     value: "JLT",
     title: { en: "JLT", ar: "جي إل تي" },
-    subtitle: { en: "Lakeside community with quick metro access", ar: "مجتمع حول البحيرات مع وصول سريع للمترو" },
+    subtitle: {
+      en: "Lakeside community with quick metro access",
+      ar: "مجتمع حول البحيرات مع وصول سريع للمترو",
+    },
     keywords: ["jlt", "jumeirah lake towers", "metro"],
   },
   {
     id: "al-barsha",
     value: "Al Barsha",
     title: { en: "Al Barsha", ar: "البرشاء" },
-    subtitle: { en: "Family-friendly and close to Mall of the Emirates", ar: "مناسبة للعائلات وقريبة من مول الإمارات" },
+    subtitle: {
+      en: "Family-friendly and close to Mall of the Emirates",
+      ar: "مناسبة للعائلات وقريبة من مول الإمارات",
+    },
     keywords: ["al barsha", "mall of the emirates", "family"],
   },
   {
     id: "bluewaters-island",
     value: "Bluewaters Island",
     title: { en: "Bluewaters Island", ar: "جزيرة بلوواترز" },
-    subtitle: { en: "Ain Dubai and premium sea-front stays", ar: "عين دبي وإقامات فاخرة مطلة على البحر" },
+    subtitle: {
+      en: "Ain Dubai and premium sea-front stays",
+      ar: "عين دبي وإقامات فاخرة مطلة على البحر",
+    },
     keywords: ["bluewaters", "ain dubai", "island"],
   },
   {
     id: "dubai-creek-harbour",
     value: "Dubai Creek Harbour",
     title: { en: "Dubai Creek Harbour", ar: "دبي كريك هاربور" },
-    subtitle: { en: "Creek views and modern skyline", ar: "إطلالات على الخور وأفق حديث" },
+    subtitle: {
+      en: "Creek views and modern skyline",
+      ar: "إطلالات على الخور وأفق حديث",
+    },
     keywords: ["creek harbour", "creek", "skyline"],
   },
 ];
@@ -193,7 +230,6 @@ function clampInt(n: number, min: number, max: number) {
 
 export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const locale = normalizeLocale(useLocale());
   const copy = UI_COPY[locale];
@@ -207,14 +243,17 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   });
   const [locationOpen, setLocationOpen] = useState(false);
   const [activeLocationIndex, setActiveLocationIndex] = useState(0);
-  const [locationPanelRect, setLocationPanelRect] = useState<LocationPanelRect>({
-    top: 0,
-    left: 0,
-    width: 360,
-  });
+  const [locationPanelRect, setLocationPanelRect] = useState<LocationPanelRect>(
+    {
+      top: 0,
+      left: 0,
+      width: 360,
+    },
+  );
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [selectionPhase, setSelectionPhase] = useState<DateSelectionPhase>("checkin");
+  const [selectionPhase, setSelectionPhase] =
+    useState<DateSelectionPhase>("checkin");
   const locationRef = useRef<HTMLDivElement | null>(null);
   const locationInputRef = useRef<HTMLInputElement | null>(null);
   const locationPopoverRef = useRef<HTMLDivElement | null>(null);
@@ -237,8 +276,15 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     if (!normalizedLocation) return LOCATION_SUGGESTIONS;
 
     return LOCATION_SUGGESTIONS.filter((item) => {
-      const fields = [item.value, item.title.en, item.title.ar, ...item.keywords];
-      return fields.some((field) => normalize(field).includes(normalizedLocation));
+      const fields = [
+        item.value,
+        item.title.en,
+        item.title.ar,
+        ...item.keywords,
+      ];
+      return fields.some((field) =>
+        normalize(field).includes(normalizedLocation),
+      );
     });
   }, [normalizedLocation]);
 
@@ -262,7 +308,10 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     const preferredWidth = rect.width + (viewportWidth >= 768 ? 120 : 12);
     const maxWidth = Math.min(520, viewportMaxWidth);
     const width = Math.max(minWidth, Math.min(preferredWidth, maxWidth));
-    const left = Math.min(Math.max(rect.left, margin), Math.max(margin, viewportWidth - width - margin));
+    const left = Math.min(
+      Math.max(rect.left, margin),
+      Math.max(margin, viewportWidth - width - margin),
+    );
     const top = rect.bottom + 10;
 
     setLocationPanelRect({ top, left, width });
@@ -320,7 +369,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
     function onPointerDown(event: MouseEvent) {
       const target = event.target as Node;
       const insideTrigger = Boolean(locationRef.current?.contains(target));
-      const insidePopover = Boolean(locationPopoverRef.current?.contains(target));
+      const insidePopover = Boolean(
+        locationPopoverRef.current?.contains(target),
+      );
 
       if (!insideTrigger && !insidePopover) {
         setLocationOpen(false);
@@ -403,22 +454,18 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
   const highlightedLocationIndex =
     activeLocationIndex >= filteredLocations.length ? 0 : activeLocationIndex;
   const highlightedLocationOptionId =
-    filteredLocations.length > 0 ? `location-option-${filteredLocations[highlightedLocationIndex]?.id}` : undefined;
+    filteredLocations.length > 0
+      ? `location-option-${filteredLocations[highlightedLocationIndex]?.id}`
+      : undefined;
   const isPropertiesVariant = props.variant === "properties";
 
-  const surfaceClass =
-    props.variant === "home"
-      ? "mx-auto w-full max-w-5xl rounded-2xl border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(248,242,232,0.96),rgba(240,233,220,0.76))] px-3 py-3 shadow-[0_16px_34px_rgba(33,39,53,0.12)] backdrop-blur-sm md:h-[72px] md:px-4 md:py-2"
-      : "mx-auto w-full max-w-5xl rounded-[1.75rem] border border-white/40 bg-[linear-gradient(180deg,rgba(255,255,255,0.99)_0%,rgba(250,251,255,0.98)_100%)] p-3 shadow-[0_22px_64px_rgba(19,16,60,0.26)] backdrop-blur-sm";
-
-  const sectionClass = isPropertiesVariant
-    ? "flex h-12 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 shadow-[0_3px_10px_rgba(15,23,42,0.05)] transition-all duration-300 focus-within:border-indigo-300 focus-within:shadow-[0_8px_20px_rgba(79,70,229,0.12)] md:h-[56px] md:rounded-xl md:border-none md:shadow-none md:focus-within:shadow-none"
-    : "flex h-12 items-center gap-2 rounded-xl bg-neutral-50 px-3 text-neutral-800 md:h-[56px] md:border-r md:border-neutral-200 md:rounded-none md:bg-transparent md:px-4";
+  const surfaceClass = `v2-search-surface ${isPropertiesVariant ? "v2-search-properties" : "v2-search-home"}`;
+  const sectionClass = "v2-search-field";
 
   return (
     <motion.div
-      className="relative z-50 mx-auto w-full px-4 sm:px-6 lg:px-8"
-      initial={props.variant === "home" ? { y: 14, opacity: 0 } : false}
+      className="v2-search"
+      initial={false}
       animate={props.variant === "home" ? { y: 0, opacity: 1 } : false}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
     >
@@ -436,7 +483,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               "relative",
               sectionClass,
               locationOpen
-                ? "ring-1 ring-indigo-200/85 shadow-[0_14px_30px_rgba(15,23,42,0.12)] md:ring-0 md:shadow-none"
+                ? "ring-1 ring-neutral-300 shadow-[0_14px_30px_rgba(15,23,42,0.12)] md:ring-0 md:shadow-none"
                 : "",
             ].join(" ")}
           >
@@ -466,7 +513,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                   }
 
                   if (filteredLocations.length > 0) {
-                    setActiveLocationIndex((prev) => (prev + 1) % filteredLocations.length);
+                    setActiveLocationIndex(
+                      (prev) => (prev + 1) % filteredLocations.length,
+                    );
                   }
                   return;
                 }
@@ -476,12 +525,18 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                   if (!locationOpen) {
                     updateLocationPanelRect();
                     setLocationOpen(true);
-                    setActiveLocationIndex(Math.max(0, filteredLocations.length - 1));
+                    setActiveLocationIndex(
+                      Math.max(0, filteredLocations.length - 1),
+                    );
                     return;
                   }
 
                   if (filteredLocations.length > 0) {
-                    setActiveLocationIndex((prev) => (prev - 1 + filteredLocations.length) % filteredLocations.length);
+                    setActiveLocationIndex(
+                      (prev) =>
+                        (prev - 1 + filteredLocations.length) %
+                        filteredLocations.length,
+                    );
                   }
                   return;
                 }
@@ -489,7 +544,10 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                 if (e.key === "Enter") {
                   if (locationOpen && filteredLocations.length > 0) {
                     e.preventDefault();
-                    const nextIndex = Math.min(highlightedLocationIndex, filteredLocations.length - 1);
+                    const nextIndex = Math.min(
+                      highlightedLocationIndex,
+                      filteredLocations.length - 1,
+                    );
                     selectLocation(filteredLocations[nextIndex]);
                     return;
                   }
@@ -509,8 +567,23 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               aria-expanded={locationOpen}
               aria-controls={locationListId}
               aria-autocomplete="list"
-              aria-activedescendant={locationOpen ? highlightedLocationOptionId : undefined}
+              aria-activedescendant={
+                locationOpen ? highlightedLocationOptionId : undefined
+              }
             />
+            {draft.location && (
+              <button
+                type="button"
+                aria-label={locale === "ar" ? "مسح الموقع" : "Clear location"}
+                onClick={() => {
+                  setDraft((s) => ({ ...s, location: "" }));
+                  setActiveLocationIndex(0);
+                  locationInputRef.current?.focus();
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
 
           <div
@@ -531,7 +604,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               aria-label={copy.checkInLabel}
             >
               <CalendarDays className="h-4 w-4 shrink-0 text-neutral-500" />
-              <span className="truncate">{draft.checkIn || copy.checkInLabel}</span>
+              <span className="truncate">
+                {draft.checkIn || copy.checkInLabel}
+              </span>
             </button>
           </div>
 
@@ -547,7 +622,9 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               aria-label={copy.checkOutLabel}
             >
               <CalendarDays className="h-4 w-4 shrink-0 text-neutral-500" />
-              <span className="truncate">{draft.checkOut || copy.checkOutLabel}</span>
+              <span className="truncate">
+                {draft.checkOut || copy.checkOutLabel}
+              </span>
             </button>
           </div>
 
@@ -556,20 +633,26 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
               <button
                 type="button"
                 onClick={() => adjustGuests(-1)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-bold text-neutral-700 transition hover:bg-indigo-50"
-                aria-label="Decrease guests"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-bold text-neutral-700 transition hover:bg-neutral-100"
+                aria-label={
+                  locale === "ar" ? "تقليل عدد الضيوف" : "Decrease guests"
+                }
               >
                 -
               </button>
               <div className="text-center text-sm font-semibold text-neutral-900">
                 <span>{draft.guests}</span>
-                <span className="ml-1 text-xs font-medium text-neutral-500">{copy.guests}</span>
+                <span className="ml-1 text-xs font-medium text-neutral-500">
+                  {copy.guests}
+                </span>
               </div>
               <button
                 type="button"
                 onClick={() => adjustGuests(1)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-bold text-neutral-700 transition hover:bg-indigo-50"
-                aria-label="Increase guests"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-sm font-bold text-neutral-700 transition hover:bg-neutral-100"
+                aria-label={
+                  locale === "ar" ? "زيادة عدد الضيوف" : "Increase guests"
+                }
               >
                 +
               </button>
@@ -586,7 +669,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
             {isPropertiesVariant ? (
               <FiltersBar
                 label={copy.filters}
-                triggerClassName="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-900 transition duration-300 hover:-translate-y-[1px] hover:border-indigo-300 hover:bg-indigo-50 md:w-auto"
+                triggerClassName="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-900 transition duration-300 hover:-translate-y-[1px] hover:border-neutral-400 hover:bg-neutral-100 md:w-auto"
               />
             ) : null}
             <button
@@ -597,27 +680,13 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                 pushSearch();
               }}
               className={[
-                "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700",
-                isPropertiesVariant ? "w-full md:w-auto" : "w-full md:hidden",
+                "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#151c1d] px-4 text-sm font-semibold text-white shadow-md transition hover:bg-[#38584a]",
+                "v2-search-submit w-full md:w-auto",
               ].join(" ")}
             >
               <Search className="h-4 w-4" />
               {copy.searchStays}
             </button>
-            {!isPropertiesVariant ? (
-              <button
-                ref={searchButtonRef}
-                type="button"
-                onClick={() => {
-                  setLocationOpen(false);
-                  pushSearch();
-                }}
-                className="hidden h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md transition hover:bg-indigo-700 md:inline-flex"
-                aria-label={copy.searchStays}
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
@@ -629,7 +698,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                 <motion.div
                   ref={locationPopoverRef}
                   className={[
-                    "fixed z-[10020] overflow-hidden border border-neutral-200/90 bg-white p-2 shadow-[0_28px_68px_rgba(15,23,42,0.2)] ring-1 ring-indigo-100/70",
+                    "v2-search-popover fixed z-[10020] overflow-hidden border border-neutral-200/90 bg-white p-2 shadow-[0_28px_68px_rgba(15,23,42,0.2)] ring-1 ring-neutral-200",
                     isMobileViewport
                       ? "inset-x-3 top-[84px] max-h-[62dvh] rounded-[1.35rem]"
                       : "rounded-[1.4rem]",
@@ -643,21 +712,37 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                           width: locationPanelRect.width,
                         }
                   }
-                  initial={{ opacity: 0, y: isMobileViewport ? 8 : -8, scale: 0.985 }}
+                  initial={{
+                    opacity: 0,
+                    y: isMobileViewport ? 8 : -8,
+                    scale: 0.985,
+                  }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: isMobileViewport ? 8 : -6, scale: 0.985 }}
+                  exit={{
+                    opacity: 0,
+                    y: isMobileViewport ? 8 : -6,
+                    scale: 0.985,
+                  }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
-                    {normalizedLocation ? copy.suggestedLocations : copy.popularLocations}
+                  <p className="px-3 py-2 text-sm text-neutral-600">
+                    {normalizedLocation
+                      ? copy.suggestedLocations
+                      : copy.popularLocations}
                   </p>
 
                   {filteredLocations.length > 0 ? (
-                    <ul id={locationListId} role="listbox" className="max-h-[320px] overflow-y-auto pb-1">
+                    <ul
+                      id={locationListId}
+                      role="listbox"
+                      className="max-h-[320px] overflow-y-auto pb-1"
+                    >
                       {filteredLocations.map((item, index) => {
                         const selected = index === highlightedLocationIndex;
-                        const title = locale === "ar" ? item.title.ar : item.title.en;
-                        const subtitle = locale === "ar" ? item.subtitle.ar : item.subtitle.en;
+                        const title =
+                          locale === "ar" ? item.title.ar : item.title.en;
+                        const subtitle =
+                          locale === "ar" ? item.subtitle.ar : item.subtitle.en;
 
                         return (
                           <li key={item.id} role="presentation">
@@ -688,8 +773,12 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                                 <MapPin className="h-4 w-4" />
                               </span>
                               <span className="min-w-0">
-                                <span className="block truncate text-sm font-semibold">{title}</span>
-                                <span className="block truncate text-xs text-neutral-500">{subtitle}</span>
+                                <span className="block truncate text-sm font-semibold">
+                                  {title}
+                                </span>
+                                <span className="block truncate text-xs text-neutral-500">
+                                  {subtitle}
+                                </span>
                               </span>
                             </button>
                           </li>
@@ -709,7 +798,8 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
                         <Search className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 text-sm font-semibold">
-                        {copy.searchFor} <span className="font-bold">{`"${draft.location.trim()}"`}</span>
+                        {copy.searchFor}{" "}
+                        <span className="font-bold">{`"${draft.location.trim()}"`}</span>
                       </span>
                     </button>
                   )}
@@ -721,6 +811,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
         : null}
 
       <DateRangePopover
+        surfaceClassName="v2-search-calendar"
         open={calendarOpen}
         anchorRef={calendarTriggerRef}
         variant="double"
@@ -761,7 +852,7 @@ export default function UnifiedSearchBar(props: UnifiedSearchBarProps) {
             type="button"
             onClick={clearDates}
             aria-label={copy.clearDates}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-white/14 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur-sm transition hover:bg-white/24 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="v2-search-clear"
           >
             <CalendarDays className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span>

@@ -59,6 +59,7 @@ export default async function ServicesPage() {
   return (
     <>
       <EditorialHero
+        mode="services"
         title={
           ar
             ? "العناية التي تشعر بها."
@@ -73,7 +74,7 @@ export default async function ServicesPage() {
         src="/images/home/hero-top-accent.webp"
         alt={ar ? "مساحة معيشة مفتوحة" : "An open, considered living space"}
       />
-      <div className="story-essay">
+      <div className="story-essay v2-services-essay">
         {scenes.map((scene) => (
           <section className="story-process-row" key={scene.title}>
             <SceneImage
@@ -82,7 +83,6 @@ export default async function ServicesPage() {
               sizes="(max-width:700px) 90vw, 45vw"
             />
             <Reveal>
-              <p className="story-context">{scene.context}</p>
               <h2>{scene.title}</h2>
               <p>{scene.body}</p>
             </Reveal>
