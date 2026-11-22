@@ -75,8 +75,8 @@ describe('PropertyFeePaymentService', () => {
     prisma = makePrisma();
     stripe = makeStripe();
     service = new PropertyFeePaymentService(
-      prisma as PrismaService,
-      stripe as StripePaymentsProvider,
+      prisma,
+      stripe,
     );
   });
 
@@ -246,9 +246,9 @@ describe('PropertyFeePaymentService', () => {
       const fee2 = { id: 'fee-2', status: FeeStatus.UNPAID };
 
       const tx = makePrismaTx();
-      (tx.stripeWebhookEvent.create as jest.Mock).mockResolvedValue({});
-      (tx.propertyFee.findMany as jest.Mock).mockResolvedValue([fee1, fee2]);
-      (tx.propertyFee.update as jest.Mock).mockResolvedValue({});
+      (tx.stripeWebhookEvent.create).mockResolvedValue({});
+      (tx.propertyFee.findMany).mockResolvedValue([fee1, fee2]);
+      (tx.propertyFee.update).mockResolvedValue({});
 
       (prisma.$transaction as jest.Mock).mockImplementation(
         (fn: (tx: MockTx) => Promise<unknown>) => fn(tx),
@@ -279,7 +279,7 @@ describe('PropertyFeePaymentService', () => {
         code: 'P2002',
         clientVersion: '0.0.0',
       });
-      (tx.stripeWebhookEvent.create as jest.Mock).mockRejectedValue(p2002);
+      (tx.stripeWebhookEvent.create).mockRejectedValue(p2002);
 
       (prisma.$transaction as jest.Mock).mockImplementation(
         (fn: (tx: MockTx) => Promise<unknown>) => fn(tx),

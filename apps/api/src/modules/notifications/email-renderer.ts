@@ -754,7 +754,7 @@ function newBookingReceivedEmail(payload: JsonObject): EmailModel {
   const payoutAmount =
     formatEmailMoney(payout.amountFormatted, currency) ||
     formatEmailMoney(payout.amount, currency, { minorUnits: true });
-  const hasPayoutDetails = !String(payout.methodMessage ?? '').toLowerCase().includes('add your payout');
+  const hasPayoutDetails = !stringValue(payout.methodMessage).toLowerCase().includes('add your payout');
   const cta = bookingId
     ? renderSafeCta('View booking', `/vendor/bookings/${encodeURIComponent(bookingId)}`)
     : renderSafeCta('View payouts', '/vendor/payouts');
@@ -1205,7 +1205,7 @@ function getNested(obj: JsonObject, key: string): unknown {
 }
 
 function present(value: unknown): boolean {
-  return value !== null && value !== undefined && String(value).trim() !== '';
+  return value !== null && value !== undefined && (typeof value !== 'string' || value.trim() !== '');
 }
 
 function firstPresentEnv(keys: string[]): string | null {

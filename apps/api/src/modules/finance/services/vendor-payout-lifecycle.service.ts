@@ -12,7 +12,6 @@ import {
   PaymentStatus,
   PayoutMethodStatus,
   Prisma,
-  UserRole,
   VendorPayoutMethodType,
   VendorPayoutStatus,
 } from '@prisma/client';
@@ -637,6 +636,7 @@ export class VendorPayoutLifecycleService {
     payoutId: string,
     mode: 'view' | 'download',
   ) {
+    void mode;
     const payout = await this.prisma.vendorPayout.findUnique({
       where: { id: payoutId },
       include: { proofDocument: true },
@@ -652,6 +652,7 @@ export class VendorPayoutLifecycleService {
   }
 
   async adminGetPayoutProof(payoutId: string, mode: 'view' | 'download') {
+    void mode;
     const payout = await this.prisma.vendorPayout.findUnique({
       where: { id: payoutId },
       include: { proofDocument: true },

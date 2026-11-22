@@ -193,7 +193,7 @@ describe('VendorPayoutLifecycleService.adminUploadProof', () => {
   });
 
   it('4. throws 400 when storage provider is not cloudinary', async () => {
-    const { svc, storage } = buildService(
+    const { svc } = buildService(
       {},
       { activeProvider: jest.fn().mockResolvedValue('local') },
     );
@@ -241,7 +241,7 @@ describe('VendorPayoutLifecycleService.vendorGetPayoutProof', () => {
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       headers: { get: () => 'image/png' } as unknown as Headers,
-      arrayBuffer: async () => fakeBuffer.buffer,
+      arrayBuffer: () => Promise.resolve(fakeBuffer.buffer),
     } as unknown as Response);
 
     const result = await svc.vendorGetPayoutProof(VENDOR_ID, PAYOUT_ID, 'view');
@@ -300,7 +300,7 @@ describe('VendorPayoutLifecycleService.adminGetPayoutProof', () => {
     const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       headers: { get: () => 'image/png' } as unknown as Headers,
-      arrayBuffer: async () => fakeBuffer.buffer,
+      arrayBuffer: () => Promise.resolve(fakeBuffer.buffer),
     } as unknown as Response);
 
     const result = await svc.adminGetPayoutProof(PAYOUT_ID, 'download');
