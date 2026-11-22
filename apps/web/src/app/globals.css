@@ -2,6 +2,11 @@
 
 /* Platform design tokens (Indigo + neutral surfaces) */
 :root {
+  /* Brand typefaces use browser-loaded Google Fonts with system fallbacks. */
+  --font-latin: "Manrope";
+  --font-display: "Cormorant Garamond";
+  --font-arabic: "Tajawal";
+  --font-arabic-display: "Noto Naskh Arabic";
   --site-bg: #ffffff;
   /* Canonical palette */
   --brand: #4f46e5;

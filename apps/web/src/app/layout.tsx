@@ -1,10 +1,4 @@
 import type { Metadata } from "next";
-import {
-  Cormorant_Garamond,
-  Manrope,
-  Noto_Naskh_Arabic,
-  Tajawal,
-} from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import Providers from "./providers";
@@ -13,34 +7,6 @@ import { directionForLocale } from "@/lib/i18n/config";
 import { getLocaleMessages } from "@/lib/i18n/messages";
 import { getRequestLocale } from "@/lib/i18n/server";
 import RouteScrollReset from "@/components/site/RouteScrollReset";
-
-const arabicFont = Tajawal({
-  subsets: ["arabic"],
-  variable: "--font-arabic",
-  display: "swap",
-  weight: ["400", "500", "700"],
-});
-
-const arabicDisplayFont = Noto_Naskh_Arabic({
-  subsets: ["arabic"],
-  variable: "--font-arabic-display",
-  display: "swap",
-  weight: ["500", "600", "700"],
-});
-
-const latinFont = Manrope({
-  subsets: ["latin"],
-  variable: "--font-latin",
-  display: "swap",
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const displayFont = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  weight: ["500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://rentpropertyuae.com"),
@@ -83,14 +49,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} dir={dir}>
+      <head>
+        {/* Fetch typefaces at runtime so CI and hosting builds don't depend on Google's font CSS response format. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@500;600;700&family=Tajawal:wght@400;500;700&display=swap"
+        />
+      </head>
       <body
         suppressHydrationWarning
         className={[
           "font-site min-h-screen bg-(--site-bg)",
-          arabicFont.variable,
-          arabicDisplayFont.variable,
-          latinFont.variable,
-          displayFont.variable,
           locale === "ar" ? "font-arabic-locale" : "",
         ].join(" ")}
       >
