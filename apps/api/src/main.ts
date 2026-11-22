@@ -316,6 +316,7 @@ async function bootstrap() {
   console.log(`Starting API listener on [::]:${port}...`);
   // Railway's V2 runtime and private network probe over IPv6; on Linux, :: accepts IPv4 too.
   await app.listen(port, '::');
+  console.log(`Health endpoint: /api/health (port ${port})`);
 
   console.log(`✅ API running on port ${port}`);
 }

@@ -1,6 +1,6 @@
 # Railway configuration is managed per service in the Railway project.
 # This monorepo deploys two separate services from the main branch:
-# - api: Dockerfile, HTTP port 10000, /health, Prisma migrate deploy before startup
+# - api: Dockerfile, HTTP port 10000, /api/health, Prisma migrate deploy before startup
 # - web: Dockerfile.web, HTTP port 3000, /
 #
 # IMPORTANT: Do not put a global [build] or [deploy] block here.
