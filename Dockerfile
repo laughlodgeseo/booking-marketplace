@@ -31,7 +31,8 @@ ENV NODE_ENV=production
 RUN npm install -g pnpm@10.28.2
 
 # Non-root user for container security
-RUN addgroup --system --gid 1001 nodejs && \
+RUN apk add --no-cache su-exec && \
+    addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
 # Copy manifests for prod-only install
@@ -52,13 +53,13 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 RUN cd apps/api && pnpm exec prisma generate
 
 # Create upload directories and set ownership
-RUN mkdir -p /app/apps/api/uploads /app/apps/api/private_uploads && \
+RUN mkdir -p /app/apps/api && \
     chown -R nestjs:nodejs /app
-
-USER nestjs
+COPY apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh
+WORKDIR /app/apps/api
 
 EXPOSE 10000
 
-# Run compiled JS directly — proper SIGTERM, no pnpm wrapper overhead.
-# Migrations run separately via Railway release command before this starts.
-CMD ["node", "apps/api/dist/src/main.js"]
+# Entrypoint ensures local uploads are persisted on a dedicated Railway volume.
+# Prisma migrations run as a pre-deploy command, before new API instances start.
+CMD ["sh", "./docker-entrypoint.sh"]
