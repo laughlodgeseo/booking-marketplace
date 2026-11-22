@@ -1,16 +1,9 @@
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-
-[deploy]
-# Migration runs as a release command BEFORE the new container receives traffic.
-# This prevents the app from restarting in a loop if a migration fails.
-releaseCommand = "pnpm --filter api db:migrate:deploy"
-startCommand = "pnpm --filter api start:prod"
-healthcheckPath = "/api/health"
-healthcheckTimeout = 300
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
-
-[[services]]
-name = "api"
+# Railway configuration is managed per service in the Railway project.
+# This monorepo deploys two separate services from the main branch:
+# - api: Dockerfile, HTTP port 10000, /health, Prisma migrate deploy before startup
+# - web: Dockerfile.web, HTTP port 3000, /
+#
+# IMPORTANT: Do not put a global [build] or [deploy] block here.
+# Those settings are applied to BOTH services by Railway when both point at
+# the repository root, overriding their individually configured Dockerfiles
+# and healthchecks. This file intentionally has no global overrides.
