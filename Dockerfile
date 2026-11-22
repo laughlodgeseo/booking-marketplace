@@ -39,7 +39,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/package.json
 
 # Install production deps only
-RUN pnpm install --frozen-lockfile --prod --filter api
+RUN pnpm install --frozen-lockfile --filter api
 
 # Copy Prisma schema (needed for generate + migrate:deploy)
 COPY apps/api/prisma ./apps/api/prisma
@@ -49,7 +49,7 @@ COPY apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 # Generate Prisma client in production context
-RUN cd apps/api && pnpm dlx prisma@6.19.2 generate
+RUN cd apps/api && pnpm exec prisma generate
 
 # Create upload directories and set ownership
 RUN mkdir -p /app/apps/api/uploads /app/apps/api/private_uploads && \
