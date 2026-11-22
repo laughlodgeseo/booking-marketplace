@@ -35,7 +35,7 @@ function buildService(params?: { uploadError?: Error; txError?: Error }) {
       findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn(),
     },
-    $transaction: jest.fn().mockImplementation(async (fn: Function) => {
+    $transaction: jest.fn().mockImplementation((fn: (transaction: unknown) => Promise<unknown>) => {
       if (params?.txError) throw params.txError;
       return fn({
         propertyDocument: {

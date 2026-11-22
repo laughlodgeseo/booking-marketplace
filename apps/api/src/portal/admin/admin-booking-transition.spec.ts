@@ -9,7 +9,7 @@
  * 5. CONFIRMED → COMPLETED allowed
  * 6. COMPLETED → CANCELLED rejected
  */
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { BookingStatus, UserRole } from '@prisma/client';
 import { AdminPortalService } from './admin-portal.service';
 import { PrismaService } from '../../modules/prisma/prisma.service';

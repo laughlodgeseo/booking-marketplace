@@ -413,7 +413,6 @@ export class PropertyDocumentsService {
 
     const doc = await this.getDocumentOrThrow(propertyId, documentId);
     const filename = sanitizeFilename(doc.originalName ?? `document-${doc.id}`);
-    const remoteUrl = doc.url?.trim();
 
     return {
       id: doc.id,

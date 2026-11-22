@@ -11,7 +11,6 @@ import {
   HoldStatus,
   NotificationType,
   OpsTaskStatus,
-  PaymentStatus,
   PropertyStatus,
   UserRole,
 } from '@prisma/client';
