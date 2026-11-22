@@ -313,8 +313,9 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT ?? 10000);
 
-  console.log(`Starting API listener on 0.0.0.0:${port}...`);
-  await app.listen(port, '0.0.0.0');
+  console.log(`Starting API listener on [::]:${port}...`);
+  // Railway's V2 runtime and private network probe over IPv6; on Linux, :: accepts IPv4 too.
+  await app.listen(port, '::');
 
   console.log(`✅ API running on port ${port}`);
 }
