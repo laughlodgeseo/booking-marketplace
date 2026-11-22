@@ -21,7 +21,7 @@ describe('CloudinaryStorageAdapter.upload()', () => {
         capturedOptions = options as Record<string, unknown>;
         const stream = new PassThrough();
         stream.on('finish', () => {
-          (callback as Function)(null, {
+          (callback as (error: Error | null, result: Record<string, unknown>) => void)(null, {
             public_id: 'laugh-lodge/documents/abc123',
             secure_url: 'https://res.cloudinary.com/testcloud/raw/authenticated/abc123',
             bytes: 12,
