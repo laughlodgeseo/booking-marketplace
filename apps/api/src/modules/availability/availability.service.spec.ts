@@ -142,7 +142,7 @@ describe('AvailabilityService.replaceHold', () => {
     const { service, tx } = buildService();
 
     // Simulate another user's hold overlapping the new dates
-    (tx.propertyHold.findFirst as jest.Mock).mockResolvedValue({ id: 'hold_other' });
+    tx.propertyHold.findFirst.mockResolvedValue({ id: 'hold_other' });
 
     await expect(
       service.replaceHold(USER_ID, PROPERTY_ID, OLD_HOLD_ID, {

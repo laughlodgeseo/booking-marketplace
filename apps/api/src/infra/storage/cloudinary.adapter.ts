@@ -63,7 +63,7 @@ export class CloudinaryStorageAdapter implements IStorageAdapter {
             reject(
               new Error(
                 `Cloudinary upload failed: ${
-                  error instanceof Error ? error.message : String(error)
+                  error instanceof Error ? error.message : 'unknown error'
                 }`,
               ),
             );

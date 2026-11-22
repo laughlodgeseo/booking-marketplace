@@ -661,12 +661,12 @@ export class AvailabilityService {
         total:
           typeof bd.totalAed === 'number'
             ? bd.totalAed
-            : Math.round((bd.total as number) / fxRate),
+            : Math.round(bd.total / fxRate),
       };
 
       pricingSnapshot = {
         quotedTotalAed: quotedBreakdown.total,
-        quotedTotalDisplay: bd.total as number,
+        quotedTotalDisplay: bd.total,
         displayCurrency: this.resolveDisplayCurrency(dto.currency),
         fxRate,
         fxAsOfDate,
