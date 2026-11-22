@@ -29,13 +29,14 @@ export function DonutBreakdownChart({ slices, size = 140, innerLabel, innerSubla
   const thickness = 12;
   const innerR = R - thickness;
 
-  let cumulativeAngle = -Math.PI / 2;
-  const arcs = slices.map((slice) => {
+  const arcs = slices.map((slice, index) => {
+    const precedingTotal = slices
+      .slice(0, index)
+      .reduce((sum, preceding) => sum + preceding.value, 0);
     const fraction = slice.value / total;
     const angle = fraction * 2 * Math.PI;
-    const startAngle = cumulativeAngle;
-    const endAngle = cumulativeAngle + angle;
-    cumulativeAngle = endAngle;
+    const startAngle = -Math.PI / 2 + (precedingTotal / total) * 2 * Math.PI;
+    const endAngle = startAngle + angle;
 
     const x1 = CX + R * Math.cos(startAngle);
     const y1 = CY + R * Math.sin(startAngle);

@@ -51,7 +51,20 @@ export default function AdminVendorPropertyFeesPage() {
       );
   }, [status, furnishingStatus, page]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    getAdminVendorPropertyFees({
+      status: status || undefined,
+      furnishingStatus: furnishingStatus || undefined,
+      page,
+      pageSize: 20,
+    })
+      .then((data) => { if (active) setView({ kind: "ready", data }); })
+      .catch((e: unknown) => {
+        if (active) setView({ kind: "error", message: e instanceof Error ? e.message : "Failed to load." });
+      });
+    return () => { active = false; };
+  }, [status, furnishingStatus, page]);
 
   const totalPages = view.kind === "ready" ? Math.ceil(view.data.total / view.data.pageSize) : 1;
 

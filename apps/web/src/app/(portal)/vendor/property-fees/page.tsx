@@ -465,7 +465,15 @@ export default function VendorPropertyFeesPage() {
       );
   }
 
-  useEffect(() => { loadFees(); }, []);
+  useEffect(() => {
+    let active = true;
+    getVendorPropertyFees()
+      .then((data) => { if (active) setView({ kind: "ready", data }); })
+      .catch((e: unknown) => {
+        if (active) setView({ kind: "error", message: e instanceof Error ? e.message : "Failed to load fees." });
+      });
+    return () => { active = false; };
+  }, []);
 
   async function openPaymentModal(
     propertyId: string,

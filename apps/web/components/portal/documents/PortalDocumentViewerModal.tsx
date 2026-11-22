@@ -76,7 +76,7 @@ export function PortalDocumentViewerModal({
         ) : error ? (
           <div className="rounded-2xl border border-danger/30 bg-danger/10 p-5">
             <div className="text-sm font-semibold text-danger">
-              We couldn't preview this document.
+              We couldn&apos;t preview this document.
             </div>
             <div className="mt-1 text-sm text-danger/80">
               {error}
